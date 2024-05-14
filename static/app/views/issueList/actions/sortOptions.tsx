@@ -19,7 +19,7 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('When issue was flagged for review.');
     case IssueSortOptions.NEW:
       return t('First time the issue occurred.');
-    case IssueSortOptions.PRIORITY:
+    case IssueSortOptions.TRENDS:
       return t('Recent issues trending upward.');
     case IssueSortOptions.FREQ:
       return t('Number of events.');
@@ -37,7 +37,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.PRIORITY,
+    IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
@@ -51,6 +51,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
         label: getSortLabel(key),
         details: getSortTooltip(key),
       }))}
+      menuWidth={240}
       value={sortKey}
       triggerProps={{
         size: 'xs',

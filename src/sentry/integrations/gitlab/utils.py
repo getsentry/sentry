@@ -28,6 +28,7 @@ class GitLabApiClientPath:
     compare = "/projects/{project}/repository/compare"
     diff = "/projects/{project}/repository/commits/{sha}/diff"
     file = "/projects/{project}/repository/files/{path}"
+    file_raw = "/projects/{project}/repository/files/{path}/raw"
     group = "/groups/{group}"
     group_projects = "/groups/{group}/projects"
     hooks = "/hooks"

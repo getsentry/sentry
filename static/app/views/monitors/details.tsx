@@ -6,6 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -16,8 +17,8 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
+import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -30,7 +31,7 @@ import type {Monitor} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
-type Props = RouteComponentProps<{monitorSlug: string}, {}>;
+type Props = RouteComponentProps<{monitorSlug: string; projectId: string}, {}>;
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
@@ -42,11 +43,16 @@ function MonitorDetails({params, location}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, params.monitorSlug, {
-    ...location.query,
-  });
+  const queryKey = makeMonitorDetailsQueryKey(
+    organization,
+    params.projectId,
+    params.monitorSlug,
+    {
+      environment: location.query.environment,
+    }
+  );
 
-  const {data: monitor} = useApiQuery<Monitor>(queryKey, {
+  const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
     refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
@@ -74,12 +80,18 @@ function MonitorDetails({params, location}: Props) {
     if (monitor === undefined) {
       return;
     }
-    const resp = await updateMonitor(api, organization.slug, monitor.slug, data);
+    const resp = await updateMonitor(api, organization.slug, monitor, data);
 
     if (resp !== null) {
       onUpdate(resp);
     }
   };
+
+  if (isError) {
+    return (
+      <LoadingError message={t('The monitor you were looking for was not found.')} />
+    );
+  }
 
   if (!monitor) {
     return (
@@ -94,7 +106,11 @@ function MonitorDetails({params, location}: Props) {
   return (
     <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
       <Layout.Page>
-        <MonitorHeader monitor={monitor} orgId={organization.slug} onUpdate={onUpdate} />
+        <MonitorHeader
+          monitor={monitor}
+          orgSlug={organization.slug}
+          onUpdate={onUpdate}
+        />
         <Layout.Body>
           <Layout.Main>
             <StyledPageFilterBar condensed>
@@ -122,7 +138,7 @@ function MonitorDetails({params, location}: Props) {
               <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
-                <CronDetailsTimeline organization={organization} monitor={monitor} />
+                <DetailsTimeline organization={organization} monitor={monitor} />
                 <MonitorStats
                   orgSlug={organization.slug}
                   monitor={monitor}

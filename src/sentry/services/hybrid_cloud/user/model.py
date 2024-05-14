@@ -34,12 +34,13 @@ class RpcAuthenticator(RpcModel):
     config: Any = None
 
 
-class RpcUser(RpcModel):
+class RpcUserProfile(RpcModel):
+    """Minimal set of user attributes that can be fetched efficiently."""
+
     id: int = -1
     pk: int = -1
     name: str = ""
     email: str = ""
-    emails: frozenset[str] = frozenset()
     username: str = ""
     actor_id: int | None = None
     display_name: str = ""
@@ -55,9 +56,12 @@ class RpcUser(RpcModel):
     is_password_expired: bool = False
     session_nonce: str | None = None
 
+
+class RpcUser(RpcUserProfile):
     roles: frozenset[str] = frozenset()
     permissions: frozenset[str] = frozenset()
     avatar: RpcAvatar | None = None
+    emails: frozenset[str] = frozenset()
     useremails: list[RpcUserEmail] = Field(default_factory=list)
     authenticators: list[RpcAuthenticator] = Field(default_factory=list)
 
@@ -67,7 +71,7 @@ class RpcUser(RpcModel):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def __str__(self):  # API compatibility with ORM User
+    def __str__(self) -> str:  # API compatibility with ORM User
         return self.get_username()
 
     def by_email(self, email: str) -> "RpcUser":
@@ -127,12 +131,25 @@ class UserSerializeType(IntEnum):  # annoying
 
 class UserFilterArgs(TypedDict, total=False):
     user_ids: list[int]
+    """List of user ids to search with"""
+
     is_active: bool
+    """Whether the user needs to be active"""
+
     organization_id: int
+    """Organization to check membership in"""
+
     emails: list[str]
+    """list of emails to match with"""
+
     email_verified: bool
+    """Whether emails have to be verified or not"""
+
     query: str
+    """Filter by email or name"""
+
     authenticator_types: list[int] | None
+    """The type of MFA authenticator you want to query by"""
 
 
 class UserUpdateArgs(TypedDict, total=False):

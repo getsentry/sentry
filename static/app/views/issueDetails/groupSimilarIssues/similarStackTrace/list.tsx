@@ -10,7 +10,8 @@ import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import Item from './item';
@@ -59,6 +60,12 @@ function List({
     'similarity-embeddings'
   );
   const organization = useOrganization();
+  const itemsWouldGroup = hasSimilarityEmbeddingsFeature
+    ? itemsWithFiltered.map(item => ({
+        id: item.issue.id,
+        shouldBeGrouped: item.aggregate?.shouldBeGrouped,
+      }))
+    : undefined;
 
   if (!hasResults) {
     return <Empty />;
@@ -72,7 +79,7 @@ function List({
         </Header>
       )}
       {hasSimilarityEmbeddingsFeature && (
-        <LegendSmall>0 = Not Similar, 1 = Similar</LegendSmall>
+        <LegendSmall>-1 = Not Similar, 1 = Similar</LegendSmall>
       )}
       <Panel>
         <Toolbar
@@ -80,6 +87,7 @@ function List({
           groupId={groupId}
           project={project}
           organization={organization}
+          itemsWouldGroup={itemsWouldGroup}
         />
 
         <PanelBody>

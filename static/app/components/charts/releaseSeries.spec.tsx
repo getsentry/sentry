@@ -163,7 +163,7 @@ describe('ReleaseSeries', function () {
     );
   });
 
-  it('fetches on property updates', function () {
+  it('fetches on property updates', async function () {
     const wrapper = render(
       <ReleaseSeries {...baseSeriesProps} period="14d">
         {renderFunc}
@@ -186,9 +186,11 @@ describe('ReleaseSeries', function () {
 
       expect(releasesMock).toHaveBeenCalled();
     }
+
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });
 
-  it('doesnt not refetch releases with memoize enabled', function () {
+  it('doesnt not refetch releases with memoize enabled', async function () {
     const originalPeriod = '14d';
     const updatedPeriod = '7d';
     const wrapper = render(
@@ -197,7 +199,7 @@ describe('ReleaseSeries', function () {
       </ReleaseSeries>
     );
 
-    expect(releasesMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
 
     wrapper.rerender(
       <ReleaseSeries {...baseSeriesProps} period={updatedPeriod} memoized>
@@ -205,7 +207,7 @@ describe('ReleaseSeries', function () {
       </ReleaseSeries>
     );
 
-    expect(releasesMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
 
     wrapper.rerender(
       <ReleaseSeries {...baseSeriesProps} period={originalPeriod} memoized>
@@ -213,7 +215,7 @@ describe('ReleaseSeries', function () {
       </ReleaseSeries>
     );
 
-    expect(releasesMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
   });
 
   it('generates an eCharts `markLine` series from releases', async function () {

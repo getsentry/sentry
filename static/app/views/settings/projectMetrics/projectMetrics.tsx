@@ -1,22 +1,22 @@
 import {Fragment, useMemo, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, Organization, Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
@@ -25,7 +25,7 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -39,7 +39,7 @@ type Props = {
 
 enum BlockingStatusTab {
   ACTIVE = 'active',
-  BLOCKED = 'blocked',
+  DISABLED = 'disabled',
 }
 
 function ProjectMetrics({project, location}: Props) {
@@ -117,7 +117,7 @@ function ProjectMetrics({project, location}: Props) {
       <Tabs value={selectedTab} onChange={setSelectedTab}>
         <TabList>
           <TabList.Item key={BlockingStatusTab.ACTIVE}>{t('Active')}</TabList.Item>
-          <TabList.Item key={BlockingStatusTab.BLOCKED}>{t('Blocked')}</TabList.Item>
+          <TabList.Item key={BlockingStatusTab.DISABLED}>{t('Disabled')}</TabList.Item>
         </TabList>
         <TabPanelsWrapper>
           <TabPanels.Item key={BlockingStatusTab.ACTIVE}>
@@ -130,7 +130,7 @@ function ProjectMetrics({project, location}: Props) {
               project={project}
             />
           </TabPanels.Item>
-          <TabPanels.Item key={BlockingStatusTab.BLOCKED}>
+          <TabPanels.Item key={BlockingStatusTab.DISABLED}>
             <MetricsTable
               metrics={metrics.filter(({blockingStatus}) => blockingStatus[0]?.isBlocked)}
               isLoading={isLoading}
@@ -203,14 +203,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
                 hasAccess={hasAccess}
                 disabled={blockMetricMutation.isLoading}
                 isBlocked={isBlocked}
-                aria-label={t('Block Metric')}
-                message={
-                  isBlocked
-                    ? t('Are you sure you want to unblock this metric?')
-                    : t(
-                        'Are you sure you want to block this metric? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
-                      )
-                }
+                blockTarget="metric"
                 onConfirm={() => {
                   blockMetricMutation.mutate({
                     mri,
@@ -236,7 +229,6 @@ const SearchWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr repeat(3, minmax(115px, min-content));
-
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

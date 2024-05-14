@@ -6,6 +6,7 @@ from unittest import mock
 from unittest.mock import patch
 from urllib.parse import quote
 
+import orjson
 import pytest
 import responses
 from requests.exceptions import ConnectionError
@@ -22,7 +23,6 @@ from sentry.models.integrations import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 GITLAB_CODEOWNERS = {
@@ -105,7 +105,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_response_call(responses_calls[1], self.refresh_url, 200)
         self.assert_response_call(responses_calls[2], self.request_url, 200)
 
-        assert json.loads(responses_calls[2].response.text) == self.request_data
+        assert orjson.loads(responses_calls[2].response.text) == self.request_data
 
     def assert_identity_was_refreshed(self):
         data = self.gitlab_client.identity.data
@@ -211,17 +211,13 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
         responses.add(
             method=responses.GET,
-            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS/raw?ref=master",
             body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
 
-        assert (
-            responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
-        )
-        assert responses.calls[0].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITLAB_CODEOWNERS
 
     @responses.activate
@@ -230,11 +226,11 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
         resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
-        assert resp == json.loads(GET_COMMIT_RESPONSE)
+        assert resp == orjson.loads(GET_COMMIT_RESPONSE)
 
     @responses.activate
     def test_get_rate_limit_info_from_response(self):
@@ -295,28 +291,28 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             lineno=10,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=15,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_4 = SourceLineInfo(
             path="src/sentry/integrations/github/client_3.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.blame_1 = FileBlameInfo(
             **asdict(self.file_1),
@@ -625,9 +621,11 @@ class GitLabUnhappyPathTest(GitLabClientTest):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             body=ConnectionError("Unable to reach host: https://example.gitlab.com"),
         )
-        with self.feature(
-            {"organizations:gitlab-disable-on-broken": True}
-        ), outbox_runner(), pytest.raises(ApiHostError):
+        with (
+            self.feature({"organizations:gitlab-disable-on-broken": True}),
+            outbox_runner(),
+            pytest.raises(ApiHostError),
+        ):
             self.gitlab_client.check_file(self.repo, path, ref)
 
         # Assert integration is disabled.

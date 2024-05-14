@@ -8,8 +8,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupStatus} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {GroupStatus} from 'sentry/types/group';
 
 interface Props
   extends Pick<
@@ -25,9 +24,6 @@ export default function FeedbackListBulkSelection({
   selectedIds,
   deselectAll,
 }: Props) {
-  const organization = useOrganization();
-  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
-
   const {onToggleResovled, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
     selectedIds,
     deselectAll,
@@ -55,20 +51,18 @@ export default function FeedbackListBulkSelection({
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
         </ErrorBoundary>
-        {hasSpamFeature && (
-          <ErrorBoundary mini>
-            <Button
-              onClick={() =>
-                onToggleResovled({
-                  newMailbox: newMailboxSpam,
-                  moveToInbox: mailbox === 'ignored',
-                })
-              }
-            >
-              {mailbox === 'ignored' ? t('Move to inbox') : t('Mark as Spam')}
-            </Button>
-          </ErrorBoundary>
-        )}
+        <ErrorBoundary mini>
+          <Button
+            onClick={() =>
+              onToggleResovled({
+                newMailbox: newMailboxSpam,
+                moveToInbox: mailbox === 'ignored',
+              })
+            }
+          >
+            {mailbox === 'ignored' ? t('Move to inbox') : t('Mark as Spam')}
+          </Button>
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <DropdownMenu
             position="bottom-end"

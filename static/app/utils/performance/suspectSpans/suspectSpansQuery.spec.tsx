@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
@@ -24,7 +24,7 @@ describe('SuspectSpansQuery', function () {
     };
   });
 
-  it('fetches data on mount', function () {
+  it('fetches data on mount', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -42,10 +42,10 @@ describe('SuspectSpansQuery', function () {
       </SuspectSpansQuery>
     );
 
-    expect(getMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 
-  it('fetches data with the right op filter', function () {
+  it('fetches data with the right op filter', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -64,10 +64,10 @@ describe('SuspectSpansQuery', function () {
       </SuspectSpansQuery>
     );
 
-    expect(getMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 
-  it('fetches data with the right group filter', function () {
+  it('fetches data with the right group filter', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -86,10 +86,10 @@ describe('SuspectSpansQuery', function () {
       </SuspectSpansQuery>
     );
 
-    expect(getMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 
-  it('fetches data with the right per suspect param', function () {
+  it('fetches data with the right per suspect param', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-spans-performance/',
       // just asserting that the data is being fetched, no need for actual data here
@@ -108,6 +108,6 @@ describe('SuspectSpansQuery', function () {
       </SuspectSpansQuery>
     );
 
-    expect(getMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
   });
 });

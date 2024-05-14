@@ -98,6 +98,7 @@ function Line({
       case 'objc':
       case 'cocoa':
       case 'native':
+      case 'nintendo-switch':
         return (
           <Native
             event={event}
@@ -164,6 +165,7 @@ function Line({
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
+        platform={platform}
       />
     </StyleListItem>
   );

@@ -7,11 +7,12 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[quart]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[quart]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -44,7 +45,7 @@ const onboarding: OnboardingConfig = {
     tct('The Quart integration adds support for the [link:Quart Web Framework].', {
       link: <ExternalLink href="https://quart.palletsprojects.com/" />,
     }),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -56,6 +57,15 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                {
+                  codeVersion: <code />,
+                  codePackage: <code />,
+                }
+              )
+            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -131,6 +141,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

@@ -1,7 +1,8 @@
+from django.utils.functional import cached_property
+
 from sentry.interfaces.base import Interface
 from sentry.security import csp
 from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.web.helpers import render_to_string
 
 __all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
@@ -179,11 +180,11 @@ class Csp(SecurityReport):
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )
 
-    @memoize
+    @cached_property
     def normalized_blocked_uri(self):
         return csp.normalize_value(self.blocked_uri)
 
-    @memoize
+    @cached_property
     def local_script_violation_type(self):
         """
         If this is a locally-sourced script-src error, gives the type.

@@ -4,13 +4,8 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleTrigger,
-    Incident,
-    IncidentStatus,
-    TriggerStatus,
-)
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
+from sentry.incidents.models.incident import Incident, IncidentStatus, TriggerStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User

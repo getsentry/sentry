@@ -13,7 +13,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.options import override_options
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -88,7 +88,6 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
-@region_silo_test
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -299,7 +298,6 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
-@region_silo_test
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
     def org(self):
@@ -398,9 +396,12 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
     def test_integration_token_needs_elevated_permissions(self):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.org, scopes=["org:read"]
+        )
         # Integration tokens with org:read should generate an access request when open membership is off
         integration_token = self.create_internal_integration_token(
-            user=self.user, org=self.org, scopes=["org:read"]
+            user=self.user, internal_integration=internal_integration
         )
 
         self.get_success_response(
@@ -439,7 +440,6 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester_id == self.member.user_id
 
 
-@region_silo_test
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -584,7 +584,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_remove_member(self):
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
@@ -598,7 +598,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_write_can_remove_member(self):
         superuser = self.create_user(is_superuser=True)
         self.add_user_permission(superuser, "superuser.write")
@@ -757,7 +757,6 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
-@region_silo_test
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -786,7 +785,6 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
-@region_silo_test
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"
@@ -861,7 +859,8 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             )
             assert updated_omt.role == "admin"
 
-    @with_feature({"organizations:team-roles": True, "auth:enterprise-superuser-read-write": True})
+    @with_feature("organizations:team-roles")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_read_cannot_promote_member(self):
         superuser = self.create_user(is_superuser=True)
@@ -873,7 +872,8 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert resp.status_code == 400
         assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
 
-    @with_feature({"organizations:team-roles": True, "auth:enterprise-superuser-read-write": True})
+    @with_feature("organizations:team-roles")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_write_can_promote_member(self):
         superuser = self.create_user(is_superuser=True)
@@ -918,24 +918,4 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=other_member
         )
         assert target_omt.role is None
-
-    @with_feature("organizations:team-roles")
-    def test_member_on_owner_team_can_promote_member(self):
-        owner_team = self.create_team(org_role="owner")
-        member = self.create_member(
-            organization=self.org,
-            user=self.create_user(),
-            role="member",
-            teams=[owner_team],
-        )
-
-        self.login_as(member)
-        resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
-        )
-        assert resp.status_code == 200
-
-        updated_omt = OrganizationMemberTeam.objects.get(
-            team=self.team, organizationmember=self.member_on_team
-        )
-        assert updated_omt.role == "admin"
+        assert target_omt.role is None

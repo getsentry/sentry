@@ -6,7 +6,6 @@ from typing import Any
 
 import sentry_sdk
 from django.db import connection
-from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
@@ -19,7 +18,7 @@ from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -84,7 +83,7 @@ def pr_to_issue_query(pr_id: int):
                 pr.organization_id org_id,
                 array_agg(go.group_id ORDER BY go.date_added) issues
             FROM sentry_groupowner go
-            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::int
+            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::bigint
             JOIN sentry_pull_request pr ON c.pull_request_id = pr.id
             WHERE go.type=0
             AND pr.id={pr_id}
@@ -113,6 +112,7 @@ def get_top_5_issues_by_count(issue_list: list[int], project: Project) -> list[d
                     Condition(Column("group_id"), Op.IN, issue_list),
                     Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
                     Condition(Column("timestamp"), Op.LT, datetime.now()),
+                    Condition(Column("level"), Op.NEQ, "info"),
                 ]
             )
             .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
@@ -167,15 +167,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         return
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
+    if not top_5_issues:
+        logger.info(
+            "github.pr_comment.no_issues",
+            extra={"organization_id": org_id, "pr_id": pullrequest_id},
+        )
+        cache.delete(cache_key)
+        return
+
     top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
-    logger.info(
-        "github.pr_comment.top_5_issues",
-        extra={
-            "top_5_issue_ids": top_5_issue_ids,
-            "issue_list": issue_list,
-            "pr_id": pullrequest_id,
-        },
-    )
 
     issue_comment_contents = get_comment_contents(top_5_issue_ids)
 
@@ -240,7 +240,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_reactions", silo_mode=SiloMode.REGION
 )
-@monitor(monitor_slug="github_comment_reactions_test")
 def github_comment_reactions():
     logger.info("github.pr_comment.reactions_task")
 

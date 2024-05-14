@@ -3,7 +3,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {ReleasesProvider, useReleases} from 'sentry/utils/releases/releasesProvider';
 
 function TestComponent({other}: {other: string}) {
@@ -11,9 +11,7 @@ function TestComponent({other}: {other: string}) {
   return (
     <div>
       <span>{other}</span>
-      {releases?.map(release => (
-        <em key={release.version}>{release.version}</em>
-      ))}
+      {releases?.map(release => <em key={release.version}>{release.version}</em>)}
       {`loading: ${loading}`}
     </div>
   );

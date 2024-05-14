@@ -24,7 +24,7 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     OptionManager,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentryOrgSlugField
@@ -33,14 +33,11 @@ from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory
-from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user import RpcUser, RpcUserProfile
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
@@ -135,11 +132,6 @@ class OrganizationManager(BaseManager["Organization"]):
         The default top priority role in Sentry is owner.
         """
 
-        orgs = Organization.objects.filter(
-            member_set__user_id=user_id,
-            status=OrganizationStatus.ACTIVE,
-        )
-
         # get owners from orgs
         owner_role_orgs = Organization.objects.filter(
             member_set__user_id=user_id,
@@ -147,21 +139,10 @@ class OrganizationManager(BaseManager["Organization"]):
             member_set__role=roles.get_top_dog().id,
         )
 
-        # get owner teams
-        owner_teams = Team.objects.filter(
-            organization__in=orgs, org_role=roles.get_top_dog().id
-        ).values_list("id", flat=True)
-
-        # get the orgs in which the user is a member of an owner team
-        owner_team_member_orgs = OrganizationMemberTeam.objects.filter(
-            team_id__in=owner_teams
-        ).values_list("organizationmember__organization_id", flat=True)
-
-        # use .union() (UNION) as opposed to | (OR) because it's faster
-        return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
+        return owner_role_orgs
 
 
-@region_silo_only_model
+@region_silo_model
 class Organization(
     ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin
 ):
@@ -274,7 +255,7 @@ class Organization(
 
     def delete(self, **kwargs):
         if self.is_default:
-            raise Exception("You cannot delete the the default organization.")
+            raise Exception("You cannot delete the default organization.")
         return super().delete(**kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
@@ -348,6 +329,61 @@ class Organization(
             self._default_owner_id = owners[0].id
         return self._default_owner_id
 
+    @classmethod
+    def _get_bulk_owner_ids(cls, organizations: Collection[Organization]) -> dict[int, int]:
+        """Find user IDs of the default owners of multiple organization.
+
+        The returned table maps organization ID to user ID.
+        """
+        from sentry.models.organizationmember import OrganizationMember
+
+        owner_id_table: dict[int, int] = {}
+        org_ids_to_query: list[int] = []
+        for org in organizations:
+            default_owner = getattr(org, "_default_owner", None)
+            if default_owner and default_owner.id is not None:
+                owner_id_table[org.id] = default_owner.id
+            else:
+                org_ids_to_query.append(org.id)
+
+        if org_ids_to_query:
+            queried_owner_ids = OrganizationMember.objects.filter(
+                organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
+            ).values_list("organization_id", "user_id")
+
+            for (org_id, user_id) in queried_owner_ids:
+                # An org may have multiple owners. Here we mimic the behavior of
+                # `get_default_owner`, which is to use the first one in the query
+                # result's iteration order.
+                if (user_id is not None) and (org_id not in owner_id_table):
+                    owner_id_table[org_id] = user_id
+
+        return owner_id_table
+
+    @classmethod
+    def get_bulk_owner_profiles(
+        cls, organizations: Collection[Organization]
+    ) -> dict[int, RpcUserProfile]:
+        """Query for profile data of owners of multiple organizations.
+
+        The returned table is keyed by organization ID and shows the default owner.
+        An organization may have multiple owners, in which case only the default
+        owner is shown. Organization IDs may be absent from the returned table if no
+        owner was found.
+        """
+
+        owner_id_table = cls._get_bulk_owner_ids(organizations)
+        owner_ids = list(owner_id_table.values())
+
+        profiles = user_service.get_many_profiles(filter=dict(user_ids=owner_ids))
+        profile_table = {c.id: c for c in profiles}
+
+        return {
+            org_id: profile_table[user_id]
+            for (org_id, user_id) in owner_id_table.items()
+            if user_id in profile_table
+        }
+
     def has_single_owner(self):
         owners = list(
             self.get_members_with_org_roles([roles.get_top_dog().id])[:2].values_list(
@@ -361,28 +397,12 @@ class Organization(
         roles: Collection[str],
         include_null_users: bool = False,
     ):
-        members_with_role_query = self.member_set.filter(role__in=roles)
+        members_with_role = self.member_set.filter(role__in=roles)
         if not include_null_users:
-            user_ids = members_with_role_query.filter(
-                user_id__isnull=False, user_is_active=True
-            ).values_list("user_id", flat=True)
-            members_with_role_query = members_with_role_query.filter(user_id__in=user_ids)
-
-        members_with_role = set(members_with_role_query.values_list("id", flat=True))
-
-        teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
-
-        # may be empty
-        members_on_teams_with_role = set(
-            OrganizationMemberTeam.objects.filter(team_id__in=teams_with_org_role).values_list(
-                "organizationmember__id", flat=True
-            )
-        )
+            members_with_role = members_with_role.filter(user_id__isnull=False, user_is_active=True)
 
         # use union of sets because a subset may be empty
-        return OrganizationMember.objects.filter(
-            id__in=members_with_role.union(members_on_teams_with_role)
-        )
+        return members_with_role
 
     @property
     def option_manager(self) -> OptionManager:
@@ -454,11 +474,3 @@ class Organization(
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
-
-    def get_teams_with_org_roles(self, roles: Collection[str] | None) -> QuerySet:
-        from sentry.models.team import Team
-
-        if roles is not None:
-            return Team.objects.filter(org_role__in=roles, organization=self)
-
-        return Team.objects.filter(organization=self).exclude(org_role=None)

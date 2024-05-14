@@ -1,4 +1,3 @@
-import dataclasses
 import functools
 import threading
 from collections.abc import Callable
@@ -7,12 +6,9 @@ from typing import Any, ContextManager
 from unittest.mock import call, patch
 
 import pytest
-import responses
-from django.conf import settings
 from django.db import connections
 from django.test import RequestFactory
 from pytest import raises
-from rest_framework import status
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -24,23 +20,16 @@ from sentry.models.outbox import (
     OutboxFlushError,
     OutboxScope,
     RegionOutbox,
-    WebhookProviderIdentifier,
     outbox_context,
 )
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    assume_test_silo_mode_of,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, get_local_region
 
 
@@ -73,8 +62,20 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
+    def test_skip_shards(self):
+        with self.options({"hybrid_cloud.authentication.disabled_user_shards": [100]}):
+            assert ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+            ).should_skip_shard()
+            assert not ControlOutbox(
+                shard_scope=OutboxScope.USER_SCOPE, shard_identifier=101
+            ).should_skip_shard()
+
+        assert not ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=100
+        ).should_skip_shard()
+
     def test_control_sharding_keys(self):
-        request = RequestFactory().get("/extensions/slack/webhook/")
         with assume_test_silo_mode(SiloMode.REGION):
             org = Factories.create_organization()
 
@@ -103,20 +104,6 @@ class ControlOutboxTest(TestCase):
             for inst in User.outboxes_for_user_update(user2.id):
                 inst.save()
 
-            for inst in ControlOutbox.for_webhook_update(
-                shard_identifier=WebhookProviderIdentifier.SLACK,
-                region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
-                request=request,
-            ):
-                inst.save()
-
-            for inst in ControlOutbox.for_webhook_update(
-                shard_identifier=WebhookProviderIdentifier.GITHUB,
-                region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
-                request=request,
-            ):
-                inst.save()
-
         shards = {
             (row["shard_scope"], row["shard_identifier"], row["region_name"])
             for row in ControlOutbox.find_scheduled_shards()
@@ -125,26 +112,6 @@ class ControlOutboxTest(TestCase):
         assert shards == {
             (OutboxScope.USER_SCOPE.value, user1.id, expected_region_name),
             (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
-            (
-                OutboxScope.WEBHOOK_SCOPE.value,
-                WebhookProviderIdentifier.SLACK,
-                settings.SENTRY_MONOLITH_REGION,
-            ),
-            (
-                OutboxScope.WEBHOOK_SCOPE.value,
-                WebhookProviderIdentifier.GITHUB,
-                settings.SENTRY_MONOLITH_REGION,
-            ),
-            (
-                OutboxScope.WEBHOOK_SCOPE.value,
-                WebhookProviderIdentifier.SLACK,
-                "special-slack-region",
-            ),
-            (
-                OutboxScope.WEBHOOK_SCOPE.value,
-                WebhookProviderIdentifier.GITHUB,
-                "special-github-region",
-            ),
         }
 
     def test_prepare_next_from_shard_no_conflict_with_processing(self):
@@ -178,92 +145,33 @@ class ControlOutboxTest(TestCase):
                 t.start()
                 t.join()
 
-    def test_control_outbox_for_webhooks(self):
-        [outbox] = ControlOutbox.for_webhook_update(
-            shard_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=["webhook-region"],
-            request=self.webhook_request,
-        )
-        assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-        assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB
-        assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-        assert outbox.region_name == "webhook-region"
 
-        payload_from_request = outbox.get_webhook_payload_from_request(self.webhook_request)
-        assert outbox.payload == dataclasses.asdict(payload_from_request)
-        payload_from_outbox = outbox.get_webhook_payload_from_outbox(outbox.payload)
-        assert payload_from_request == payload_from_outbox
-
-        assert outbox.payload["method"] == "POST"
-        assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
-        assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/?query=test"
-        # Request factory expects transformed headers, but the outbox stores raw headers
-        assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
-        assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
-
-        # After saving, data shouldn't mutate
-        with outbox_context(flush=False):
-            outbox.save()
-        outbox = ControlOutbox.objects.all().first()
-        assert outbox.payload["method"] == "POST"
-        assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
-        assert outbox.payload["uri"] == "http://testserver/extensions/github/webhook/?query=test"
-        # Request factory expects transformed headers, but the outbox stores raw headers
-        assert outbox.payload["headers"]["X-Github-Emoticon"] == ">:^]"
-        assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
-
-    @responses.activate
-    def test_drains_successful_success(self):
-        with override_regions(self.region_config):
-            mock_response = responses.add(
-                self.webhook_request.method,
-                f"{self.region.address}{self.webhook_request.path}",
-                status=status.HTTP_200_OK,
-            )
-            expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
-            [outbox] = ControlOutbox.for_webhook_update(
-                shard_identifier=WebhookProviderIdentifier.GITHUB,
-                region_names=[self.region.name],
-                request=self.webhook_request,
-            )
-            with outbox_context(flush=False):
-                outbox.save()
-
-            assert ControlOutbox.objects.filter(id=outbox.id).exists()
-            outbox.drain_shard()
-            assert mock_response.call_count == expected_request_count
-            assert not ControlOutbox.objects.filter(id=outbox.id).exists()
-
-    @responses.activate
-    def test_drains_webhook_failure(self):
-        with override_regions(self.region_config):
-            mock_response = responses.add(
-                self.webhook_request.method,
-                f"{self.region.address}{self.webhook_request.path}",
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-            [outbox] = ControlOutbox.for_webhook_update(
-                shard_identifier=WebhookProviderIdentifier.GITHUB,
-                region_names=[self.region.name],
-                request=self.webhook_request,
-            )
-            with outbox_context(flush=False):
-                outbox.save()
-
-            assert ControlOutbox.objects.filter(id=outbox.id).exists()
-            if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                with raises(OutboxFlushError):
-                    outbox.drain_shard()
-                assert mock_response.call_count == 1
-                assert ControlOutbox.objects.filter(id=outbox.id).exists()
-            else:
-                outbox.drain_shard()
-                assert mock_response.call_count == 0
-                assert not ControlOutbox.objects.filter(id=outbox.id).exists()
-
-
-@region_silo_test
 class OutboxDrainTest(TransactionTestCase):
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_draining_with_disabled_shards(self, mock_send):
+        outbox1 = Organization(id=1).outbox_for_update()
+        outbox2 = Organization(id=1).outbox_for_update()
+        outbox3 = Organization(id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+            outbox3.save()
+
+        with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [1]}):
+            outbox1.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox1.refresh_from_db()
+            outbox2.refresh_from_db()  # still exists
+
+            assert mock_send.call_count == 0
+
+            outbox3.drain_shard()
+            with pytest.raises(RegionOutbox.DoesNotExist):
+                outbox3.refresh_from_db()
+
+            assert mock_send.call_count == 1
+
     def test_drain_shard_not_flush_all__upper_bound(self):
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -396,7 +304,6 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_region_outbox.call_count == 2
 
 
-@region_silo_test
 class RegionOutboxTest(TestCase):
     def test_creating_org_outboxes(self):
         with outbox_context(flush=False):
@@ -408,6 +315,13 @@ class RegionOutboxTest(TestCase):
             # drain outboxes
             pass
         assert RegionOutbox.objects.count() == 0
+
+    def test_skip_shards(self):
+        with self.options({"hybrid_cloud.authentication.disabled_organization_shards": [100]}):
+            assert Organization(id=100).outbox_for_update().should_skip_shard()
+            assert not Organization(id=101).outbox_for_update().should_skip_shard()
+
+        assert not Organization(id=100).outbox_for_update().should_skip_shard()
 
     @patch("sentry.models.outbox.metrics")
     def test_concurrent_coalesced_object_processing(self, mock_metrics):
@@ -606,7 +520,6 @@ class RegionOutboxTest(TestCase):
             assert RegionOutbox.objects.count() == 0
 
 
-@region_silo_test
 class TestOutboxesManager(TestCase):
     def test_bulk_operations(self):
         org = self.create_organization()

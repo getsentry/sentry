@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal, overload
 
 import sentry_sdk
 from snuba_sdk import Column
@@ -17,11 +17,11 @@ from sentry.search.events.builder import (
     TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
@@ -87,10 +87,11 @@ def query(
         return results
 
 
+@overload
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
     queries: list[str],
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -102,7 +103,49 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
-    apply_formatting: bool | None = True,
+    *,
+    apply_formatting: Literal[False],
+) -> EventsResponse:
+    ...
+
+
+@overload
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: list[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+) -> SnubaTSResult:
+    ...
+
+
+def bulk_timeseries_query(
+    selected_columns: Sequence[str],
+    queries: list[str],
+    params: ParamsType,
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+    *,
+    apply_formatting: bool = True,
 ) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
@@ -134,7 +177,7 @@ def bulk_timeseries_query(
                 metrics_queries.append(snql_query[0])
 
             metrics_referrer = referrer + ".metrics-enhanced"
-            bulk_result = bulk_snql_query(metrics_queries, metrics_referrer)
+            bulk_result = bulk_snuba_queries(metrics_queries, metrics_referrer)
             _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
@@ -178,9 +221,11 @@ def bulk_timeseries_query(
             )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else [],
+            "data": (
+                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else []
+            ),
         },
         params["start"],
         params["end"],
@@ -191,7 +236,7 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, Any],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -211,7 +256,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: dict[str, Any]):
+    def run_metrics_query(inner_params: ParamsType):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 inner_params,
@@ -317,9 +362,11 @@ def timeseries_query(
     # In case the query was not compatible with metrics we return empty data.
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else [],
+            "data": (
+                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else []
+            ),
         },
         params["start"],
         params["end"],
@@ -392,7 +439,7 @@ def top_events_timeseries(
             ),
         )
 
-        # TODO: use bulk_snql_query
+        # TODO: use bulk_snuba_queries
         other_result = other_events_builder.run_query(referrer)
         result = top_events_builder.run_query(referrer)
     else:
@@ -405,9 +452,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -439,11 +488,11 @@ def top_events_timeseries(
     for key, item in results.items():
         results[key] = SnubaTSResult(
             {
-                "data": discover.zerofill(
-                    item["data"], params["start"], params["end"], rollup, "time"
-                )
-                if zerofill_results
-                else item["data"],
+                "data": (
+                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else item["data"]
+                ),
                 "order": item["order"],
                 # One of the queries in the builder has required, thus, we mark all of them
                 # This could mislead downstream consumers of the meta data

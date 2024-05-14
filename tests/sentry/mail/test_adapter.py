@@ -2,7 +2,7 @@ import uuid
 import zoneinfo
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest import mock
 from unittest.mock import ANY
@@ -11,13 +11,13 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import MonitorCheckInFailure
+from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
@@ -42,16 +42,15 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
-from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
@@ -77,7 +76,6 @@ class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
 
-@region_silo_test
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
     def test_get_sendable_user_objects(self):
         user = self.create_user(email="foo@example.com", is_active=True)
@@ -143,7 +141,6 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
         assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
 
 
-@region_silo_test
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
     def test_default_prefix(self):
         assert build_subject_prefix(self.project) == "[Sentry]"
@@ -156,7 +153,6 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
         assert build_subject_prefix(self.project) == prefix
 
 
-@region_silo_test
 class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.analytics.record")
     def test_simple_notification(self, mock_record):
@@ -332,15 +328,15 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            MonitorIncidentType,
+            timezone.now(),
             "info",
             "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = MonitorCheckInFailure.type_id
+        event.group.type = MonitorIncidentType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -388,15 +384,15 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            MonitorIncidentType,
+            timezone.now(),
             "info",
             "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = MonitorCheckInFailure.type_id
+        event.group.type = MonitorIncidentType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -509,9 +505,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        recipient_context = notification.get_recipient_context(
-            RpcActor.from_orm_user(self.user), {}
-        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
@@ -661,8 +655,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         """
         from django.template.defaultfilters import date
 
-        timestamp = datetime.now(tz=timezone.utc)
-        local_timestamp_s = django_timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
+        timestamp = timezone.now()
+        local_timestamp_s = timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -699,10 +693,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = AlertRuleNotification(
             Notification(event=event), ActionTargetType.ISSUE_OWNERS
         )
-        recipient_context = notification.get_recipient_context(
-            RpcActor.from_orm_user(self.user), {}
-        )
-        assert recipient_context["timezone"] == timezone.utc
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["timezone"] == UTC
 
     def test_context_invalid_timezone_empty_string(self):
         self._test_invalid_timezone("")
@@ -913,7 +905,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
 
 
-@region_silo_test
 class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
     def create_assert_delete_projectownership(
         self,
@@ -946,8 +937,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
         self.create_member(user=user2, organization=organization, teams=[team])
         self.group = self.create_group(
-            first_seen=django_timezone.now(),
-            last_seen=django_timezone.now(),
+            first_seen=timezone.now(),
+            last_seen=timezone.now(),
             project=project,
             message="hello  world",
             logger="root",
@@ -1350,20 +1341,18 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         assert "Regressed issue" in msg.alternatives[0][0]
 
 
-@region_silo_test
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
     def test_get_digest_subject(self):
         assert (
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 Counter({mock.sentinel.group: 3}),
-                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone.utc),
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=UTC),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
 
 
-@region_silo_test
 class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
@@ -1718,7 +1707,6 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert len(mail.outbox) == 0
 
 
-@region_silo_test
 class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.logger")
     def test_normal(self, mock_logger):
@@ -1798,7 +1786,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
             )
 
 
-@region_silo_test
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1888,7 +1875,6 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         assert "notification_uuid" in msg.body
 
 
-@region_silo_test
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")

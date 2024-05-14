@@ -13,16 +13,15 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import ActivityTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
-@region_silo_test
 class ReleaseTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()
@@ -133,9 +132,9 @@ class ReleaseTestCase(ActivityTestCase):
             )
         )
         assert participants == {
-            (RpcActor.from_orm_user(self.user1), GroupSubscriptionReason.committed),
-            (RpcActor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
-            (RpcActor.from_orm_user(self.user5), GroupSubscriptionReason.committed),
+            (Actor.from_orm_user(self.user1), GroupSubscriptionReason.committed),
+            (Actor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
+            (Actor.from_orm_user(self.user5), GroupSubscriptionReason.committed),
         }
 
         context = email.get_context()
@@ -149,7 +148,7 @@ class ReleaseTestCase(ActivityTestCase):
             (self.commit1, user_service.get_user(user_id=self.user1.id)),
         ]
 
-        user_context = email.get_recipient_context(RpcActor.from_orm_user(self.user1), {})
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -200,14 +199,14 @@ class ReleaseTestCase(ActivityTestCase):
             )
         )
         assert participants == {
-            (RpcActor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting)
+            (Actor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting)
         }
 
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_recipient_context(RpcActor.from_orm_user(self.user1), {})
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -254,15 +253,15 @@ class ReleaseTestCase(ActivityTestCase):
         )
         assert len(participants) == 2
         assert participants == {
-            (RpcActor.from_orm_user(user6), GroupSubscriptionReason.deploy_setting),
-            (RpcActor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
+            (Actor.from_orm_user(user6), GroupSubscriptionReason.deploy_setting),
+            (Actor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
         }
 
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_recipient_context(RpcActor.from_orm_user(user6), {})
+        user_context = email.get_recipient_context(Actor.from_orm_user(user6), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project

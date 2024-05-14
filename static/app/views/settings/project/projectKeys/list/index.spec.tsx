@@ -183,6 +183,7 @@ describe('ProjectKeys', function () {
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           cdn: '',
           unreal: '',
+          crons: '',
         },
         dateCreated: '2018-02-28T07:13:51.087Z',
         public: '188ee45a58094d939428d8585aa6f662',

@@ -6,7 +6,7 @@ import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
@@ -158,13 +158,15 @@ describe('IssueList -> Polling', function () {
   it('toggles polling for new issues', async function () {
     await renderComponent();
 
-    expect(issuesRequest).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        // Should be called with default query
-        data: expect.stringContaining('is%3Aunresolved'),
-      })
-    );
+    await waitFor(() => {
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('is%3Aunresolved'),
+        })
+      );
+    });
 
     // Enable realtime updates
     await userEvent.click(
@@ -198,7 +200,9 @@ describe('IssueList -> Polling', function () {
     });
 
     await renderComponent();
-    expect(screen.getByText(textWithMarkupMatcher('1-1 of 1'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(textWithMarkupMatcher('1-1 of 1'))
+    ).toBeInTheDocument();
 
     // Enable realtime updates
     await userEvent.click(
@@ -226,7 +230,7 @@ describe('IssueList -> Polling', function () {
 
     // Enable real time control
     await userEvent.click(
-      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
       {delay: null}
     );
 
@@ -248,7 +252,7 @@ describe('IssueList -> Polling', function () {
 
     // Enable real time control
     await userEvent.click(
-      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
       {delay: null}
     );
 
@@ -270,7 +274,7 @@ describe('IssueList -> Polling', function () {
 
     // Enable real time control
     await userEvent.click(
-      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
       {delay: null}
     );
 

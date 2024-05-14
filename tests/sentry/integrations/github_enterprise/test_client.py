@@ -3,12 +3,12 @@ from unittest import mock
 
 import pytest
 import responses
+from django.utils import timezone
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -17,7 +17,6 @@ GITHUB_CODEOWNERS = {
 }
 
 
-@region_silo_test
 class GitHubAppsClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
 
@@ -36,7 +35,7 @@ class GitHubAppsClientTest(TestCase):
         patcher_2.start()
         self.addCleanup(patcher_2.stop)
 
-        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        ten_days = timezone.now() + datetime.timedelta(days=10)
         integration = self.create_integration(
             organization=self.organization,
             provider="github_enterprise",

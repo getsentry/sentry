@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -6,6 +5,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,

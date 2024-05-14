@@ -1,14 +1,13 @@
 from django.urls import reverse
 
 from sentry.models.commit import Commit
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectCommitListTest(APITestCase):
     endpoint = "sentry-api-0-project-commits"
 
@@ -69,7 +68,10 @@ class ProjectCommitListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-commits",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.get(url + "?query=foobar", format="json")

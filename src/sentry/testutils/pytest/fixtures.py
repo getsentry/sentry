@@ -10,13 +10,13 @@ import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from string import Template
 
 import pytest
 import requests
 import yaml
 from django.core.cache import cache
+from django.utils import timezone
 
 import sentry
 
@@ -262,7 +262,6 @@ def dyn_sampling_data():
     # return a function that returns fresh config so we don't accidentally get tests interfering with each other
     def inner(active=True):
         return {
-            "mode": "total",
             "rules": [
                 {
                     "sampleRate": 0.7,
@@ -370,8 +369,7 @@ def insta_snapshot(request, log):
         is_unequal = inequality_comparator(refval, output)
 
         if _snapshot_writeback is not None and is_unequal:
-            if not os.path.isdir(os.path.dirname(reference_file)):
-                os.makedirs(os.path.dirname(reference_file))
+            os.makedirs(os.path.dirname(reference_file), exist_ok=True)
             source = os.path.realpath(str(request.node.fspath))
             if source.startswith(_test_base + os.path.sep):
                 source = source[len(_test_base) + 1 :]
@@ -383,7 +381,7 @@ def insta_snapshot(request, log):
                     % (
                         yaml.safe_dump(
                             {
-                                "created": datetime.utcnow().isoformat() + "Z",
+                                "created": timezone.now().isoformat(),
                                 "creator": "sentry",
                                 "source": source,
                             },
@@ -449,7 +447,6 @@ def reset_snuba(call_snuba):
         "/tests/events/drop",
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
-        "/tests/sessions/drop",
         "/tests/metrics/drop",
         "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",

@@ -11,10 +11,8 @@ from sentry.monitors.models import (
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
@@ -28,7 +26,7 @@ class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         )
         monitor_env = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=env,
+            environment_id=env.id,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,

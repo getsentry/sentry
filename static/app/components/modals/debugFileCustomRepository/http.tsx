@@ -193,7 +193,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             (typeof data.password === 'string' && !!data.password)) && (
             <ClearPasswordButton
               onClick={handleClearPassword}
-              icon={<IconClose legacySize="14px" />}
+              icon={<IconClose size="sm" />}
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
@@ -261,7 +261,8 @@ const StyledSelectField = styled(SelectField)`
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: ${p => p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
+  padding-right: ${p =>
+    p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
 const ClearPasswordButton = styled(ActionButton)`

@@ -18,8 +18,8 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {
+  BaseRole,
   Member,
-  MemberRole,
   MissingMember,
   Organization,
   OrganizationAuthProvider,
@@ -45,7 +45,7 @@ interface State extends AsyncComponentState {
   authProvider: OrganizationAuthProvider | null;
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
-  member: (Member & {roles: MemberRole[]}) | null;
+  member: (Member & {roles: BaseRole[]}) | null;
   members: Member[];
   missingMembers: {integration: string; users: MissingMember[]}[];
 }

@@ -4,10 +4,8 @@ from django.urls import reverse
 
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectEnvironmentsTest(APITestCase):
     def test_get(self):
         project = self.create_project()
@@ -23,7 +21,7 @@ class ProjectEnvironmentsTest(APITestCase):
             "sentry-api-0-project-environment-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "environment": "production",
             },
         )
@@ -43,7 +41,7 @@ class ProjectEnvironmentsTest(APITestCase):
                     "sentry-api-0-project-environment-details",
                     kwargs={
                         "organization_slug": project.organization.slug,
-                        "project_slug": project.slug,
+                        "project_id_or_slug": project.slug,
                         "environment": "invalid",
                     },
                 ),
@@ -66,7 +64,7 @@ class ProjectEnvironmentsTest(APITestCase):
             "sentry-api-0-project-environment-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "environment": "production",
             },
         )
@@ -84,7 +82,7 @@ class ProjectEnvironmentsTest(APITestCase):
                     "sentry-api-0-project-environment-details",
                     kwargs={
                         "organization_slug": project.organization.slug,
-                        "project_slug": project.slug,
+                        "project_id_or_slug": project.slug,
                         "environment": "invalid",
                     },
                 ),
@@ -110,7 +108,7 @@ class ProjectEnvironmentsTest(APITestCase):
             "sentry-api-0-project-environment-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "environment": quote(env_name, safe=""),
             },
         )

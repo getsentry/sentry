@@ -1,5 +1,4 @@
 import {duration} from 'moment';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -7,11 +6,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {DetailedOrganization} from 'sentry/types/organization';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayClipPreview from './replayClipPreview';
 
@@ -63,8 +61,12 @@ mockUseReplayReader.mockImplementation(() => {
   };
 });
 
-const render: typeof baseRender = children => {
-  const {router, routerContext} = initializeOrg({
+const render = (
+  children: React.ReactElement,
+  orgParams: Partial<DetailedOrganization> = {}
+) => {
+  const {routerContext, organization} = initializeOrg({
+    organization: {slug: mockOrgSlug, ...orgParams},
     router: {
       routes: [
         {path: '/'},
@@ -78,21 +80,10 @@ const render: typeof baseRender = children => {
     },
   });
 
-  return baseRender(
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: router.params,
-        routes: router.routes,
-      }}
-    >
-      <OrganizationContext.Provider value={OrganizationFixture({slug: mockOrgSlug})}>
-        {children}
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>,
-    {context: routerContext}
-  );
+  return baseRender(children, {
+    context: routerContext,
+    organization,
+  });
 };
 
 const mockIsFullscreen = jest.fn();
@@ -210,5 +201,22 @@ describe('ReplayClipPreview', () => {
     expect(
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
+  });
+  it('Render the back and forward buttons when we pass in showNextAndPrevious', async () => {
+    const handleBackClick = jest.fn();
+    const handleForwardClick = jest.fn();
+    render(
+      <ReplayClipPreview
+        {...defaultProps}
+        handleBackClick={handleBackClick}
+        handleForwardClick={handleForwardClick}
+        showNextAndPrevious
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Previous Clip'}));
+    expect(handleBackClick).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', {name: 'Next Clip'}));
+    expect(handleForwardClick).toHaveBeenCalled();
   });
 });

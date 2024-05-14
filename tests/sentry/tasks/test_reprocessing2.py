@@ -25,7 +25,7 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
-from sentry.testutils.helpers import Feature
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -61,8 +61,7 @@ def _create_user_report(evt):
 def reprocessing_feature(settings):
     settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
 
-    with Feature({"organizations:reprocessing-v2": True}):
-        yield
+    yield
 
 
 @pytest.fixture
@@ -128,7 +127,7 @@ def test_basic(
         tombstone_calls.append((args, kwargs))
         old_tombstone_fn(*args, **kwargs)
 
-    monkeypatch.setattr("sentry.eventstream.tombstone_events_unsafe", tombstone_called)
+    monkeypatch.setattr("sentry.eventstream.backend.tombstone_events_unsafe", tombstone_called)
 
     abs_count = 0
 
@@ -436,6 +435,7 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
+
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
@@ -464,7 +464,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    assert mock_logger.error.called_with("reprocessing2.unprocessed_event.not_found")
+    mock_logger.error.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
 @django_db_all
@@ -507,7 +507,8 @@ def test_apply_new_fingerprinting_rules(
     )
 
     with mock.patch(
-        "sentry.grouping.ingest.get_fingerprinting_config_for_project", return_value=new_rules
+        "sentry.grouping.ingest.hashing.get_fingerprinting_config_for_project",
+        return_value=new_rules,
     ):
         # Reprocess
         with burst_task_runner() as burst_reprocess:
@@ -596,7 +597,7 @@ def test_apply_new_stack_trace_rules(
     original_issue_id = event1.group.id
 
     with mock.patch(
-        "sentry.grouping.ingest.get_grouping_config_dict_for_project",
+        "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": Enhancements.from_config_string(
@@ -637,3 +638,27 @@ def test_finish_reprocessing(default_project):
     old_group.activity_set.create(project=default_project, type=ActivityType.NOTE.value)
 
     finish_reprocessing(old_group.project_id, old_group.id)
+
+
+class LegacyReprocessingTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.owner = self.create_user(is_superuser=False)
+        self.organization = self.create_organization(owner=self.owner)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization)
+
+    @django_db_all
+    def test_reprocessing_disabled(self):
+        # Asserts that reprocessing.is_active is not the
+        # same as checking for the existence ofthe option key.
+        # See https://github.com/getsentry/sentry/pull/68170.
+        from sentry.models.options.project_option import ProjectOption
+        from sentry.reprocessing import REPROCESSING_OPTION, is_active
+
+        ProjectOption.objects.set_value(self.project, REPROCESSING_OPTION, False)
+
+        assert ProjectOption.objects.filter(
+            project_id=self.project, key=REPROCESSING_OPTION
+        ).exists()
+        assert not is_active(self.project)

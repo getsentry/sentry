@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -49,7 +49,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     assignee = t('an unknown user');
   }
 
-  const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
+  const isAutoAssigned = ['projectOwnership', 'codeowners', 'suspectCommitter'].includes(
     data.integration as string
   );
 
@@ -61,6 +61,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     slack: t('Slack'),
     projectOwnership: t('Ownership Rule'),
     codeowners: t('Codeowners Rule'),
+    suspectCommitter: t('Suspect Commit'),
   };
 
   return (
@@ -73,7 +74,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
           issueType,
         })}
       </div>
-      {data.integration && (
+      {data.integration && integrationName[data.integration] && (
         <CodeWrapper>
           {t('Assigned via %s', integrationName[data.integration])}
           {data.rule && (
@@ -596,6 +597,8 @@ function GroupActivityItem({
             );
         }
       }
+      case GroupActivityType.DELETED_ATTACHMENT:
+        return tct('[author] deleted an attachment', {author});
       default:
         return ''; // should never hit (?)
     }

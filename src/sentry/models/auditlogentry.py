@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Mapping
 from typing import Any
 
 from django.db import models
 from django.utils import timezone
-from sentry_sdk import capture_exception
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -17,12 +17,14 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.log import AuditLogEvent
 from sentry.services.hybrid_cloud.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
+
+logger = logging.getLogger(__name__)
 
 
 def is_scim_token_actor(actor):
@@ -40,7 +42,7 @@ def format_scim_token_actor_name(actor):
     return f"SCIM Internal Integration ({uuid_prefix})"
 
 
-@control_silo_only_model
+@control_silo_model
 class AuditLogEntry(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -89,16 +91,15 @@ class AuditLogEntry(Model):
                 # Fetch user by RPC service as
                 # Audit logs are often created in regions.
                 user = user_service.get_user(self.actor_id)
-                self.actor_label = user.username
+                if user:
+                    self.actor_label = user.username
             elif self.actor_key:
                 # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
-            else:
-                capture_exception(
-                    Exception("Expected there to be a user or actor key for audit logging")
-                )
-                # Fallback to IP address if user or actor label not available
-                self.actor_label = self.ip_address
+
+        # Fallback to IP address if user or actor label not available
+        if not self.actor_label:
+            self.actor_label = self.ip_address or ""
 
     def as_event(self) -> AuditLogEvent:
         """

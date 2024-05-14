@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from collections.abc import Sequence
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -17,13 +18,11 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
-@region_silo_test
 class GroupAttributesTest(TestCase):
     def test_retrieve_group_values(self) -> None:
         group = self.create_group()
@@ -90,14 +89,14 @@ class GroupAttributesTest(TestCase):
             group=group,
             project=group.project,
             user_id=self.user.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
         group_2 = self.create_group()
         GroupAssignee.objects.create(
             group=group_2,
             project=group.project,
             team_id=self.team.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         snapshot_values = _bulk_retrieve_snapshot_values([group, group_2], False)
@@ -141,15 +140,14 @@ class GroupAttributesTest(TestCase):
         ]
 
 
-@region_silo_test
 class PostSaveLogGroupAttributesChangedTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         self.run_attr_test(self.group, [], "all")
         self.run_attr_test(self.group, ["status"], "status")
         self.run_attr_test(self.group, ["status", "last_seen"], "status")
         self.run_attr_test(self.group, ["status", "substatus"], "status-substatus")
 
-    def run_attr_test(self, group, update_fields, expected_str):
+    def run_attr_test(self, group: Group, update_fields: Sequence[str], expected_str: str) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -164,7 +162,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
             )
             send_snapshot_values.assert_called_with(None, group, False)
 
-    def test_new(self):
+    def test_new(self) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -175,7 +173,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
 
             send_snapshot_values.assert_called_with(None, new_group, False)
 
-    def test_model_update(self):
+    def test_model_update(self) -> None:
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed, patch(
@@ -187,11 +185,11 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
 
 
 class PostUpdateLogGroupAttributesChangedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group_2 = self.create_group()
 
-    def test(self):
+    def test(self) -> None:
         self.run_attr_test([self.group, self.group_2], {"status": GroupStatus.RESOLVED}, "status")
         self.run_attr_test(
             [self.group, self.group_2],
@@ -199,7 +197,9 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             "status-substatus",
         )
 
-    def run_attr_test(self, groups, update_fields, expected_str):
+    def run_attr_test(
+        self, groups: list[Group], update_fields: dict[str, int], expected_str: str
+    ) -> None:
         groups.sort(key=lambda g: g.id)
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"

@@ -19,7 +19,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcPrimaryKeyMap,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 DEFAULT_IMPORT_FLAGS = RpcImportFlags.into_rpc(ImportFlags())
 
@@ -60,6 +60,7 @@ class ImportExportService(RpcService):
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         json_data: str = "",
+        min_ordinal: int,
     ) -> RpcImportResult:
         """
         Import models of a certain kind from JSON source. Do not call this method directly - use
@@ -77,9 +78,9 @@ class ImportExportService(RpcService):
         information.
         """
 
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.import_by_model
-        return ImportExportService.get_local_implementation().import_by_model  # type: ignore
+        return ImportExportService.get_local_implementation().import_by_model  # type: ignore[attr-defined]
 
     @rpc_method
     @abstractmethod
@@ -109,9 +110,9 @@ class ImportExportService(RpcService):
         information.
         """
 
-        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore
+        if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.export_by_model
-        return ImportExportService.get_local_implementation().export_by_model  # type: ignore
+        return ImportExportService.get_local_implementation().export_by_model  # type: ignore[attr-defined]
 
     @rpc_method
     @abstractmethod

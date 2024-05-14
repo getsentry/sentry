@@ -20,38 +20,35 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   MetricMeta,
   MetricsDataIntervalLadder,
   MetricsOperation,
+  MetricsQueryApiResponse,
+  MetricsQueryApiResponseLastMeta,
   MRI,
   UseCase,
 } from 'sentry/types/metrics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
-import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {isMeasurement} from 'sentry/utils/discover/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  formatMRI,
-  formatMRIField,
-  MRIToField,
-  parseField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
-  DdmQueryParams,
   MetricsQuery,
-  MetricsQuerySubject,
-  MetricWidgetQueryParams,
+  MetricsQueryParams,
+  MetricsWidget,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {
+  isMetricFormula,
+  type MetricsQueryApiQueryParams,
+} from 'sentry/utils/metrics/useMetricsQuery';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
-  mri: MetricsQuery['mri'],
-  op: MetricsQuery['op']
+  mri?: MetricsQuery['mri'],
+  op?: MetricsQuery['op']
 ): MetricDisplayType {
   if (mri?.startsWith('c') || op === 'count') {
     return MetricDisplayType.BAR;
@@ -71,7 +68,7 @@ export const getMetricDisplayType = (displayType: unknown): MetricDisplayType =>
   return MetricDisplayType.LINE;
 };
 
-export function getDdmUrl(
+export function getMetricsUrl(
   orgSlug: string,
   {
     widgets,
@@ -80,12 +77,12 @@ export function getDdmUrl(
     statsPeriod,
     project,
     ...otherParams
-  }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
-    widgets: MetricWidgetQueryParams[];
+  }: Omit<MetricsQueryParams, 'project' | 'widgets'> & {
+    widgets: Partial<MetricsWidget>[];
     project?: (string | number)[];
   }
 ) {
-  const urlParams: Partial<DdmQueryParams> = {
+  const urlParams: Partial<MetricsQueryParams> = {
     ...otherParams,
     project: project?.map(id => (typeof id === 'string' ? parseInt(id, 10) : id)),
     widgets: JSON.stringify(widgets),
@@ -98,11 +95,11 @@ export function getDdmUrl(
     urlParams.end = end;
   }
 
-  return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
+  return `/organizations/${orgSlug}/metrics/?${qs.stringify(urlParams)}`;
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
-  ddm: new GranularityLadder([
+  metrics: new GranularityLadder([
     [SIXTY_DAYS, '1d'],
     [THIRTY_DAYS, '2h'],
     [TWO_WEEKS, '1h'],
@@ -132,14 +129,14 @@ const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
 };
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getDDMInterval(
+export function getMetricsInterval(
   datetimeObj: DateTimeObject,
   useCase: UseCase,
-  ladder: MetricsDataIntervalLadder = 'ddm'
+  ladder: MetricsDataIntervalLadder = 'metrics'
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'ddm') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'metrics') {
     return '10s';
   }
 
@@ -227,18 +224,55 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function getMetricsSeriesName(field: string, groupBy?: Record<string, string>) {
-  const groupByEntries = Object.entries(groupBy ?? {});
-  if (!groupByEntries.length) {
-    const {mri} = parseField(field) ?? {mri: field};
-    const name = formatMRI(mri as MRI);
+export function unescapeMetricsFormula(formula: string) {
+  // Remove the $ from variable names
+  return formula.replaceAll('$', '');
+}
 
-    return name ?? '(none)';
+export function getMetricsSeriesName(
+  query: MetricsQueryApiQueryParams,
+  groupBy?: Record<string, string>,
+  isMultiQuery: boolean = true
+) {
+  let name = getMetricQueryName(query);
+
+  if (isMultiQuery) {
+    name = `${query.name}: ${name}`;
   }
 
-  return groupByEntries
+  const groupByEntries = Object.entries(groupBy ?? {});
+
+  if (!groupByEntries || !groupByEntries.length) {
+    return name;
+  }
+
+  const formattedGrouping = groupByEntries
     .map(([_key, value]) => `${String(value).length ? value : t('(none)')}`)
     .join(', ');
+
+  if (isMultiQuery) {
+    return `${name} - ${formattedGrouping}`;
+  }
+  return formattedGrouping;
+}
+
+export function getMetricQueryName(query: MetricsQueryApiQueryParams): string {
+  return (
+    query.alias ??
+    (isMetricFormula(query)
+      ? unescapeMetricsFormula(query.formula)
+      : formatMRIField(MRIToField(query.mri, query.op)))
+  );
+}
+
+export function getMetricsSeriesId(
+  query: MetricsQueryApiQueryParams,
+  groupBy?: Record<string, string>
+) {
+  if (Object.keys(groupBy ?? {}).length === 0) {
+    return `${query.name}`;
+  }
+  return `${query.name}-${JSON.stringify(groupBy)}`;
 }
 
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
@@ -254,20 +288,41 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   return groupedByOp;
 }
 
-export function isMeasurement({mri}: {mri: MRI}) {
+export function isTransactionMeasurement({mri}: {mri: MRI}) {
   const {name} = parseMRI(mri) ?? {name: ''};
-  return isMeasurementName(name);
+  return isMeasurement(name);
+}
+
+export function isSpanMeasurement({mri}: {mri: MRI}) {
+  if (
+    mri === 'd:spans/http.response_content_length@byte' ||
+    mri === 'd:spans/http.decoded_response_content_length@byte' ||
+    mri === 'd:spans/http.response_transfer_size@byte'
+  ) {
+    return true;
+  }
+
+  const parsedMRI = parseMRI(mri);
+  if (
+    parsedMRI &&
+    parsedMRI.useCase === 'spans' &&
+    parsedMRI.name.startsWith('webvital.')
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function isCustomMeasurement({mri}: {mri: MRI}) {
   const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 
   const {name} = parseMRI(mri) ?? {name: ''};
-  return !DEFINED_MEASUREMENTS.has(name) && isMeasurementName(name);
+  return !DEFINED_MEASUREMENTS.has(name) && isMeasurement(name);
 }
 
 export function isStandardMeasurement({mri}: {mri: MRI}) {
-  return isMeasurement({mri}) && !isCustomMeasurement({mri});
+  return isTransactionMeasurement({mri}) && !isCustomMeasurement({mri});
 }
 
 export function isTransactionDuration({mri}: {mri: MRI}) {
@@ -278,21 +333,26 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isSpanMetric({mri}: {mri: MRI}) {
-  return mri.includes(':spans/');
+export function isSpanSelfTime({mri}: {mri: MRI}) {
+  return (
+    mri === 'd:spans/exclusive_time@millisecond' ||
+    mri === 'g:spans/self_time@millisecond'
+  );
+}
+
+export function isGaugeMetric({mri}: {mri: MRI}) {
+  return parseMRI(mri)?.type === 'g';
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.op!);
+    return MRIToField(metricsQuery.mri, metricsQuery.op);
   }
 
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op));
 }
 
-export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy} = metricWidget;
-
+export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {
   if (!op) {
     return '';
   }
@@ -308,6 +368,28 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
   }
 
   return result;
+}
+
+export function isFormattedMQL(mql: string) {
+  const regex = /^(\w+\([\w\.]+\))(?:\{\w+\:\w+\})*(?:\sby\s\w+)*/;
+
+  const matches = mql.match(regex);
+
+  const [, field, query, groupBy] = matches ?? [];
+
+  if (!field) {
+    return false;
+  }
+
+  if (query) {
+    return query.includes(':');
+  }
+
+  if (groupBy) {
+    // TODO check groupbys
+  }
+
+  return true;
 }
 
 // TODO: consider moving this to utils/dates.tsx
@@ -337,33 +419,6 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   return {start: startObj.toISOString(), end: now.toISOString()};
 }
 
-export function isSupportedDisplayType(displayType: unknown) {
-  return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
-}
-
-export function getMetricsCorrelationSpanUrl(
-  organization: Organization,
-  projectSlug: string | undefined,
-  spanId: string | undefined,
-  transactionId: string,
-  transactionSpanId: string
-) {
-  const isTransaction = spanId === transactionSpanId;
-
-  const eventSlug = generateEventSlug({
-    id: transactionId,
-    project: projectSlug,
-  });
-
-  return getTransactionDetailsUrl(
-    organization.slug,
-    eventSlug,
-    isTransaction ? transactionId : undefined,
-    {referrer: 'metrics', openPanel: 'open'},
-    isTransaction ? undefined : spanId
-  );
-}
-
 export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
   if (datetime?.period) {
     if (statsPeriodToDays(datetime.period) < 14) {
@@ -379,4 +434,14 @@ export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
   }
 
   return {statsPeriod: '14d'};
+}
+
+export function areResultsLimited(response: MetricsQueryApiResponse) {
+  return response.meta.some(
+    meta => (meta[meta.length - 1] as MetricsQueryApiResponseLastMeta).has_more
+  );
+}
+
+export function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
+  return !('isQueryOnly' in query) || !query.isQueryOnly;
 }

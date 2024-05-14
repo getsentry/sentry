@@ -23,7 +23,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.models.distribution import Distribution
@@ -59,7 +59,7 @@ class PublicReleaseFileManager(models.Manager):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.
@@ -240,7 +240,7 @@ class ReleaseArchive:
         The caller is responsible for cleanup of the temporary files.
         """
         temp_dir = TemporaryDirectory()
-        safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
+        safe_extract_zip(self._fileobj, temp_dir.name)
 
         return temp_dir
 

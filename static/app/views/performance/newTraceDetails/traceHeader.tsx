@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -9,48 +10,155 @@ import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
-import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
+  TraceErrorOrIssue,
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {getTraceInfo} from '../traceDetails/utils';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
+import {TraceDrawerComponents} from './traceDrawer/details/styles';
+import type {TraceTree} from './traceModels/traceTree';
+import {isTraceNode} from './guards';
+
+function TraceHeaderEmptyTrace() {
+  return (
+    <TraceHeaderContainer>
+      <TraceHeaderRow textAlign="left">
+        <MetaData
+          headingText={t('User')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Browser')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+      </TraceHeaderRow>
+      <TraceHeaderRow textAlign="right">
+        <GuideAnchor target="trace_view_guide_breakdown">
+          <MetaData
+            headingText={t('Events')}
+            tooltipText=""
+            bodyText={'\u2014'}
+            subtext={null}
+          />
+        </GuideAnchor>
+        <MetaData
+          headingText={t('Issues')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Total Duration')}
+          tooltipText=""
+          bodyText={'\u2014'}
+          subtext={null}
+        />
+      </TraceHeaderRow>
+    </TraceHeaderContainer>
+  );
+}
+
 type TraceHeaderProps = {
-  metaResults: TraceMetaQueryChildrenProps;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  traceID: string | undefined;
   traces: TraceSplitResults<TraceFullDetailed> | null;
+  tree: TraceTree;
 };
 
-export default function TraceHeader(props: TraceHeaderProps) {
-  const {metaResults, rootEventResults, traces, organization} = props;
-  const {meta, isLoading: metaLoading} = metaResults;
-  const {data: rootEvent, isLoading: rootEventLoading} = rootEventResults;
-  const errors = meta?.errors || 0;
-  const performanceIssues = meta?.performance_issues || 0;
-  const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
-  const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
-  const loadingIndicator = <LoadingIndicator size={20} mini />;
+export function TraceHeader({
+  metaResults,
+  rootEventResults,
+  traces,
+  organization,
+  tree,
+  traceID,
+}: TraceHeaderProps) {
+  const traceNode = tree.root.children[0];
+
+  const replay_id = rootEventResults?.data?.contexts?.replay?.replay_id;
+  const showLoadingIndicator =
+    (rootEventResults.isLoading && rootEventResults.fetchStatus !== 'idle') ||
+    metaResults.isLoading;
+
+  const uniqueErrorIssues = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
+    const unique: TraceErrorOrIssue[] = [];
+
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of traceNode.errors) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [traceNode]);
+
+  const uniquePerformanceIssues = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
+    const unique: TraceErrorOrIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of traceNode.performance_issues) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }, [traceNode]);
+
+  const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
+
+  if (traces?.transactions.length === 0 && traces.orphan_errors.length === 0) {
+    return <TraceHeaderEmptyTrace />;
+  }
+
+  if (!(traceNode && isTraceNode(traceNode))) {
+    throw new Error('Expected a trace node');
+  }
 
   return (
     <TraceHeaderContainer>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="left">
         <MetaData
           headingText={t('User')}
           tooltipText=""
           bodyText={
-            rootEventLoading
-              ? loadingIndicator
-              : rootEvent?.user?.email ?? rootEvent?.user?.name ?? '\u2014'
+            showLoadingIndicator ? (
+              <LoadingIndicator size={20} mini />
+            ) : (
+              rootEventResults?.data?.user?.email ??
+              rootEventResults?.data?.user?.name ??
+              '\u2014'
+            )
           }
           subtext={null}
         />
@@ -58,10 +166,32 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('Browser')}
           tooltipText=""
           bodyText={
-            rootEventLoading ? (
-              loadingIndicator
-            ) : rootEvent ? (
-              <BrowserDisplay event={rootEvent} showVersion />
+            showLoadingIndicator ? (
+              <LoadingIndicator size={20} mini />
+            ) : rootEventResults?.data ? (
+              <BrowserDisplay event={rootEventResults?.data} showVersion />
+            ) : (
+              '\u2014'
+            )
+          }
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Trace')}
+          tooltipText=""
+          bodyText={
+            showLoadingIndicator ? (
+              <LoadingIndicator size={20} mini />
+            ) : traceID ? (
+              <Fragment>
+                {getShortEventId(traceID)}
+                <CopyToClipboardButton
+                  borderless
+                  size="zero"
+                  iconSize="xs"
+                  text={traceID}
+                />
+              </Fragment>
             ) : (
               '\u2014'
             )
@@ -88,12 +218,20 @@ export default function TraceHeader(props: TraceHeaderProps) {
           />
         )}
       </TraceHeaderRow>
-      <TraceHeaderRow>
+      <TraceHeaderRow textAlign="right">
         <GuideAnchor target="trace_view_guide_breakdown">
           <MetaData
             headingText={t('Events')}
             tooltipText=""
-            bodyText={metaLoading ? loadingIndicator : meta?.transactions ?? '\u2014'}
+            bodyText={
+              metaResults.isLoading ? (
+                <LoadingIndicator size={20} mini />
+              ) : metaResults.data ? (
+                metaResults.data.transactions + metaResults.data.errors
+              ) : (
+                '\u2014'
+              )
+            }
             subtext={null}
           />
         </GuideAnchor>
@@ -103,14 +241,16 @@ export default function TraceHeader(props: TraceHeaderProps) {
           bodyText={
             <Tooltip
               title={
-                errors + performanceIssues > 0 ? (
+                uniqueIssuesCount > 0 ? (
                   <Fragment>
-                    <div>{tn('%s error issue', '%s error issues', errors)}</div>
+                    <div>
+                      {tn('%s error issue', '%s error issues', uniqueErrorIssues.length)}
+                    </div>
                     <div>
                       {tn(
                         '%s performance issue',
                         '%s performance issues',
-                        performanceIssues
+                        uniquePerformanceIssues.length
                       )}
                     </div>
                   </Fragment>
@@ -119,11 +259,15 @@ export default function TraceHeader(props: TraceHeaderProps) {
               showUnderline
               position="bottom"
             >
-              {metaLoading
-                ? loadingIndicator
-                : errors || performanceIssues
-                  ? errors + performanceIssues
-                  : 0}
+              {metaResults.isLoading ? (
+                <LoadingIndicator size={20} mini />
+              ) : uniqueIssuesCount > 0 ? (
+                <TraceDrawerComponents.IssuesLink>
+                  {uniqueIssuesCount}
+                </TraceDrawerComponents.IssuesLink>
+              ) : (
+                '\u2014'
+              )}
             </Tooltip>
           }
           subtext={null}
@@ -132,9 +276,13 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('Total Duration')}
           tooltipText=""
           bodyText={
-            traceInfo.startTimestamp && traceInfo.endTimestamp
-              ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
-              : loadingIndicator
+            metaResults.isLoading ? (
+              <LoadingIndicator size={20} mini />
+            ) : traceNode.space?.[1] ? (
+              getDuration(traceNode.space[1] / 1000, 2, true)
+            ) : (
+              '\u2014'
+            )
           }
           subtext={null}
         />
@@ -150,10 +298,13 @@ const FlexBox = styled('div')`
 
 const TraceHeaderContainer = styled(FlexBox)`
   justify-content: space-between;
+  background-color: ${p => p.theme.background};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
 `;
 
-const TraceHeaderRow = styled(FlexBox)`
+const TraceHeaderRow = styled(FlexBox)<{textAlign: 'left' | 'right'}>`
   gap: ${space(2)};
+  text-align: ${p => p.textAlign};
 `;
 
 const ReplayLinkBody = styled(FlexBox)`

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
+import orjson
 import pytest
 import responses
 from django.core.cache import cache
@@ -22,7 +23,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
@@ -372,7 +372,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             lineno=10,
             ref="master",
             repo=repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         responses.add(
@@ -695,13 +695,13 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         gitlab_response = responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
         control_proxy_response = add_control_silo_proxy_response(
             method=responses.GET,
             path=f"api/v4/projects/{gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
         class GitlabProxyApiTestClient(GitLabProxyApiClient):

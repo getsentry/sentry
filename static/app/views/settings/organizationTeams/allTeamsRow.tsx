@@ -12,7 +12,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
@@ -176,17 +176,13 @@ class AllTeamsRow extends Component<Props, State> {
 
   render() {
     const {team, openMembership, organization} = this.props;
-    const {access} = organization;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const canEditTeam = access.includes('org:write') || access.includes('team:admin');
 
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
-    const isPermissionGroup = !canEditTeam || !isOrgOwner;
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
-    const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+    const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
     const display = (
       <IdBadge
@@ -201,7 +197,7 @@ class AllTeamsRow extends Component<Props, State> {
     const canViewTeam = team.hasAccess;
 
     const teamRoleName = this.getTeamRoleName();
-    const isDisabled = isIdpProvisioned || isPermissionGroup;
+    const isDisabled = isIdpProvisioned;
 
     return (
       <TeamPanelItem>

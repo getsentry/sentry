@@ -1,5 +1,6 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import {Fragment} from 'react';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -15,12 +16,13 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -33,7 +35,7 @@ import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './us
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
-export type UsageStatsOrganizationProps = {
+export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
@@ -46,10 +48,11 @@ export type UsageStatsOrganizationProps = {
   organization: Organization;
   projectIds: number[];
   chartTransform?: string;
-} & DeprecatedAsyncComponent['props'];
+}
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
+  metricOrgStats?: UsageSeries | undefined;
 } & DeprecatedAsyncComponent['state'];
 
 /**
@@ -77,7 +80,10 @@ class UsageStatsOrganization<
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
+    return [
+      ['orgStats', this.endpointPath, {query: this.endpointQuery}],
+      ...this.metricsEndpoint,
+    ];
   }
 
   /** List of components to render on single-project view */
@@ -119,6 +125,51 @@ class UsageStatsOrganization<
     };
   }
 
+  // Metric stats are not reported when grouping by category, so we make a separate request
+  // and combine the results
+  get metricsEndpoint(): [string, string, {query: Record<string, any>}][] {
+    if (hasCustomMetrics(this.props.organization)) {
+      return [
+        [
+          'metricOrgStats',
+          this.endpointPath,
+          {
+            query: {
+              ...this.endpointQuery,
+              category: DATA_CATEGORY_INFO.metrics.apiName,
+              groupBy: ['outcome'],
+            },
+          },
+        ],
+      ];
+    }
+    return [];
+  }
+
+  // Combines non-metric and metric stats
+  get orgStats() {
+    const {orgStats, metricOrgStats} = this.state;
+
+    if (!orgStats || !metricOrgStats) {
+      return orgStats;
+    }
+
+    const metricsGroups = metricOrgStats.groups.map(group => {
+      return {
+        ...group,
+        by: {
+          ...group.by,
+          category: DATA_CATEGORY_INFO.metrics.apiName,
+        },
+      };
+    });
+
+    return {
+      ...orgStats,
+      groups: [...orgStats.groups, ...metricsGroups],
+    };
+  }
+
   get chartData(): {
     cardStats: {
       accepted?: string;
@@ -137,10 +188,8 @@ class UsageStatsOrganization<
     chartTransform: ChartDataTransform;
     dataError?: Error;
   } {
-    const {orgStats} = this.state;
-
     return {
-      ...this.mapSeriesToChart(orgStats),
+      ...this.mapSeriesToChart(this.orgStats),
       ...this.chartDateRange,
       ...this.chartTransform,
     };
@@ -266,6 +315,14 @@ class UsageStatsOrganization<
       }
     };
 
+    const navigateToMetricsSettings = (event: ReactMouseEvent) => {
+      event.preventDefault();
+      const url = `/settings/${organization.slug}/projects/:projectId/metrics/`;
+      if (router) {
+        navigateTo(url, router);
+      }
+    };
+
     const cardMetadata: Record<string, ScoreCardProps> = {
       total: {
         title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
@@ -287,15 +344,29 @@ class UsageStatsOrganization<
       },
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
-        help: tct(
-          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
-          {
-            dataCategory,
-            filterSettings: (
-              <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
-            ),
-          }
-        ),
+        help:
+          dataCategory === DATA_CATEGORY_INFO.metrics.plural
+            ? tct(
+                'Filtered metrics were blocked due to your disabled metrics [settings: settings]',
+                {
+                  dataCategory,
+                  settings: (
+                    <a href="#" onClick={event => navigateToMetricsSettings(event)} />
+                  ),
+                }
+              )
+            : tct(
+                'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+                {
+                  dataCategory,
+                  filterSettings: (
+                    <a
+                      href="#"
+                      onClick={event => navigateToInboundFilterSettings(event)}
+                    />
+                  ),
+                }
+              ),
         score: filtered,
       },
       dropped: {
@@ -362,6 +433,7 @@ class UsageStatsOrganization<
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
         [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
+        [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
@@ -385,6 +457,7 @@ class UsageStatsOrganization<
               return;
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
+            case Outcome.CARDINALITY_LIMITED:
             case Outcome.INVALID:
               usageStats[i].dropped.total += stat;
               // TODO: add client discards to dropped?
@@ -398,6 +471,7 @@ class UsageStatsOrganization<
       // Invalid and rate_limited data is combined with dropped
       count[Outcome.DROPPED] += count[Outcome.INVALID];
       count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
+      count[Outcome.DROPPED] += count[Outcome.CARDINALITY_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;

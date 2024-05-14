@@ -20,6 +20,7 @@ from sentry.signals import (
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
+from sentry.utils.auth import AuthenticatedHttpRequest
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -61,7 +62,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 def get_timeout_at(
     monitor_config: dict, status: CheckInStatus, date_added: datetime | None
 ) -> datetime | None:
-    if status == CheckInStatus.IN_PROGRESS:
+    if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
             (monitor_config or {}).get("max_runtime")
         )
@@ -98,7 +99,7 @@ def get_checkin_margin(checkin_margin: int | None) -> timedelta:
 
 def fetch_associated_groups(
     trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end
-) -> dict[str, list[dict[str, int]]]:
+) -> dict[str, list[dict[str, int | str]]]:
     """
     Returns serializer appropriate group_ids corresponding with check-in trace ids
     :param trace_ids: list of trace_ids from the given check-ins
@@ -199,21 +200,26 @@ def fetch_associated_groups(
     return trace_groups
 
 
-def create_alert_rule(
-    request: Request, project: Project, monitor: Monitor, validated_alert_rule: dict
-):
+def create_issue_alert_rule(
+    request: AuthenticatedHttpRequest,
+    project: Project,
+    monitor: Monitor,
+    validated_issue_alert_rule: dict,
+) -> int | None:
     """
-    Create an alert rule from a request with the given data
+    Creates an Issue Alert `Rule` instance from a request with the given data
     :param request: Request object
     :param project: Project object
     :param monitor: Monitor object being created
-    :param alert_rule: Dictionary of configurations for an associated Rule
+    :param validated_issue_alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    alert_rule_data = create_alert_rule_data(project, request.user, monitor, validated_alert_rule)
+    issue_alert_rule_data = create_issue_alert_rule_data(
+        project, request.user, monitor, validated_issue_alert_rule
+    )
     serializer = RuleSerializer(
         context={"project": project, "organization": project.organization},
-        data=alert_rule_data,
+        data=issue_alert_rule_data,
     )
 
     if not serializer.is_valid():
@@ -245,16 +251,18 @@ def create_alert_rule(
     return rule.id
 
 
-def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert_rule: dict):
+def create_issue_alert_rule_data(
+    project: Project, user: User, monitor: Monitor, issue_alert_rule: dict
+):
     """
     Gets a dict formatted alert rule to create alongside the monitor
     :param project: Project object
     :param user: User object that made the request
     :param monitor: Monitor object being created
-    :param alert_rule: Dictionary of configurations for an associated Rule
+    :param issue_alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    alert_rule_data = {
+    issue_alert_rule_data = {
         "actionMatch": "any",
         "actions": [],
         "conditions": [
@@ -271,7 +279,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             "name": user.email,
         },
         "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "environment": alert_rule.get("environment", None),
+        "environment": issue_alert_rule.get("environment", None),
         "filterMatch": "all",
         "filters": [
             {
@@ -288,7 +296,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
         "snooze": False,
     }
 
-    for target in alert_rule.get("targets", []):
+    for target in issue_alert_rule.get("targets", []):
         target_identifier = target["target_identifier"]
         target_type = target["target_type"]
 
@@ -297,16 +305,20 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }
-        alert_rule_data["actions"].append(action)
+        issue_alert_rule_data["actions"].append(action)
 
-    return alert_rule_data
+    return issue_alert_rule_data
 
 
-def update_alert_rule(
-    request: Request, project: Project, monitor: Monitor, alert_rule: Rule, alert_rule_data: dict
+def update_issue_alert_rule(
+    request: Request,
+    project: Project,
+    monitor: Monitor,
+    issue_alert_rule: Rule,
+    issue_alert_rule_data: dict,
 ):
     actions = []
-    for target in alert_rule_data.get("targets", []):
+    for target in issue_alert_rule_data.get("targets", []):
         target_identifier = target["target_identifier"]
         target_type = target["target_type"]
 
@@ -321,7 +333,7 @@ def update_alert_rule(
         context={"project": project, "organization": project.organization},
         data={
             "actions": actions,
-            "environment": alert_rule_data.get("environment", None),
+            "environment": issue_alert_rule_data.get("environment", None),
         },
         partial=True,
     )
@@ -330,7 +342,7 @@ def update_alert_rule(
         data = serializer.validated_data
 
         # update only slug conditions
-        conditions = alert_rule.data.get("conditions", [])
+        conditions = issue_alert_rule.data.get("conditions", [])
         updated = False
         for condition in conditions:
             if condition.get("key") == "monitor.slug":
@@ -339,14 +351,14 @@ def update_alert_rule(
 
         # slug condition not present, add slug to conditions
         if not updated:
-            conditions = conditions.append[
+            conditions.append(
                 {
                     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                     "key": "monitor.slug",
                     "match": "eq",
                     "value": monitor.slug,
                 }
-            ]
+            )
 
         kwargs = {
             "project": project,
@@ -356,10 +368,10 @@ def update_alert_rule(
             "conditions": conditions,
         }
 
-        updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
+        updated_rule = Updater.run(rule=issue_alert_rule, request=request, **kwargs)
 
         RuleActivity.objects.create(
             rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
         )
 
-    return alert_rule.id
+    return issue_alert_rule.id

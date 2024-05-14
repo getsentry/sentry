@@ -41,7 +41,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, Tag, TagCollection, User} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {getIssueTitleFromType, SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
@@ -724,6 +724,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     });
   };
 
+  logDocsOpenedEvent = () => {
+    const {searchSource, savedSearchType, organization} = this.props;
+
+    trackAnalytics('search.docs_opened', {
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      query: this.state.query,
+    });
+  };
+
   runShortcutOnClick = (shortcut: Shortcut) => {
     this.runShortcut(shortcut);
     this.logShortcutEvent(shortcut.shortcutType, 'click');
@@ -788,22 +799,29 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   };
 
   onQueryFocus = () => {
-    const txn = Sentry.startTransaction({
-      name: 'smart_search_bar.open',
-      op: 'ui.render',
-    });
-
-    if (typeof window.requestIdleCallback === 'function') {
-      txn.setTag('finish_strategy', 'idle_callback');
-      window.requestIdleCallback(() => {
-        txn.finish();
+    Sentry.withScope(scope => {
+      const span = Sentry.startInactiveSpan({
+        name: 'smart_search_bar.open',
+        op: 'ui.render',
+        forceTransaction: true,
       });
-    } else {
-      txn.setTag('finish_strategy', 'timeout');
-      setTimeout(() => {
-        txn.finish();
-      }, 1_000);
-    }
+
+      if (!span) {
+        return;
+      }
+
+      if (typeof window.requestIdleCallback === 'function') {
+        scope.setTag('finish_strategy', 'idle_callback');
+        window.requestIdleCallback(() => {
+          span.end();
+        });
+      } else {
+        scope.setTag('finish_strategy', 'timeout');
+        setTimeout(() => {
+          span.end();
+        }, 1_000);
+      }
+    });
 
     this.open();
     this.setState({inputHasFocus: true});
@@ -1312,6 +1330,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         return {
           value: escapedValue,
           desc: escapedValue,
+          documentation: getIssueTitleFromType(escapedValue) ?? '',
           type: ItemType.TAG_VALUE,
           ignoreMaxSearchItems: tag.maxSuggestedValues
             ? i < tag.maxSuggestedValues
@@ -2052,7 +2071,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
         {this.shouldShowDatePicker && (
           <SearchBarDatePicker
-            date={this.cursorValueIsoDate?.value}
             dateString={this.cursorValueIsoDate?.text}
             handleSelectDateTime={this.onAutoCompleteIsoDate}
           />
@@ -2081,6 +2099,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             numericKeys={this.props.numericKeys}
             percentageKeys={this.props.percentageKeys}
             sizeKeys={this.props.sizeKeys}
+            onDocsOpen={this.logDocsOpenedEvent}
             textOperatorKeys={this.props.textOperatorKeys}
           />
         )}

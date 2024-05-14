@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Theme} from '@emotion/react';
 import type {Location, LocationDescriptorObject} from 'history';
 import isNumber from 'lodash/isNumber';
@@ -7,7 +6,7 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
-import type {Organization} from 'sentry/types';
+import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
 import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
@@ -16,8 +15,10 @@ import type {
   EventTransaction,
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
@@ -481,7 +482,8 @@ export function handleTraceDetailsRouting(
       organization,
       traceId,
       event.title,
-      location.query
+      getEventTimestamp(event),
+      event.eventID
     );
 
     browserHistory.replace({

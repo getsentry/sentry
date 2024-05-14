@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -61,6 +61,11 @@ def clear_expired_raw_events():
     from sentry.models.rawevent import RawEvent
     from sentry.models.reprocessingreport import ReprocessingReport
 
+    # Max number of times to attempt to query each model
+    MAX_BATCHES_PER_MODEL = 10000
+    # Number of rows to fetch/delete for each query
+    LIMIT_PER_QUERY = 100
+
     def batched_delete(model_cls, **filter):
         # Django 1.6's `Queryset.delete` runs in this order:
         #
@@ -72,10 +77,12 @@ def clear_expired_raw_events():
         # out at that point and never do the delete.
         #
         # Better to delete a few rows than none.
-        while True:
+        for _ in range(MAX_BATCHES_PER_MODEL):
             # Django already loads this into memory, might as well do it
             # explicitly. Makes check for result emptiness cheaper.
-            result = set(model_cls.objects.filter(**filter)[:200].values_list("pk", flat=True))
+            result = set(
+                model_cls.objects.filter(**filter)[:LIMIT_PER_QUERY].values_list("pk", flat=True)
+            )
             if not result:
                 break
 

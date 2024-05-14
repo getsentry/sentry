@@ -1,12 +1,13 @@
 from unittest.mock import patch
 
+import orjson
 import pytest
 from django.urls import reverse
 from sentry_relay.processing import normalize_global_config
 
 from sentry.relay.globalconfig import get_global_config
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 @pytest.fixture
@@ -25,14 +26,46 @@ def call_endpoint(client, relay, private_key):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return json.loads(resp.content), resp.status_code
+        return orjson.loads(resp.content), resp.status_code
 
     return inner
 
 
 @pytest.mark.django_db
+@override_options(
+    {
+        # Set options to Relay's non-default values to avoid Relay skipping deserialization
+        "relay.cardinality-limiter.error-sample-rate": 1.0,
+        "relay.metric-stats.rollout-rate": 0.5,
+        "feedback.ingest-topic.rollout-rate": 0.5,
+        "profiling.profile_metrics.unsampled_profiles.enabled": True,
+        "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
+        "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
+        "relay.span-usage-metric": True,
+        "relay.cardinality-limiter.mode": "passive",
+        "profiling.generic_metrics.functions_ingestion.enabled": True,
+        "feedback.ingest-inline-attachments": True,
+        "relay.disable_normalization.processing": True,
+        "relay.force_full_normalization": True,
+        "relay.metric-bucket-distribution-encodings": {
+            "custom": "array",
+            "metric_stats": "array",
+            "profiles": "array",
+            "spans": "array",
+            "transactions": "array",
+        },
+        "relay.metric-bucket-set-encodings": {
+            "custom": "base64",
+            "metric_stats": "base64",
+            "profiles": "base64",
+            "spans": "base64",
+            "transactions": "base64",
+        },
+    }
+)
 def test_global_config():
     config = get_global_config()
+
     normalized = normalize_global_config(config)
     assert normalized == config
 
@@ -63,3 +96,29 @@ def test_return_global_config_on_right_version(
         assert "global" not in result
     else:
         assert result.get("global") == {"global_mock_config": True}
+
+
+@patch(
+    "sentry.relay.globalconfig.get_global_generic_filters",
+    lambda *args, **kwargs: {
+        "version": 1,
+        "filters": [
+            {
+                "id": "test-id",
+                "isEnabled": True,
+                "condition": {
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+            }
+        ],
+    },
+)
+@patch("sentry.relay.globalconfig.RELAY_OPTIONS", [])
+def test_global_config_valid_with_generic_filters():
+    config = get_global_config()
+    assert config == normalize_global_config(config)

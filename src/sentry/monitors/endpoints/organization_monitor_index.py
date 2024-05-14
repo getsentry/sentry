@@ -18,6 +18,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -26,7 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import GlobalParams, MonitorParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
@@ -44,9 +45,10 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import create_alert_rule, signal_monitor_created
+from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
+from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
@@ -66,8 +68,6 @@ from rest_framework.response import Response
 
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
-    MonitorStatus.TIMEOUT,
-    MonitorStatus.MISSED_CHECKIN,
     MonitorStatus.OK,
     MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
@@ -102,9 +102,10 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve Monitors for an Organization",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
+            MonitorParams.OWNER,
         ],
         responses={
             200: inline_sentry_response_serializer("MonitorList", list[MonitorSerializerResponse]),
@@ -131,27 +132,30 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             ]
         )
         query = request.GET.get("query")
+        owners = request.GET.getlist("owner")
         is_asc = request.GET.get("asc", "1") == "1"
         sort = request.GET.get("sort", "status")
 
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            environment_ids = [e.id for e in environments]
             # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
-                    Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
+                    Q(monitorenvironment__environment_id__in=environment_ids)
+                    | Q(monitorenvironment=None)
                 ).distinct()
             else:
                 queryset = queryset.filter(
-                    monitorenvironment__environment__in=environments
+                    monitorenvironment__environment_id__in=environment_ids
                 ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
         # sort monitors by top monitor environment, then by latest check-in
         monitor_environments_query = MonitorEnvironment.objects.filter(
-            monitor__id=OuterRef("id"), environment__in=environments
+            monitor__id=OuterRef("id"), environment_id__in=[e.id for e in environments]
         )
         sort_fields = []
 
@@ -193,6 +197,35 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         if not is_asc:
             sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
+
+        if owners:
+            owners = set(owners)
+
+            # Remove special values from owners, this can't be parsed as an Actor
+            include_myteams = "myteams" in owners
+            owners.discard("myteams")
+            include_unassigned = "unassigned" in owners
+            owners.discard("unassigned")
+
+            actors = [Actor.from_identifier(identifier) for identifier in owners]
+
+            user_ids = [actor.id for actor in actors if actor.is_user]
+            team_ids = [actor.id for actor in actors if actor.is_team]
+
+            teams = get_teams(
+                request,
+                organization,
+                teams=[*team_ids, *(["myteams"] if include_myteams else [])],
+            )
+            team_ids = [team.id for team in teams]
+
+            owner_filter = Q(owner_user_id__in=user_ids) | Q(owner_team_id__in=team_ids)
+
+            if include_unassigned:
+                unassigned_filter = Q(owner_user_id=None) & Q(owner_team_id=None)
+                queryset = queryset.filter(unassigned_filter | owner_filter)
+            else:
+                queryset = queryset.filter(owner_filter)
 
         if query:
             tokens = tokenize_query(query)
@@ -237,7 +270,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Create a Monitor",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorValidator,
         responses={
             201: MonitorSerializer,
@@ -259,10 +292,20 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
+        owner = result.get("owner")
+        owner_user_id = None
+        owner_team_id = None
+        if owner and owner.is_user:
+            owner_user_id = owner.id
+        elif owner and owner.is_team:
+            owner_team_id = owner.id
+
         try:
             monitor = Monitor.objects.create(
                 project_id=result["project"].id,
                 organization_id=organization.id,
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
                 name=result["name"],
                 slug=result.get("slug"),
                 status=result["status"],
@@ -288,20 +331,22 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         project = result["project"]
         signal_monitor_created(project, request.user, False)
 
-        validated_alert_rule = result.get("alert_rule")
-        if validated_alert_rule:
-            alert_rule_id = create_alert_rule(request, project, monitor, validated_alert_rule)
+        validated_issue_alert_rule = result.get("alert_rule")
+        if validated_issue_alert_rule:
+            issue_alert_rule_id = create_issue_alert_rule(
+                request, project, monitor, validated_issue_alert_rule
+            )
 
-            if alert_rule_id:
+            if issue_alert_rule_id:
                 config = monitor.config
-                config["alert_rule_id"] = alert_rule_id
+                config["alert_rule_id"] = issue_alert_rule_id
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)
 
     @extend_schema(
         operation_id="Bulk Edit Monitors",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorBulkEditValidator,
         responses={
             200: inline_sentry_response_serializer(

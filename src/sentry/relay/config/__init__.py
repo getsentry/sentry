@@ -1,8 +1,8 @@
 import logging
 import uuid
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from sentry_sdk import Hub, capture_exception
@@ -11,6 +11,15 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.rules.utils import (
+    Condition,
+    EqCondition,
+    GlobCondition,
+    GtCondition,
+    GteCondition,
+    LtCondition,
+    LteCondition,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -26,14 +35,16 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -41,24 +52,29 @@ from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config
+#: These features will be listed in the project config.
+#
+# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
-    "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-resource",
+    "organizations:continuous-profiling",
+    "organizations:custom-metrics",
+    "organizations:device-class-synthesis",
+    "organizations:profiling",
+    "organizations:session-replay-combined-envelope-items",
+    "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay",
+    "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:profiling",
-    "organizations:session-replay",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
-    "organizations:session-replay-recording-scrubbing",
-    "organizations:device-class-synthesis",
-    "organizations:custom-metrics",
-    "organizations:metric-meta",
-    "organizations:standalone-span-ingestion",
+    "projects:discard-transaction",
+    "projects:extract-transaction-from-segment-span",
+    "projects:profiling-ingest-unsampled-profiles",
+    "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-resource",
+    "projects:span-metrics-extraction",
+    "projects:span-metrics-double-write-distributions-as-gauges",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -152,7 +168,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
         error_messages += [
             "ChunkLoadError: Loading chunk *",
-            "Uncaught *: ChunkLoadError: Loading chunk *",
+            "*Uncaught *: ChunkLoadError: Loading chunk *",
         ]
 
     if error_messages:
@@ -169,7 +185,44 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
+    try:
+        generic_filters = _get_generic_project_filters()
+    except Exception:
+        logger.exception(
+            "Exception while building Relay project config: error building generic filters"
+        )
+    else:
+        if generic_filters and len(generic_filters["filters"]) > 0:
+            filter_settings["generic"] = generic_filters
+
     return filter_settings
+
+
+class GenericFilter(TypedDict):
+    id: str
+    isEnabled: bool
+    condition: (
+        Condition
+        | EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+        | None
+    )
+
+
+class GenericFiltersConfig(TypedDict):
+    version: int
+    filters: Sequence[GenericFilter]
+
+
+def _get_generic_project_filters() -> GenericFiltersConfig:
+    return {
+        "version": 1,
+        "filters": [],
+    }
 
 
 def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
@@ -192,50 +245,87 @@ class SlidingWindow(TypedDict):
 
 class CardinalityLimit(TypedDict):
     id: str
+    passive: NotRequired[bool]
     window: SlidingWindow
     limit: int
-    scope: Literal["organization"]
+    scope: Literal["organization", "project"]
     namespace: str | None
 
 
-def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
+class CardinalityLimitOption(TypedDict):
+    rollout_rate: NotRequired[float]
+    limit: CardinalityLimit
+
+
+def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
-        cardinality_limits: list[CardinalityLimit] = []
-        cardinality_options = {
-            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
-        }
-        cardinality_options.update(
-            (namespace.value, option)
-            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+        passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+            str(project.organization.id), []
         )
-        for namespace, option_name in cardinality_options.items():
-            option = options.get(option_name)
+
+        existing_ids: set[str] = set()
+        cardinality_limits: list[CardinalityLimit] = []
+        for namespace in CARDINALITY_LIMIT_USE_CASES:
+            timeout.check()
+            option = options.get(
+                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
+            )
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
 
             quota = option[0]
+            id = namespace.value
 
-            cardinality_limits.append(
-                {
-                    "id": namespace,
-                    "window": {
-                        "windowSeconds": quota["window_seconds"],
-                        "granularitySeconds": quota["granularity_seconds"],
-                    },
-                    "limit": quota["limit"],
-                    "scope": "organization",
-                    "namespace": namespace,
-                }
-            )
+            limit: CardinalityLimit = {
+                "id": id,
+                "window": {
+                    "windowSeconds": quota["window_seconds"],
+                    "granularitySeconds": quota["granularity_seconds"],
+                },
+                "limit": quota["limit"],
+                "scope": "organization",
+                "namespace": namespace.value,
+            }
+            if id in passive_limits:
+                limit["passive"] = True
+            cardinality_limits.append(limit)
+            existing_ids.add(id)
+
+        project_limit_options: list[CardinalityLimitOption] = project.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+            "relay.cardinality-limiter.limits", []
+        )
+        option_limit_options: list[CardinalityLimitOption] = options.get(
+            "relay.cardinality-limiter.limits", []
+        )
+
+        for clo in project_limit_options + organization_limit_options + option_limit_options:
+            rollout_rate = clo.get("rollout_rate", 1.0)
+            if (project.organization.id % 100000) / 100000 >= rollout_rate:
+                continue
+
+            try:
+                limit = clo["limit"]
+                if clo["limit"]["id"] in existing_ids:
+                    # skip if a limit with the same id already exists
+                    continue
+                cardinality_limits.append(limit)
+                existing_ids.add(clo["limit"]["id"])
+            except KeyError:
+                pass
+
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+        timeout.check()
         if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type:ignore
+            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
@@ -258,14 +348,15 @@ def get_project_config(
     """
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
-        with metrics.timer("relay.config.get_project_config.duration"):
+        with (
+            sentry_sdk.start_transaction(name="get_project_config"),
+            metrics.timer("relay.config.get_project_config.duration"),
+        ):
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(project: Project) -> Mapping[str, Any] | None:
+def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
-        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
-        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"version": 2, "rules": generate_rules(project)}
 
     return None
@@ -286,11 +377,14 @@ class TransactionNameRule(TypedDict):
     redaction: TransactionNameRuleRedaction
 
 
-def get_transaction_names_config(project: Project) -> Sequence[TransactionNameRule] | None:
+def get_transaction_names_config(
+    timeout: TimeChecker, project: Project
+) -> Sequence[TransactionNameRule] | None:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
+    timeout.check()
     if not cluster_rules:
         return None
 
@@ -327,32 +421,323 @@ class SpanDescriptionRule(TypedDict):
     redaction: SpanDescriptionRuleRedaction
 
 
-def add_experimental_config(
-    config: MutableMapping[str, Any],
-    key: str,
-    function: Callable[..., Any],
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """Try to set `config[key] = function(*args, **kwargs)`.
-    If the result of the function call is None, the key is not set.
-    If the function call raises an exception, we log it to sentry and the key remains unset.
-    NOTE: Only use this function if you expect Relay to behave reasonably
-    if ``key`` is missing from the config.
-    """
-    try:
-        subconfig = function(*args, **kwargs)
-    except Exception:
-        logger.exception("Exception while building Relay project config field")
-    else:
-        if subconfig is not None:
-            config[key] = subconfig
-
-
 def _should_extract_abnormal_mechanism(project: Project) -> bool:
     return sample_modulo(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", project.organization_id
     )
+
+
+def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "Chrome",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome",
+            },
+        },
+        {
+            "name": "Firefox",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox",
+            },
+        },
+        {
+            "name": "Safari",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Safari",
+            },
+        },
+        {
+            "name": "Edge",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        },
+        {
+            "name": "Opera",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
+        },
+        {
+            "name": "Chrome INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Google Chrome",
+                    },
+                ],
+            },
+        },
+        {
+            "name": "Edge INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        },
+        {
+            "name": "Opera INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
+        },
+    ]
+
+
+def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has(
+        "organizations:performance-calculate-mobile-perf-score-relay", organization
+    ):
+        return []
+
+    return [
+        {
+            "name": "Mobile",
+            "version": "mobile.alpha",
+            "scoreComponents": [
+                {
+                    "measurement": "time_to_initial_display",
+                    "weight": 0.25,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "time_to_full_display",
+                    "weight": 0.25,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "app_start_warm",
+                    "weight": 0.25,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "app_start_cold",
+                    "weight": 0.25,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": True,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.cocoa"},
+                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.java.android"},
+                        ],
+                    },
+                    {"op": "eq", "name": "event.contexts.trace.op", "value": "ui.load"},
+                ],
+            },
+        }
+    ]
 
 
 def _get_project_config(
@@ -364,7 +749,7 @@ def _get_project_config(
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
 
     with Hub.current.start_span(op="get_public_config"):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
             "slug": project.slug,
@@ -388,8 +773,9 @@ def _get_project_config(
 
     config = cfg["config"]
 
-    if exposed_features := get_exposed_features(project):
-        config["features"] = exposed_features
+    with sentry_sdk.start_span(op="get_exposed_features"):
+        if exposed_features := get_exposed_features(project):
+            config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
@@ -430,246 +816,20 @@ def _get_project_config(
 
         add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
-    if features.has("organizations:metrics-extraction", project.organization):
-        config["sessionMetrics"] = {
-            "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
+    config["sessionMetrics"] = {
+        "version": (
+            EXTRACT_ABNORMAL_MECHANISM_VERSION
             if _should_extract_abnormal_mechanism(project)
-            else EXTRACT_METRICS_VERSION,
-            "drop": features.has(
-                "organizations:release-health-drop-sessions", project.organization
-            ),
-        }
+            else EXTRACT_METRICS_VERSION
+        ),
+    }
 
-    if features.has("organizations:performance-calculate-score-relay", project.organization):
-        config["performanceScore"] = {
-            "profiles": [
-                {
-                    "name": "Chrome",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.15,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome",
-                    },
-                },
-                {
-                    "name": "Firefox",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.0,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Firefox",
-                    },
-                },
-                {
-                    "name": "Safari",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.0,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.0,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.0,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Safari",
-                    },
-                },
-                {
-                    "name": "Edge",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.15,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Edge",
-                    },
-                },
-                {
-                    "name": "Opera",
-                    "scoreComponents": [
-                        {
-                            "measurement": "fcp",
-                            "weight": 0.15,
-                            "p10": 900.0,
-                            "p50": 1600.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "lcp",
-                            "weight": 0.30,
-                            "p10": 1200.0,
-                            "p50": 2400.0,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "fid",
-                            "weight": 0.30,
-                            "p10": 100.0,
-                            "p50": 300.0,
-                            "optional": True,
-                        },
-                        {
-                            "measurement": "cls",
-                            "weight": 0.15,
-                            "p10": 0.1,
-                            "p50": 0.25,
-                            "optional": False,
-                        },
-                        {
-                            "measurement": "ttfb",
-                            "weight": 0.10,
-                            "p10": 200.0,
-                            "p50": 400.0,
-                            "optional": False,
-                        },
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Opera",
-                    },
-                },
-            ]
-        }
+    performance_score_profiles = [
+        *_get_browser_performance_profiles(project.organization),
+        *_get_mobile_performance_profiles(project.organization),
+    ]
+    if performance_score_profiles:
+        config["performanceScore"] = {"profiles": performance_score_profiles}
 
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
@@ -778,7 +938,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
+            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
         except Exception as e:
             return f"Content Error:{e}"
 
@@ -853,7 +1013,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 3
+TRANSACTION_METRICS_EXTRACTION_VERSION = 5
 
 
 class CustomMeasurementSettings(TypedDict):
@@ -879,7 +1039,7 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 
 
 def get_transaction_metrics_settings(
-    project: Project, breakdowns_config: Mapping[str, Any] | None
+    timeout: TimeChecker, project: Project, breakdowns_config: Mapping[str, Any] | None
 ) -> TransactionMetricsSettings:
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.

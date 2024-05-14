@@ -2,19 +2,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
-
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-
-if TYPE_CHECKING:
-    from sentry.api.event_search import SearchFilter
 
 from sentry.models.environment import Environment
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
@@ -25,6 +19,8 @@ from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.base import ANY
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 from sentry.utils.eventuser import KEYWORD_MAP, EventUser
@@ -101,6 +97,9 @@ def parse_size(value: str, size: str) -> float:
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid size value")
 
+    # size units are case insensitive
+    size = size.lower()
+
     if size == "bit":
         byte = size_value / 8
     elif size == "nb":
@@ -165,6 +164,8 @@ def parse_numeric_value(value: str, suffix: str | None = None) -> float:
     if not suffix:
         return parsed_value
 
+    # numeric "nuts" are case insensitive
+    suffix = suffix.lower()
     numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
@@ -702,7 +703,10 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
 
 
 def parse_query(
-    projects: Sequence[Project], query: str, user: User, environments: Sequence[Environment]
+    projects: Sequence[Project],
+    query: str,
+    user: User | AnonymousUser,
+    environments: Sequence[Environment],
 ) -> dict[str, Any]:
     """| Parses the query string and returns a dict of structured query term values:
     | Required:
@@ -809,36 +813,6 @@ def convert_user_tag_to_query(key: str, value: str) -> str | None:
         if KEYWORD_MAP.get_key(sub_key, None):
             return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))
     return None
-
-
-@dataclass
-class SupportedConditions:
-    field_name: str
-    operators: frozenset[str] | None = None
-
-
-supported_cdc_conditions = [
-    SupportedConditions("status", frozenset(["IN"])),
-]
-supported_cdc_conditions_lookup = {
-    condition.field_name: condition for condition in supported_cdc_conditions
-}
-
-
-def validate_cdc_search_filters(search_filters: Sequence[SearchFilter] | None) -> bool:
-    """
-    Validates whether a set of search filters can be handled by the cdc search backend.
-    """
-    for search_filter in search_filters or ():
-        supported_condition = supported_cdc_conditions_lookup.get(search_filter.key.name)
-        if not supported_condition:
-            return False
-        if (
-            supported_condition.operators
-            and search_filter.operator not in supported_condition.operators
-        ):
-            return False
-    return True
 
 
 # Mapping of device class to the store corresponding tag value

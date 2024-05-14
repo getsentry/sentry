@@ -7,19 +7,10 @@ from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment
 from sentry.testutils.cases import MonitorIngestTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
@@ -27,18 +18,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
         return reverse(self.endpoint, args=[self.organization.slug, monitor.slug, checkin.guid])
 
     def _create_monitor(self):
-        return Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule_type": ScheduleType.CRONTAB,
-                "schedule": "* * * * *",
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-            date_added=timezone.now() - timedelta(minutes=1),
-        )
+        return self.create_monitor()
 
     def _create_monitor_environment(self, monitor, name="production", **kwargs):
         environment = Environment.get_or_create(project=self.project, name=name)
@@ -50,7 +30,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
         }
 
         return MonitorEnvironment.objects.create(
-            monitor=monitor, environment=environment, **monitorenvironment_defaults
+            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
     def test_upload(self):

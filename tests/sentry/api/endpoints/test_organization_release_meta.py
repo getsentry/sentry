@@ -1,3 +1,4 @@
+import orjson
 from django.urls import reverse
 
 from sentry.models.artifactbundle import ProjectArtifactBundle, ReleaseArtifactBundle
@@ -9,11 +10,8 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 
 
-@region_silo_test
 class ReleaseMetaTest(APITestCase):
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -72,13 +70,13 @@ class ReleaseMetaTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-meta",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
 
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data["deployCount"] == 1
         assert data["commitCount"] == 2
         assert data["newGroups"] == 42
@@ -106,13 +104,13 @@ class ReleaseMetaTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-meta",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
 
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data["releaseFileCount"] == 2
         assert not data["isArtifactBundle"]
 
@@ -144,13 +142,13 @@ class ReleaseMetaTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-meta",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
 
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data["releaseFileCount"] == 10
         assert data["isArtifactBundle"]
 
@@ -195,12 +193,12 @@ class ReleaseMetaTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-meta",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
 
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data["releaseFileCount"] == 40
         assert data["isArtifactBundle"]

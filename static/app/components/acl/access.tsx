@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
-import type {Organization, Project, Scope, Team} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import {useUser} from 'sentry/utils/useUser';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -11,7 +13,8 @@ type ChildRenderProps = {
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => JSX.Element;
+// TODO(TS): This should be ReactNode but conflicts between react 17 & 18
+type ChildFunction = (props: ChildRenderProps) => any;
 
 type Props = {
   organization: Organization;

@@ -1,11 +1,12 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
+import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
-  IconChat,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -13,6 +14,8 @@ import {
   IconInput,
   IconKeyDown,
   IconLocation,
+  IconMegaphone,
+  IconMobile,
   IconSort,
   IconTerminal,
   IconUser,
@@ -22,13 +25,18 @@ import {t, tct} from 'sentry/locale';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
+  DeviceBatteryFrame,
+  DeviceConnectivityFrame,
+  DeviceOrientationFrame,
   ErrorFrame,
+  FeedbackFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
+  TapFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
@@ -62,11 +70,18 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
+  feedback: (frame: FeedbackFrame) => ({
+    color: 'pink300',
+    description: frame.data.projectSlug,
+    tabKey: TabKey.BREADCRUMBS,
+    title: defaultTitle(frame),
+    icon: <IconMegaphone size="xs" />,
+  }),
   issue: (frame: ErrorFrame) => ({
     color: 'red300',
     description: frame.message,
     tabKey: TabKey.ERRORS,
-    title: defaultTitle(frame),
+    title: <CrumbErrorTitle frame={frame} />,
     icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
@@ -168,38 +183,59 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({
-    color: 'purple300',
-    description: frame.message ?? '',
+    color: 'blue300',
+    description: <SelectorList frame={frame} />,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
+  'ui.tap': (frame: TapFrame) => ({
+    color: 'blue300',
+    description: frame.message,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Tap',
+    icon: <IconUser size="xs" />,
+  }),
   'ui.input': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Blur',
     icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
-    color: 'purple300',
+    color: 'blue300',
     description: 'User Action',
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Focus',
+    icon: <IconUser size="xs" />,
+  }),
+  'app.foreground': () => ({
+    color: 'blue300',
+    description: 'Replay started',
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'App in Foreground',
+    icon: <IconUser size="xs" />,
+  }),
+  'app.background': () => ({
+    color: 'blue300',
+    description: 'Replay paused',
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'App in Background',
     icon: <IconUser size="xs" />,
   }),
   console: frame => ({
@@ -269,13 +305,6 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Paint',
     icon: <IconInfo size="xs" />,
   }),
-  'sentry.feedback': () => ({
-    color: 'blue300',
-    description: '',
-    tabKey: TabKey.BREADCRUMBS,
-    title: 'User Feedback Submitted',
-    icon: <IconChat size="xs" />,
-  }),
   'resource.css': frame => ({
     color: 'gray300',
     description: undefined,
@@ -332,6 +361,37 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
+  'resource.http': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    icon: <IconSort size="xs" rotated />,
+  }),
+  'device.connectivity': (frame: DeviceConnectivityFrame) => ({
+    color: 'pink300',
+    description: frame.data.state,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Device Connectivity',
+    icon: <IconMobile size="xs" />,
+  }),
+  'device.battery': (frame: DeviceBatteryFrame) => ({
+    color: 'pink300',
+    description: tct('Device was at [percent]% battery and [charging]', {
+      percent: frame.data.level,
+      charging: frame.data.charging ? 'charging' : 'not charging',
+    }),
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Device Battery',
+    icon: <IconMobile size="xs" />,
+  }),
+  'device.orientation': (frame: DeviceOrientationFrame) => ({
+    color: 'pink300',
+    description: frame.data.position,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Device Orientation',
+    icon: <IconMobile size="xs" />,
+  }),
 };
 
 const MAPPER_DEFAULT = (frame): Details => ({
@@ -353,6 +413,10 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 }
 
 function defaultTitle(frame: ReplayFrame) {
+  // Override title for User Feedback frames
+  if ('message' in frame && frame.message === 'User Feedback') {
+    return t('User Feedback');
+  }
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();
@@ -366,9 +430,15 @@ function defaultTitle(frame: ReplayFrame) {
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
   const {tagName, attributes} = node ?? {};
   const attributesEntries = Object.entries(attributes ?? {});
-  return `${tagName}${
+  const componentName = node?.attributes['data-sentry-component'];
+
+  return `${componentName ?? tagName}${
     attributesEntries.length
-      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`).join('')
+      ? attributesEntries
+          .map(([attr, val]) =>
+            componentName && attr === 'data-sentry-component' ? '' : `[${attr}="${val}"]`
+          )
+          .join('')
       : ''
   }`;
 }

@@ -190,21 +190,21 @@ describe('ProjectPageFilter', function () {
     expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', function () {
+  it('responds to page filter changes, async e.g. from back button nav', async function () {
     render(<ProjectPageFilter />, {
       context: routerContext,
       organization,
     });
 
     // Confirm initial selection
-    expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
     act(() => updateProjects([2], router));
 
     // <ProjectPageFilter /> is updated
 
-    expect(screen.getByRole('button', {name: 'project-2'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
   });
 
   it('displays a desynced state message', async function () {

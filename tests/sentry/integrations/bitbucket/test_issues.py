@@ -1,5 +1,6 @@
 import copy
 
+import orjson
 import responses
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
@@ -8,14 +9,11 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class BitbucketIssueTest(APITestCase):
     def setUp(self):
         self.base_url = "https://api.bitbucket.org"
@@ -101,7 +99,7 @@ class BitbucketIssueTest(APITestCase):
 
         request = responses.calls[0].request
         assert responses.calls[0].response.status_code == 201
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"content": {"raw": comment["comment"]}}
 
     @responses.activate

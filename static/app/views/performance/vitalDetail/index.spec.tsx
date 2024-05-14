@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -11,6 +10,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -437,16 +437,17 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', function () {
+  it('correctly renders which browsers support LCP', async function () {
     render(<TestComponent />, {
       context: routerContext,
       organization: org,
     });
 
+    expect(await screen.findAllByText(/Largest Contentful Paint/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', function () {
+  it('correctly renders which browsers support CLS', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -462,10 +463,11 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
+    expect(await screen.findAllByText(/Cumulative Layout Shift/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', function () {
+  it('correctly renders which browsers support FCP', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -486,10 +488,11 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
+    expect(await screen.findAllByText(/First Contentful Paint/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', function () {
+  it('correctly renders which browsers support FID', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -510,6 +513,7 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
+    expect(await screen.findAllByText(/First Input Delay/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.FID);
   });
 });

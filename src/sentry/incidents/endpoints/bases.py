@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
@@ -27,9 +27,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         try:
-            kwargs["alert_rule"] = AlertRule.objects.get(
-                snuba_query__subscriptions__project=project, id=alert_rule_id
-            )
+            kwargs["alert_rule"] = AlertRule.objects.get(projects=project, id=alert_rule_id)
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
 

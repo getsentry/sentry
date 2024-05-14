@@ -17,7 +17,7 @@ from sentry.dynamic_sampling.tasks.utils import (
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder

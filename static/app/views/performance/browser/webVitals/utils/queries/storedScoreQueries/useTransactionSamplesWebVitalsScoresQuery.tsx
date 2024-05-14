@@ -2,6 +2,7 @@ import type {ReactText} from 'react';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,10 +14,7 @@ import type {
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -43,14 +41,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
-  const filteredSortableFields = shouldUseStoredScores
-    ? SORTABLE_INDEXED_FIELDS
-    : SORTABLE_INDEXED_FIELDS.filter(
-        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
-      );
+  const filteredSortableFields = SORTABLE_INDEXED_FIELDS;
 
   const sort = useWebVitalsSort({
     sortName,
@@ -62,6 +54,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     {
       fields: [
         'id',
+        'trace',
         'user.display',
         'transaction',
         'measurements.lcp',
@@ -80,12 +73,13 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
       name: 'Web Vitals',
-      query: [
+      query: new MutableSearch([
         'transaction.op:pageload',
-        `transaction:"${transaction}"`,
         'has:measurements.score.total',
         ...(query ? [query] : []),
-      ].join(' '),
+      ])
+        .addStringFilter(`transaction:"${transaction}"`)
+        .formatString(),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
@@ -106,14 +100,13 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  // TODO: Remove this once we can query for INP.
-  const webVitalKey = shouldReplaceFidWithInp && webVital === 'fid' ? 'inp' : webVital;
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? (data.data.map(
           row => ({
             id: row.id?.toString(),
+            trace: row.trace?.toString(),
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),
@@ -121,7 +114,6 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             'measurements.cls': toNumber(row['measurements.cls']),
             'measurements.ttfb': toNumber(row['measurements.ttfb']),
             'measurements.fid': toNumber(row['measurements.fid']),
-            'measurements.inp': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
             'profile.id': row['profile.id']?.toString(),
@@ -132,12 +124,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             ),
             ...(webVital
               ? {
-                  [`${webVitalKey}Score`]: Math.round(
+                  [`${webVital}Score`]: Math.round(
                     ((toNumber(row[`measurements.score.${webVital}`]) ?? 0) /
                       (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0)) *
                       100
                   ),
-                  [`${webVitalKey}Weight`]: Math.round(
+                  [`${webVital}Weight`]: Math.round(
                     (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0) * 100
                   ),
                 }

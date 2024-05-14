@@ -12,7 +12,6 @@ from sentry.testutils.performance_issues.event_generators import (
     create_span,
     get_event,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.slow_db_query_detector import SlowDBQueryDetector
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
@@ -21,7 +20,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class SlowDBQueryDetectorTest(TestCase):
     def setUp(self):
@@ -138,19 +136,6 @@ class SlowDBQueryDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-
-    def test_respects_feature_flag(self):
-        project = self.create_project()
-        slow_span_event = create_event(
-            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
-        )
-
-        detector = SlowDBQueryDetector(self._settings, slow_span_event)
-
-        assert not detector.is_creation_allowed_for_organization(project.organization)
-
-        with self.feature({"organizations:performance-slow-db-issue": True}):
-            assert detector.is_creation_allowed_for_organization(project.organization)
 
     def test_respects_project_option(self):
         project = self.create_project()

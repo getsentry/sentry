@@ -10,9 +10,10 @@ export type FeedbackIssue = Overwrite<
     metadata: {
       contact_email: null | string;
       message: string;
-      name: string;
+      name: null | string;
       title: string;
       value: string;
+      initial_priority?: number;
       sdk?: {
         name: string;
         name_normalized: string;
@@ -25,7 +26,7 @@ export type FeedbackIssue = Overwrite<
 
 export type FeedbackEvent = Event;
 
-export type FeedbackIssueList = Overwrite<
+export type FeedbackIssueListItem = Overwrite<
   BaseGroup & GroupStats,
   {
     issueCategory: 'feedback';
@@ -44,4 +45,4 @@ export type FeedbackIssueList = Overwrite<
     };
     owners: null | unknown;
   }
->[];
+>;

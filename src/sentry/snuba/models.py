@@ -8,7 +8,9 @@ from django.utils import timezone
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model
+from sentry.models.team import Team
+from sentry.models.user import User
 
 
 class QueryAggregations(Enum):
@@ -22,10 +24,10 @@ query_aggregation_to_snuba = {
 }
 
 
-@region_silo_only_model
+@region_silo_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization
-    __relocation_dependencies__ = {"sentry.Actor", "sentry.Organization", "sentry.Project"}
+    __relocation_dependencies__ = {"sentry.Organization", "sentry.Project"}
 
     class Type(Enum):
         ERROR = 0
@@ -33,7 +35,7 @@ class SnubaQuery(Model):
         CRASH_RATE = 2
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
-    # Possible values are in the the `Type` enum
+    # Possible values are in the `Type` enum
     type = models.SmallIntegerField()
     dataset = models.TextField()
     query = models.TextField()
@@ -52,15 +54,16 @@ class SnubaQuery(Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        from sentry.incidents.models import AlertRule
-        from sentry.models.actor import Actor
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.organization import Organization
         from sentry.models.project import Project
 
         from_alert_rule = AlertRule.objects.filter(
-            models.Q(owner_id__in=pk_map.get_pks(get_model_name(Actor)))
+            models.Q(user_id__in=pk_map.get_pks(get_model_name(User)))
+            | models.Q(team_id__in=pk_map.get_pks(get_model_name(Team)))
             | models.Q(organization_id__in=pk_map.get_pks(get_model_name(Organization)))
         ).values_list("snuba_query_id", flat=True)
+
         from_query_subscription = QuerySubscription.objects.filter(
             project_id__in=pk_map.get_pks(get_model_name(Project))
         ).values_list("snuba_query_id", flat=True)
@@ -68,7 +71,7 @@ class SnubaQuery(Model):
         return q & models.Q(pk__in=set(from_alert_rule).union(set(from_query_subscription)))
 
 
-@region_silo_only_model
+@region_silo_model
 class SnubaQueryEventType(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -90,7 +93,7 @@ class SnubaQueryEventType(Model):
         return self.EventType(self.type)
 
 
-@region_silo_only_model
+@region_silo_model
 class QuerySubscription(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -101,13 +104,19 @@ class QuerySubscription(Model):
         DELETING = 3
         DISABLED = 4
 
+    # NOTE: project fk SHOULD match AlertRule's fk
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
-    type = models.TextField()
+    type = (
+        models.TextField()
+    )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.
     status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
     subscription_id = models.TextField(unique=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now, null=True)
+    query_extra = models.TextField(
+        null=True
+    )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())

@@ -1,15 +1,13 @@
 from typing import TYPE_CHECKING
 
-from django.conf import settings
-
 from sentry.utils.services import LazyServiceWrapper
 
 from .base import BaseReleaseMonitorBackend
 
 backend = LazyServiceWrapper(
     BaseReleaseMonitorBackend,
-    settings.SENTRY_RELEASE_MONITOR,
-    settings.SENTRY_RELEASE_MONITOR_OPTIONS,
+    "sentry.release_health.release_monitor.metrics.MetricReleaseMonitorBackend",
+    {},
 )
 backend.expose(locals())
 

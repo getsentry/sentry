@@ -3,7 +3,6 @@ from functools import cached_property
 from time import sleep, time
 from unittest.mock import patch, sentinel
 
-from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
@@ -11,17 +10,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
-from sentry.models.apikey import ApiKey
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
-from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
-from sentry.silo.base import SiloMode
+from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_value
 from sentry.testutils.cases import APITestCase, BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -49,33 +44,26 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     _test_endpoint = TestEndpoint.as_view()
     _test_endpoint_no_rate_limits = TestEndpointNoRateLimits.as_view()
 
-    def populate_sentry_app_request(self, request):
+    def _populate_public_integration_request(self, request) -> None:
         install = self.create_sentry_app_installation(organization=self.organization)
-
         token = install.api_token
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
         request.auth = token
 
-    def populate_internal_integration_request(self, request):
+    def _populate_internal_integration_request(self, request) -> None:
         internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = None
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            install = SentryAppInstallation.objects.get(
-                sentry_app=internal_integration.id, organization_id=self.organization.id
-            )
-            token = install.api_token
-
-        assert token is not None
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        token = self.create_internal_integration_token(
+            user=self.user,
+            internal_integration=internal_integration,
+        )
+        with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
         request.auth = token
 
@@ -85,7 +73,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         the request still goes through"""
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
-            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
 
     def test_process_response_fails_open(self):
@@ -104,13 +92,13 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
-            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
 
         with freeze_time("2000-01-02"):
             # 10th request in a 10 request window should get rate limited
-            default_rate_limit_mock.return_value = RateLimit(10, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
             for _ in range(10):
                 self.middleware.process_view(request, self._test_endpoint, [], {})
                 assert not request.will_be_rate_limited
@@ -122,10 +110,11 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_positive_rate_limit_response_headers(self, default_rate_limit_mock):
         request = self.factory.get("/")
 
-        with freeze_time("2000-01-01"), patch.object(
-            RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True
+        with (
+            freeze_time("2000-01-01"),
+            patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
         ):
-            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
@@ -137,12 +126,12 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
-        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
 
         # Requests outside the current window should not be rate limited
-        default_rate_limit_mock.return_value = RateLimit(1, 1)
+        default_rate_limit_mock.return_value = RateLimit(limit=1, window=1)
         with freeze_time("2000-01-01") as frozen_time:
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
@@ -155,11 +144,11 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_self_hosted_rate_limit_check(self, default_rate_limit_mock):
         """Check that for self hosted installs we don't rate limit"""
         request = self.factory.get("/")
-        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
 
-        default_rate_limit_mock.return_value = RateLimit(1, 1)
+        default_rate_limit_mock.return_value = RateLimit(limit=1, window=1)
         with freeze_time("2000-01-01") as frozen_time:
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
@@ -182,80 +171,13 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.USER
 
-        self.populate_sentry_app_request(request)
+        self._populate_public_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
-        self.populate_internal_integration_request(request)
+        self._populate_internal_integration_request(request)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
-
-    def test_get_rate_limit_key(self):
-        # Import an endpoint
-
-        view = OrganizationGroupIndexEndpoint.as_view()
-        rate_limit_config = get_rate_limit_config(view.view_class)
-        rate_limit_group = rate_limit_config.group if rate_limit_config else RateLimitConfig().group
-
-        # Test for default IP
-        request = self.factory.get("/")
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:127.0.0.1"
-        )
-        # Test when IP address is missing
-        request.META["REMOTE_ADDR"] = None
-        assert get_rate_limit_key(view, request, rate_limit_group, rate_limit_config) is None
-
-        # Test when IP addess is IPv6
-        request.META["REMOTE_ADDR"] = "684D:1111:222:3333:4444:5555:6:77"
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
-        )
-
-        # Test for users
-        request.session = {}
-        request.user = self.user
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
-        )
-
-        # Test for user auth tokens
-        token = self.create_user_auth_token(user=self.user, scope_list=["event:read", "org:read"])
-        request.auth = token
-        request.user = self.user
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"user:default:OrganizationGroupIndexEndpoint:GET:{self.user.id}"
-        )
-
-        # Test for sentryapp auth tokens:
-        self.populate_sentry_app_request(request)
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
-        )
-
-        self.populate_internal_integration_request(request)
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
-        )
-
-        # Test for
-        request.user = AnonymousUser()
-        api_key = None
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            api_key = ApiKey.objects.create(
-                organization_id=self.organization.id, scope_list=["project:write"]
-            )
-        request.auth = api_key
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
-        )
 
     def test_enforce_rate_limit_is_false(self):
         request = self.factory.get("/")
@@ -292,8 +214,8 @@ class TestGetRateLimitValue(TestCase):
 
         class TestEndpoint(Endpoint):
             rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
-                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
+                "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
+                "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
             }
 
         view = TestEndpoint.as_view()
@@ -319,7 +241,7 @@ class RateLimitHeaderTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = True
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 100)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=100)}}
 
     def inject_call(self):
         return
@@ -333,7 +255,7 @@ class RaceConditionEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = False
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(40, 100)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=40, window=100)}}
 
     def get(self, request):
         return Response({"ok": True})
@@ -369,9 +291,9 @@ class CallableRateLimitConfigEndpoint(Endpoint):
     def rate_limits(request):
         return {
             "GET": {
-                RateLimitCategory.IP: RateLimit(20, 1),
-                RateLimitCategory.USER: RateLimit(20, 1),
-                RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+                RateLimitCategory.IP: RateLimit(limit=20, window=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
             },
         }
 

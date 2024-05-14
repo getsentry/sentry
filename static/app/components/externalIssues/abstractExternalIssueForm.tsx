@@ -187,7 +187,7 @@ export default class AbstractExternalIssueForm<
         <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
-              label: field.label,
+              label: field.label as React.ReactNode,
             })}
             size="xs"
           />{' '}

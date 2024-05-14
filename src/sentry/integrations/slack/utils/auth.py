@@ -12,7 +12,7 @@ ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 
 def is_valid_role(org_member: "OrganizationMember") -> bool:
-    return len(set(org_member.get_all_org_roles()) & set(ALLOWED_ROLES)) > 0
+    return len({org_member.role} & set(ALLOWED_ROLES)) > 0
 
 
 def _encode_data(secret: str, data: bytes, timestamp: str) -> str:

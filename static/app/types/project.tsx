@@ -59,6 +59,12 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
+  highlightContext?: Record<string, string[]>;
+  highlightPreset?: {
+    context: Record<string, string[]>;
+    tags: string[];
+  };
+  highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
@@ -86,6 +92,7 @@ export type ProjectKey = {
   dateCreated: string;
   dsn: {
     cdn: string;
+    crons: string;
     csp: string;
     minidump: string;
     public: string;
@@ -109,6 +116,7 @@ export type ProjectKey = {
     window: number;
   } | null;
   secret: string;
+  useCase?: string;
 };
 
 export type ProjectSdkUpdates = {
@@ -211,6 +219,7 @@ export type PlatformKey =
   | 'native-breakpad'
   | 'native-minidump'
   | 'native-qt'
+  | 'nintendo-switch'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
@@ -220,7 +229,6 @@ export type PlatformKey =
   | 'node-koa'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
-  | 'node-serverlesscloud'
   | 'objc'
   | 'other'
   | 'perl'

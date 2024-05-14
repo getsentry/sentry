@@ -241,7 +241,7 @@ function useOverlay({
 
   // Get props for overlay element
   const interactedOutside = useRef(false);
-  const interactOutsideTrigger = useRef<HTMLButtonElement | null>(null);
+  const interactOutsideTrigger = useRef<HTMLElement | null>(null);
   const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
@@ -251,6 +251,7 @@ function useOverlay({
           onInteractOutside?.();
           interactedOutside.current = false;
 
+          interactOutsideTrigger.current?.focus();
           interactOutsideTrigger.current?.click();
           interactOutsideTrigger.current = null;
         }
@@ -271,8 +272,8 @@ function useOverlay({
           // Check if the target is inside a different overlay trigger. If yes, then we
           // should activate that trigger after this overlay has closed (see the onClose
           // prop above). This allows users to quickly jump between adjacent overlays.
-          const closestOverlayTrigger = target.closest?.<HTMLButtonElement>(
-            'button[aria-expanded="false"]'
+          const closestOverlayTrigger = target.closest?.<HTMLElement>(
+            '[aria-expanded="false"]'
           );
           if (closestOverlayTrigger && closestOverlayTrigger !== triggerRef.current) {
             interactOutsideTrigger.current = closestOverlayTrigger;

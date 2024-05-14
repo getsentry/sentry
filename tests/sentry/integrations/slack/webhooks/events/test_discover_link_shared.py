@@ -2,13 +2,13 @@ import re
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qsl
 
+import orjson
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.silo import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.utils import json
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 
 from . import LINK_SHARED_EVENT, BaseEventTest
 
@@ -35,7 +35,6 @@ LINK_SHARED_EVENT_NO_CHANNEL_NAME = """{
 }"""
 
 
-@region_silo_test
 class DiscoverLinkSharedEvent(BaseEventTest):
     @responses.activate
     @patch(
@@ -63,7 +62,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         responses.add(responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True})
         responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
-        resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
 
         data = responses.calls[0].request.body
@@ -75,7 +74,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         with self.feature("organizations:discover-basic"):
             data = self.share_discover_links()
 
-        blocks = json.loads(data["blocks"])
+        blocks = orjson.loads(data["blocks"])
 
         assert blocks[0]["type"] == "section"
         assert (
@@ -97,7 +96,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             )
             responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
-            resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT_NO_CHANNEL_NAME))
+            resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT_NO_CHANNEL_NAME))
             assert resp.status_code == 200, resp.content
             assert len(responses.calls) == 0
 
@@ -113,7 +112,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             )
         data = self.share_discover_links()
 
-        unfurls = json.loads(data["unfurls"])
+        unfurls = orjson.loads(data["unfurls"])
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2

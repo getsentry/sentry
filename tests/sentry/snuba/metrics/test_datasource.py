@@ -51,20 +51,31 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             UseCaseID.CUSTOM,
         )
 
-        mris = get_stored_metrics_of_projects([self.project], UseCaseID.TRANSACTIONS)
+        mris = get_stored_metrics_of_projects([self.project], [UseCaseID.TRANSACTIONS])
         assert mris == {
             "d:transactions/duration@millisecond": [self.project.id],
         }
 
-        mris = get_stored_metrics_of_projects([self.project], UseCaseID.SESSIONS)
+        mris = get_stored_metrics_of_projects([self.project], [UseCaseID.SESSIONS])
         assert mris == {
             "d:sessions/duration@second": [self.project.id],
             "c:sessions/session@none": [self.project.id],
             "s:sessions/user@none": [self.project.id],
         }
 
-        mris = get_stored_metrics_of_projects([self.project], UseCaseID.CUSTOM)
+        mris = get_stored_metrics_of_projects([self.project], [UseCaseID.CUSTOM])
         assert mris == {
+            custom_mri: [self.project.id],
+        }
+
+        mris = get_stored_metrics_of_projects(
+            [self.project], [UseCaseID.TRANSACTIONS, UseCaseID.SESSIONS, UseCaseID.CUSTOM]
+        )
+        assert mris == {
+            "d:transactions/duration@millisecond": [self.project.id],
+            "d:sessions/duration@second": [self.project.id],
+            "c:sessions/session@none": [self.project.id],
+            "s:sessions/user@none": [self.project.id],
             custom_mri: [self.project.id],
         }
 

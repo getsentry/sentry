@@ -8,18 +8,18 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
 
@@ -188,32 +188,33 @@ class ProjectsListTest(APITestCase):
 
     def test_valid_with_internal_integration(self):
         project = self.create_project(organization=self.organization, teams=[self.team])
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = SentryAppInstallationToken.objects.first()
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
         path = reverse(self.endpoint)
-        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}")
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
         assert project.name.encode("utf-8") in response.content
 
     def test_deleted_token_with_internal_integration(self):
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
 
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            # there should only be one record created so just grab the first one
-            install_token = SentryAppInstallationToken.objects.first()
-            api_token = install_token.api_token
-            token = api_token.token
+            # Fetch the record using the created token
+            install_token = SentryAppInstallationToken.objects.get(api_token=token)
             # Delete the token
             install_token.delete()
             schedule_hybrid_cloud_foreign_key_jobs_control()
@@ -249,6 +250,7 @@ class ProjectsListTest(APITestCase):
         assert self.project.name.encode("utf-8") in response.content
 
     @responses.activate
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_deleted_token_with_public_integration(self):
         token = self.get_installed_unpublished_sentry_app_access_token()
 

@@ -22,7 +22,11 @@ from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationError,
+    IntegrationProviderError,
+)
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -352,7 +356,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "error_status": e.code,
                 },
             )
-            raise IntegrationError(
+            # We raise IntegrationProviderError to prevent a Sentry Issue from being created as this is an expected
+            # error, and we just want to invoke the error message to the user.
+            raise IntegrationProviderError(
                 f"The requested GitLab group {requested_group} could not be found."
             )
 

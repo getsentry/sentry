@@ -54,6 +54,6 @@ class PluginRequestParser(BaseRequestParser):
 
         # Because outboxes are now sharded by integration and plugins don't have one,
         # we use the org ID as the shard ID to batch these changes.
-        return self.get_response_from_outbox_creation(
-            regions=[region], shard_identifier_override=mapping.organization_id
+        return self.get_response_from_webhookpayload(
+            regions=[region], identifier=mapping.organization_id
         )

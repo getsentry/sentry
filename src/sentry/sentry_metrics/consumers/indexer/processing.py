@@ -1,14 +1,14 @@
 import logging
 import random
 from collections.abc import Callable, Mapping
-from typing import Any
 
-import sentry_kafka_schemas
 import sentry_sdk
 from arroyo.types import Message
 from django.conf import settings
+from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.sentry_metrics.configuration import (
     IndexerStorage,
     MetricsIngestConfiguration,
@@ -22,7 +22,6 @@ from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     ReleaseHealthTagsValidator,
 )
 from sentry.sentry_metrics.indexer.base import StringIndexer
-from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
 from sentry.utils import metrics, sdk
@@ -34,9 +33,7 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.MOCK: MockIndexer,
 }
 
-INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-    "ingest-metrics"
-)
+INGEST_CODEC: Codec[IngestMetric] = get_topic_codec(Topic.INGEST_METRICS)
 
 
 class MessageProcessor:
@@ -56,7 +53,7 @@ class MessageProcessor:
     def __setstate__(self, config: MetricsIngestConfiguration) -> None:
         # mypy: "cannot access init directly"
         # yes I can, watch me.
-        self.__init__(config)  # type: ignore
+        self.__init__(config)  # type: ignore[misc]
 
     def __get_tags_validator(self) -> Callable[[Mapping[str, str]], bool]:
         """
@@ -126,19 +123,6 @@ class MessageProcessor:
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_meta))
 
-        with metrics.timer("metrics_consumer.check_cardinality_limits"), sentry_sdk.start_span(
-            op="check_cardinality_limits"
-        ):
-            cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
-            cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-                self._config.use_case_id, batch.parsed_payloads_by_meta
-            )
-
-        sdk.set_measurement(
-            "cardinality_limiter.keys_to_remove.len", len(cardinality_limiter_state.keys_to_remove)
-        )
-        batch.filter_messages(cardinality_limiter_state.keys_to_remove)
-
         extracted_strings = batch.extract_strings()
 
         sdk.set_measurement("org_strings.len", len(extracted_strings))
@@ -152,11 +136,5 @@ class MessageProcessor:
         results = batch.reconstruct_messages(mapping, bulk_record_meta)
 
         sdk.set_measurement("new_messages.len", len(results.data))
-
-        with metrics.timer("metrics_consumer.apply_cardinality_limits"), sentry_sdk.start_span(
-            op="apply_cardinality_limits"
-        ):
-            # TODO: move to separate thread
-            cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
 
         return results

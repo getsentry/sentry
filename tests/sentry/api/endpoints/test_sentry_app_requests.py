@@ -5,14 +5,12 @@ from django.urls import reverse
 from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class SentryAppRequestsGetTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
@@ -243,7 +241,7 @@ class SentryAppRequestsGetTest(APITestCase):
             event="issue.assigned",
             url=self.unpublished_app.webhook_url,
             error_id=self.event_id,
-            project_id="1000",
+            project_id=1000,
         )
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])

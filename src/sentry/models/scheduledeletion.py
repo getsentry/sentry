@@ -13,12 +13,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     JSONField,
     Model,
-    control_silo_only_model,
-    region_silo_only_model,
+    control_silo_model,
+    region_silo_model,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -120,7 +120,11 @@ class BaseScheduledDeletion(Model):
         return apps.get_model(self.app_label, self.model_name)
 
     def get_instance(self):
-        return self.get_model().objects.get(pk=self.object_id)
+        from sentry import deletions
+
+        model = self.get_model()
+        query_manager = getattr(model, deletions.get(model=model, query=None).manager_name)
+        return query_manager.get(pk=self.object_id)
 
     def get_actor(self) -> RpcUser | None:
         if not self.actor_id:
@@ -129,7 +133,7 @@ class BaseScheduledDeletion(Model):
         return user_service.get_user(user_id=self.actor_id)
 
 
-@control_silo_only_model
+@control_silo_model
 class ScheduledDeletion(BaseScheduledDeletion):
     """
     This model schedules deletions to be processed in control and monolith silo modes.  All historic schedule deletions
@@ -144,7 +148,7 @@ class ScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_scheduleddeletion"
 
 
-@region_silo_only_model
+@region_silo_model
 class RegionScheduledDeletion(BaseScheduledDeletion):
     """
     This model schedules deletions to be processed in region and monolith silo modes.  As new region silo test coverage

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
+import orjson
 from django.http.response import HttpResponseBase
 from django.urls import resolve
 
+from sentry import options
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -13,6 +17,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +26,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITLAB]
     webhook_identifier = WebhookProviderIdentifier.GITLAB
     _integration: Integration | None = None
+    _METRIC_CONTROL_PATH_FAILURE_KEY = "integrations.gitlab.get_integration_from_request.failure"
 
     def _resolve_external_id(self) -> tuple[str, str] | HttpResponseBase:
         clear_tags_and_context()
@@ -40,14 +46,15 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         if not self.is_json_request():
             return None
         try:
-            _view, _args, kwargs = resolve(self.request.path)
-            # Non-webhook endpoints
-            if "integration_id" in kwargs and "organization_slug" in kwargs:
-                self._integration = Integration.objects.filter(
-                    id=kwargs["integration_id"],
-                    organization_slug=kwargs["organization_slug"],
-                ).first()
-                return self._integration
+            if not options.get("api.remove-non-webhook-control-path-gitlab-parser"):
+                _view, _args, kwargs = resolve(self.request.path)
+                # Non-webhook endpoints
+                if "integration_id" in kwargs and "organization_slug" in kwargs:
+                    self._integration = Integration.objects.filter(
+                        id=kwargs["integration_id"],
+                        organization_slug=kwargs["organization_slug"],
+                    ).first()
+                    return self._integration
 
             # Webhook endpoints
             result = self._resolve_external_id()
@@ -57,8 +64,12 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
                     external_id=external_id, provider=self.provider
                 ).first()
                 return self._integration
-        except Exception:
-            pass
+        except Exception as e:
+            metrics.incr(
+                self._METRIC_CONTROL_PATH_FAILURE_KEY,
+                tags={"integration": self.provider, "error": str(e)},
+            )
+            logger.exception("Failed to get integration from request")
 
         return None
 
@@ -76,9 +87,27 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
-        return self.get_response_from_outbox_creation_for_integration(
-            regions=regions, integration=integration
+        try:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
+            data = {}
+
+        return self.get_response_from_webhookpayload(
+            regions=regions,
+            identifier=self.get_mailbox_identifier(integration, data),
+            integration_id=integration.id,
         )
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """
+        Used by get_mailbox_identifier to find the project.id a payload is for.
+        In high volume gitlab instances we shard messages by project for greater
+        delivery throughput.
+        """
+        project_id = data.get("project", {}).get("id", None)
+        if not project_id:
+            return None
+        return project_id
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:

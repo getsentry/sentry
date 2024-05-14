@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import inspect
 import itertools
 import logging
 import threading
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
-from concurrent import futures
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from django.utils.functional import LazyObject, empty
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
@@ -20,7 +21,7 @@ from .types import AnyCallable
 
 logger = logging.getLogger(__name__)
 
-STATUS_SUCCESS = "success"
+T = TypeVar("T")
 
 
 class Service:
@@ -117,7 +118,10 @@ class LazyServiceWrapper(LazyObject, Proxied):
                 context[key] = getattr(base_instance, key)
 
 
-def resolve_callable(value: str | AnyCallable) -> AnyCallable:
+CallableT = TypeVar("CallableT", bound=Callable[..., object])
+
+
+def resolve_callable(value: str | CallableT) -> CallableT:
     if callable(value):
         return value
     elif isinstance(value, str):
@@ -386,9 +390,10 @@ class Delegator:
 
 
 def build_instance_from_options(
-    options: Mapping[str, Any],
-    default_constructor: Callable[..., Service] | None = None,
-) -> Service:
+    options: Mapping[str, object],
+    *,
+    default_constructor: Callable[..., object] | None = None,
+) -> object:
     try:
         path = options["path"]
     except KeyError:
@@ -400,6 +405,19 @@ def build_instance_from_options(
         constructor = resolve_callable(path)
 
     return constructor(**options.get("options", {}))
+
+
+def build_instance_from_options_of_type(
+    tp: type[T],
+    options: Mapping[str, object],
+    *,
+    default_constructor: Callable[..., T] | None = None,
+) -> T:
+    ret = build_instance_from_options(options, default_constructor=default_constructor)
+    if isinstance(ret, tp):
+        return ret
+    else:
+        raise TypeError(f"expected built object of type {tp}, got {type(ret)}")
 
 
 class ServiceDelegator(Delegator, Service):
@@ -432,6 +450,9 @@ class ServiceDelegator(Delegator, Service):
     - A dotted import path string (``path.to.callable``) that will be
       imported at backend instantiation, or
     - A reference to a callable object.
+
+    If you're shifting a service from one backend storage system to another
+    consider using `make_writebehind_selector` to generate your selector function.
     """
 
     def __init__(
@@ -465,144 +486,62 @@ class ServiceDelegator(Delegator, Service):
             backend.setup()
 
 
-def get_invalid_timing_reason(timing: tuple[float | None, float | None]) -> str:
-    start, stop = timing
-    if start is None and stop is None:
-        return "no_data"
-    elif start is None:
-        return "no_start"
-    elif stop is None:
-        return "no_stop"
-    else:
-        raise Exception("unexpected value for timing")
+KeyFetch = Callable[[Context, str, Mapping[str, Any]], str | int]
 
 
-def get_future_status(future: TimedFuture) -> str:
-    try:
-        future.result(timeout=0)
-        return STATUS_SUCCESS
-    except futures.CancelledError:
-        return "cancelled"  # neither succeeded nor failed
-    except futures.TimeoutError:
-        raise  # tried to check before ready
-    except Exception:
-        return "failure"
-
-
-def callback_timing(
-    context: Context,
-    method_name: str,
-    callargs: Mapping[str, Any],
-    backend_names: Sequence[str],
-    results: Sequence[TimedFuture],
-    metric_name: str,
-    result_comparator: Callable[[str, str, str, Any, Any], Mapping[str, str]] | None = None,
-    sample_rate: float | None = None,
-) -> None:
+def make_writebehind_selector(
+    *, option_name: str, key_fetch: KeyFetch, move_to: str, move_from: str
+) -> Selector:
     """
-    Collects timing stats on results returned to the callback method of a `ServiceDelegator`. Either
-    partial this and pass it directly as the `callback_func` or
-    :param metric_name: Prefix to use when writing these timing metrics to Datadog
-    :param method_name: method_name passed to callback
-    :param backend_names: backend_names passed to callback
-    :param results: results passed to callback
-    :param result_comparator: An optional comparator to compare the primary result to each secondary
-    result. Should return a dict represents the result of the comparison. This will be merged into
-    tags to be stored in the metrics backend.
-    :return:
-    """
-    if not len(backend_names) > 1:
-        return
-    primary_backend_name = backend_names[0]
-    primary_future = results[0]
-    primary_status = get_future_status(primary_future)
-    primary_timing = primary_future.get_timing()
+    Generates a selector_func that will do write-behind delegation
 
-    # If either endpoint of the timing data is not set, just ignore this call.
-    # This really shouldn't happen on the primary backend, but playing it safe
-    # here out of an abundance of caution.
-    if not all(primary_timing):
-        logger.warning(
-            "Received timing with unexpected endpoint: %r, primary_backend_name: %r, future_status: %r",
-            primary_timing,
-            primary_backend_name,
-            primary_status,
-        )
-        return
+    The provided option_name is expected to have values between -1 and 1
 
-    primary_duration_ms = (primary_timing[1] - primary_timing[0]) * 1000
+    -1.0 - 0.01 The move_from will be primary, while move_to will increasingly be added as a secondary.
+    At 0.0 - Only move_from will be used.
+    0.01 - 1.0 The move_to will increasingly be used as primary.
 
-    metric_kwargs = {}
-    if sample_rate is not None:
-        metric_kwargs["sample_rate"] = sample_rate
+    The `key_fetch` function gets the parameters expected by `Selector` and
+    is expected to return a consistent str|int that will be hashed for consistent
+    rollouts. If no consistent key exists you can use random number generation.
 
-    metrics.timing(
-        f"{metric_name}.timing_ms",
-        primary_duration_ms,
-        tags={
-            "method": method_name,
-            "backend": primary_backend_name,
-            "status": primary_status,
-            "primary": "true",
-        },
-        **metric_kwargs,  # type: ignore
+    The `move_to` and `move_from` parameters should match the keys used to defined
+    the backends in the `ServiceDelegator` configuration.
+
+    Example:
+
+    selector = make_writebehind_selector(
+        option_name="feature.rollout",
+        move_to="new",
+        move_from="old",
+        key_fetch=lambda *args: "a-consistent-key",
     )
+    """
 
-    for i, secondary_backend_name in enumerate(backend_names[1:], 1):
-        secondary_future = results[i]
-        secondary_timing = secondary_future.get_timing()
-        secondary_status = get_future_status(secondary_future)
+    def selector(context: Context, method: str, callargs: Mapping[str, Any]) -> list[str]:
+        rollout_rate = options.get(option_name)
+        if rollout_rate == 0.0:
+            return [move_from]
 
-        tags = {
-            "method": method_name,
-            "primary_backend": primary_backend_name,
-            "primary_status": primary_status,
-            "secondary_backend": secondary_backend_name,
-            "secondary_status": secondary_status,
-        }
-
-        if result_comparator:
-            comparator_result = result_comparator(
-                method_name,
-                primary_status,
-                secondary_status,
-                primary_future.result(),
-                secondary_future.result(),
-            )
-            tags.update(comparator_result)
-
-        # If either endpoint of the timing data is not set, this means
-        # something weird happened (more than likely a cancellation.)
-        if not all(secondary_timing):
-            metrics.incr(
-                f"{metric_name}.timing_invalid",
-                tags={**tags, "reason": get_invalid_timing_reason(secondary_timing)},
-            )
+        key = key_fetch(context, method, callargs)
+        if isinstance(key, str):
+            intkey = int(hashlib.md5(key.encode("utf8")).hexdigest(), base=16)
         else:
-            secondary_duration_ms = (secondary_timing[1] - secondary_timing[0]) * 1000
-            metrics.distribution(
-                f"{metric_name}.timing_ms",
-                secondary_duration_ms,
-                tags={
-                    "method": method_name,
-                    "backend": secondary_backend_name,
-                    "status": secondary_status,
-                    "primary": "false",
-                },
-                unit="millisecond",
-                **metric_kwargs,  # type: ignore
-            )
-            metrics.distribution(
-                f"{metric_name}.timing_delta_ms",
-                secondary_duration_ms - primary_duration_ms,
-                tags=tags,
-                unit="millisecond",
-                **metric_kwargs,  # type: ignore
-            )
-            metrics.distribution(
-                f"{metric_name}.timing_relative_delta",
-                secondary_duration_ms / primary_duration_ms,
-                tags=tags,
-                unit="millisecond",
-                **metric_kwargs,  # type: ignore
-            )
+            intkey = key
+
+        if not isinstance(intkey, int):
+            logger.error("make_writebehind_selector.invalid", extra={"received_type": type(intkey)})
+            return [move_from]
+
+        if rollout_rate < 0:
+            if (intkey % 10000) / 10000 < rollout_rate * -1.0:
+                return [move_from, move_to]
+            return [move_from]
+        else:
+            # rollout > 0
+            if (intkey % 10000) / 10000 < rollout_rate:
+                return [move_to, move_from]
+
+        return [move_from, move_to]
+
+    return selector

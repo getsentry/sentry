@@ -4,6 +4,7 @@ import random
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -20,7 +21,7 @@ from sentry.models.project import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import RateLimitExceeded
@@ -30,6 +31,10 @@ logger = logging.getLogger(__name__)
 CACHE_TIMEOUT = 3600
 
 IngestMessage = Mapping[str, Any]
+
+
+class Retriable(Exception):
+    pass
 
 
 def trace_func(**span_kwargs):
@@ -49,7 +54,9 @@ def trace_func(**span_kwargs):
 
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
-def process_event(message: IngestMessage, project: Project) -> None:
+def process_event(
+    message: IngestMessage, project: Project, reprocess_only_stuck_events: bool = False
+) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
     """
@@ -81,7 +88,13 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
     deduplication_key = f"ev:{project_id}:{event_id}"
-    if cache.get(deduplication_key) is not None:
+
+    try:
+        cached_value = cache.get(deduplication_key)
+    except Exception as exc:
+        raise Retriable(exc)
+
+    if cached_value is not None:
         logger.warning(
             "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
             event_id,
@@ -106,7 +119,8 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # serializing it again.
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload, use_rapid_json=True, skip_trace=True)
+    data = orjson.loads(payload)
+
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",
@@ -125,72 +139,87 @@ def process_event(message: IngestMessage, project: Project) -> None:
     ):
         return
 
-    with metrics.timer("ingest_consumer._store_event"):
-        cache_key = event_processing_store.store(data)
-
+    # Raise the retriable exception and skip DLQ if anything below this point fails as it may be caused by
+    # intermittent network issue
     try:
-        # Records rc-processing usage broken down by
-        # event type.
-        event_type = data.get("type")
-        if event_type == "error":
-            app_feature = "errors"
-        elif event_type == "transaction":
-            app_feature = "transactions"
-        else:
-            app_feature = None
+        # If we only want to reprocess "stuck" events, we check if this event is already in the
+        # `processing_store`. We only continue here if the event *is* present, as that will eventually
+        # process and consume the event from the `processing_store`, whereby getting it "unstuck".
+        if reprocess_only_stuck_events and not event_processing_store.exists(data):
+            return
 
-        if app_feature is not None:
-            record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
-    except Exception:
-        pass
+        with metrics.timer("ingest_consumer._store_event"):
+            cache_key = event_processing_store.store(data)
 
-    if attachments:
-        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-            attachment_objects = [
-                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                for attachment in attachments
-            ]
+        try:
+            # Records rc-processing usage broken down by
+            # event type.
+            event_type = data.get("type")
+            if event_type == "error":
+                app_feature = "errors"
+            elif event_type == "transaction":
+                app_feature = "transactions"
+            else:
+                app_feature = None
 
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+            if app_feature is not None:
+                record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
+        except Exception:
+            pass
 
-    if data.get("type") == "transaction":
-        # No need for preprocess/process for transactions thus submit
-        # directly transaction specific save_event task.
-        save_event_transaction.delay(
-            cache_key=cache_key,
-            data=None,
-            start_time=start_time,
-            event_id=event_id,
-            project_id=project_id,
-        )
-    elif data.get("type") == "feedback":
-        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
-            save_event_feedback.delay(
-                cache_key=None,  # no need to cache as volume is low
-                data=data,
+        if attachments:
+            with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+                attachment_objects = [
+                    CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                    for attachment in attachments
+                ]
+
+                attachment_cache.set(
+                    cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
+                )
+
+        if data.get("type") == "transaction":
+            # No need for preprocess/process for transactions thus submit
+            # directly transaction specific save_event task.
+            save_event_transaction.delay(
+                cache_key=cache_key,
+                data=None,
                 start_time=start_time,
                 event_id=event_id,
                 project_id=project_id,
             )
-    else:
-        # Preprocess this event, which spawns either process_event or
-        # save_event. Pass data explicitly to avoid fetching it again from the
-        # cache.
-        with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-            preprocess_event(
-                cache_key=cache_key,
-                data=data,
-                start_time=start_time,
-                event_id=event_id,
-                project=project,
-                has_attachments=bool(attachments),
-            )
+        elif data.get("type") == "feedback":
+            if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+                save_event_feedback.delay(
+                    cache_key=None,  # no need to cache as volume is low
+                    data=data,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project_id=project_id,
+                )
+        else:
+            # Preprocess this event, which spawns either process_event or
+            # save_event. Pass data explicitly to avoid fetching it again from the
+            # cache.
+            with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+                preprocess_event(
+                    cache_key=cache_key,
+                    data=data,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project=project,
+                    has_attachments=bool(attachments),
+                )
 
-    # remember for an 1 hour that we saved this event (deduplication protection)
-    cache.set(deduplication_key, "", CACHE_TIMEOUT)
+        # remember for an 1 hour that we saved this event (deduplication protection)
+        cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
-    # emit event_accepted once everything is done
-    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+        # emit event_accepted once everything is done
+        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+    except Exception as exc:
+        if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
+            raise
+        raise Retriable(exc)
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")
@@ -275,7 +304,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message: IngestMessage, project: Project) -> bool:
     start_time = to_datetime(message["start_time"])
-    feedback = json.loads(message["payload"], use_rapid_json=True)
+    feedback = orjson.loads(message["payload"])
 
     try:
         save_userreport(

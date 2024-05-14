@@ -50,7 +50,7 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <ProjectPluginDetailsContainer
         {...routerProps}
@@ -62,6 +62,7 @@ describe('ProjectPluginDetails', function () {
         }}
       />
     );
+    expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
   it('resets plugin', async function () {

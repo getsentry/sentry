@@ -7,7 +7,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry_plugins.github.client import GithubPluginAppsClient, GithubPluginClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
@@ -19,7 +19,6 @@ from sentry_plugins.github.testutils import (
 )
 
 
-@region_silo_test
 class GitHubPluginTest(TestCase):
     @cached_property
     def provider(self):
@@ -171,7 +170,6 @@ class GitHubPluginTest(TestCase):
         assert repo.config["webhook_events"] == ["push", "pull_request"]
 
 
-@region_silo_test
 class GitHubAppsProviderTest(TestCase):
     @cached_property
     def provider(self):

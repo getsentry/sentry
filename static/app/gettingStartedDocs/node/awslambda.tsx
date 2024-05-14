@@ -5,63 +5,33 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t, tct} from 'sentry/locale';
-import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
-  getDefaulServerlessImports,
-  getInstallConfig,
-} from 'sentry/utils/gettingStartedDocs/node';
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {t, tct} from 'sentry/locale';
+import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const productSelection = (params: Params): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
-
 const getSdkSetupSnippet = (params: Params) => `
-${getDefaulServerlessImports({productSelection: productSelection(params)}).join('\n')}
+// IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
+${getSdkInitSnippet(params, 'aws')}
+// Place any other require/import statements here
 
-Sentry.AWSLambda.init({
-  dsn: "${params.dsn}",
-  integrations: [${
-    params.isProfilingSelected
-      ? `
-      new ProfilingIntegration(),`
-      : ''
-  }
-],${
-  params.isPerformanceSelected
-    ? `
-      // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-    : ''
-}
-});
-
-exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
+exports.handler = Sentry.wrapHandler(async (event, context) => {
   // Your handler code
 });`;
 
 const getVerifySnippet = () => `
-exports.handler = Sentry.AWSLambda.wrapHandler(async (event, context) => {
+exports.handler = Sentry.wrapHandler(async (event, context) => {
   throw new Error("This should show up in Sentry!")
 });`;
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.AWSLambda.init({
+Sentry.init({
   dsn: "${params.dsn}",
   _experiments: {
     metricsAggregator: true,
@@ -72,9 +42,9 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Serverless SDK as a dependency:'),
+      description: t('Add the Sentry AWS Serverless SDK as a dependency:'),
       configurations: getInstallConfig(params, {
-        basePackage: '@sentry/serverless',
+        basePackage: '@sentry/aws-serverless',
       }),
     },
   ],
@@ -82,8 +52,10 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        "Wrap your lambda handler with Sentry's [code:wraphandler] function:",
+        "Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements. Then, wrap your lambda handler with Sentry's [code:wraphandler] function:",
         {
+          import: <code />,
+          require: <code />,
           code: <code />,
         }
       ),
@@ -95,7 +67,8 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/sourcemaps/',
+      guideLink:
+        'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/sourcemaps/',
       ...params,
     }),
   ],
@@ -120,14 +93,14 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/serverless]:',
+        'You need a minimum version [codeVersion:8.0.0] of [codePackage:@sentry/aws-serverless]:',
         {
           codeVersion: <code />,
           codePackage: <code />,
         }
       ),
       configurations: getInstallConfig(params, {
-        basePackage: '@sentry/serverless',
+        basePackage: '@sentry/aws-serverless',
       }),
     },
   ],
@@ -158,9 +131,25 @@ const customMetricsOnboarding: OnboardingConfig = {
   verify: getJSServerMetricsOnboarding().verify,
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

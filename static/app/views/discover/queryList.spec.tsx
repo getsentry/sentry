@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -13,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
@@ -104,7 +104,7 @@ describe('Discover > QueryList', function () {
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
-  it('renders pre-built queries and saved ones', function () {
+  it('renders pre-built queries and saved ones', async function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
@@ -118,7 +118,9 @@ describe('Discover > QueryList', function () {
       />
     );
 
-    expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
   });
 
   it('can duplicate and trigger change callback', async function () {

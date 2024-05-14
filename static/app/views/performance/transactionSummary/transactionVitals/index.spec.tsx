@@ -1,5 +1,4 @@
-import {browserHistory} from 'react-router';
-import type {Location, Query} from 'history';
+import type {Query} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -13,8 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization as TOrganization, Project} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import type {Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
   VITAL_GROUPS,
@@ -57,20 +56,6 @@ function initialize({
   });
   act(() => ProjectsStore.loadInitialData(data.organization.projects));
   return data;
-}
-
-function WrappedComponent({
-  location,
-  organization,
-}: {
-  location: Location;
-  organization: TOrganization;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <TransactionVitals location={location} organization={organization} />
-    </OrganizationContext.Provider>
-  );
 }
 
 /**
@@ -193,8 +178,9 @@ describe('Performance > Web Vitals', function () {
       features: [],
     });
 
-    render(<WrappedComponent organization={organization} location={router.location} />, {
+    render(<TransactionVitals organization={organization} location={router.location} />, {
       context: routerContext,
+      organization,
     });
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
@@ -204,8 +190,9 @@ describe('Performance > Web Vitals', function () {
       transaction: '/organizations/:orgId/',
     });
 
-    render(<WrappedComponent organization={organization} location={router.location} />, {
+    render(<TransactionVitals organization={organization} location={router.location} />, {
       context: routerContext,
+      organization,
     });
 
     expect(
@@ -220,8 +207,9 @@ describe('Performance > Web Vitals', function () {
   it('renders the correct bread crumbs', function () {
     const {organization, router, routerContext} = initialize();
 
-    render(<WrappedComponent organization={organization} location={router.location} />, {
+    render(<TransactionVitals organization={organization} location={router.location} />, {
       context: routerContext,
+      organization,
     });
 
     expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
@@ -232,13 +220,13 @@ describe('Performance > Web Vitals', function () {
 
     beforeEach(() => {
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
     });
 
-    it.each(vitals)('Renders %s', function (vital) {
-      expect(screen.getByText(vital.heading)).toBeInTheDocument();
+    it.each(vitals)('Renders %s', async function (vital) {
+      expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(screen.getByText(vital.baseline)).toBeInTheDocument();
     });
   });
@@ -248,8 +236,8 @@ describe('Performance > Web Vitals', function () {
       const {organization, router, routerContext} = initialize();
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
@@ -263,8 +251,8 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -278,8 +266,8 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -294,8 +282,8 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -310,8 +298,8 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
@@ -342,8 +330,8 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       await waitForElementToBeRemoved(() =>
@@ -365,8 +353,8 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent organization={organization} location={router.location} />,
-        {context: routerContext}
+        <TransactionVitals organization={organization} location={router.location} />,
+        {context: routerContext, organization}
       );
 
       await waitForElementToBeRemoved(() =>
@@ -399,8 +387,9 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    render(<WrappedComponent organization={organization} location={router.location} />, {
+    render(<TransactionVitals organization={organization} location={router.location} />, {
       context: routerContext,
+      organization,
     });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));

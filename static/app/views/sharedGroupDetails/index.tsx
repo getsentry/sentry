@@ -13,7 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import withApi from 'sentry/utils/withApi';
 
 import {OrganizationContext} from '../organizationContext';
@@ -120,7 +120,6 @@ class SharedGroupDetails extends Component<Props, State> {
       return <LoadingError onRetry={this.handleRetry} />;
     }
 
-    const {location} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
     // project.organization is not a real organization, it's just the slug and name
@@ -148,7 +147,6 @@ class SharedGroupDetails extends Component<Props, State> {
                   <SharedGroupHeader group={group} />
                   <Container className="group-overview event-details-container">
                     <BorderlessEventEntries
-                      location={location}
                       organization={org}
                       group={group}
                       event={latestEvent}

@@ -13,7 +13,6 @@ from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger(__name__)
 epoch = datetime.fromtimestamp(0)
@@ -187,14 +186,14 @@ def load_data(
         timestamp = datetime.utcnow() - timedelta(minutes=1)
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
     timestamp = timestamp.replace(tzinfo=timezone.utc)
-    data.setdefault("timestamp", to_timestamp(timestamp))
+    data.setdefault("timestamp", timestamp.timestamp())
 
     if data.get("type") == "transaction":
         if start_timestamp is None:
             start_timestamp = timestamp - timedelta(seconds=3)
         else:
             start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
-        data["start_timestamp"] = to_timestamp(start_timestamp)
+        data["start_timestamp"] = start_timestamp.timestamp()
 
         if metrics_summary is not None:
             data["_metrics_summary"] = metrics_summary
@@ -266,9 +265,9 @@ def load_data(
         data["event_id"] = event_id
 
     data["platform"] = platform
-    # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
-    if "message" not in data:
-        data["message"] = f"This is an example {sample_name or platform} exception"
+    data.setdefault(
+        "logentry", {"formatted": f"This is an example {sample_name or platform} exception"}
+    )
     data.setdefault(
         "user",
         generate_user(ip_address="127.0.0.1", username="sentry", id=1, email="sentry@example.com"),

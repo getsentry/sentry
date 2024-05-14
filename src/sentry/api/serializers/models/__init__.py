@@ -1,6 +1,7 @@
 from .activity import *  # noqa: F401,F403
 from .actor import *  # noqa: F401,F403
 from .alert_rule import *  # noqa: F401,F403
+from .alert_rule_activations import *  # noqa: F401,F403
 from .alert_rule_trigger import *  # noqa: F401,F403
 from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
@@ -75,7 +76,6 @@ from .sentry_app import *  # noqa: F401,F403
 from .sentry_app_avatar import *  # noqa: F401,F403
 from .sentry_app_component import *  # noqa: F401,F403
 from .sentry_app_installation import *  # noqa: F401,F403
-from .sentry_function import *  # noqa: F401,F403
 from .servicehook import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403

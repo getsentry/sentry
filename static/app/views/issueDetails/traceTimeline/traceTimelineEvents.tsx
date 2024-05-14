@@ -2,11 +2,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {TraceTimelineTooltip} from 'sentry/views/issueDetails/traceTimeline/traceTimelineTooltip';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
@@ -256,18 +256,18 @@ const CurrentNodeRing = styled('div')`
   @keyframes pulse {
     0% {
       transform: scale(0.1, 0.1);
-      opacity: 0.0;
+      opacity: 0;
     }
     50% {
       transform: scale(0.1, 0.1);
-      opacity: 0.0;
+      opacity: 0;
     }
     70% {
-      opacity: 1.0;
+      opacity: 1;
     }
     100% {
       transform: scale(1.2, 1.2);
-      opacity: 0.0;
+      opacity: 0;
     }
   }
 `;

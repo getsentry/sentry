@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MembersFixture} from 'sentry-fixture/members';
@@ -17,11 +15,13 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
@@ -34,19 +34,19 @@ const roles = [
     id: 'admin',
     name: 'Admin',
     desc: 'This is the admin role',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'owner',
     name: 'Owner',
     desc: 'This is the owner role',
-    allowed: true,
+    isAllowed: true,
   },
 ];
 
@@ -448,7 +448,7 @@ describe('OrganizationMembersList', function () {
       teams: [],
     });
 
-    it('disable buttons for no access', function () {
+    it('disable buttons for no access', async function () {
       const org = OrganizationFixture({
         status: {
           id: 'active',
@@ -469,7 +469,7 @@ describe('OrganizationMembersList', function () {
         context: RouterContextFixture([{organization: org}]),
       });
 
-      expect(screen.getByText('Pending Members')).toBeInTheDocument();
+      expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
     });
 

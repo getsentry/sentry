@@ -1,3 +1,5 @@
+import orjson
+
 from fixtures.gitlab import (
     EXTERNAL_ID,
     MERGE_REQUEST_OPENED_EVENT,
@@ -11,12 +13,10 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations import Integration
 from sentry.models.pullrequest import PullRequest
-from sentry.silo import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
-from sentry.utils import json
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 
-@region_silo_test
 class WebhookTest(GitLabTestCase):
     url = "/extensions/gitlab/webhook/"
 
@@ -205,12 +205,12 @@ class WebhookTest(GitLabTestCase):
 
     def test_push_event_create_commits_with_no_author_email(self):
         repo = self.create_repo("getsentry/sentry")
-        push_event = json.loads(PUSH_EVENT)
+        push_event = orjson.loads(PUSH_EVENT)
         push_event["commits"][0]["author"]["email"] = None
 
         response = self.client.post(
             self.url,
-            data=json.dumps(push_event),
+            data=orjson.dumps(push_event),
             content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT="Push Hook",
@@ -277,7 +277,7 @@ class WebhookTest(GitLabTestCase):
         assert 0 == PullRequest.objects.count()
 
     def test_merge_event_no_last_commit(self):
-        payload = json.loads(MERGE_REQUEST_OPENED_EVENT)
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
         # Remove required keys. There have been events in prod that are missing
         # these important attributes. GitLab docs don't explain why though.
@@ -285,7 +285,7 @@ class WebhookTest(GitLabTestCase):
 
         response = self.client.post(
             self.url,
-            data=json.dumps(payload),
+            data=orjson.dumps(payload),
             content_type="application/json",
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT="Merge Request Hook",

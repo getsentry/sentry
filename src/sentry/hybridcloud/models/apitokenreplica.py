@@ -3,12 +3,12 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.apiscopes import HasApiScopes
 
 
-@region_silo_only_model
+@region_silo_model
 class ApiTokenReplica(Model, HasApiScopes):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -17,7 +17,8 @@ class ApiTokenReplica(Model, HasApiScopes):
     application_is_active = models.BooleanField(default=False)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     apitoken_id = HybridCloudForeignKey("sentry.ApiToken", null=False, on_delete="CASCADE")
-    token = models.CharField(max_length=64)
+    hashed_token = models.CharField(max_length=128, null=True)
+    token = models.CharField(max_length=71)
     expires_at = models.DateTimeField(null=True)
     allowed_origins = models.TextField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -25,7 +26,10 @@ class ApiTokenReplica(Model, HasApiScopes):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_apitokenreplica"
-        indexes = (models.Index(fields=["token"]),)
+        indexes = (
+            models.Index(fields=["token"]),
+            models.Index(fields=["hashed_token"]),
+        )
 
     __repr__ = sane_repr("user_id", "token", "application_id")
 

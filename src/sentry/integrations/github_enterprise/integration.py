@@ -27,7 +27,7 @@ from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -72,6 +72,12 @@ FEATURES = [
         Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
+    ),
+    FeatureDescription(
+        """
+        Automatically create GitHub issues based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -131,6 +137,9 @@ class GitHubEnterpriseIntegration(
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self):
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+
         base_url = self.model.metadata["domain_name"].split("/")[0]
         return GitHubEnterpriseAppsClient(
             base_url=base_url,
@@ -138,6 +147,7 @@ class GitHubEnterpriseIntegration(
             private_key=self.model.metadata["installation"]["private_key"],
             app_id=self.model.metadata["installation"]["id"],
             verify_ssl=self.model.metadata["installation"]["verify_ssl"],
+            org_integration_id=self.org_integration.id,
         )
 
     def get_repositories(self, query=None):
@@ -419,9 +429,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             "idp_config": state["oauth_config_information"],
         }
 
-        if state.get("reinstall_id"):
-            integration["reinstall_id"] = state["reinstall_id"]
-
         return integration
 
     def setup(self):
@@ -442,8 +449,6 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
 
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         installation_data = pipeline.fetch_state(key="installation_data")
-        if "reinstall_id" in request.GET:
-            pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
             pipeline.bind_state("installation_id", request.GET["installation_id"])

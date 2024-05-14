@@ -23,10 +23,7 @@ def config() -> dict[str, Any]:
 
 @pytest.fixture
 def redis_cluster(config: dict[str, Any]) -> StrictRedis:
-    cluster, options = redis.get_cluster_from_options(
-        "TEST_CLUSTER", config, cluster_manager=redis.redis_clusters
-    )
-    return cluster
+    return redis.redis_clusters.get("default")
 
 
 @pytest.fixture

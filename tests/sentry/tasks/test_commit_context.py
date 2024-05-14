@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest.mock import patch
@@ -29,7 +30,6 @@ from sentry.tasks.commit_context import (
 )
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
 
@@ -95,7 +95,6 @@ class TestCommitContextMixin(TestCase):
         )
 
 
-@region_silo_test
 class TestCommitContextAllFrames(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
@@ -726,6 +725,24 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
                 # No lineno
             },
             {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/invalid_1.py",
+                "module": "sentry.invalid_1",
+                "in_app": True,
+                # Bad path with backslashes
+                "filename": "sentry/invalid_1.py\\other",
+                "lineno": 39,
+            },
+            {
+                "function": "something_else",
+                "abs_path": "/usr/src/sentry/src/sentry/invalid_2.py",
+                "module": "sentry.invalid_2",
+                "in_app": True,
+                # Bad path with quotes
+                "filename": 'sentry/"invalid_2".py',
+                "lineno": 39,
+            },
+            {
                 "function": "set_commits",
                 "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
                 "module": "sentry.models.release",
@@ -776,9 +793,11 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
             project_id=self.project.id,
             group_id=self.event.group_id,
             event_id=self.event.event_id,
-            num_frames=1,  # Filters out the invalid frames and dedupes the 2 valid frames
+            # 1 was a duplicate, 2 filtered out because of missing properties
+            num_frames=3,
             num_unique_commits=1,
             num_unique_commit_authors=1,
+            # Only 1 successfully mapped frame of the 6 total
             num_successfully_mapped_frames=1,
             selected_frame_index=0,
             selected_provider="github",
@@ -786,7 +805,6 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
 
-@region_silo_test
 @patch(
     "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames", return_value=[]
 )
@@ -805,15 +823,15 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             message="foo",
             title="bar",
             merge_commit_sha=self.commit.key,
-            date_added=iso_format(before_now(days=1)),
+            date_added=before_now(days=1),
         )
         self.repo.provider = "integrations:github"
         self.repo.save()
         self.pull_request_comment = PullRequestComment.objects.create(
             pull_request=self.pull_request,
             external_id=1,
-            created_at=iso_format(before_now(days=1)),
-            updated_at=iso_format(before_now(days=1)),
+            created_at=before_now(days=1),
+            updated_at=before_now(days=1),
             group_ids=[],
         )
         self.blame = FileBlameInfo(
@@ -873,7 +891,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_api(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -900,7 +918,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @patch("sentry_sdk.capture_exception")
     @responses.activate
     def test_gh_comment_api_error(
@@ -927,7 +945,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert mock_capture_exception.called
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_commit_not_in_default_branch(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -952,7 +970,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_query(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -974,12 +992,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """No comment on pr that's older than PR_COMMENT_WINDOW"""
         mock_get_commit_context.return_value = [self.blame]
-        self.pull_request.date_added = iso_format(before_now(days=PR_COMMENT_WINDOW + 1))
+        self.pull_request.date_added = before_now(days=PR_COMMENT_WINDOW + 1)
         self.pull_request.save()
 
         self.add_responses()
@@ -996,7 +1014,32 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_gh_comment_pr_info_level_issue(
+        self, get_jwt, mock_comment_workflow, mock_get_commit_context
+    ):
+        """No comment on pr that's has info level issue"""
+        mock_get_commit_context.return_value = [self.blame]
+        self.pull_request.date_added = before_now(days=1)
+        self.pull_request.save()
+
+        self.add_responses()
+        self.event.group.update(level=logging.INFO)
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """No comment on a pr that has a comment with the issue in the same pr list"""
@@ -1018,7 +1061,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -1044,7 +1087,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0].commit == self.commit
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued_existing_pr_commit(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -1073,7 +1116,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert len(pr_commits) == 1
             assert pr_commits[0] == pr_commit
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """Task queued if new issue for prior comment"""
@@ -1112,7 +1155,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         mock_get_commit_context.return_value = [self.blame]
@@ -1145,7 +1188,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert mock_comment_workflow.call_count == 1
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_multiple_comments(
         self, get_jwt, mock_comment_workflow, mock_get_commit_context
@@ -1175,8 +1218,8 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         PullRequestComment.objects.create(
             external_id=1,
             pull_request=self.pull_request,
-            created_at=iso_format(before_now(days=1)),
-            updated_at=iso_format(before_now(days=1)),
+            created_at=before_now(days=1),
+            updated_at=before_now(days=1),
             group_ids=[],
             comment_type=CommentType.OPEN_PR,
         )

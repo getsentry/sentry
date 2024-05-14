@@ -1,10 +1,10 @@
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, Project, ProjectKey} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -43,9 +43,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
     setApiQueryData<ProjectKey>(
       queryClient,
       [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
-      oldData => {
-        return {...oldData, data};
-      }
+      data
     );
   }
 

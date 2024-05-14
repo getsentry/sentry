@@ -7,13 +7,15 @@ from snuba_sdk import Column, Condition, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.release import Release, SemverFilter
+from sentry.models.release import Release
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events import builder, constants
 from sentry.search.events.filter import (
     _flip_field_sort,
     handle_operator_negation,
     parse_semver,
     to_list,
+    translate_transaction_status,
 )
 from sentry.search.events.types import WhereType
 from sentry.search.utils import DEVICE_CLASS, parse_release
@@ -52,7 +54,7 @@ def release_filter_converter(
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
             reduce(
-                lambda x, y: x + y,  # type: ignore
+                lambda x, y: x + y,  # type: ignore[operator]
                 [
                     parse_release(
                         v,
@@ -298,3 +300,38 @@ def device_class_converter(
     if value not in device_class_map:
         raise InvalidSearchQuery(f"{value} is not a supported device.class")
     return Condition(builder.column("device.class"), Op.IN, list(device_class_map[value]))
+
+
+def lowercase_search(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    """Convert the search value to lower case"""
+    raw_value = search_filter.value.raw_value
+    if isinstance(raw_value, list):
+        raw_value = [val.lower() for val in raw_value]
+    else:
+        raw_value = raw_value.lower()
+    return builder.default_filter_converter(
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(raw_value))
+    )
+
+
+def span_status_filter_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    # Handle "has" queries
+    if search_filter.value.raw_value == "":
+        return Condition(
+            builder.resolve_field(search_filter.key.name),
+            Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
+        )
+    internal_value = (
+        [translate_transaction_status(val) for val in search_filter.value.raw_value]
+        if search_filter.is_in_filter
+        else translate_transaction_status(search_filter.value.raw_value)
+    )
+    return Condition(
+        builder.resolve_field(search_filter.key.name),
+        Op(search_filter.operator),
+        internal_value,
+    )

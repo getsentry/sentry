@@ -4,8 +4,10 @@ import random
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
+from functools import lru_cache
 from time import time
 from typing import Any
+from uuid import UUID
 
 import msgpack
 import sentry_sdk
@@ -16,17 +18,23 @@ from sentry.constants import DataCategory
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.profiles.device import classify_device
-from sentry.profiles.java import deobfuscate_signature, format_signature
+from sentry.profiles.java import (
+    convert_android_methods_to_jvm_frames,
+    deobfuscate_signature,
+    format_signature,
+    merge_jvm_frames_with_android_methods,
+)
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -96,26 +104,35 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
-    event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
-    if "event_id" not in profile:
-        profile["event_id"] = event_id
+    profile_context = {
+        "organization_id": profile["organization_id"],
+        "project_id": profile["project_id"],
+    }
+
+    if "profile_id" in profile:
+        profile["event_id"] = profile["profile_id"]
+
+    if "event_id" in profile:
+        profile_context["profile_id"] = profile["event_id"]
+    elif "chunk_id" in profile:
+        profile_context["chunk_id"] = profile["chunk_id"]
 
     sentry_sdk.set_context(
-        "profile_metadata",
-        {
-            "organization_id": profile["organization_id"],
-            "project_id": profile["project_id"],
-            "profile_id": event_id,
-        },
+        "profile",
+        profile_context,
     )
 
     sentry_sdk.set_tag("platform", profile["platform"])
-    sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
     if "version" in profile:
+        version = profile["version"]
+        sentry_sdk.set_tag("format", f"sample_v{version}")
+
         set_measurement("profile.samples", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames", len(profile["profile"]["frames"]))
+    else:
+        sentry_sdk.set_tag("format", "legacy")
 
     if not _symbolicate_profile(profile, project):
         return
@@ -132,16 +149,46 @@ def process_profile_task(
     if not _normalize_profile(profile, organization, project):
         return
 
+    # set platform information at frame-level
+    # only for those platforms that didn't go through symbolication
+    _set_frames_platform(profile)
+
     if "version" in profile:
         set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
+    if (
+        profile.get("version") != "2"
+        and options.get("profiling.generic_metrics.functions_ingestion.enabled")
+        and (
+            organization.id
+            in options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+            or random.random()
+            < options.get("profiling.generic_metrics.functions_ingestion.rollout_rate")
+        )
+        and project.id
+        not in options.get("profiling.generic_metrics.functions_ingestion.denied_proj_ids")
+    ):
+        try:
+            with metrics.timer("process_profile.get_metrics_dsn"):
+                dsn = get_metrics_dsn(project.id)
+            profile["options"] = {
+                "dsn": dsn,
+            }
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
     if not _push_profile_to_vroom(profile, project):
         return
 
     with metrics.timer("process_profile.track_outcome.accepted"):
-        _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+        try:
+            _track_duration_outcome(profile=profile, project=project)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+        if profile.get("version") != "2":
+            _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -172,7 +219,7 @@ def get_profile_platforms(profile: Profile) -> list[str]:
     return platforms
 
 
-def get_debug_images_for_platform(profile, platform):
+def get_debug_images_for_platform(profile: Profile, platform: str) -> list[dict[str, Any]]:
     if platform in SHOULD_SYMBOLICATE_JS:
         return [image for image in profile["debug_meta"]["images"] if image["type"] == "sourcemap"]
     return native_images_from_data(profile)
@@ -199,14 +246,17 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 images[platform] = get_debug_images_for_platform(profile, platform)
 
             for platform in platforms:
+                profile["debug_meta"]["images"] = images[platform]
                 # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
                 # See comments in the function for why this happens.
-                profile["debug_meta"]["images"] = images[platform]
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
 
-                set_measurement(f"profile.frames.sent.{platform}", len(frames_sent))
+                set_measurement(
+                    f"profile.frames.sent.{platform}",
+                    len(frames_sent),
+                )
 
                 modules, stacktraces, success = run_symbolicate(
                     project=project,
@@ -258,12 +308,7 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
                 )
                 return True
 
-            if project.organization_id in options.get(
-                "profiling.android.deobfuscation_v2_org_ids"
-            ) or random.random() < options.get("profiling.android.deobfuscation_v2_sample_rate"):
-                _deobfuscate_v2(profile=profile, project=project)
-            else:
-                _deobfuscate(profile=profile, project=project)
+            _deobfuscate(profile=profile, project=project)
 
             profile["deobfuscated"] = True
             return True
@@ -300,43 +345,50 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.get_event_retention(organization=organization) or 90
+    profile["retention_days"] = quotas.backend.get_event_retention(organization=organization) or 90
+    platform = profile["platform"]
+    version = profile.get("version")
 
-    if profile["platform"] in {"cocoa", "android"}:
-        classification_options = dict()
+    if platform not in {"cocoa", "android"} or version == "2":
+        return
 
-        if profile["platform"] == "android":
-            classification_options.update(
-                {
-                    "cpu_frequencies": profile["device_cpu_frequencies"],
-                    "physical_memory_bytes": profile["device_physical_memory_bytes"],
-                }
-            )
+    classification_options = dict()
 
-        if "version" in profile:
-            device_options = {
+    if platform == "android":
+        classification_options.update(
+            {
+                "cpu_frequencies": profile["device_cpu_frequencies"],
+                "physical_memory_bytes": profile["device_physical_memory_bytes"],
+            }
+        )
+
+    if version == "1":
+        classification_options.update(
+            {
                 "model": profile["device"]["model"],
                 "os_name": profile["os"]["name"],
                 "is_emulator": profile["device"]["is_emulator"],
             }
-        else:
-            device_options = {
+        )
+    elif version is None:
+        classification_options.update(
+            {
                 "model": profile["device_model"],
                 "os_name": profile["device_os_name"],
                 "is_emulator": profile["device_is_emulator"],
             }
+        )
 
-        classification_options.update(device_options)
-        classification = str(classify_device(**classification_options))
+    classification = str(classify_device(**classification_options))
 
-        if "version" in profile:
-            profile["device"]["classification"] = classification
-        else:
-            profile["device_classification"] = classification
+    if version == "1":
+        profile["device"]["classification"] = classification
+    else:
+        profile["device_classification"] = classification
 
 
 def _prepare_frames_from_profile(
-    profile: Profile, platform: str
+    profile: Profile, platform: str | None
 ) -> tuple[list[Any], list[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
@@ -430,6 +482,14 @@ def symbolicate(
             dist=profile.get("dist"),
             apply_source_context=False,
         )
+    elif platform == "android":
+        return symbolicator.process_jvm(
+            exceptions=[],
+            stacktraces=stacktraces,
+            modules=modules,
+            release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
+            apply_source_context=False,
+        )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
@@ -449,14 +509,17 @@ def run_symbolicate(
 ) -> tuple[list[Any], list[Any], bool]:
     symbolication_start_time = time()
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
 
-    is_js = platform in SHOULD_SYMBOLICATE_JS
+    if platform in SHOULD_SYMBOLICATE_JS:
+        symbolicator_platform = SymbolicatorPlatform.js
+    else:
+        symbolicator_platform = SymbolicatorPlatform.native
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(is_js=is_js),
+        task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
         on_request=on_symbolicator_request,
         project=project,
         event_id=profile["event_id"],
@@ -585,14 +648,16 @@ def _process_symbolicator_results_for_sample(
             # This works since symbolicated_frames are in the same order
             # as raw_frames (except some frames are not sent).
             for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
-                new_frames.append(symbolicated_frames[frame_idx])
+                f = symbolicated_frames[frame_idx]
+                f["platform"] = platform
+                new_frames.append(f)
 
             # go to the next symbolicated frame result
             symbolicated_frame_idx += 1
 
         new_frames_count = (
             len(raw_frames)
-            + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            + sum(len(frames) for frames in symbolicated_frames_dict.values())
             - len(symbolicated_frames_dict)
         )
 
@@ -711,6 +776,64 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
     return index_map
 
 
+@metrics.wraps("process_profile.deobfuscate_using_symbolicator")
+def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_file_id: str) -> bool:
+    symbolication_start_time = time()
+
+    def on_symbolicator_request() -> None:
+        duration = time() - symbolication_start_time
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
+
+    symbolicator = Symbolicator(
+        task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm),
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=profile["event_id"],
+    )
+
+    try:
+        with sentry_sdk.start_span(op="task.profiling.deobfuscate.process_payload"):
+            response = symbolicate(
+                symbolicator=symbolicator,
+                profile=profile,
+                modules=[
+                    {
+                        "uuid": UUID(debug_file_id).hex,
+                        "type": "proguard",
+                    }
+                ],
+                stacktraces=[
+                    {
+                        "frames": convert_android_methods_to_jvm_frames(
+                            profile["profile"]["methods"]
+                        )
+                    },
+                ],
+                platform=profile["platform"],
+            )
+            if response:
+                deobfuscation_context = {}
+                if response["status"] == "failed":
+                    deobfuscation_context["status"] = response["status"]
+                    deobfuscation_context["message"] = response["message"]
+                if "errors" in response:
+                    deobfuscation_context["errors"] = response["errors"]
+                sentry_sdk.set_context("profile deobfuscation", deobfuscation_context)
+                if "stacktraces" in response:
+                    merge_jvm_frames_with_android_methods(
+                        frames=response["stacktraces"][0]["frames"],
+                        methods=profile["profile"]["methods"],
+                    )
+                    return True
+            else:
+                sentry_sdk.capture_message("No response from Symbolicator")
+    except SymbolicationTimeout:
+        metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
+    sentry_sdk.capture_message("Deobfuscation via Symbolicator failed")
+    return False
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
@@ -722,87 +845,26 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
-    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(
-            project, [debug_file_id], features=["mapping"]
-        )
-        debug_file_path = dif_paths.get(debug_file_id)
-        if debug_file_path is None:
-            return
-
-    mapper = open_proguard_mapper(debug_file_path)
-    if not mapper.has_line_info:
-        return
-
-    with sentry_sdk.start_span(op="proguard.remap"):
-        for method in profile["profile"]["methods"]:
-            method.setdefault("data", {})
-
-            mapped = mapper.remap_frame(
-                method["class_name"], method["name"], method["source_line"] or 0
-            )
-
-            if method.get("signature"):
-                types = deobfuscate_signature(method["signature"], mapper)
-                method["signature"] = format_signature(types)
-
-            if len(mapped) >= 1:
-                new_frame = mapped[-1]
-                method["class_name"] = new_frame.class_name
-                method["name"] = new_frame.method
-                method["data"] = {
-                    "deobfuscation_status": "deobfuscated"
-                    if method.get("signature", None)
-                    else "partial"
-                }
-
-                if new_frame.file:
-                    method["source_file"] = new_frame.file
-
-                if new_frame.line:
-                    method["source_line"] = new_frame.line
-
-                bottom_class = mapped[-1].class_name
-                method["inline_frames"] = [
-                    {
-                        "class_name": new_frame.class_name,
-                        "data": {"deobfuscation_status": "deobfuscated"},
-                        "name": new_frame.method,
-                        "source_file": method["source_file"]
-                        if bottom_class == new_frame.class_name
-                        else "",
-                        "source_line": new_frame.line,
-                    }
-                    for new_frame in reversed(mapped)
-                ]
-
-                # vroom will only take into account frames in this list
-                # if it exists. since symbolic does not return a signature for
-                # the frame we deobfuscated, we update it to set
-                # the deobfuscated signature.
-                if len(method["inline_frames"]) > 0:
-                    method["inline_frames"][0]["data"] = method["data"]
-                    method["inline_frames"][0]["signature"] = method.get("signature", "")
-            else:
-                mapped_class = mapper.remap_class(method["class_name"])
-                if mapped_class:
-                    method["class_name"] = mapped_class
-                    method["data"]["deobfuscation_status"] = "partial"
-                else:
-                    method["data"]["deobfuscation_status"] = "missing"
+    # We re-use this option as a deny list before we remove it completely.
+    if project.id not in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
+        try:
+            with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
+                success = _deobfuscate_using_symbolicator(
+                    project=project,
+                    profile=profile,
+                    debug_file_id=debug_file_id,
+                )
+                sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+                if success:
+                    return
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+    else:
+        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
 
 
-@metrics.wraps("process_profile.deobfuscate")
-def _deobfuscate_v2(profile: Profile, project: Project) -> None:
-    debug_file_id = profile.get("build_id")
-    if debug_file_id is None or debug_file_id == "":
-        # we still need to decode signatures
-        for m in profile["profile"]["methods"]:
-            if m.get("signature"):
-                types = deobfuscate_signature(m["signature"])
-                m["signature"] = format_signature(types)
-        return
-
+@metrics.wraps("process_profile.deobfuscate.locally")
+def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str) -> None:
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
             project, [debug_file_id], features=["mapping"]
@@ -818,6 +880,7 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             method.setdefault("data", {})
+            types = None
             if method.get("signature"):
                 types = deobfuscate_signature(method["signature"], mapper)
                 method["signature"] = format_signature(types)
@@ -842,9 +905,9 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
                 method["class_name"] = new_frame.class_name
                 method["name"] = new_frame.method
                 method["data"] = {
-                    "deobfuscation_status": "deobfuscated"
-                    if method.get("signature", None)
-                    else "partial"
+                    "deobfuscation_status": (
+                        "deobfuscated" if method.get("signature", None) else "partial"
+                    )
                 }
 
                 if new_frame.file:
@@ -865,9 +928,9 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
                         "class_name": new_frame.class_name,
                         "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
-                        "source_file": method["source_file"]
-                        if bottom_class == new_frame.class_name
-                        else "",
+                        "source_file": (
+                            method["source_file"] if bottom_class == new_frame.class_name else ""
+                        ),
                         "source_line": new_frame.line,
                     }
                     for new_frame in reversed(mapped)
@@ -889,6 +952,23 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
                     method["data"]["deobfuscation_status"] = "missing"
 
 
+def get_event_id(profile: Profile) -> str | None:
+    if "transaction_id" in profile:
+        return profile["transaction_id"]
+    elif "event_id" in profile:
+        return profile["event_id"]
+    elif "chunk_id" in profile:
+        return profile["chunk_id"]
+    else:
+        return None
+
+
+def get_data_category(profile: Profile) -> DataCategory:
+    if profile.get("version") == "2":
+        return DataCategory.PROFILE_CHUNK
+    return DataCategory.PROFILE_INDEXED
+
+
 @metrics.wraps("process_profile.track_outcome")
 def _track_outcome(
     profile: Profile,
@@ -899,20 +979,15 @@ def _track_outcome(
     if not project.flags.has_profiles:
         first_profile_received.send_robust(project=project, sender=Project)
 
-    if "transaction_id" in profile:
-        event_id = profile["transaction_id"]
-    else:
-        event_id = profile["event_id"]
-
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
         key_id=None,
         outcome=outcome,
         reason=reason,
-        timestamp=datetime.utcnow().replace(tzinfo=timezone.utc),
-        event_id=event_id,
-        category=DataCategory.PROFILE_INDEXED,
+        timestamp=datetime.now(timezone.utc),
+        event_id=get_event_id(profile),
+        category=get_data_category(profile),
         quantity=1,
     )
 
@@ -956,7 +1031,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
 def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     if _insert_vroom_profile(profile=profile):
         return True
-
     _track_outcome(
         profile=profile,
         project=project,
@@ -966,7 +1040,7 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     return False
 
 
-def prepare_android_js_profile(profile: Profile):
+def prepare_android_js_profile(profile: Profile) -> None:
     profile["js_profile"] = {"profile": profile["js_profile"]}
     p = profile["js_profile"]
     p["platform"] = "javascript"
@@ -977,7 +1051,7 @@ def prepare_android_js_profile(profile: Profile):
     p["dist"] = profile["dist"]
 
 
-def clean_android_js_profile(profile: Profile):
+def clean_android_js_profile(profile: Profile) -> None:
     p = profile["js_profile"]
     del p["platform"]
     del p["debug_meta"]
@@ -985,3 +1059,86 @@ def clean_android_js_profile(profile: Profile):
     del p["event_id"]
     del p["release"]
     del p["dist"]
+
+
+@lru_cache(maxsize=100)
+def get_metrics_dsn(project_id: int) -> str:
+    kwargs = dict(project_id=project_id, use_case=UseCase.PROFILING.value)
+    try:
+        project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
+    except ProjectKey.MultipleObjectsReturned:
+        # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
+        project_key = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
+    return project_key.get_dsn(public=True)
+
+
+@metrics.wraps("process_profile.track_outcome")
+def _track_duration_outcome(
+    profile: Profile,
+    project: Project,
+) -> None:
+    duration_ms = _calculate_profile_duration_ms(profile)
+    if duration_ms <= 0:
+        return
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=None,
+        outcome=Outcome.ACCEPTED,
+        timestamp=datetime.now(timezone.utc),
+        category=DataCategory.PROFILE_DURATION,
+        quantity=duration_ms,
+    )
+
+
+def _calculate_profile_duration_ms(profile: Profile) -> int:
+    version = profile.get("version")
+    if version:
+        if version == "1":
+            return _calculate_duration_for_sample_format_v1(profile)
+        elif version == "2":
+            return _calculate_duration_for_sample_format_v2(profile)
+    else:
+        platform = profile["platform"]
+        if platform == "android":
+            return _calculate_duration_for_android_format(profile)
+    return 0
+
+
+def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
+    start_ns = int(profile["transaction"].get("relative_start_ns", 0))
+    end_ns = int(profile["transaction"].get("relative_end_ns", 0))
+    duration_ns = end_ns - start_ns
+    # try another method to determine the duration in case it's negative or 0.
+    if duration_ns <= 0:
+        samples = sorted(profile["profile"]["samples"], key=lambda s: s["elapsed_since_start_ns"])
+        if len(samples) < 2:
+            return 0
+        first, last = samples[0], samples[-1]
+        first_ns = int(first["elapsed_since_start_ns"])
+        last_ns = int(last["elapsed_since_start_ns"])
+        duration_ns = last_ns - first_ns
+    duration_ms = int(duration_ns * 1e-6)
+    return min(duration_ms, 30000)
+
+
+def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
+    samples = sorted(profile["profile"]["samples"], key=lambda s: s["timestamp"])
+    if len(samples) < 2:
+        return 0
+    first, last = samples[0], samples[-1]
+    return int((last["timestamp"] - first["timestamp"]) * 1e3)
+
+
+def _calculate_duration_for_android_format(profile: Profile) -> int:
+    return int(profile["duration_ns"] * 1e-6)
+
+
+def _set_frames_platform(profile: Profile) -> None:
+    platform = profile["platform"]
+    frames = (
+        profile["profile"]["methods"] if platform == "android" else profile["profile"]["frames"]
+    )
+    for f in frames:
+        if "platform" not in f:
+            f["platform"] = platform

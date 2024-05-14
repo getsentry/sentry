@@ -64,17 +64,8 @@ describe('Sudo Modal', function () {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
-
     const successCb = jest.fn();
     const errorCb = jest.fn();
-
-    // No Modal
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
     new MockApiClient().request('/organizations/org-slug/', {
@@ -82,6 +73,12 @@ describe('Sudo Modal', function () {
       success: successCb,
       error: errorCb,
     });
+
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -134,17 +131,14 @@ describe('Sudo Modal', function () {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 
+    // Should return w/ `sudoRequired` and trigger the modal to open
+    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
+
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
-
-    // No Modal
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    // Should return w/ `sudoRequired` and trigger the the modal to open
-    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

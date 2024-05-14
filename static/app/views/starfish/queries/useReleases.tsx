@@ -1,6 +1,7 @@
 import chunk from 'lodash/chunk';
 
-import type {NewQuery, Release} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -33,7 +34,7 @@ export function useReleases(searchTerm?: string) {
         },
       },
     ],
-    {staleTime: Infinity, enabled: isReady}
+    {staleTime: Infinity, enabled: isReady, retry: false}
   );
 
   const chunks = releaseResults.data?.length ? chunk(releaseResults.data, 10) : [];
@@ -67,7 +68,9 @@ export function useReleases(searchTerm?: string) {
             method: 'GET',
             query: queryKey[1]?.query,
           }) as Promise<TableData>,
-        ...{staleTime: Infinity, enabled: isReady && !releaseResults.isLoading},
+        staleTime: Infinity,
+        enabled: isReady && !releaseResults.isLoading,
+        retry: false,
       };
     }),
   });

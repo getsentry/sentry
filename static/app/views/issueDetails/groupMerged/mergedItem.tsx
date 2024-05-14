@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   fingerprint: Fingerprint;
@@ -178,7 +178,8 @@ const Controls = styled('div')<{expanded: boolean}>`
   ${MergedGroup}:last-child & {
     ${p => !p.expanded && `border-bottom: none`};
     ${p =>
-      !p.expanded && `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+      !p.expanded &&
+      `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
   }
 `;
 

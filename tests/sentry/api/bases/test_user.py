@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 from django.test import override_settings
 
@@ -12,10 +10,9 @@ from sentry.api.bases.user import (
     UserPermission,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.auth.staff import is_active_staff
 from sentry.testutils.cases import DRFPermissionTestCase
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test, region_silo_test
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
 
 
 @all_silo_test
@@ -38,7 +35,7 @@ class UserPermissionTest(DRFPermissionTestCase):
     def test_allows_active_superuser(self):
         # The user passed in and the user on the request must be different to
         # check superuser.
-        self.create_organization(owner=self.superuser_user, id=1000)
+        self.create_organization(owner=self.superuser, id=1000)
         assert self.user_permission.has_object_permission(
             self.superuser_request, None, self.normal_user
         )
@@ -49,11 +46,11 @@ class UserPermissionTest(DRFPermissionTestCase):
             )
 
     @override_settings(SENTRY_SELF_HOSTED=False, SUPERUSER_ORG_ID=1000)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_active_superuser_read(self):
         # superuser read can hit GET
-        request = self.make_request(user=self.superuser_user, is_superuser=True, method="GET")
-        self.create_organization(owner=self.superuser_user, id=1000)
+        request = self.make_request(user=self.superuser, is_superuser=True, method="GET")
+        self.create_organization(owner=self.superuser, id=1000)
         assert self.user_permission.has_object_permission(request, None, self.normal_user)
 
         # superuser read cannot hit POST
@@ -61,13 +58,13 @@ class UserPermissionTest(DRFPermissionTestCase):
         assert not self.user_permission.has_object_permission(request, None, self.normal_user)
 
     @override_settings(SENTRY_SELF_HOSTED=False, SUPERUSER_ORG_ID=1000)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_active_superuser_write(self):
         # superuser write can hit GET
-        self.add_user_permission(self.superuser_user, "superuser.write")
-        self.create_organization(owner=self.superuser_user, id=1000)
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.create_organization(owner=self.superuser, id=1000)
 
-        request = self.make_request(user=self.superuser_user, is_superuser=True, method="GET")
+        request = self.make_request(user=self.superuser, is_superuser=True, method="GET")
         assert self.user_permission.has_object_permission(request, None, self.normal_user)
 
         # superuser write can hit POST
@@ -95,15 +92,11 @@ class UserPermissionTest(DRFPermissionTestCase):
 
 @all_silo_test
 class UserAndStaffPermissionTest(DRFPermissionTestCase):
-    @patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_allows_active_staff(self, mock_is_active_staff):
-        # The user passed in and the user on the request must be different to
-        # check staff.
+    def test_allows_active_staff(self):
+        # The user passed in and the user on the request must be different to check staff.
         assert UserAndStaffPermission().has_object_permission(
             self.staff_request, None, self.create_user()
         )
-        # Ensure we failed the UserPermission check and check is_active_staff
-        assert mock_is_active_staff.call_count == 1
 
 
 class BaseUserEndpointTest(DRFPermissionTestCase):
@@ -135,6 +128,5 @@ class ControlUserEndpointTest(BaseUserEndpointTest):
 
 
 # TODO(HC): Delete this once region silo by default changes land
-@region_silo_test
 class RegionSiloUserEndpointTest(BaseUserEndpointTest):
     endpoint = RegionSiloUserEndpoint()

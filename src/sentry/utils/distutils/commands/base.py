@@ -1,11 +1,13 @@
+import logging
 import os
 import os.path
 import shutil
 import sys
-from distutils import log
-from distutils.core import Command
 from subprocess import STDOUT, CalledProcessError, check_output
 
+from setuptools import Command
+
+log = logging.getLogger(__name__)
 _HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.realpath(os.path.join(_HERE, "../../../../.."))
 
@@ -101,7 +103,7 @@ class BaseBuildCommand(Command):
         # Otherwise we fetch build_lib from the build command.
         else:
             self.set_undefined_options("build", ("build_lib", "build_lib"))
-            log.debug("regular js build: build path is %s" % self.build_lib)
+            log.debug("regular js build: build path is %s", self.build_lib)
 
         if self.work_path is None:
             self.work_path = ROOT
@@ -121,7 +123,7 @@ class BaseBuildCommand(Command):
             sys.exit(1)
 
         if node_version[2] is not None:
-            log.info(f"using node ({node_version})")
+            log.info("using node (%s)", node_version)
             self._run_command(["yarn", "install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):
@@ -130,7 +132,7 @@ class BaseBuildCommand(Command):
         try:
             return check_output(cmd, cwd=self.work_path, env=env, stderr=STDOUT)
         except CalledProcessError as err:
-            log.error(
+            log.exception(
                 "[%s] failed with exit code [%s] on [%s]:\n%s",
                 cmd_str,
                 err.returncode,
@@ -139,7 +141,7 @@ class BaseBuildCommand(Command):
             )
             raise
         except Exception:
-            log.error("command failed [%s] via [%s]", cmd_str, self.work_path)
+            log.exception("command failed [%s] via [%s]", cmd_str, self.work_path)
             raise
 
     def update_manifests(self):

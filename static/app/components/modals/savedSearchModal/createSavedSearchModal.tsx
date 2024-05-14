@@ -7,8 +7,8 @@ import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -23,7 +23,7 @@ function validateSortOption({sort}: {sort?: string}) {
   const sortOptions = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.PRIORITY,
+    IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

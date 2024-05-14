@@ -1,16 +1,19 @@
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-export function hasDDMExperimentalFeature(organization: Organization) {
-  return organization.features.includes('ddm-experimental');
+export function hasMetricsExperimentalFeature(organization: Organization) {
+  return organization.features.includes('custom-metrics-experimental');
 }
 
-export function hasDDMFeature(organization: Organization) {
-  return organization.features.includes('ddm-ui');
+export function hasMetricsSidebarItem(organization: Organization) {
+  return !organization.features.includes('ddm-sidebar-item-hidden');
 }
 
-export function hasDashboardImportFeature(organization: Organization) {
-  return organization.features.includes('ddm-dashboard-import');
+export function hasCustomMetrics(organization: Organization) {
+  return (
+    organization.features.includes('custom-metrics') &&
+    hasMetricsSidebarItem(organization)
+  );
 }
 
 /**
@@ -23,7 +26,7 @@ export function getForceMetricsLayerQueryExtras(
   organization: Organization,
   alertDataset: Dataset
 ): {forceMetricsLayer: 'true'} | Record<string, never> {
-  return hasDDMFeature(organization) && alertDataset === Dataset.GENERIC_METRICS
+  return hasCustomMetrics(organization) && alertDataset === Dataset.GENERIC_METRICS
     ? {forceMetricsLayer: 'true'}
     : {};
 }

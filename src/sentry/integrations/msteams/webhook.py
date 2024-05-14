@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable, Mapping
+from enum import Enum
 from typing import Any
 
+import orjson
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -23,8 +25,8 @@ from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
-from sentry.utils import json, jwt
+from sentry.silo.base import SiloMode
+from sentry.utils import jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 
@@ -107,7 +109,7 @@ def verify_signature(request):
     public_keys = {}
     for jwk in jwks["keys"]:
         kid = jwk["kid"]
-        public_keys[kid] = jwt.rsa_key_from_jwk(json.dumps(jwk))
+        public_keys[kid] = jwt.rsa_key_from_jwk(orjson.dumps(jwk).decode())
 
     kid = jwt.peek_header(token)["kid"]
     key = public_keys[kid]
@@ -142,7 +144,8 @@ def verify_signature(request):
 class MsTeamsWebhookMixin:
     provider = "msteams"
 
-    def infer_team_id_from_channel_data(self, data: Mapping[str, Any]) -> str | None:
+    @classmethod
+    def infer_team_id_from_channel_data(cls, data: Mapping[str, Any]) -> str | None:
         try:
             channel_data = data["channelData"]
             team_id = channel_data["team"]["id"]
@@ -157,7 +160,21 @@ class MsTeamsWebhookMixin:
             return None
         return integration_service.get_integration(provider=self.provider, external_id=team_id)
 
-    def infer_integration_id_from_card_action(self, data: Mapping[str, Any]) -> int | None:
+    def get_integration_for_tenant(self, data: Mapping[str, Any]) -> RpcIntegration | None:
+        try:
+            channel_data = data["channelData"]
+            tenant_id = channel_data["tenant"]["id"]
+            return integration_service.get_integration(
+                provider=self.provider, external_id=tenant_id
+            )
+        except Exception as err:
+            logger.info(
+                "failed to get tenant id from request data", exc_info=err, extra={"data": data}
+            )
+        return None
+
+    @classmethod
+    def infer_integration_id_from_card_action(cls, data: Mapping[str, Any]) -> int | None:
         # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
         # The context will include the "integrationId".
         # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
@@ -184,58 +201,179 @@ class MsTeamsWebhookMixin:
             or self.infer_team_id_from_channel_data(data=data) is not None
         )
 
+    @classmethod
+    def is_new_integration_installation_event(cls, data: Mapping[str, Any]) -> bool:
+        try:
+            raw_event_type = data["type"]
+            event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
+            if event_type != MsTeamsEvents.INSTALLATION_UPDATE:
+                return False
+
+            action = data.get("action", None)
+            if action is None or action != "add":
+                return False
+
+            return True
+        except Exception:
+            return False
+
+
+class MsTeamsEvents(Enum):
+    INSTALLATION_UPDATE = "installationUpdate"
+    MESSAGE = "message"
+    CONVERSATION_UPDATE = "conversationUpdate"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def get_from_value(cls, value: str) -> MsTeamsEvents:
+        try:
+            return MsTeamsEvents(value)
+        except Exception:
+            return MsTeamsEvents.UNKNOWN
+
 
 @all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
     provider = "msteams"
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._event_handlers: dict[MsTeamsEvents, Callable[[HttpRequest], HttpResponse]] = {
+            MsTeamsEvents.MESSAGE: self.handle_message_event,
+            MsTeamsEvents.CONVERSATION_UPDATE: self.handle_conversation_update_event,
+            MsTeamsEvents.INSTALLATION_UPDATE: self.handle_installation_update_event,
+            MsTeamsEvents.UNKNOWN: self.handle_unknown_event,
+        }
 
     @csrf_exempt
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
+        """
+        POST webhook handler for MSTeams bot.
+        The events are broadcast to MSTeams from Microsoft, and are documented at https://learn.microsoft.com/en-us/microsoftteams/platform/resources/bot-v3/bots-notifications
+        """
+
         # verify_signature will raise the exception corresponding to the error
         self.verify_webhook_request(request)
 
         data = request.data
-        conversation_type = data.get("conversation", {}).get("conversationType")
-        event_type = data["type"]
+        raw_event_type = data["type"]
+        event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
 
-        # only care about conversationUpdate and message
-        if event_type == "message":
-            # the only message events we care about are those which
-            # are from a user submitting an option on a card, which
-            # will always contain an "payload.actionType" in the data.
-            if data.get("value", {}).get("payload", {}).get("actionType"):
-                # Processing card actions can only occur in the Region silo.
-                if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                    return self.respond(status=400)
-                return self.handle_action_submitted(request)
-            elif conversation_type == "channel":
-                return self.handle_channel_message(request)
-            else:
-                return self.handle_personal_message(request)
-        elif event_type == "conversationUpdate":
-            channel_data = data["channelData"]
-            event = channel_data.get("eventType")
-            # TODO: Handle other events
-            if event == "teamMemberAdded":
-                return self.handle_team_member_added(request)
-            elif event == "teamMemberRemoved":
-                if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                    return self.respond(status=400)
-                return self.handle_team_member_removed(request)
-            elif (
-                data.get("membersAdded") and conversation_type == "personal"
-            ):  # no explicit event for user adding app unfortunately
-                return self.handle_personal_member_add(request)
+        event_handler_func = self._event_handlers[event_type]
+        response = event_handler_func(request)
 
+        logger.info("sentry.integrations.msteams.webhook", extra={"request_data": data})
+        return response if response else self.respond(status=204)
+
+    @classmethod
+    def _get_team_installation_request_data(cls, data: dict[str, Any]) -> dict:
+        """
+        Helper method that will construct the installation request for a MsTeams team channel.
+        We want the KeyError exception to be raised if the key does not exist.
+        """
+        channel_data = data["channelData"]
+
+        new_team_info = channel_data["team"]
+        team_id = new_team_info["id"]
+        team_name = new_team_info["name"]
+
+        service_url = data["serviceUrl"]
+        from_data = data["from"]
+        user_id = from_data["id"]
+
+        tenant_info = channel_data["tenant"]
+        tenant_id = tenant_info["id"]
+        params = {
+            "service_url": service_url,
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+            "conversation_id": team_id,
+            "external_id": team_id,
+            "external_name": team_name,
+            "installation_type": "team",
+        }
+        return params
+
+    def handle_installation_update_event(self, request: HttpRequest) -> HttpResponse:
+        data = request.data
+        action = data.get("action", None)
+        if action is None or action != "add":
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Action not supported",
+                extra={"request_data": data},
+            )
+            return self.respond({"details": f"{action} is currently not supported"}, status=204)
+
+        try:
+            installation_params = self._get_team_installation_request_data(data=data)
+        except Exception as err:
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Installation param error",
+                exc_info=err,
+                extra={"request_data": data},
+            )
+            return self.respond(
+                {"details": "required request format or keys are missing"}, status=400
+            )
+
+        # sign the params so this can't be forged
+        signed_params = sign(**installation_params)
+
+        # send welcome message to the team
+        preinstall_client = get_preinstall_client(installation_params["service_url"])
+        card = build_team_installation_message(signed_params)
+        preinstall_client.send_card(installation_params["conversation_id"], card)
+
+        return self.respond(status=201)
+
+    def handle_message_event(self, request: HttpRequest) -> HttpResponse:
+        data = request.data
+        conversation = data.get("conversation", {})
+        conversation_type = conversation.get("conversationType")
+
+        # the only message events we care about are those which
+        # are from a user submitting an option on a card, which
+        # will always contain an "payload.actionType" in the data.
+        if data.get("value", {}).get("payload", {}).get("actionType"):
+            # Processing card actions can only occur in the Region silo.
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                return self.respond(status=400)
+            return self.handle_action_submitted(request)
+        elif conversation_type == "channel":
+            return self.handle_channel_message(request)
+
+        return self.handle_personal_message(request)
+
+    def handle_conversation_update_event(self, request: HttpRequest) -> HttpResponse:
+        data = request.data
+        conversation = data.get("conversation", {})
+        conversation_type = conversation.get("conversationType")
+        channel_data = data["channelData"]
+        event = channel_data.get("eventType")
+
+        if event == "teamMemberAdded":
+            return self.handle_team_member_added(request)
+        elif event == "teamMemberRemoved":
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                return self.respond(status=400)
+            return self.handle_team_member_removed(request)
+        elif (
+            data.get("membersAdded") and conversation_type == "personal"
+        ):  # no explicit event for user adding app unfortunately
+            return self.handle_personal_member_add(request)
+
+        return self.respond(status=204)
+
+    def handle_unknown_event(self, request: HttpRequest) -> HttpResponse:
         return self.respond(status=204)
 
     def verify_webhook_request(self, request: HttpRequest) -> bool:
@@ -251,7 +389,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "external_name": f"{tenant_id} (Microsoft Tenant)",
             "installation_type": "tenant",
         }
-
         return self.handle_member_add(data, params, build_personal_installation_message)
 
     def handle_team_member_added(self, request: HttpRequest):
@@ -288,6 +425,13 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             }
         )
 
+        logger.info(
+            "sentry.integrations.msteams.webhook.handle_member_add",
+            extra={
+                **params,
+                "member_type_handler": build_installation_card.__name__,
+            },
+        )
         # sign the params so this can't be forged
         signed_params = sign(**params)
 

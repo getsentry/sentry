@@ -4,29 +4,41 @@ import abc
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry import options
+from sentry.api.base import ONE_DAY
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, get_region_for_organization
+from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
+
+
+def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
+    return {
+        "method": request.method,
+        "path": request.get_full_path(),
+        "uri": request.build_absolute_uri(),
+        "headers": {k: v for k, v in request.headers.items()},
+        "body": request.body.decode(encoding="utf-8"),
+    }
 
 
 class RegionResult:
@@ -92,7 +104,7 @@ class BaseRequestParser(abc.ABC):
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = RegionSiloClient(region)
+            region_client = RegionSiloClient(region, retry=True)
             return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(
@@ -133,68 +145,85 @@ class BaseRequestParser(abc.ABC):
 
         return region_to_response_map
 
-    def get_response_from_outbox_creation(
-        self, regions: Sequence[Region], shard_identifier_override: int | None = None
+    def get_response_from_webhookpayload(
+        self,
+        regions: Sequence[Region],
+        identifier: int | str | None = None,
+        integration_id: int | None = None,
     ):
         """
-        DEPRECATED: use get_response_from_outbox_creation_for_integration
-
-        Used to create outboxes for provided regions to handle the webhooks asynchronously.
+        Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        # TODO(hybridcloud) Rename/remove this once webhookpayloads are stable.
-        shard_identifier = shard_identifier_override or self.webhook_identifier.value
-        rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
-        if ((shard_identifier % 100000) / 100000) < rollout_rate:
-            for region in regions:
-                WebhookPayload.create_from_request(
-                    region=region.name,
-                    provider=self.provider,
-                    identifier=shard_identifier,
-                    request=self.request,
-                )
-        else:
-            for outbox in ControlOutbox.for_webhook_update(
-                shard_identifier=shard_identifier,
-                region_names=[region.name for region in regions],
+        shard_identifier = identifier or self.webhook_identifier.value
+        for region in regions:
+            WebhookPayload.create_from_request(
+                region=region.name,
+                provider=self.provider,
+                identifier=shard_identifier,
+                integration_id=integration_id,
                 request=self.request,
-            ):
-                outbox.save()
+            )
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-    def get_response_from_outbox_creation_for_integration(
+    def get_response_from_webhookpayload_for_integration(
         self, regions: Sequence[Region], integration: Integration | RpcIntegration
     ):
         """
         Used to create outboxes for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        if not regions:
-            return HttpResponse(status=status.HTTP_202_ACCEPTED)
+        return self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
+        )
 
-        identifier = integration.id
-        rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
-        if ((identifier % 100000) / 100000) < rollout_rate:
-            for region in regions:
-                WebhookPayload.create_from_request(
-                    region=region.name,
-                    provider=self.provider,
-                    identifier=identifier,
-                    request=self.request,
-                    integration_id=identifier,
-                )
-        else:
-            for outbox in ControlOutbox.for_webhook_update(
-                shard_identifier=integration.id,
-                request=self.request,
-                region_names=[region.name for region in regions],
-            ):
-                outbox.save()
-        return HttpResponse(status=status.HTTP_202_ACCEPTED)
+    def get_mailbox_identifier(self, integration: RpcIntegration, data: Mapping[str, Any]) -> str:
+        """
+        Used by integrations with higher hook volumes to create smaller mailboxes
+        that can be delivered in parallel. Requires the integration to implement
+        `mailbox_bucket_id`
+        """
+        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
+        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
+        use_buckets_key = f"{ratelimit_key}:use_buckets"
+
+        use_buckets = cache.get(use_buckets_key)
+        if not use_buckets and ratelimiter.is_limited(
+            key=ratelimit_key, window=60 * 60, limit=3000
+        ):
+            # Once we have gone over the rate limit in a day, we use smaller
+            # buckets for the next day.
+            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
+            use_buckets = True
+            logger.info(
+                "integrations.parser.activate_buckets",
+                extra={"provider": self.provider, "integration_id": integration.id},
+            )
+        if not use_buckets:
+            return str(integration.id)
+
+        mailbox_bucket_id = self.mailbox_bucket_id(data)
+        if mailbox_bucket_id is None:
+            logger.info(
+                "integrations.parser.no_bucket_id",
+                extra={"provider": self.provider, "integration_id": integration.id},
+            )
+            return str(integration.id)
+
+        # Split high volume integrations into 100 buckets.
+        # 100 is arbitrary but we can't leave it unbounded.
+        bucket_number = mailbox_bucket_id % 100
+
+        return f"{integration.id}:{bucket_number}"
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        raise NotImplementedError(
+            "You must implement mailbox_bucket_id to use bucketed identifiers"
+        )
 
     def get_response_from_first_region(self):
         regions = self.get_regions_from_organizations()
@@ -270,8 +299,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        regions = [get_region_for_organization(organization.slug) for organization in organizations]
-        return sorted(regions, key=lambda r: r.name)
+        region_names = find_regions_for_orgs([org.id for org in organizations])
+        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

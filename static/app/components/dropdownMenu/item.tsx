@@ -12,6 +12,7 @@ import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
+import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -127,7 +128,7 @@ function BaseDropdownMenuItem(
       state.selectionManager.toggleSelection(node.key);
       return;
     }
-    key && onAction?.(key);
+    defined(key) && onAction?.(key);
   };
 
   // Open submenu on hover
@@ -215,7 +216,7 @@ function BaseDropdownMenuItem(
       trailingItems={
         isSubmenu ? (
           <Fragment>
-            {trailingItems}
+            {trailingItems as React.ReactNode}
             <IconChevron size="xs" direction="right" aria-hidden="true" />
           </Fragment>
         ) : (

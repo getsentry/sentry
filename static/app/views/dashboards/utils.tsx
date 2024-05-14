@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -26,6 +25,7 @@ import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilte
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -42,9 +42,9 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {getDdmUrl, getMetricDisplayType} from 'sentry/utils/metrics';
+import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsWidget} from 'sentry/utils/metrics/types';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import type {
@@ -399,7 +399,7 @@ export function getWidgetReleasesUrl(
   return releasesLocation;
 }
 
-export function getWidgetDDMUrl(
+export function getWidgetMetricsUrl(
   _widget: Widget,
   selection: PageFilters,
   organization: Organization
@@ -413,7 +413,7 @@ export function getWidgetDDMUrl(
   // ensures that My Projects selection is properly handled
   const project = selection.projects.length ? selection.projects : [0];
 
-  const ddmLocation = getDdmUrl(organization.slug, {
+  const metricsLocation = getMetricsUrl(organization.slug, {
     ...datetime,
     project,
     environment: selection.environments,
@@ -425,11 +425,11 @@ export function getWidgetDDMUrl(
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies MetricWidgetQueryParams;
+      } satisfies Partial<MetricsWidget>;
     }),
   });
 
-  return ddmLocation;
+  return metricsLocation;
 }
 
 export function flattenErrors(

@@ -72,8 +72,8 @@ describe('user event context', function () {
 
     expect(screen.getByText('IP Address')).toBeInTheDocument(); // subject
     await userEvent.hover(document.body);
-    expect(screen.getByText('None')).toBeInTheDocument(); // value
-    await userEvent.hover(screen.getByText('None'));
+    expect(screen.getByText('null')).toBeInTheDocument(); // value
+    await userEvent.hover(screen.getByText('null'));
 
     // The content of the first tooltip is not removed from the DOM when it is hidden
     // therefore we explicitly need to wait for both tooltips to be visible

@@ -10,14 +10,28 @@ import CreateAlertButton, {
 } from 'sentry/components/createAlertButton';
 import GuideStore from 'sentry/stores/guideStore';
 import EventView from 'sentry/utils/discover/eventView';
+import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
 const onClickMock = jest.fn();
 
+jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
   const organization = OrganizationFixture();
+
+  beforeEach(() => {
+    jest.mocked(useProjects).mockReturnValue({
+      projects: [],
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
+  });
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -52,16 +66,27 @@ describe('CreateAlertFromViewButton', () => {
       ...organization,
       access: [],
     };
-    const noAccessProj = {
-      ...ProjectFixture(),
-      access: [],
-    };
+    const projects = [
+      {
+        ...ProjectFixture(),
+        access: [],
+      },
+    ];
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
     render(
       <CreateAlertFromViewButton
         organization={noAccessOrg}
         eventView={eventView}
-        projects={[noAccessProj]}
+        projects={projects}
         onClick={onClickMock}
       />,
       {
@@ -77,16 +102,27 @@ describe('CreateAlertFromViewButton', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
-    const noAccessProj = {
-      ...ProjectFixture(),
-      access: [],
-    };
+    const projects = [
+      {
+        ...ProjectFixture(),
+        access: [],
+      },
+    ];
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
 
     render(
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[noAccessProj]}
+        projects={projects}
         onClick={onClickMock}
       />,
       {
@@ -121,6 +157,16 @@ describe('CreateAlertFromViewButton', () => {
       },
     ];
 
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
+
     render(
       <CreateAlertFromViewButton
         organization={noAccessOrg}
@@ -143,9 +189,16 @@ describe('CreateAlertFromViewButton', () => {
       access: [],
     };
 
-    render(<CreateAlertButton organization={noAccessOrg} showPermissionGuide />, {
-      organization: noAccessOrg,
-    });
+    render(
+      <CreateAlertButton
+        aria-label="Create Alert"
+        organization={noAccessOrg}
+        showPermissionGuide
+      />,
+      {
+        organization: noAccessOrg,
+      }
+    );
 
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_member']));
   });
@@ -156,15 +209,22 @@ describe('CreateAlertFromViewButton', () => {
       access: ['org:write'],
     });
 
-    render(<CreateAlertButton organization={adminAccessOrg} showPermissionGuide />, {
-      organization: adminAccessOrg,
-    });
+    render(
+      <CreateAlertButton
+        aria-label="Create Alert"
+        organization={adminAccessOrg}
+        showPermissionGuide
+      />,
+      {
+        organization: adminAccessOrg,
+      }
+    );
 
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_owner']));
   });
 
   it('redirects to alert wizard with no project', async () => {
-    render(<CreateAlertButton organization={organization} />, {
+    render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
       organization,
     });
     await userEvent.click(screen.getByRole('button'));
@@ -179,9 +239,16 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('redirects to alert wizard with a project', () => {
-    render(<CreateAlertButton organization={organization} projectSlug="proj-slug" />, {
-      organization,
-    });
+    render(
+      <CreateAlertButton
+        aria-label="Create Alert"
+        organization={organization}
+        projectSlug="proj-slug"
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByRole('button')).toHaveAttribute(
       'href',
@@ -192,6 +259,17 @@ describe('CreateAlertFromViewButton', () => {
   it('removes a duplicate project filter', async () => {
     const context = RouterContextFixture();
 
+    const projects = [ProjectFixture()];
+    jest.mocked(useProjects).mockReturnValue({
+      projects,
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
+
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error project:project-slug',
@@ -201,7 +279,7 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[ProjectFixture()]}
+        projects={projects}
         onClick={onClickMock}
       />,
       {context}

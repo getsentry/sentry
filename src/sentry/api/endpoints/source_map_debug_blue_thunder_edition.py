@@ -9,7 +9,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -135,8 +135,8 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Get Debug Information Related to Source Maps for a Given Event",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
         ],
         request=None,
@@ -151,15 +151,6 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         """
         Return a list of source map errors for a given event.
         """
-
-        if not features.has(
-            "organizations:source-maps-debugger-blue-thunder-edition",
-            project.organization,
-            actor=request.user,
-        ):
-            raise NotFound(
-                detail="Endpoint not available without 'organizations:source-maps-debugger-blue-thunder-edition' feature flag"
-            )
 
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
@@ -351,8 +342,8 @@ class ReleaseLookupData:
             "found", "wrong-dist", "unsuccessful"
         ] = "unsuccessful"
 
-        if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore
-            if self.source_map_reference.startswith("data:"):  # type: ignore
+        if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore[unreachable]
+            if self.source_map_reference.startswith("data:"):  # type: ignore[unreachable]
                 self.source_map_reference = "Inline Sourcemap"
                 self.source_map_lookup_result = "found"
             else:

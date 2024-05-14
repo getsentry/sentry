@@ -195,10 +195,10 @@ describe('TeamStatsHealth', () => {
     });
   }
 
-  it('defaults to first team', () => {
+  it('defaults to first team', async () => {
     createWrapper();
 
-    expect(screen.getByText('#backend')).toBeInTheDocument();
+    expect(await screen.findByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 

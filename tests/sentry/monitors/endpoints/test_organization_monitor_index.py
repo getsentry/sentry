@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from django.conf import settings
@@ -13,11 +13,9 @@ from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, Schedule
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
@@ -32,7 +30,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
     def check_valid_environments_response(self, response, monitor, expected_environments):
         assert {
-            monitor_environment.environment.name for monitor_environment in expected_environments
+            monitor_environment.get_environment().name
+            for monitor_environment in expected_environments
         } == {
             monitor_environment_resp["name"]
             for monitor_environment_resp in monitor.get("environments", [])
@@ -44,8 +43,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.check_valid_response(response, [monitor])
 
     def test_sort_status(self):
-        last_checkin = datetime.now() - timedelta(minutes=1)
-        last_checkin_older = datetime.now() - timedelta(minutes=5)
+        last_checkin = datetime.now(UTC) - timedelta(minutes=1)
+        last_checkin_older = datetime.now(UTC) - timedelta(minutes=5)
 
         def add_status_monitor(
             env_status_key: str,
@@ -79,8 +78,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         monitor_disabled = add_status_monitor("OK", "DISABLED")
         monitor_error_older_checkin = add_status_monitor("ERROR", "ACTIVE", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
-        monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
-        monitor_timed_out = add_status_monitor("TIMEOUT")
 
         monitor_muted = add_status_monitor("ACTIVE")
         monitor_muted.update(is_muted=True)
@@ -93,8 +90,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             [
                 monitor_error,
                 monitor_error_older_checkin,
-                monitor_timed_out,
-                monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
                 monitor_muted,
@@ -112,8 +107,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_muted,
                 monitor_active,
                 monitor_ok,
-                monitor_missed_checkin,
-                monitor_timed_out,
                 monitor_error_older_checkin,
                 monitor_error,
             ],
@@ -216,6 +209,51 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, expected)
 
+    def test_filter_owners(self):
+        user_1 = self.create_user()
+        user_2 = self.create_user()
+        team_1 = self.create_team()
+        team_2 = self.create_team()
+        self.create_team_membership(team_2, user=self.user)
+
+        mon_a = self._create_monitor(name="A monitor", owner_user_id=user_1.id)
+        mon_b = self._create_monitor(name="B monitor", owner_user_id=user_2.id)
+        mon_c = self._create_monitor(name="C monitor", owner_user_id=None, owner_team_id=team_1.id)
+        mon_d = self._create_monitor(name="D monitor", owner_user_id=None, owner_team_id=team_2.id)
+        mon_e = self._create_monitor(name="E monitor", owner_user_id=None, owner_team_id=None)
+
+        # Monitor by user
+        response = self.get_success_response(self.organization.slug, owner=[f"user:{user_1.id}"])
+        self.check_valid_response(response, [mon_a])
+
+        # Monitors by users and teams
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=[f"user:{user_1.id}", f"user:{user_2.id}", f"team:{team_1.id}"],
+        )
+        self.check_valid_response(response, [mon_a, mon_b, mon_c])
+
+        # myteams
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["myteams"],
+        )
+        self.check_valid_response(response, [mon_d])
+
+        # unassigned monitors
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["unassigned", f"user:{user_1.id}"],
+        )
+        self.check_valid_response(response, [mon_a, mon_e])
+
+        # Invalid user ID
+        response = self.get_success_response(
+            self.organization.slug,
+            owner=["user:12345"],
+        )
+        self.check_valid_response(response, [])
+
     def test_all_monitor_environments(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(
@@ -242,7 +280,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
     def test_monitor_environment_include_new(self):
         monitor = self._create_monitor()
         self._create_monitor_environment(
-            monitor, status=MonitorStatus.OK, last_checkin=datetime.now() - timedelta(minutes=1)
+            monitor, status=MonitorStatus.OK, last_checkin=datetime.now(UTC) - timedelta(minutes=1)
         )
 
         monitor_visible = self._create_monitor(name="visible")
@@ -264,13 +302,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self._create_monitor_environment(
             monitor,
             status=MonitorStatus.OK,
-            last_checkin=datetime.now() - timedelta(minutes=1),
+            last_checkin=datetime.now(UTC) - timedelta(minutes=1),
         )
         self._create_monitor_environment(
             monitor,
             status=MonitorStatus.PENDING_DELETION,
             name="deleted_environment",
-            last_checkin=datetime.now() - timedelta(minutes=1),
+            last_checkin=datetime.now(UTC) - timedelta(minutes=1),
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -280,7 +318,6 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         assert response.data[0]["environments"][0]["status"] == "ok"
 
 
-@region_silo_test
 class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
@@ -295,6 +332,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
+            "owner": f"user:{self.user.id}",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
         }
         response = self.get_success_response(self.organization.slug, **data)
@@ -304,6 +342,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
         assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
         assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
@@ -462,7 +502,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
 
-@region_silo_test
 class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "put"

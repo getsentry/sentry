@@ -82,7 +82,7 @@ describe('ContextSummary', function () {
       render(<ContextSummary event={event} />);
     });
 
-    it('renders at least three contexts', function () {
+    it('renders at least three contexts', async function () {
       const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
@@ -92,6 +92,9 @@ describe('ContextSummary', function () {
       });
 
       render(<ContextSummary event={event} />);
+      expect((await screen.findAllByTestId('context-item'))[0]).toHaveTextContent(
+        'Mmail@example.orgID:1'
+      );
     });
 
     it('renders up to four contexts', function () {
@@ -171,7 +174,7 @@ describe('ContextSummary', function () {
 
 describe('OsSummary', function () {
   describe('render()', function () {
-    it('renders the version string', function () {
+    it('renders the version string', async function () {
       render(
         <ContextSummaryOS
           data={{
@@ -181,6 +184,9 @@ describe('OsSummary', function () {
           }}
           meta={{}}
         />
+      );
+      expect(await screen.findByTestId('context-item')).toHaveTextContent(
+        'Mac OS XVersion:10.13.4'
       );
     });
 
@@ -265,7 +271,7 @@ describe('OsSummary', function () {
 
 describe('GpuSummary', function () {
   describe('render()', function () {
-    it('renders name and vendor', function () {
+    it('renders name and vendor', async function () {
       render(
         <ContextSummaryGPU
           data={{
@@ -275,9 +281,12 @@ describe('GpuSummary', function () {
           meta={{}}
         />
       );
+      expect(await screen.findByTestId('context-item')).toHaveTextContent(
+        'Mali-T880Vendor:ARM'
+      );
     });
 
-    it('renders unknown when no vendor', function () {
+    it('renders unknown when no vendor', async function () {
       render(
         <ContextSummaryGPU
           data={{
@@ -285,6 +294,9 @@ describe('GpuSummary', function () {
           }}
           meta={{}}
         />
+      );
+      expect(await screen.findByTestId('context-item')).toHaveTextContent(
+        'Apple A8 GPUVendor:Unknown'
       );
     });
 

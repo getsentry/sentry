@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Optional
 from urllib.parse import urlencode
 
+import orjson
 import responses
 from django.db.models import QuerySet
 from django.http.response import HttpResponseBase
@@ -13,13 +14,12 @@ from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):
@@ -101,12 +101,6 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             external_id=self.channel_id,
         )
 
-    def _create_user_with_valid_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        self.team.update(org_role="admin")
-        self.create_member(organization=self.organization, user=user, teams=[self.team])
-        self.login_as(user)
-
     def _create_user_valid_through_team_admin(self):
         user = self.create_user(email="foo@example.com")
         self.create_member(
@@ -117,14 +111,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         )
         self.login_as(user)
 
-    def _create_user_with_member_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        member_team = self.create_team(org_role="member")
-        self.create_member(organization=self.organization, user=user, teams=[member_team])
-        self.login_as(user)
 
-
-@region_silo_test
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -153,7 +140,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert external_actors[0].team_id == self.team.id
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team will now receive issue alert notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
@@ -171,13 +158,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 1
 
     @responses.activate
-    def test_link_team_with_valid_role_through_team(self):
-        """Test that we successfully link a team to a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_link_team()
-
-    @responses.activate
     def test_link_team_valid_through_team_admin(self):
         """Test that we successfully link a team to a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
@@ -193,7 +173,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         response = self.get_success_response(data={"team": self.team.id})
         self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team has already been linked to a Slack channel."
             in get_response_text(data)
@@ -205,13 +185,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         self.get_error_response(
             data={"team": ["some", "garbage"]}, status_code=status.HTTP_400_BAD_REQUEST
         )
-
-    @responses.activate
-    def test_errors_when_no_teams_found(self):
-        """Test that we successfully render an error page when no teams are found."""
-        # login as a member with no applicable teams
-        self._create_user_with_member_role_through_team()
-        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
 
     @responses.activate
     def test_link_team_multiple_organizations(self):
@@ -240,7 +213,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         external_actors = self.get_linked_teams()
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
@@ -261,7 +234,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert external_actors[0].team_id == self.team.id
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"The {self.team.slug} team will now receive issue alert and workflow notifications in the {external_actors[0].external_name} channel."
             in get_response_text(data)
@@ -276,7 +249,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 0
 
 
-@region_silo_test
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -304,7 +276,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 0
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
             in get_response_text(data)
@@ -315,25 +287,11 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(team_settings) == 0
 
     @responses.activate
-    def test_unlink_team_with_valid_role_through_team(self):
-        """Test that a team can be unlinked from a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_unlink_team()
-
-    @responses.activate
     def test_unlink_team_valid_through_team_admin(self):
         """Test that a team can be unlinked from a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
 
         self.test_unlink_team()
-
-    @responses.activate
-    def test_unlink_team_with_member_role_through_team(self):
-        """Test that a team can not be unlinked from a Slack channel with a member role"""
-        self._create_user_with_member_role_through_team()
-
-        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
 
     @responses.activate
     def test_unlink_multiple_teams(self):
@@ -359,7 +317,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(external_actors) == 0
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert (
             f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
             in get_response_text(data)

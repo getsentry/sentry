@@ -7,10 +7,8 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     def setUp(self):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
@@ -39,8 +37,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-codeowners-details",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "codeowners_id": self.codeowners.id,
             },
         )
@@ -73,8 +71,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-codeowners-details",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "codeowners_id": 1000,
             },
         )
@@ -157,8 +155,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             url = reverse(
                 "sentry-api-0-project-codeowners-details",
                 kwargs={
-                    "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                     "codeowners_id": codeowners.id,
                 },
             )

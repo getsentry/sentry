@@ -5,7 +5,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
-import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
+import {SpanGroupDetailsLink} from 'sentry/views/starfish/components/spanGroupDetailsLink';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
@@ -17,8 +17,6 @@ interface Props {
   description: string;
   moduleName: ModuleName;
   projectId: number;
-  endpoint?: string;
-  endpointMethod?: string;
   group?: string;
   spanOp?: string;
 }
@@ -28,8 +26,6 @@ export function SpanDescriptionCell({
   group,
   moduleName,
   spanOp,
-  endpoint,
-  endpointMethod,
   projectId,
 }: Props) {
   const formatterDescription = useMemo(() => {
@@ -45,55 +41,49 @@ export function SpanDescriptionCell({
   }
 
   const descriptionLink = (
-    <SpanDescriptionLink
+    <SpanGroupDetailsLink
       group={group}
       projectId={projectId}
-      endpoint={endpoint}
       spanOp={spanOp}
-      endpointMethod={endpointMethod}
       description={formatterDescription}
     />
   );
 
   if (moduleName === ModuleName.DB) {
     return (
-      <DescriptionWrapper>
-        <WiderHovercard
-          position="right"
-          body={
-            <FullSpanDescription
-              group={group}
-              shortDescription={rawDescription}
-              language="sql"
-            />
-          }
-        >
-          {descriptionLink}
-        </WiderHovercard>
-      </DescriptionWrapper>
+      <WiderHovercard
+        position="right"
+        body={
+          <FullSpanDescription
+            group={group}
+            shortDescription={rawDescription}
+            language="sql"
+          />
+        }
+      >
+        {descriptionLink}
+      </WiderHovercard>
     );
   }
 
-  if (moduleName === ModuleName.HTTP) {
+  if (moduleName === ModuleName.RESOURCE) {
     return (
-      <DescriptionWrapper>
-        <WiderHovercard
-          position="right"
-          body={
-            <Fragment>
-              <TitleWrapper>{t('Example')}</TitleWrapper>
-              <FullSpanDescription
-                group={group}
-                shortDescription={rawDescription}
-                language="http"
-                filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
-              />
-            </Fragment>
-          }
-        >
-          {descriptionLink}
-        </WiderHovercard>
-      </DescriptionWrapper>
+      <WiderHovercard
+        position="right"
+        body={
+          <Fragment>
+            <TitleWrapper>{t('Example')}</TitleWrapper>
+            <FullSpanDescription
+              group={group}
+              shortDescription={rawDescription}
+              language="http"
+              filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
+            />
+          </Fragment>
+        }
+      >
+        {descriptionLink}
+      </WiderHovercard>
     );
   }
 
@@ -103,15 +93,10 @@ export function SpanDescriptionCell({
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
 export const WiderHovercard = styled(
-  ({
-    children,
-    className,
-    containerClassName,
-    ...props
-  }: React.ComponentProps<typeof Hovercard>) => (
+  ({children, className, ...props}: React.ComponentProps<typeof Hovercard>) => (
     <Hovercard
       className={(className ?? '') + ' wider'}
-      containerClassName={(containerClassName ?? '') + ' inline-flex'}
+      containerDisplayMode="inline-flex"
       {...props}
     >
       {children}
@@ -126,10 +111,4 @@ export const WiderHovercard = styled(
 
 const TitleWrapper = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const DescriptionWrapper = styled('div')`
-  .inline-flex {
-    display: inline-flex;
-  }
 `;

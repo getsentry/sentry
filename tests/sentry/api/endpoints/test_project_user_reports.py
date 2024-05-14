@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -8,10 +8,8 @@ from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -58,7 +56,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "a" * 32,
                 "message": "something went wrong",
             },
@@ -67,7 +65,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group = event1.group
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "c" * 32,
                 "message": "testing",
             },
@@ -130,7 +128,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         event = self.store_event(
             data={
-                "timestamp": iso_format(datetime.utcnow()),
+                "timestamp": timezone.now().isoformat(),
                 "event_id": "a" * 32,
                 "message": "testing",
             },
@@ -190,7 +188,6 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
 
-@region_silo_test
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -431,7 +428,9 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["level"] == "error"
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
-    def test_simple_shim_to_feedback_no_event(self, mock_produce_occurrence_to_kafka):
+    def test_simple_shim_to_feedback_no_event_should_not_call(
+        self, mock_produce_occurrence_to_kafka
+    ):
         self.login_as(user=self.user)
 
         url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
@@ -455,12 +454,4 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
 
-        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
-
-        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "foo@example.com"
-        assert mock_event_data["contexts"]["feedback"]["message"] == "It broke!"
-        assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
-        assert mock_event_data["platform"] == "other"
-        assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event_id
-        assert mock_event_data["level"] == "info"
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0

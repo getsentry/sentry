@@ -12,7 +12,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
@@ -41,12 +42,11 @@ async function fetchOrg(
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);
 
-  Sentry.configureScope(scope => {
-    // XXX(dcramer): this is duplicated in sdk.py on the backend
-    scope.setTag('organization', org.id);
-    scope.setTag('organization.slug', org.slug);
-    scope.setContext('organization', {id: org.id, slug: org.slug});
-  });
+  const scope = Sentry.getCurrentScope();
+  // XXX(dcramer): this is duplicated in sdk.py on the backend
+  scope.setTag('organization', org.id);
+  scope.setTag('organization.slug', org.slug);
+  scope.setContext('organization', {id: org.id, slug: org.slug});
 
   return org;
 }
@@ -73,7 +73,7 @@ async function fetchProjectsAndTeams(
         includeAllArgs: true,
         query: {
           all_projects: 1,
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       }),
     usePreload

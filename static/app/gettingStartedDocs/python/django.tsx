@@ -7,11 +7,12 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[django]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[django]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 # settings.py
@@ -42,29 +43,28 @@ const onboarding: OnboardingConfig = {
     tct('The Django integration adds support for the [link:Django Web Framework].', {
       link: <ExternalLink href="https://www.djangoproject.com/" />,
     }),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'The Django integration adds support for the [link:Django Web Framework].',
+        'Install [code:sentry-sdk] from PyPI with the [sentryDjangoCode:django] extra:',
         {
-          link: <ExternalLink href="https://www.djangoproject.com/" />,
+          code: <code />,
+          sentryDjangoCode: <code />,
         }
       ),
       configurations: [
         {
-          language: 'bash',
-          description: (
-            <p>
-              {tct(
-                'Install [code:sentry-sdk] from PyPI with the [sentryDjangoCode:django] extra:',
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
                 {
-                  code: <code />,
-                  sentryDjangoCode: <code />,
+                  codeVersion: <code />,
+                  codePackage: <code />,
                 }
-              )}
-            </p>
-          ),
+              )
+            : undefined,
+          language: 'bash',
           code: getInstallSnippet(),
         },
       ],
@@ -140,6 +140,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

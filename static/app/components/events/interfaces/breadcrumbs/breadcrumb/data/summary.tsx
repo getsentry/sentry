@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ContextData from 'sentry/components/contextData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -39,7 +39,7 @@ function Summary({kvData, children, meta}: Props) {
     <Wrapper>
       {children && <StyledCode>{children}</StyledCode>}
       <ContextDataWrapper>
-        <ContextData data={kvData} withAnnotatedText />
+        <StructuredEventData data={kvData} withAnnotatedText />
       </ContextDataWrapper>
     </Wrapper>
   );

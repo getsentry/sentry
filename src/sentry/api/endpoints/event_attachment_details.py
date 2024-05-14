@@ -13,8 +13,10 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
+from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.types.activity import ActivityType
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -41,14 +43,13 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             return False
 
         required_role = roles.get(required_role)
-        return any(
-            role.priority >= required_role.priority for role in om.get_all_org_roles_sorted()
-        )
+        om_role = roles.get(om.role)
+        return om_role.priority >= required_role.priority
 
 
 @region_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -77,9 +78,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         Retrieve an Attachment
         ``````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event.
         :pparam string attachment_id: the id of the attachment.
@@ -129,5 +130,14 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 
+        # an activity with no group cannot be associated with an issue or displayed in an issue details page
+        if attachment.group_id is not None:
+            Activity.objects.create(
+                group_id=attachment.group_id,
+                project=project,
+                type=ActivityType.DELETED_ATTACHMENT.value,
+                user_id=request.user.id,
+                data={},
+            )
         attachment.delete()
         return self.respond(status=204)

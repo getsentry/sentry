@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 
 import Alert from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import * as Layout from 'sentry/components/layouts/thirds';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -36,6 +36,10 @@ type ItemState = {
   similar: SimilarItem[];
 };
 
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
@@ -62,8 +66,8 @@ function SimilarStackTrace({params, location, project}: Props) {
       reqs.push({
         endpoint: `/organizations/${orgId}/issues/${groupId}/similar-issues-embeddings/?${qs.stringify(
           {
-            k: 5,
-            threshold: 0.99,
+            k: 10,
+            threshold: 0.01,
           }
         )}`,
         dataKey: 'similar',
@@ -171,54 +175,62 @@ function SimilarStackTrace({params, location, project}: Props) {
           which refers to whether or not we'd group the similar issue into the main issue.
         </Alert>
       )}
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <HeaderWrapper>
-            <Title>{t('Issues with a similar stack trace')}</Title>
-            <small>
+      <HeaderWrapper>
+        <Title>{t('Issues with a similar stack trace')}</Title>
+        <small>
+          {t(
+            'This is an experimental feature. Data may not be immediately available while we process merges.'
+          )}
+        </small>
+      </HeaderWrapper>
+      {status === 'loading' && <LoadingIndicator />}
+      {status === 'error' && (
+        <LoadingError
+          message={t('Unable to load similar issues, please try again later')}
+          onRetry={fetchData}
+        />
+      )}
+      {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+        <Panel>
+          <EmptyStateWarning>
+            <p>{t("There don't seem to be any similar issues.")}</p>
+          </EmptyStateWarning>
+        </Panel>
+      )}
+      {status === 'ready' && !hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+        <Panel>
+          <EmptyStateWarning>
+            <p>
               {t(
-                'This is an experimental feature. Data may not be immediately available while we process merges.'
+                "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
               )}
-            </small>
-          </HeaderWrapper>
-          {status === 'loading' && <LoadingIndicator />}
-          {status === 'error' && (
-            <LoadingError
-              message={t('Unable to load similar issues, please try again later')}
-              onRetry={fetchData}
-            />
-          )}
-          {status === 'ready' && !hasSimilarItems && (
-            <Panel>
-              <EmptyStateWarning>
-                <p>{t("There don't seem to be any similar issues.")}</p>
-              </EmptyStateWarning>
-            </Panel>
-          )}
-          {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
-            <List
-              items={items.similar}
-              filteredItems={items.filtered}
-              onMerge={handleMerge}
-              orgId={orgId}
-              project={project}
-              groupId={groupId}
-              pageLinks={items.pageLinks}
-            />
-          )}
-          {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
-            <List
-              items={items.similar.concat(items.filtered)}
-              filteredItems={[]}
-              onMerge={handleMerge}
-              orgId={orgId}
-              project={project}
-              groupId={groupId}
-              pageLinks={items.pageLinks}
-            />
-          )}
-        </Layout.Main>
-      </Layout.Body>
+            </p>
+          </EmptyStateWarning>
+        </Panel>
+      )}
+      {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+        <List
+          items={items.similar}
+          filteredItems={items.filtered}
+          onMerge={handleMerge}
+          orgId={orgId}
+          project={project}
+          groupId={groupId}
+          pageLinks={items.pageLinks}
+        />
+      )}
+      {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+        <List
+          items={items.similar.concat(items.filtered)}
+          filteredItems={[]}
+          onMerge={handleMerge}
+          orgId={orgId}
+          project={project}
+          groupId={groupId}
+          pageLinks={items.pageLinks}
+        />
+      )}
+      <DataConsentBanner source="grouping" />
     </Fragment>
   );
 }

@@ -3,28 +3,29 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Optional, cast
 
+import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
+from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.variants import BaseVariant, KeyedVariants
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
@@ -88,6 +89,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def data(self, value: NodeData | Mapping[str, Any]):
         pass
+
+    @property
+    def trace_id(self) -> str | None:
+        ret_value = None
+        if self.data:
+            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+        return ret_value
 
     @property
     def platform(self) -> str | None:
@@ -245,8 +253,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
 
-        et = eventtypes.get(self.get_event_type())()
-        return cast(str, et.get_title(self.get_event_metadata()))
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return cast(str, event_type_instance.get_title(self.get_event_metadata()))
 
     @property
     def culprit(self) -> str | None:
@@ -290,9 +305,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self._project_cache = project
 
     def get_interfaces(self) -> Mapping[str, Interface]:
-        return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
+        return CanonicalKeyView(get_interfaces(self.data))
 
-    @memoize
+    @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
         return self.get_interfaces()
 
@@ -353,7 +368,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 return rv
 
         # Create fresh hashes
-        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
+        from sentry.grouping.api import sort_grouping_variants
+
+        variants = self.get_grouping_variants(force_config)
+        flat_variants, hierarchical_variants = sort_grouping_variants(variants)
         flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
         hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
             hierarchical_variants
@@ -368,18 +386,16 @@ class BaseEvent(metaclass=abc.ABCMeta):
         hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
 
         return CalculatedHashes(
-            hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
+            hashes=flat_hashes,
+            hierarchical_hashes=hierarchical_hashes,
+            tree_labels=tree_labels,
+            variants=variants,
         )
 
-    def get_sorted_grouping_variants(self, force_config: StrategyConfiguration | None = None):
-        """Get grouping variants sorted into flat and hierarchical variants"""
-        from sentry.grouping.api import sort_grouping_variants
-
-        variants = self.get_grouping_variants(force_config)
-        return sort_grouping_variants(variants)
-
     @staticmethod
-    def _hashes_from_sorted_grouping_variants(variants):
+    def _hashes_from_sorted_grouping_variants(
+        variants: KeyedVariants,
+    ) -> tuple[list[str], list[Any]]:
         """Create hashes from variants and filter out duplicates and None values"""
 
         from sentry.grouping.variants import ComponentVariant
@@ -418,7 +434,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self,
         force_config: StrategyConfiguration | GroupingConfig | str | None = None,
         normalize_stacktraces: bool = False,
-    ):
+    ) -> dict[str, BaseVariant]:
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
@@ -503,7 +519,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps(dict(self.data)))
+        return len(orjson.dumps(dict(self.data)).decode())
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
@@ -546,7 +562,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return data
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         """
         The internal search_message attribute is only used for search purposes.
@@ -688,13 +704,6 @@ class Event(BaseEvent):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
-    def build_group_events(self) -> Generator[GroupEvent, None, None]:
-        """
-        Yields a GroupEvent for each Group associated with this Event.
-        """
-        for group in self.groups:
-            yield GroupEvent.from_event(self, group)
-
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
 
@@ -708,7 +717,7 @@ class GroupEvent(BaseEvent):
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
         occurrence: IssueOccurrence | None = None,
-    ):
+    ) -> None:
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
@@ -777,7 +786,7 @@ class GroupEvent(BaseEvent):
             return cast(str, self._snuba_data[column])
         return None
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         message = super().search_message
         # Include values from the occurrence in our search message as well, so that occurrences work

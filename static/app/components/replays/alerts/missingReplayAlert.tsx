@@ -53,4 +53,5 @@ export default function MissingReplayAlert({orgSlug}: Props) {
 }
 
 const ListIntro = styled('div')`
-line-height: 2em;`;
+  line-height: 2em;
+`;

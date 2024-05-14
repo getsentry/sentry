@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import pytest
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models import IncidentActivityType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
@@ -20,9 +21,10 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -44,7 +46,7 @@ class Fixtures:
 
     @cached_property
     def user(self):
-        return self.create_user("admin@localhost", is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property
     def organization(self):
@@ -111,7 +113,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+                "expires_at": iso_format(timezone.now() + timedelta(days=14)),
             },
         )
         integration.add_organization(self.organization, self.user)
@@ -204,7 +206,7 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
-    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+    def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
         if project is None:
             project = self.project
         return Factories.create_group_release(project, *args, **kwargs)
@@ -389,6 +391,39 @@ class Fixtures:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
+    def create_alert_rule_activation(
+        self,
+        alert_rule=None,
+        query_subscriptions=None,
+        project=None,
+        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        activator=None,
+        activation_condition=None,
+        *args,
+        **kwargs,
+    ):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule(
+                monitor_type=monitor_type,
+            )
+        if not query_subscriptions:
+            projects = [project] if project else [self.project]
+            query_subscriptions = alert_rule.subscribe_projects(
+                projects=projects,
+                monitor_type=monitor_type,
+                activation_condition=activation_condition,
+                activator=activator,
+            )
+
+        created_activations = []
+        for sub in query_subscriptions:
+            created_activations.append(
+                Factories.create_alert_rule_activation(
+                    alert_rule=alert_rule, query_subscription=sub, *args, **kwargs
+                )
+            )
+        return created_activations
+
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule()
@@ -425,6 +460,23 @@ class Fixtures:
 
     def create_user_option(self, *args, **kwargs):
         return Factories.create_user_option(*args, **kwargs)
+
+    def create_monitor(self, **kwargs):
+        if "owner_user_id" not in kwargs:
+            kwargs["owner_user_id"] = self.user.id
+
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
+            **kwargs,
+        )
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
@@ -527,15 +579,12 @@ class Fixtures:
         return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
-        if "actor" not in kwargs:
-            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
+        if "user_id" not in kwargs and "team" not in kwargs and "team_id" not in kwargs:
+            kwargs["user_id"] = self.user.id
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
-
-    def create_sentry_function(self, *args, **kwargs):
-        return Factories.create_sentry_function(*args, **kwargs)
 
     def create_saved_search(self, *args, **kwargs):
         return Factories.create_saved_search(*args, **kwargs)
@@ -543,7 +592,7 @@ class Fixtures:
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
 
-    def create_basic_auth_header(self, *args, **kwargs):
+    def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):

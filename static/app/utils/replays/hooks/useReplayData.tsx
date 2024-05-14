@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -140,6 +141,34 @@ function useReplayData({
         `/organizations/${orgSlug}/replays-events-meta/`,
         {
           query: {
+            dataset: DiscoverDatasets.DISCOVER,
+            start: replayRecord?.started_at.toISOString(),
+            end: finishedAtClone.toISOString(),
+            project: ALL_ACCESS_PROJECTS,
+            query: `replayId:[${replayRecord?.id}]`,
+            per_page,
+            cursor,
+          },
+        },
+      ];
+    },
+    [orgSlug, replayRecord]
+  );
+
+  const getPlatformErrorsQueryKey = useCallback(
+    ({cursor, per_page}): ApiQueryKey => {
+      // Clone the `finished_at` time and bump it up one second because finishedAt
+      // has the `ms` portion truncated, while replays-events-meta operates on
+      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
+      // while the event is saved with `12:00:00.450Z`.
+      const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
+      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+
+      return [
+        `/organizations/${orgSlug}/replays-events-meta/`,
+        {
+          query: {
+            dataset: DiscoverDatasets.ISSUE_PLATFORM,
             start: replayRecord?.started_at.toISOString(),
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
@@ -168,28 +197,36 @@ function useReplayData({
   const links = parseLinkHeader(linkHeader);
   const {pages: extraErrorPages, isFetching: isFetchingExtraErrors} =
     useFetchSequentialPages<{data: ReplayError[]}>({
-      enabled: !fetchReplayError && !isFetchingErrors && Boolean(links.next?.results),
+      enabled:
+        !fetchReplayError &&
+        !isFetchingErrors &&
+        (!replayRecord?.count_errors || Boolean(links.next?.results)),
       initialCursor: links.next?.cursor,
       getQueryKey: getErrorsQueryKey,
       perPage: errorsPerPage,
     });
 
+  const {pages: platformErrorPages, isFetching: isFetchingPlatformErrors} =
+    useFetchSequentialPages<{data: ReplayError[]}>({
+      enabled: true,
+      getQueryKey: getPlatformErrorsQueryKey,
+      perPage: errorsPerPage,
+    });
+
   const clearQueryCache = useCallback(() => {
-    () => {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [
-          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-        ],
-      });
-      // The next one isn't optimized
-      // This statement will invalidate the cache of fetched error events for all replayIds
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
-      });
-    };
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+    });
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+      ],
+    });
+    // The next one isn't optimized
+    // This statement will invalidate the cache of fetched error events for all replayIds
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
+    });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   return useMemo(() => {
@@ -197,10 +234,16 @@ function useReplayData({
       isFetchingReplay ||
       isFetchingAttachments ||
       isFetchingErrors ||
-      isFetchingExtraErrors;
+      isFetchingExtraErrors ||
+      isFetchingPlatformErrors;
+
+    const allErrors = errorPages
+      .concat(extraErrorPages)
+      .concat(platformErrorPages)
+      .flatMap(page => page.data);
     return {
       attachments: attachmentPages.flat(2),
-      errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
+      errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
       fetching,
       onRetry: clearQueryCache,
@@ -216,7 +259,9 @@ function useReplayData({
     isFetchingAttachments,
     isFetchingErrors,
     isFetchingExtraErrors,
+    isFetchingPlatformErrors,
     isFetchingReplay,
+    platformErrorPages,
     projectSlug,
     replayRecord,
   ]);

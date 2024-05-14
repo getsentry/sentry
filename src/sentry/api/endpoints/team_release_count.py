@@ -14,6 +14,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.utils.dates import floor_to_utc_day
 
 
 @region_silo_endpoint
@@ -30,8 +31,8 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
             return Response({"detail": "You do not have the insights feature enabled"}, status=400)
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         start, end = get_date_range_from_params(request.GET)
-        end = end.date() + timedelta(days=1)
-        start = start.date() + timedelta(days=1)
+        end = floor_to_utc_day(end) + timedelta(days=1)
+        start = floor_to_utc_day(start) + timedelta(days=1)
 
         per_project_daily_release_counts = (
             Release.objects.filter(
@@ -58,8 +59,9 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         for row in project_avgs:
             project_avgs[row] = (project_avgs[row] / (end - start).days) * 7
 
-        current_day = start
-        while current_day < end:
+        current_day = start.date()
+        end_date = end.date()
+        while current_day < end_date:
             agg_project_counts.setdefault(str(current_day), 0)
             current_day += timedelta(days=1)
 

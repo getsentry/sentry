@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -168,8 +168,8 @@ class DatabaseBackedAppService(AppService):
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
         ]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet[SentryAppInstallation]:
-            if ids_only:
+        def base_query(self, select_related: bool = True) -> QuerySet[SentryAppInstallation]:
+            if not select_related:
                 return SentryAppInstallation.objects
             return SentryAppInstallation.objects.select_related("sentry_app")
 
@@ -198,6 +198,21 @@ class DatabaseBackedAppService(AppService):
                 query = query.filter(status=filters["status"])
             if "api_token_id" in filters:
                 query = query.filter(api_token_id=filters["api_token_id"])
+            if "api_installation_token_id" in filters:
+                # NOTE: This is similar to 'api_token_id' above, but if we are unable to find
+                # the installation by token id in SentryAppInstallation, we also search
+                # SentryAppInstallationToken by token id, then fetch  the linked installation.
+                # Internal Integrations follow this pattern because they can have multiple tokens.
+
+                # Decompose this query instead of using a subquery for performance.
+                install_token_list = SentryAppInstallationToken.objects.filter(
+                    api_token_id=filters["api_installation_token_id"],
+                ).values_list("sentry_app_installation_id", flat=True)
+
+                query = query.filter(
+                    Q(api_token_id=filters["api_installation_token_id"])
+                    | Q(id__in=list(install_token_list))
+                )
 
             return query
 
@@ -256,7 +271,7 @@ class DatabaseBackedAppService(AppService):
         organization_id: int,
         integration_name: str,
         integration_scopes: list[str],
-        integration_creator_id,
+        integration_creator_id: int,
         metadata: dict[str, Any] | None = None,
     ) -> RpcSentryAppInstallation:
         admin_user = User.objects.get(id=integration_creator_id)

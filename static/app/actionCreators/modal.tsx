@@ -8,18 +8,12 @@ import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBui
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
-import type {
-  Event,
-  Group,
-  IssueOwnership,
-  MissingMember,
-  Organization,
-  OrgRole,
-  Project,
-  SentryApp,
-  Team,
-} from 'sentry/types';
 import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {Event} from 'sentry/types/event';
+import type {Group, IssueOwnership} from 'sentry/types/group';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];
@@ -70,6 +64,7 @@ type OpenDiffModalOptions = {
   project: Project;
   targetIssueId: string;
   baseEventId?: Event['id'];
+  shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
@@ -115,13 +110,6 @@ type CreateOwnershipRuleModalOptions = {
   eventData?: Event;
 };
 
-export type EditOwnershipRulesModalOptions = {
-  onSave: (text: string | null) => void;
-  organization: Organization;
-  ownership: IssueOwnership;
-  project: Project;
-};
-
 /**
  * Open the edit ownership modal within issue details
  */
@@ -133,6 +121,13 @@ export async function openIssueOwnershipRuleModal(
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
+
+export type EditOwnershipRulesModalOptions = {
+  onSave: (ownership: IssueOwnership) => void;
+  organization: Organization;
+  ownership: IssueOwnership;
+  project: Project;
+};
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
   const mod = await import('sentry/components/modals/editOwnershipRulesModal');

@@ -8,11 +8,9 @@ from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PRO
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 
-@region_silo_test
 class ProjectPerformanceIssueSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-performance-issue-settings"
 
@@ -178,9 +176,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature(
-        {"organizations:performance-view": True, "auth:enterprise-superuser-read-write": True}
-    )
+    @with_feature("organizations:performance-view")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_put_superuser_read_write_updates_detection_setting(self):
         # superuser read-only cannot hit put
         self.get_error_response(

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, ClassVar
 from django.db import models
 from django.db.models.query import QuerySet
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -13,13 +14,13 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
-from sentry.utils.cache import memoize
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.models.release import Release
 
 
@@ -32,7 +33,7 @@ class CommitManager(BaseManager["Commit"]):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Commit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -59,17 +60,17 @@ class Commit(Model):
 
     __repr__ = sane_repr("organization_id", "repository_id", "key")
 
-    @memoize
+    @cached_property
     def title(self):
         if not self.message:
             return ""
         return self.message.splitlines()[0]
 
-    @memoize
+    @cached_property
     def short_id(self):
         if len(self.key) == 40:
             return self.key[:7]
         return self.key
 
-    def find_referenced_groups(self):
+    def find_referenced_groups(self) -> set[Group]:
         return find_referenced_groups(self.message, self.organization_id)

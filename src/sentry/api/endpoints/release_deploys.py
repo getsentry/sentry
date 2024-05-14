@@ -50,9 +50,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         List a Release's Deploys
         ````````````````````````
 
-        Return a list of deploys for a given release.
+        Returns a list of deploys based on the organization, version, and project.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :pparam string version: the version identifier of the release.
         """
         try:
@@ -63,13 +63,25 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        queryset = Deploy.objects.filter(organization_id=organization.id, release=release)
+        release_project_envs = ReleaseProjectEnvironment.objects.select_related("release").filter(
+            release__organization_id=organization.id,
+            release__version=version,
+        )
+
+        projects = self.get_projects(request, organization)
+        project_id = [p.id for p in projects]
+
+        if project_id and project_id != "-1":
+            release_project_envs = release_project_envs.filter(project_id__in=project_id)
+
+        deploy_ids = release_project_envs.values_list("last_deploy_id", flat=True)
+        queryset = Deploy.objects.filter(id__in=deploy_ids)
 
         return self.paginate(
             request=request,
+            paginator_cls=OffsetPaginator,
             queryset=queryset,
             order_by="-date_finished",
-            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
@@ -80,7 +92,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         Create a deploy for a given release.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :pparam string version: the version identifier of the release.
         :param string environment: the environment you're deploying to
         :param string name: the optional name of the deploy
@@ -116,9 +128,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             if getattr(request, "user", None) and request.user.id:
                 auth = f"user.id: {request.user.id}"
             elif getattr(request, "auth", None) and getattr(request.auth, "id", None):
-                auth = f"auth.id: {request.auth.id}"  # type: ignore
+                auth = f"auth.id: {request.auth.id}"  # type: ignore[union-attr]
             elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
-                auth = f"auth.entity_id: {request.auth.entity_id}"  # type: ignore
+                auth = f"auth.entity_id: {request.auth.entity_id}"  # type: ignore[union-attr]
             if auth is not None:
                 logging_info.update({"auth": auth})
                 logger.info(

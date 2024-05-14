@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import orjson
+from django.utils.functional import cached_property
 from rest_framework import status
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models.group import Group
-from sentry.utils import json
-from sentry.utils.cache import memoize
-from sentry.utils.json import JSONData
 
 
 class SlackActionRequest(SlackRequest):
@@ -24,8 +23,8 @@ class SlackActionRequest(SlackRequest):
     def type(self) -> str:
         return str(self.data.get("type"))
 
-    @memoize
-    def callback_data(self) -> JSONData:
+    @cached_property
+    def callback_data(self) -> Any:
         """
         We store certain data in ``callback_id`` as JSON. It's a bit hacky, but
         it's the simplest way to store state without saving it on the Sentry
@@ -37,7 +36,7 @@ class SlackActionRequest(SlackRequest):
             - is_message: did the original message have a 'message' type
         """
         if self.data.get("callback_id"):
-            return json.loads(self.data["callback_id"])
+            return orjson.loads(self.data["callback_id"])
 
         # XXX(CEO): can't really feature flag this but the block kit data is very different
 
@@ -45,19 +44,22 @@ class SlackActionRequest(SlackRequest):
         # we don't do anything with it until the user hits "Submit" but we need to handle it anyway
         if self.data["type"] == "block_actions":
             if self.data.get("view"):
-                return json.loads(self.data["view"]["private_metadata"])
+                return orjson.loads(self.data["view"]["private_metadata"])
+
             elif self.data.get("container", {}).get(
                 "is_app_unfurl"
             ):  # for actions taken on interactive unfurls
-                return json.loads(self.data["app_unfurl"]["blocks"][0]["block_id"])
-            return json.loads(self.data["message"]["blocks"][0]["block_id"])
+                return orjson.loads(
+                    self.data["app_unfurl"]["blocks"][0]["block_id"],
+                )
+            return orjson.loads(self.data["message"]["blocks"][0]["block_id"])
 
         if self.data["type"] == "view_submission":
-            return json.loads(self.data["view"]["private_metadata"])
+            return orjson.loads(self.data["view"]["private_metadata"])
 
         for data in self.data["message"]["blocks"]:
             if data["type"] == "section" and len(data["block_id"]) > 5:
-                return json.loads(data["block_id"])
+                return orjson.loads(data["block_id"])
                 # a bit hacky, you can only provide a block ID per block (not per entire message),
                 # and if not provided slack generates a 5 char long one. our provided block_id is at least '{issue: <issue_id>}'
                 # so we know it's longer than 5 chars
@@ -74,7 +76,7 @@ class SlackActionRequest(SlackRequest):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            self._data = json.loads(self.data["payload"])
+            self._data = orjson.loads(self.data["payload"])
         except (KeyError, IndexError, TypeError, ValueError):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 

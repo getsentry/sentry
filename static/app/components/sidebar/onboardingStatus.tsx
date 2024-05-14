@@ -11,21 +11,21 @@ import ProgressRing, {
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
-  projects: Project[];
 };
 
 const progressTextCss = () => css`
@@ -33,10 +33,9 @@ const progressTextCss = () => css`
   font-weight: bold;
 `;
 
-function OnboardingStatus({
+export default function OnboardingStatus({
   collapsed,
   org,
-  projects,
   currentPanel,
   orientation,
   hidePanel,
@@ -47,6 +46,8 @@ function OnboardingStatus({
     onShowPanel();
   };
   const onboardingContext = useContext(OnboardingContext);
+  const {projects} = useProjects();
+  const {shouldAccordionFloat} = useContext(ExpandedContext);
 
   if (!org.features?.includes('onboarding')) {
     return null;
@@ -99,7 +100,7 @@ function OnboardingStatus({
           size={38}
           barWidth={6}
         />
-        {!collapsed && (
+        {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
             <Remaining>
@@ -180,5 +181,3 @@ const Container = styled('div')<{isActive: boolean}>`
     ${hoverCss};
   }
 `;
-
-export default withProjects(OnboardingStatus);

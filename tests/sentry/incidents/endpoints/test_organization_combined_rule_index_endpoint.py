@@ -1,20 +1,20 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
+from sentry.types.actor import Actor
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-@region_silo_test
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
 
@@ -69,15 +69,15 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="alert rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
         self.other_alert_rule = self.create_alert_rule(
             name="other alert rule",
             organization=self.org,
             projects=[self.project2],
-            date_added=before_now(minutes=5).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=5),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -86,15 +86,15 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
+                "date_added": before_now(minutes=4),
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
             name="yet another alert rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=3).replace(tzinfo=timezone.utc),
-            owner=self.team2.actor.get_actor_tuple(),
+            date_added=before_now(minutes=3),
+            owner=Actor.from_id(user_id=None, team_id=self.team2.id),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
@@ -169,15 +169,15 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="!1?",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
         alert_rule1 = self.create_alert_rule(
             name="!1?zz",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
 
         # Test Limit as 1, no cursor:
@@ -301,12 +301,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project]
@@ -350,12 +350,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project2]
@@ -394,7 +394,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
+                "date_added": before_now(minutes=4),
             }
         )
 
@@ -464,7 +464,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.an_unassigned_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=3).replace(tzinfo=timezone.utc),
+            date_added=before_now(minutes=3),
             owner=None,
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -512,8 +512,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
-                "owner": self.team.actor,
+                "date_added": before_now(minutes=4),
+                "owner": f"team:{self.team.id}",
             }
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -542,8 +542,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="alert rule",
             organization=another_org,
             projects=[another_project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=another_org_team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=another_org_team.id),
         )
 
         self.create_issue_alert_rule(
@@ -553,8 +553,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
-                "owner": another_org_team.actor,
+                "date_added": before_now(minutes=4),
+                "owner": f"team:{another_org_team.id}",
             }
         )
 
@@ -823,8 +823,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="the best rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=1).replace(tzinfo=timezone.utc),
-            owner=team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=1),
+            owner=Actor.from_id(user_id=None, team_id=team.id),
         )
         self.create_issue_alert_rule(
             data={
@@ -833,8 +833,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=2).replace(tzinfo=timezone.utc),
-                "owner": team.actor,
+                "date_added": before_now(minutes=2),
+                "owner": f"team:{team.id}",
             }
         )
         team.delete()
@@ -856,7 +856,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] is None
         RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
-        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
+        assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
     def test_project_deleted(self):
         from sentry.models.scheduledeletion import RegionScheduledDeletion

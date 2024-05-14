@@ -1,5 +1,6 @@
 from sentry import eventstore
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.debugfile import ProjectDebugFile
@@ -29,13 +30,11 @@ from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
@@ -99,7 +98,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         )
         monitor_env = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=env,
+            environment_id=env.id,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,

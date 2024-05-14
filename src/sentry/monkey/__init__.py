@@ -1,6 +1,3 @@
-from .pickle import patch_pickle_loaders
-
-
 def register_scheme(name):
     from urllib import parse as urlparse
 
@@ -26,4 +23,3 @@ def patch_celery_imgcat():
 
 
 patch_celery_imgcat()
-patch_pickle_loaders()

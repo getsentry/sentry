@@ -8,7 +8,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -93,7 +93,7 @@ function TeamMisery({
             }
             headers={[
               <FlexCenter key="transaction">
-                <StyledIconStar isSolid color="yellow400" /> {t('Key transaction')}
+                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
               </FlexCenter>,
               t('Project'),
               tct('Last [period]', {period}),
@@ -126,7 +126,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow400" />
+                      <StyledIconStar isSolid color="yellow300" />
                     </div>
                     <TransactionWrapper>
                       <Link

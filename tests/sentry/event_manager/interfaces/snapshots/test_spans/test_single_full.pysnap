@@ -1,13 +1,11 @@
 ---
-created: '2019-07-11T19:26:32.626601Z'
-creator: sentry
 source: tests/sentry/event_manager/interfaces/test_spans.py
 ---
 errors: null
 to_json:
 - data:
+    http.response.status_code: 200
     reason: OK
-    status_code: 200
   description: GET http://example.com
   op: http
   span_id: 8c931f4740435fb8

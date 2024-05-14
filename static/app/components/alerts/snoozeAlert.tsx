@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -10,6 +9,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -203,5 +203,6 @@ const DropdownTrigger = styled(Button)`
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
-  border-radius: ${p => (p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius)};
+  border-radius: ${p =>
+    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
 `;

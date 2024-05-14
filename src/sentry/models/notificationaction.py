@@ -10,12 +10,11 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.base import region_silo_only_model
+from sentry.db.models.base import region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +136,7 @@ class ActionRegistration(metaclass=ABCMeta):
     @classmethod
     def serialize_available(
         cls, organization: Organization, integrations: list[RpcIntegration] | None = None
-    ) -> list[JSONData]:
+    ) -> list[Any]:
         """
         Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
 
@@ -183,7 +182,7 @@ class AbstractNotificationAction(Model):
         abstract = True
 
 
-@region_silo_only_model
+@region_silo_model
 class NotificationActionProject(Model):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
 
@@ -199,7 +198,7 @@ class NotificationActionProject(Model):
         return action.get_relocation_scope()
 
 
-@region_silo_only_model
+@region_silo_model
 class NotificationAction(AbstractNotificationAction):
     """
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification

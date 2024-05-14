@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {IncidentFixture} from 'sentry-fixture/incident';
 import {IncidentStatsFixture} from 'sentry-fixture/incidentStats';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
@@ -7,10 +6,11 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 

@@ -4,14 +4,11 @@ from sentry.api.bases.external_actor import (
     ExternalUserSerializer,
 )
 from sentry.api.serializers import serialize
-from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
 
 
-@region_silo_test
 class ExternalActorSerializerTest(TestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -27,14 +24,6 @@ class ExternalActorSerializerTest(TestCase):
                 "installation_type": "born_as_bot",
             },
         )
-
-    def test_idempotent_actor(self):
-        actor_id = get_actor_id_for_user(self.user)
-        other_actor_id = get_actor_id_for_user(self.user)
-        assert other_actor_id == actor_id
-
-        get_actor_id_for_user(self.user)
-        assert Actor.objects.filter(user_id=self.user.id).count() == 1
 
     def test_user(self):
         external_actor, _ = ExternalActor.objects.get_or_create(

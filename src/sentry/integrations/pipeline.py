@@ -124,13 +124,7 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        if "reinstall_id" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, id=data["reinstall_id"]
-            )
-            self.integration.update(external_id=data["external_id"], status=ObjectStatus.ACTIVE)
-            self.integration.get_installation(self.organization.id).reinstall()
-        elif "expect_exists" in data:
+        if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )

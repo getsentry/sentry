@@ -1,5 +1,6 @@
 from urllib.parse import parse_qs
 
+import orjson
 import pytest
 import responses
 from rest_framework.serializers import ValidationError
@@ -17,10 +18,9 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.models.scheduledeletion import ScheduledDeletion
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -216,30 +216,30 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
         # assert the env vars were created correctly
-        req_params = json.loads(responses.calls[5].request.body)
+        req_params = orjson.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = orjson.loads(responses.calls[6].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = orjson.loads(responses.calls[7].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production", "preview", "development"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = orjson.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[9].request.body)
+        req_params = orjson.loads(responses.calls[9].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production", "preview"]
@@ -341,30 +341,30 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
-        req_params = json.loads(responses.calls[5].request.body)
+        req_params = orjson.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = orjson.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[11].request.body)
+        req_params = orjson.loads(responses.calls[11].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production", "preview", "development"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = orjson.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = json.loads(responses.calls[17].request.body)
+        req_params = orjson.loads(responses.calls[17].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production", "preview"]

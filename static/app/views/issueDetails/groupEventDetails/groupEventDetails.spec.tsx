@@ -1,11 +1,11 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -14,12 +14,13 @@ import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Event, Group} from 'sentry/types';
 import {EntryType, IssueCategory, IssueType} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import type {GroupEventDetailsProps} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -31,7 +32,7 @@ const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 const makeDefaultMockData = (
   organization?: Organization,
   project?: Project,
-  environments?: string[]
+  query?: Record<string, string | string[]>
 ): {
   event: Event;
   group: Group;
@@ -45,9 +46,7 @@ const makeDefaultMockData = (
     group: GroupFixture(),
     router: RouterFixture({
       location: LocationFixture({
-        query: {
-          environment: environments,
-        },
+        query: query ?? {},
       }),
     }),
     event: EventFixture({
@@ -60,6 +59,38 @@ const makeDefaultMockData = (
         {key: 'mechanism', value: 'ANR'},
       ],
       contexts: {
+        app: {
+          app_start_time: '2021-08-31T15:14:21Z',
+          device_app_hash: '0b77c3f2567d65fe816e1fa7013779fbe3b51633',
+          build_type: 'test',
+          app_identifier: 'io.sentry.sample.iOS-Swift',
+          app_name: 'iOS-Swift',
+          app_version: '7.2.3',
+          app_build: '390',
+          app_id: 'B2690307-FDD1-3D34-AA1E-E280A9C2406C',
+          type: 'app',
+        },
+        device: {
+          family: 'iOS',
+          model: 'iPhone13,4',
+          model_id: 'D54pAP',
+          memory_size: 5987008512,
+          free_memory: 154435584,
+          usable_memory: 4706893824,
+          storage_size: 127881465856,
+          boot_time: '2021-08-29T06:05:51Z',
+          timezone: 'CEST',
+          type: 'device',
+        },
+        os: {
+          name: 'iOS',
+          version: '14.7.1',
+          build: '18G82',
+          kernel_version:
+            'Darwin Kernel Version 20.6.0: Mon Jun 21 21:23:35 PDT 2021; root:xnu-7195.140.42~10/RELEASE_ARM64_T8101',
+          rooted: false,
+          type: 'os',
+        },
         trace: {
           trace_id: TRACE_ID,
           span_id: 'b0e6f15b45c36b12',
@@ -72,12 +103,12 @@ const makeDefaultMockData = (
 };
 
 function TestComponent(
-  props: Partial<GroupEventDetailsProps> & {environments?: string[]}
+  props: Partial<GroupEventDetailsProps> & {query?: Record<string, string | string[]>}
 ) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
     props.project,
-    props.environments ?? ['dev']
+    props.query ?? {environment: ['dev']}
   );
 
   const mergedProps: GroupEventDetailsProps = {
@@ -133,6 +164,7 @@ const mockedTrace = (project: Project) => {
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
         title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+        message: 'ANR for at least 5000 ms.',
         level: 'error',
         issue: '',
       },
@@ -147,6 +179,7 @@ const mockedTrace = (project: Project) => {
         project_id: parseInt(project.id, 10),
         project_slug: project.slug,
         title: 'File IO on Main Thread',
+        message: 'File IO on Main Thread',
         level: 'info',
         culprit: 'MainActivity.add_attachment',
         type: 1008,
@@ -294,6 +327,13 @@ const mockGroupApis = (
     url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
     method: 'GET',
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    body: {
+      data: [],
+      meta: {fields: {}, units: {}},
+    },
+  });
 };
 
 describe('groupEventDetails', () => {
@@ -315,7 +355,7 @@ describe('groupEventDetails', () => {
     });
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
-    rerender(<TestComponent environments={['prod']} />);
+    rerender(<TestComponent query={{environment: ['prod']}} />);
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
   });
@@ -329,7 +369,7 @@ describe('groupEventDetails', () => {
     });
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
-    rerender(<TestComponent environments={[]} />);
+    rerender(<TestComponent query={{environment: []}} />);
 
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
@@ -454,6 +494,46 @@ describe('groupEventDetails', () => {
         name: /resources/i,
       })
     ).toBeInTheDocument();
+  });
+
+  describe('changes to event tags ui', () => {
+    async function assertNewTagsView() {
+      expect(await screen.findByText('Event ID:')).toBeInTheDocument();
+      expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
+      expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+      const highlights = screen.getByTestId('event-highlights');
+      expect(
+        within(highlights).getByRole('button', {name: 'View All'})
+      ).toBeInTheDocument();
+      expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+      // No highlights setup
+      expect(
+        within(highlights).getByRole('button', {name: 'Add Highlights'})
+      ).toBeInTheDocument();
+      expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
+    }
+
+    it('works with the feature flag', async function () {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      const organization = OrganizationFixture({
+        features: ['event-tags-tree-ui'],
+      });
+      render(<TestComponent group={props.group} event={props.event} />, {
+        organization,
+      });
+      await assertNewTagsView();
+    });
+    it('works with the query param', async function () {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      const {organization} = initializeOrg();
+      render(
+        <TestComponent group={props.group} event={props.event} query={{tagsTree: '1'}} />,
+        {organization}
+      );
+      await assertNewTagsView();
+    });
   });
 });
 

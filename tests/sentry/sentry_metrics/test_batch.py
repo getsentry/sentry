@@ -1,6 +1,7 @@
 import logging
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -8,7 +9,7 @@ import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
+from sentry.sentry_metrics.aggregation_option_registry import AggregationOption, TimeWindow
 from sentry.sentry_metrics.configuration import (
     GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
     RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
@@ -28,12 +29,14 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 MOCK_METRIC_ID_AGG_OPTION = {
-    "d:transactions/measurements.fcp@millisecond": AggregationOption.HIST,
-    "d:transactions/measurements.lcp@millisecond": AggregationOption.HIST,
-    "d:transactions/alert@none": AggregationOption.TEN_SECOND,
+    "d:transactions/measurements.fcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
+    "d:transactions/measurements.lcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
+    "d:transactions/alert@none": {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS},
 }
 
-MOCK_USE_CASE_AGG_OPTION = {UseCaseID.TRANSACTIONS: AggregationOption.TEN_SECOND}
+MOCK_USE_CASE_AGG_OPTION = {
+    UseCaseID.TRANSACTIONS: {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS}
+}
 
 
 pytestmark = pytest.mark.sentry_metrics
@@ -712,7 +715,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     MOCK_USE_CASE_AGG_OPTION,
 )
 @override_options({"sentry-metrics.10s-granularity": True})
-def test_resolved_with_aggregation_options(caplog, settings):
+def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     counter_metric_id = "c:transactions/alert@none"
     dist_metric_id = "d:transactions/measurements.fcp@millisecond"

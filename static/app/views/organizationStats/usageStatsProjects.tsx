@@ -372,6 +372,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
         } else if (
           outcome === Outcome.RATE_LIMITED ||
+          outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.INVALID ||
           outcome === Outcome.DROPPED
         ) {
@@ -439,6 +440,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
               defaultQuery=""
               query={tableQuery}
               placeholder={t('Filter your projects')}
+              aria-label={t('Filter projects')}
               onSearch={this.handleSearch}
             />
           </Container>

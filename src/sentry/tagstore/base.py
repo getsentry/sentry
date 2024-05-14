@@ -227,7 +227,14 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_value_iter(
-        self, group, environment_ids, key, callbacks=(), offset=0, tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key,
+        callbacks=(),
+        orderby="-first_seen",
+        offset=0,
+        tenant_ids=None,
     ):
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
@@ -249,7 +256,14 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        tenant_ids=None,
+        referrer=None,
     ):
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])

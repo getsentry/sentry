@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -34,6 +33,7 @@ import type {
 import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -491,16 +491,14 @@ export function Actions(props: Props) {
         </ActionButton>
       ) : (
         <Fragment>
-          <GuideAnchor target="issue_details_archive_button" position="bottom">
-            <ArchiveActions
-              className="hidden-xs"
-              size="sm"
-              isArchived={isIgnored}
-              onUpdate={onUpdate}
-              disabled={disabled}
-              disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
-            />
-          </GuideAnchor>
+          <ArchiveActions
+            className="hidden-xs"
+            size="sm"
+            isArchived={isIgnored}
+            onUpdate={onUpdate}
+            disabled={disabled}
+            disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
+          />
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
               disableResolveInRelease={!resolveInReleaseCap.enabled}

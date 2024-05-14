@@ -11,10 +11,10 @@ import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
@@ -67,6 +67,7 @@ export type RouteHooks = {
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
+type AutofixSetupConsentStepProps = {hasConsented: boolean};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -91,6 +92,8 @@ type DisabledCustomSymbolSources = {
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
+
+type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
@@ -178,10 +181,14 @@ export type PartnershipAgreementProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
+  'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
@@ -207,10 +214,10 @@ export type ComponentHooks = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
-  'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
+  'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
 
 /**
@@ -295,7 +302,7 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
@@ -395,6 +402,11 @@ type FeatureDisabledHook = (opts: {
    */
   project?: Project;
 }) => React.ReactNode;
+
+/**
+ * Called to check if the superuser warning should be excluded for the given organization.
+ */
+type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 
 /**
  * Called when the app is mounted.

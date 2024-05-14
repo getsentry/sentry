@@ -33,22 +33,22 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
-    PRIORITY_LEVEL_TO_STR,
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
@@ -67,8 +67,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
-
+_short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
@@ -213,7 +212,7 @@ class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
     MOST_HELPFUL = [
-        "-replayId",
+        "-replay.id",
         "-profile.id",
         "num_processing_errors",
         "-trace.sampled",
@@ -355,19 +354,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
@@ -457,7 +443,7 @@ class GroupManager(BaseManager["Group"]):
             group.substatus = substatus
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
-                if priority:
+                if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
 
@@ -480,7 +466,7 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     type=ActivityType.SET_PRIORITY,
                     data={
-                        "priority": PRIORITY_LEVEL_TO_STR[new_priority],
+                        "priority": new_priority.to_str(),
                         "reason": PriorityChangeReason.ONGOING,
                     },
                 )
@@ -523,7 +509,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_only_model
+@region_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -602,6 +588,7 @@ class Group(Model):
             models.Index(fields=("project", "status", "substatus", "id")),
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
+            models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -732,7 +719,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore
+        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(
@@ -852,8 +839,15 @@ class Group(Model):
 
     @property
     def title(self) -> str:
-        et = eventtypes.get(self.get_event_type())()
-        return et.get_title(self.get_event_metadata())
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return event_type_instance.get_title(self.get_event_metadata())
 
     def location(self):
         et = eventtypes.get(self.get_event_type())()
@@ -885,13 +879,14 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self):
+    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
+            referrer=referrer,
         )[self.id]
 
     @classmethod
@@ -906,7 +901,7 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor: RpcActor = group_assignee.assigned_actor()
+        assigned_actor: Actor = group_assignee.assigned_actor()
 
         return assigned_actor.resolve()
 

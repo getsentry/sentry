@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
-import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -76,17 +76,12 @@ url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise`;
   }
 
-  handleOwnershipSave = (text: string | null) => {
+  handleOwnershipSave = (ownership: IssueOwnership) => {
     this.setState(prevState => ({
-      ...(prevState.ownership
-        ? {
-            ownership: {
-              ...prevState.ownership,
-              raw: text || '',
-            },
-          }
-        : {}),
+      ...prevState,
+      ownership,
     }));
+    closeModal();
   };
 
   handleCodeOwnerAdded = (data: CodeOwner) => {

@@ -1,7 +1,15 @@
 import logging
 import uuid
 
-REPROCESSING_OPTION = "sentry:processing-rev"
+import sentry_sdk
+
+from sentry.models.options.project_option import ProjectOption
+
+# Is reprocessing on or off by default?
+REPROCESSING_DEFAULT = False
+REPROCESSING_OPTION = "sentry:reprocessing_active"
+REPROCESSING_REVISION_OPTION = "sentry:processing-rev"
+SENT_NOTIFICATION_OPTION = "sentry:sent_failed_event_hint"
 
 
 logger = logging.getLogger("sentry.events")
@@ -26,24 +34,35 @@ def event_supports_reprocessing(data):
     return False
 
 
+def is_active(project_id: int) -> bool:
+    return ProjectOption.objects.get_value(project_id, REPROCESSING_OPTION, REPROCESSING_DEFAULT)
+
+
+def did_send_notification(project_id: int) -> bool:
+    return ProjectOption.objects.get_value(project_id, SENT_NOTIFICATION_OPTION, False)
+
+
+def mark_notification_sent(project_id: int, value: bool):
+    ProjectOption.objects.set_value(project_id, SENT_NOTIFICATION_OPTION, value)
+
+
+@sentry_sdk.tracing.trace
 def get_reprocessing_revision(project, cached=True):
     """Returns the current revision of the projects reprocessing config set."""
-    from sentry.models.options.project_option import ProjectOption
     from sentry.models.project import Project
 
     if cached:
-        return ProjectOption.objects.get_value(project, REPROCESSING_OPTION)
+        return ProjectOption.objects.get_value(project, REPROCESSING_REVISION_OPTION)
     try:
         if isinstance(project, Project):
             project = project.id
-        return ProjectOption.objects.get(project=project, key=REPROCESSING_OPTION).value
+        return ProjectOption.objects.get(project=project, key=REPROCESSING_REVISION_OPTION).value
     except ProjectOption.DoesNotExist:
         pass
 
 
 def bump_reprocessing_revision(project, use_buffer=False):
     """Bumps the reprocessing revision."""
-    from sentry.models.options.project_option import ProjectOption
     from sentry.tasks.process_buffer import buffer_incr
 
     rev = uuid.uuid4().hex
@@ -51,11 +70,11 @@ def bump_reprocessing_revision(project, use_buffer=False):
         buffer_incr(
             ProjectOption,
             columns={},
-            filters={"project_id": project.id, "key": REPROCESSING_OPTION},
+            filters={"project_id": project.id, "key": REPROCESSING_REVISION_OPTION},
             signal_only=True,
         )
     else:
-        ProjectOption.objects.set_value(project, REPROCESSING_OPTION, rev)
+        ProjectOption.objects.set_value(project, REPROCESSING_REVISION_OPTION, rev)
     return rev
 
 

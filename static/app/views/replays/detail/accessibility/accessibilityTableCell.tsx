@@ -137,18 +137,19 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
 export default AccessibilityTableCell;
 
 const StyledTextOverflow = styled(TextOverflow)`
-padding-right: ${space(1)};`;
+  padding-right: ${space(1)};
+`;
 
 const StyledCell = styled(Cell)<{
   impact: HydratedA11yFrame['impact'];
   isRowSelected: boolean;
 }>`
-background: ${p =>
-  p.isSelected
-    ? p.theme.purple300
-    : p.impact === 'serious'
-      ? p.theme.yellow100
-      : p.impact === 'critical'
-        ? p.theme.red100
-        : 'transparent'}
+  background: ${p =>
+    p.isSelected
+      ? p.theme.purple300
+      : p.impact === 'serious'
+        ? p.theme.yellow100
+        : p.impact === 'critical'
+          ? p.theme.red100
+          : 'transparent'};
 `;

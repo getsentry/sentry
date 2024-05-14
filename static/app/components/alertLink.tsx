@@ -82,17 +82,29 @@ const StyledLink = styled(
   display: flex;
   align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.alert[p.priority].color};
   font-size: ${p => p.theme.fontSizeMedium};
+  text-decoration-color: ${p => p.theme.alert[p.priority].border};
+  text-decoration-style: solid;
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.06em;
   border: 1px solid ${p => p.theme.alert[p.priority].border};
   padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
   margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
+  &:hover {
+    color: ${p => p.theme.alert[p.priority].color};
+    text-decoration-color: ${p => p.theme.alert[p.priority].color};
+    text-decoration-style: solid;
+    text-decoration-line: underline;
+  }
+
   &:focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.alert[p.priority].border}7f 0 0 0 2px;
+    box-shadow: ${p => p.theme.alert[p.priority].border} 0 0 0 2px;
   }
 
   ${p =>

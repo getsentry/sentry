@@ -38,7 +38,7 @@ from sentry.search.utils import (
     parse_user_value,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -192,6 +192,22 @@ def convert_category_value(
     return results
 
 
+def convert_priority_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[int]:
+    """Convert a value like 'high' or 'medium' to the Priority value for issue lookup"""
+    results: list[int] = []
+    for priority in value:
+        priority_value = PriorityLevel.from_str(priority)
+        if not priority_value:
+            raise InvalidSearchQuery(f"Invalid priority value of '{priority}'")
+        results.append(priority_value.value)
+    return results
+
+
 def convert_type_value(
     value: Iterable[str],
     projects: Sequence[Project],
@@ -234,6 +250,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
     "issue.category": convert_category_value,
+    "issue.priority": convert_priority_value,
     "issue.type": convert_type_value,
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,

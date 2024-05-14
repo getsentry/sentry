@@ -1,17 +1,15 @@
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 
 PROFILING_FEATURES = {"organizations:profiling": True}
 
 
-@region_silo_test
 class ProjectProfilingProfileTest(APITestCase):
     endpoint = "sentry-api-0-project-profiling-profile"
 
@@ -23,7 +21,6 @@ class ProjectProfilingProfileTest(APITestCase):
         assert response.status_code == 404
 
 
-@region_silo_test
 class ProjectProfilingFunctionsEndpoint(APITestCase):
     endpoint = "sentry-api-0-project-profiling-functions"
 
@@ -33,7 +30,7 @@ class ProjectProfilingFunctionsEndpoint(APITestCase):
             self.endpoint,
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -53,7 +50,7 @@ class ProjectProfilingFunctionsEndpoint(APITestCase):
     def test_basic(self, mock_proxy):
         mock_response = MagicMock()
         mock_response.status = 200
-        mock_response.data = json.dumps({"functions": []})
+        mock_response.data = orjson.dumps({"functions": []}).decode()
         mock_proxy.return_value = mock_response
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url, {"sort": "count"})
@@ -78,7 +75,7 @@ class ProjectProfilingFunctionsEndpoint(APITestCase):
     def test_is_application_true(self, mock_proxy):
         mock_response = MagicMock()
         mock_response.status = 200
-        mock_response.data = json.dumps({"functions": []})
+        mock_response.data = orjson.dumps({"functions": []}).decode()
         mock_proxy.return_value = mock_response
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url, {"is_application": "1", "sort": "count"})
@@ -91,7 +88,7 @@ class ProjectProfilingFunctionsEndpoint(APITestCase):
     def test_is_application_false(self, mock_proxy):
         mock_response = MagicMock()
         mock_response.status = 200
-        mock_response.data = json.dumps({"functions": []})
+        mock_response.data = orjson.dumps({"functions": []}).decode()
         mock_proxy.return_value = mock_response
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url, {"is_application": "0", "sort": "count"})

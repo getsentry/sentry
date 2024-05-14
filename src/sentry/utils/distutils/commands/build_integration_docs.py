@@ -1,20 +1,19 @@
-import os.path
-from distutils import log
+import logging
 
-from .base import ROOT, BaseBuildCommand
+from sentry.build._integration_docs import _TARGET, _sync_docs
+
+from .base import BaseBuildCommand
+
+log = logging.getLogger(__name__)
 
 
 class BuildIntegrationDocsCommand(BaseBuildCommand):
     description = "build integration docs"
 
     def get_dist_paths(self):
-        return [
-            # Also see sentry.utils.integrationdocs.DOC_FOLDER
-            os.path.join(ROOT, "src", "sentry", "integration-docs")
-        ]
+        # Also see sentry.utils.integrationdocs.DOC_FOLDER
+        return [_TARGET]
 
     def _build(self):
-        from sentry.utils.integrationdocs import sync_docs
-
         log.info("downloading integration docs")
-        sync_docs()
+        _sync_docs(_TARGET)

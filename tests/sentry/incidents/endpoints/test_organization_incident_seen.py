@@ -2,12 +2,10 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.incidents.models import IncidentSeen
+from sentry.incidents.models.incident import IncidentSeen
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationIncidentSeenTest(APITestCase):
     method = "post"
     endpoint = "sentry-api-0-organization-incident-seen"

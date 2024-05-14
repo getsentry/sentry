@@ -1,8 +1,8 @@
 import jsonschema
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,14 +18,13 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
 
 
 @region_silo_endpoint
 class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, organization) -> Response:
@@ -50,7 +49,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         }
 
         try:
-            data = json.loads(request.body)
+            data = orjson.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
@@ -73,19 +72,16 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         checksum = data.get("checksum")
         chunks = data.get("chunks", [])
 
-        # We want to put the missing chunks functionality behind an option in order to cut it off in case of CLI
-        # regressions for our users.
-        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
-            # We check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(organization.id, chunks)
-            # In case there are some missing chunks, we will tell the client which chunks we require.
-            if missing_chunks:
-                return Response(
-                    {
-                        "state": ChunkFileState.NOT_FOUND,
-                        "missingChunks": missing_chunks,
-                    }
-                )
+        # We check if all requested chunks have been uploaded.
+        missing_chunks = find_missing_chunks(organization.id, chunks)
+        # In case there are some missing chunks, we will tell the client which chunks we require.
+        if missing_chunks:
+            return Response(
+                {
+                    "state": ChunkFileState.NOT_FOUND,
+                    "missingChunks": missing_chunks,
+                }
+            )
 
         # We want to check the current state of the assemble status.
         state, detail = get_assemble_status(AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum)

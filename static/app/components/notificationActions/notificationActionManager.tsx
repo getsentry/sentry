@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -7,12 +7,12 @@ import NotificationActionItem from 'sentry/components/notificationActions/notifi
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
 import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import {NotificationActionService} from 'sentry/types/notificationActions';
+import type {Project} from 'sentry/types/project';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 type NotificationActionManagerProps = {
@@ -29,15 +29,15 @@ type NotificationActionManagerProps = {
    * TODO(enterprise): refactor to account for multiple projects
    */
   project: Project;
-  /**
-   * Updates the notification alert count for this project
-   */
-  updateAlertCount: (projectId: number, alertCount: number) => void;
   disabled?: boolean;
   /**
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
+  /**
+   * Updates the notification alert count for this project
+   */
+  updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
 function NotificationActionManager({
@@ -45,18 +45,20 @@ function NotificationActionManager({
   availableActions,
   recipientRoles,
   project,
-  updateAlertCount = () => {},
   disabled = false,
 }: NotificationActionManagerProps) {
   const [notificationActions, setNotificationActions] =
     useState<Partial<NotificationAction>[]>(actions);
+
+  useEffect(() => {
+    setNotificationActions(actions);
+  }, [actions]);
 
   const removeNotificationAction = (index: number) => {
     // Removes notif action from state using the index
     const updatedActions = [...notificationActions];
     updatedActions.splice(index, 1);
     setNotificationActions(updatedActions);
-    updateAlertCount(parseInt(project.id, 10), updatedActions.length);
   };
 
   const updateNotificationAction = (index: number, updatedAction: NotificationAction) => {
@@ -207,12 +209,11 @@ function NotificationActionManager({
           // Add notification action
           const updatedActions = [...notificationActions, validActions[0].action];
           setNotificationActions(updatedActions);
-          updateAlertCount(parseInt(project.id, 10), updatedActions.length);
         },
       });
     });
     return dropdownMenuItems;
-  }, [actionsMap, availableServices, notificationActions, project, updateAlertCount]);
+  }, [actionsMap, availableServices, notificationActions]);
 
   let toolTipText: undefined | string = undefined;
   if (disabled) {

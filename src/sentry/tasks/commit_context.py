@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sentry_sdk
+from celery import Task
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
@@ -21,9 +22,11 @@ from sentry.integrations.utils.commit_context import (
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
@@ -32,7 +35,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
@@ -50,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 def queue_comment_task_if_needed(
     commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
-):
+) -> None:
     from sentry.tasks.integrations.github.pr_comment import github_comment_workflow
 
     logger.info(
@@ -140,15 +143,14 @@ def queue_comment_task_if_needed(
     bind=True,
 )
 def process_commit_context(
-    self,
-    event_id,
-    event_platform,
-    event_frames,
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    self: Task,
+    event_id: str,
+    event_platform: str,
+    event_frames: Sequence[Mapping[str, Any]],
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+) -> None:
     """
     For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
     """
@@ -279,8 +281,10 @@ def process_commit_context(
                     extra={"organization_id": project.organization_id},
                 )
                 repo = Repository.objects.filter(id=commit.repository_id)
+                group = Group.objects.get_from_cache(id=group_id)
                 if (
-                    installation is not None
+                    group.level is not logging.INFO  # Don't comment on info level issues
+                    and installation is not None
                     and repo.exists()
                     and repo.get().provider == "integrations:github"
                 ):
@@ -291,6 +295,18 @@ def process_commit_context(
                         extra={"organization_id": project.organization_id},
                     )
 
+            ProjectOwnership.handle_auto_assignment(
+                project_id=project.id,
+                organization_id=project.organization_id,
+                group=group_owner.group,
+                logging_extra={
+                    "event_id": event_id,
+                    "group_id": group_id,
+                    "project_id": str(project.id),
+                    "organization_id": project.organization_id,
+                    "source": "process_commit_context",
+                },
+            )
             logger.info(
                 "process_commit_context.success",
                 extra={

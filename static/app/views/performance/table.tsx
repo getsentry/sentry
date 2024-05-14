@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -15,8 +14,10 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -434,7 +435,7 @@ class _Table extends Component<Props, State> {
             <TeamKeyTransactionWrapper>
               <IconStar
                 key="keyTransaction"
-                color="yellow400"
+                color="yellow300"
                 isSolid
                 data-test-id="team-key-transaction-header"
               />

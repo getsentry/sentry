@@ -11,7 +11,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -136,10 +136,9 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.iconColor};
+  color: ${p => p.theme.alert.warning.color};
   pointer-events: all;
   &:hover {
-    color: ${p => p.theme.alert.warning.iconHoverColor};
     opacity: 0.5;
   }
 `;

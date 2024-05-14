@@ -13,9 +13,8 @@ describe('SQLishFormatter', function () {
     });
 
     it('Adds newlines for keywords in SELECTs', () => {
-      expect(
-        formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;')
-      ).toMatchInlineSnapshot(`
+      expect(formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;'))
+        .toMatchInlineSnapshot(`
         "SELECT hello
         FROM users
         ORDER BY name DESC
@@ -36,9 +35,8 @@ describe('SQLishFormatter', function () {
     });
 
     it('Adds indentation for keywords followed by parentheses', () => {
-      expect(
-        formatter.toString('SELECT * FROM (SELECT * FROM users))')
-      ).toMatchInlineSnapshot(`
+      expect(formatter.toString('SELECT * FROM (SELECT * FROM users))'))
+        .toMatchInlineSnapshot(`
         "SELECT *
         FROM (
           SELECT *

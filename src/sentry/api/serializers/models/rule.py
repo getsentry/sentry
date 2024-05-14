@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
@@ -6,7 +5,6 @@ from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
-from sentry.models.actor import ACTOR_TYPES, Actor, actor_type_to_string
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -14,14 +12,14 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
-def _generate_rule_label(project, rule, data):
+def generate_rule_label(project, rule, data):
     from sentry.rules import rules
 
     rule_cls = rules.get(data["id"])
     if rule_cls is None:
         return
 
-    rule_inst = rule_cls(project, data=data, rule=rule)
+    rule_inst = rule_cls(project=project, data=data, rule=rule)
     return rule_inst.render_label()
 
 
@@ -89,7 +87,10 @@ class RuleSerializer(Serializer):
         )
 
         users = {
-            u.id: u for u in user_service.get_many(filter=dict(user_ids=[ra.user_id for ra in ras]))
+            u.id: u
+            for u in user_service.get_many(
+                filter=dict(user_ids=[ra.user_id for ra in ras if ra.user_id is not None])
+            )
         }
 
         for rule_activity in ras:
@@ -106,9 +107,6 @@ class RuleSerializer(Serializer):
             result[rule_activity.rule].update({"created_by": creator})
 
         rules = {item.id: item for item in item_list}
-        resolved_actors = {}
-        owners_by_type = defaultdict(list)
-
         sentry_app_uuids = [
             sentry_app_uuid
             for sentry_app_uuid in (
@@ -131,22 +129,10 @@ class RuleSerializer(Serializer):
             group_by="uuid",
         )
 
-        for item in item_list:
-            if item.owner_id is not None:
-                owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
-
-        for k, v in ACTOR_TYPES.items():
-            actors = Actor.objects.filter(type=v, id__in=owners_by_type[k])
-            if k == "team":
-                resolved_actors[k] = {actor.id: actor.team_id for actor in actors}
-            if k == "user":
-                resolved_actors[k] = {actor.id: actor.user_id for actor in actors}
-
         for rule in rules.values():
-            if rule.owner_id:
-                type = actor_type_to_string(rule.owner.type)
-                if rule.owner_id in resolved_actors[type]:
-                    result[rule]["owner"] = f"{type}:{resolved_actors[type][rule.owner_id]}"
+            actor = rule.owner
+            if actor:
+                result[rule]["owner"] = actor.identifier
 
             for action in rule.data.get("actions", []):
                 install = sentry_app_installations_by_uuid.get(
@@ -199,7 +185,7 @@ class RuleSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         environment = attrs["environment"]
         all_conditions = [
-            dict(list(o.items()) + [("name", _generate_rule_label(obj.project, obj, o))])
+            dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
             for o in obj.data.get("conditions", [])
         ]
 
@@ -209,7 +195,7 @@ class RuleSerializer(Serializer):
                 actions.append(
                     dict(
                         list(action.items())
-                        + [("name", _generate_rule_label(obj.project, obj, action))]
+                        + [("name", generate_rule_label(obj.project, obj, action))]
                     )
                 )
             except serializers.ValidationError:

@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -12,7 +13,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -62,11 +63,11 @@ function AddWidget({onAddWidget}: Props) {
         duration: 0.25,
       }}
     >
-      {hasDDMFeature(organization) ? (
+      {hasCustomMetrics(organization) ? (
         <InnerWrapper>
           <AddWidgetButton
             onAddWidget={onAddWidget}
-            aria-label="Add Widget"
+            aria-label={t('Add Widget')}
             data-test-id="widget-add"
           />
         </InnerWrapper>
@@ -109,8 +110,8 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
     [organization, onAddWidget]
   );
 
-  const items: MenuItemProps[] = useMemo(() => {
-    const menuItems = [
+  const items = useMemo(() => {
+    const menuItems: MenuItemProps[] = [
       {
         key: DataSet.EVENTS,
         label: t('Errors and Transactions'),
@@ -133,11 +134,12 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
       });
     }
 
-    if (hasDDMFeature(organization)) {
+    if (hasCustomMetrics(organization)) {
       menuItems.push({
         key: DataSet.METRICS,
         label: t('Custom Metrics'),
         onAction: () => handleAction(DataSet.METRICS),
+        trailingItems: <FeatureBadge type="beta" />,
       });
     }
 

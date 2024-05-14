@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
@@ -37,6 +37,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.ID
   | SpanIndexedField.PROFILE_ID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanIndexedField.TRACE
 >;
 
 export const useSpanSamples = (options: Options) => {
@@ -76,11 +77,16 @@ export const useSpanSamples = (options: Options) => {
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
-  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries({
-    filters: {'span.group': groupId, ...filters},
-    yAxis: [`avg(${SPAN_SELF_TIME})`],
-    referrer: 'api.starfish.sidebar-span-metrics',
-  });
+  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
+      yAxis: [`avg(${SPAN_SELF_TIME})`],
+      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.sidebar-span-metrics'
+  );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 

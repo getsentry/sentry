@@ -1,0 +1,14 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Claim Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+	<h3>{% trans "Claim Account" %}</h3>
+
+	<p>{% blocktrans %}We were unable to locate this account.{% endblocktrans %}</p>
+
+  <p>Please <a href="https://help.sentry.io">contact support</a> for further assistance if necessary.</p>
+{% endblock %}

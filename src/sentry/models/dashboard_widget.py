@@ -13,12 +13,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
 
-_ON_DEMAND_ENABLED_KEY = "enabled"
+ON_DEMAND_ENABLED_KEY = "enabled"
 
 
 class TypesClass:
@@ -47,9 +47,21 @@ class TypesClass:
 
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
+    """
+    Old way of accessing error events and transaction events simultaneously @deprecated. Use ERROR_EVENTS or TRANSACTION_LIKE instead.
+    """
     ISSUE = 1
     RELEASE_HEALTH = 2
     METRICS = 3
+    ERROR_EVENTS = 100
+    """
+     Error side of the split from Discover.
+    """
+    TRANSACTION_LIKE = 101
+    """
+    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    """
+
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
@@ -58,8 +70,20 @@ class DashboardWidgetTypes(TypesClass):
             "metrics",
         ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
         (METRICS, "custom-metrics"),
+        (ERROR_EVENTS, "error-events"),
+        (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+# TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
+TransactionWidgetType = [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+# TODO: Can be replaced once conditions are replaced at all callsite to split transaction and error behaviour, and once dashboard no longer have saved Discover dataset.
+DiscoverFullFallbackWidgetType = [
+    DashboardWidgetTypes.DISCOVER,
+    DashboardWidgetTypes.ERROR_EVENTS,
+    DashboardWidgetTypes.TRANSACTION_LIKE,
+]
 
 
 class DashboardWidgetDisplayTypes(TypesClass):
@@ -82,7 +106,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -109,6 +133,8 @@ class DashboardWidgetQuery(Model):
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     date_modified = models.DateTimeField(default=timezone.now)
+    # Whether this query is hidden from the UI, used by metric widgets
+    is_hidden = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
@@ -118,7 +144,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
     Tracks on_demand state and values for dashboard widget queries.
@@ -177,7 +203,7 @@ class DashboardWidgetQueryOnDemand(Model):
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
         """
-        return self.extraction_state.startswith(_ON_DEMAND_ENABLED_KEY)
+        return self.extraction_state.startswith(ON_DEMAND_ENABLED_KEY)
 
     class Meta:
         app_label = "sentry"
@@ -186,7 +212,7 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.
@@ -205,6 +231,9 @@ class DashboardWidget(Model):
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
     limit = models.IntegerField(null=True)
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    discover_widget_split = BoundedPositiveIntegerField(
+        choices=DashboardWidgetTypes.as_choices(), null=True
+    )
 
     class Meta:
         app_label = "sentry"

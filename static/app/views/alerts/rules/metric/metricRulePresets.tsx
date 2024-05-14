@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import type {MRI, Project} from 'sentry/types';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {getDdmUrl} from 'sentry/utils/metrics';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -53,13 +53,13 @@ export function makeDefaultCta({
     const {mri, op} = parseField(rule.aggregate) ?? {};
     return {
       buttonText: t('Open in Metrics'),
-      to: getDdmUrl(orgSlug, {
+      to: getMetricsUrl(orgSlug, {
         start: timePeriod.start,
         end: timePeriod.end,
         utc: timePeriod.utc,
-        // 7 days are 9999m in alerts as of a rounding error in the `events-stats` endpoint
-        // We need to round to 7d here to display it correctly in DDM
-        statsPeriod: timePeriod.period === '9999m' ? '7d' : timePeriod.period,
+        // 7 days are 9998m in alerts as of a rounding error in the `events-stats` endpoint
+        // We need to round to 7d here to display it correctly in Metrics
+        statsPeriod: timePeriod.period === '9998m' ? '7d' : timePeriod.period,
         project: projects
           .filter(({slug}) => rule.projects.includes(slug))
           .map(project => project.id),

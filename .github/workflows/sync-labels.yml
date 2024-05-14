@@ -22,7 +22,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
 
       - name: Install github-label-sync
         run: yarn global add github-label-sync@2.2.0
@@ -37,7 +37,7 @@ jobs:
             2>&1 | tee sync-report.txt
 
       - name: Read sync output into variable
-        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         if: github.event_name == 'pull_request'
         id: github-label-sync
         with:

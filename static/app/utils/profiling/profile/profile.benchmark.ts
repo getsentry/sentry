@@ -20,14 +20,14 @@ initializeLocale({} as any);
 // Note: You MUST import @sentry/tracing package before @sentry/profiling-node
 // eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/node';
-import {ProfilingIntegration} from '@sentry/profiling-node';
+import {nodeProfilingIntegration} from '@sentry/profiling-node';
 
 if (process.env.PROFILE) {
   Sentry.init({
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [
       // Add our Profilling integration
-      new ProfilingIntegration(),
+      nodeProfilingIntegration(),
     ],
     debug: true,
     tracesSampleRate: 1.0,

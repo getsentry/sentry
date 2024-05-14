@@ -1,14 +1,25 @@
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
 
 const ENDPOINT = '/users/me/authenticators/';
+const usorg = OrganizationFixture({
+  slug: 'us-org',
+  links: {
+    organizationUrl: 'https://us-org.example.test',
+    regionUrl: 'https://us.example.test',
+  },
+});
 
 describe('AccountSecurityEnroll', function () {
+  jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+
   describe('Totp', function () {
     const authenticator = AuthenticatorsFixture().Totp({
       isEnrolled: false,
@@ -32,12 +43,29 @@ describe('AccountSecurityEnroll', function () {
       },
     ]);
 
+    let location;
     beforeEach(function () {
+      location = window.location;
+      window.location.href = 'https://example.test';
+      window.__initialData = {
+        ...window.__initialData,
+        links: {
+          organizationUrl: undefined,
+          regionUrl: undefined,
+          sentryUrl: 'https://example.test',
+        },
+      };
+      OrganizationsStore.load([usorg]);
+
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
+    });
+
+    beforeEach(function () {
+      window.location = location;
     });
 
     it('does not have enrolled circle indicator', function () {
@@ -54,10 +82,24 @@ describe('AccountSecurityEnroll', function () {
       expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
 
-    it('can enroll', async function () {
+    it('can enroll from org subdomain', async function () {
+      window.location.href = 'https://us-org.example.test';
+      window.__initialData = {
+        ...window.__initialData,
+        links: {
+          organizationUrl: 'https://us-org.example.test',
+          regionUrl: 'https://us.example.test',
+          sentryUrl: 'https://example.test',
+        },
+      };
+
       const enrollMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         method: 'POST',
+      });
+      const fetchOrgsMock = MockApiClient.addMockResponse({
+        url: `/organizations/`,
+        body: [usorg],
       });
 
       render(<AccountSecurityEnroll />, {context: routerContext});
@@ -74,6 +116,47 @@ describe('AccountSecurityEnroll', function () {
           }),
         })
       );
+      expect(fetchOrgsMock).not.toHaveBeenCalled();
+      expect(window.location.assign).not.toHaveBeenCalled();
+    });
+
+    it('can enroll from main domain', async function () {
+      OrganizationsStore.load([]);
+      window.__initialData = {
+        ...window.__initialData,
+        links: {
+          organizationUrl: 'https://us-org.example.test',
+          regionUrl: 'https://us.example.test',
+          sentryUrl: 'https://example.test',
+        },
+      };
+
+      const enrollMock = MockApiClient.addMockResponse({
+        url: `${ENDPOINT}${authenticator.authId}/enroll/`,
+        method: 'POST',
+      });
+      const fetchOrgsMock = MockApiClient.addMockResponse({
+        url: `/organizations/`,
+        body: [usorg],
+      });
+
+      render(<AccountSecurityEnroll />, {context: routerContext});
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
+
+      expect(enrollMock).toHaveBeenCalledWith(
+        `${ENDPOINT}15/enroll/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            secret: 'secret',
+            otp: 'otp',
+          }),
+        })
+      );
+      expect(fetchOrgsMock).toHaveBeenCalledTimes(1);
+      expect(window.location.assign).toHaveBeenCalledTimes(1);
+      expect(window.location.assign).toHaveBeenCalledWith('http://us-org.example.test/');
     });
 
     it('can redirect with already enrolled error', function () {

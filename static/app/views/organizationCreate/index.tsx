@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -10,7 +10,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -43,6 +43,9 @@ function OrganizationCreate() {
         return;
       }
       const regionUrl = data.dataStorageLocation;
+
+      addLoadingMessage(t('Creating Organization\u2026'));
+      formModel.setFormSaving();
 
       client.request('/organizations/', {
         method: 'POST',
@@ -130,9 +133,9 @@ function OrganizationCreate() {
               required
             />
           )}
-          {!isSelfHosted && (
+          {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
             <div>
-              {tct('Relocating from self-hosted? Click [relocationLink:here]', {
+              {tct('[relocationLink:Relocating from self-hosted?]', {
                 relocationLink: <a href={relocationUrl} />,
               })}
             </div>

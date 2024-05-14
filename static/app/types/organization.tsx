@@ -41,6 +41,7 @@ export interface OrganizationSummary {
  */
 export interface Organization extends OrganizationSummary {
   access: Scope[];
+  aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
@@ -53,6 +54,7 @@ export interface Organization extends OrganizationSummary {
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
   experiments: Partial<OrgExperiments>;
+  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
@@ -76,6 +78,7 @@ export interface Organization extends OrganizationSummary {
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
   orgRole?: string;
+  planSampleRate?: number | null;
 }
 
 export interface DetailedOrganization extends Organization {
@@ -104,21 +107,20 @@ export interface DetailedTeam extends Team {
   projects: Project[];
 }
 
-// TODO: Rename to BaseRole
-export interface MemberRole {
+export interface BaseRole {
   desc: string;
   id: string;
   name: string;
-  allowed?: boolean; // Deprecated: use isAllowed
   isAllowed?: boolean;
   isRetired?: boolean;
+  isTeamRolesAllowed?: boolean;
 }
-export interface OrgRole extends MemberRole {
+export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
 }
-export interface TeamRole extends MemberRole {
+export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
 }
 

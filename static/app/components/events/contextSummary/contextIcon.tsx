@@ -13,6 +13,7 @@ import logoArm from 'sentry-logos/logo-arm.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
 import logoCrystal from 'sentry-logos/logo-crystal.svg';
+import logoDeno from 'sentry-logos/logo-deno.svg';
 import logoDotnet from 'sentry-logos/logo-dotnet.svg';
 import logoEdgeNew from 'sentry-logos/logo-edge-new.svg';
 import logoEdgeOld from 'sentry-logos/logo-edge-old.svg';
@@ -25,6 +26,8 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
+import logoNintendo from 'sentry-logos/logo-nintendo.svg';
+import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
@@ -54,9 +57,11 @@ const LOGO_MAPPING = {
   'mac-os-x': logoApple,
   'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
+  'nintendo-switch': logoNintendoSwitch,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
+  'nintendo-os': logoNintendo,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
@@ -68,6 +73,7 @@ const LOGO_MAPPING = {
   cpython: logoPython,
   crystal: logoCrystal,
   darwin: logoApple,
+  deno: logoDeno,
   edge: logoEdgeNew,
   electron: logoElectron,
   firefox: logoFirefox,

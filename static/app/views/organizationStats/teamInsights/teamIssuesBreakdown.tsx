@@ -7,13 +7,14 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';

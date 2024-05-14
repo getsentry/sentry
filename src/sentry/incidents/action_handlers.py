@@ -5,6 +5,7 @@ import logging
 from collections.abc import Sequence
 from urllib.parse import urlencode
 
+import orjson
 from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -13,24 +14,18 @@ from sentry import analytics, features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    IncidentStatus,
-    TriggerStatus,
-)
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.snuba.metrics import format_mri_field, is_mri_field
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
 
 
@@ -133,7 +128,7 @@ class EmailActionHandler(ActionHandler):
             users = None
             out = get_notification_recipients(
                 recipients=list(
-                    RpcActor(id=member.user_id, actor_type=ActorType.USER)
+                    Actor(id=member.user_id, actor_type=ActorType.USER)
                     for member in target.member_set
                 ),
                 type=NotificationSettingEnum.ISSUE_ALERTS,
@@ -201,7 +196,7 @@ class EmailActionHandler(ActionHandler):
             html_template="sentry/emails/incidents/trigger.html",
             type=f"incident.alert_rule_{display.lower()}",
             context=context,
-            headers={"X-SMTPAPI": json.dumps({"category": "metric_alert_email"})},
+            headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
         )
 
 

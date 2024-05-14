@@ -1,44 +1,19 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
-from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
-
-
-def parametrize_backend(cls):
-    """
-    hack to parametrize test-classes by backend. Ideally we'd move
-    over to pytest-style tests so we can use `pytest.mark.parametrize`, but
-    hopefully we won't have more than one backend in the future.
-    """
-
-    assert isinstance(cls.backend, SessionsReleaseHealthBackend)
-
-    newcls = type(
-        f"{cls.__name__}MetricsLayer",
-        (BaseMetricsTestCase, cls),
-        {
-            "__doc__": f"Repeat tests from {cls} with metrics layer",
-            "backend": MetricsReleaseHealthBackend(),
-            "adjust_interval": True,  # HACK interval adjustment for new MetricsLayer implementation
-        },
-    )
-    globals()[newcls.__name__] = newcls
-
-    return cls
 
 
 def format_timestamp(dt):
@@ -48,7 +23,7 @@ def format_timestamp(dt):
 
 
 def make_24h_stats(ts, adjust_start=False):
-    ret_val = _make_stats(datetime.fromtimestamp(ts, timezone.utc), 3600, 24)
+    ret_val = _make_stats(datetime.fromtimestamp(ts, UTC), 3600, 24)
 
     if adjust_start:
         # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
@@ -58,10 +33,8 @@ def make_24h_stats(ts, adjust_start=False):
     return ret_val
 
 
-@parametrize_backend
-class SnubaSessionsTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
-    adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
+class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -310,115 +283,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             },
         }
 
-    def test_get_release_health_data_overview_users(self):
-        data = self.backend.get_release_health_data_overview(
-            [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
-            ],
-            summary_stats_period="24h",
-            health_stats_period="24h",
-            stat="users",
-        )
-
-        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
-        stats[-1] = [stats[-1][0], 1]
-        stats_ok = stats_crash = stats
-
-        assert data == {
-            (self.project.id, self.session_crashed_release): {
-                "total_sessions": 1,
-                "sessions_errored": 0,
-                "total_sessions_24h": 1,
-                "total_users": 1,
-                "duration_p90": None,
-                "sessions_crashed": 1,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_crash},
-                "crash_free_users": 0.0,
-                "adoption": 100.0,
-                "sessions_adoption": 33.33333333333333,
-                "has_health_data": True,
-                "crash_free_sessions": 0.0,
-                "duration_p50": None,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-            (self.project.id, self.session_release): {
-                "total_sessions": 2,
-                "sessions_errored": 0,
-                "total_sessions_24h": 2,
-                "total_users": 1,
-                "duration_p90": 57.0,
-                "sessions_crashed": 0,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_ok},
-                "crash_free_users": 100.0,
-                "adoption": 100.0,
-                "sessions_adoption": 66.66666666666666,
-                "has_health_data": True,
-                "crash_free_sessions": 100.0,
-                "duration_p50": 45.0,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-        }
-
-    def test_get_release_health_data_overview_sessions(self):
-        data = self.backend.get_release_health_data_overview(
-            [
-                (self.project.id, self.session_release),
-                (self.project.id, self.session_crashed_release),
-            ],
-            summary_stats_period="24h",
-            health_stats_period="24h",
-            stat="sessions",
-        )
-
-        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
-
-        stats_ok = stats[:-1] + [[stats[-1][0], 2]]
-        stats_crash = stats[:-1] + [[stats[-1][0], 1]]
-
-        assert data == {
-            (self.project.id, self.session_crashed_release): {
-                "total_sessions": 1,
-                "sessions_errored": 0,
-                "total_sessions_24h": 1,
-                "total_users": 1,
-                "duration_p90": None,
-                "sessions_crashed": 1,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_crash},
-                "crash_free_users": 0.0,
-                "adoption": 100.0,
-                "sessions_adoption": 33.33333333333333,
-                "has_health_data": True,
-                "crash_free_sessions": 0.0,
-                "duration_p50": None,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-            (self.project.id, self.session_release): {
-                "total_sessions": 2,
-                "sessions_errored": 0,
-                "total_sessions_24h": 2,
-                "total_users": 1,
-                "duration_p90": 57.0,
-                "sessions_crashed": 0,
-                "total_users_24h": 1,
-                "stats": {"24h": stats_ok},
-                "crash_free_users": 100.0,
-                "sessions_adoption": 66.66666666666666,
-                "adoption": 100.0,
-                "has_health_data": True,
-                "crash_free_sessions": 100.0,
-                "duration_p50": 45.0,
-                "total_project_sessions_24h": 3,
-                "total_project_users_24h": 1,
-            },
-        }
-
     def test_fetching_release_sessions_time_bounds_for_different_release(self):
         """
         Test that ensures only session bounds for releases are calculated according
@@ -498,7 +362,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_crash_free_breakdown(self):
-        start = django_timezone.now() - timedelta(days=4)
+        start = timezone.now() - timedelta(days=4)
 
         # it should work with and without environments
         for environments in [None, ["prod"]]:
@@ -511,7 +375,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
             # Last returned date is generated within function, should be close to now:
             last_date = data[-1]["date"]
-            assert django_timezone.now() - last_date < timedelta(seconds=1)
+            assert timezone.now() - last_date < timedelta(seconds=1)
 
             assert data == [
                 {
@@ -658,7 +522,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
     def _test_get_project_release_stats(
         self, stat: OverviewStat, release: str, expected_series, expected_totals
     ):
-        end = django_timezone.now()
+        end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,
@@ -986,8 +850,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
 
-@parametrize_backend
-class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
+class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
     """
     TestClass that tests that `get_current_and_previous_crash_free_rates` returns the correct
     `currentCrashFreeRate` and `previousCrashFreeRate` for each project
@@ -1006,7 +869,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
     """
 
-    backend = SessionsReleaseHealthBackend()
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -1086,7 +949,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             )
 
     def test_get_current_and_previous_crash_free_rates(self):
-        now = django_timezone.now().replace(minute=15, second=23)
+        now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
@@ -1110,7 +973,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
-        now = django_timezone.now().replace(minute=15, second=23)
+        now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
@@ -1132,11 +995,34 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             },
         }
 
+    def test_extract_crash_free_rate_from_result_groups(self):
+        result_groups = [
+            {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
+            {"by": {"project_id": 2}, "totals": {"rate": 0.8}},
+        ]
+        crash_free_rates = self.backend._extract_crash_free_rates_from_result_groups(result_groups)
+        assert crash_free_rates[1] == 0.66 * 100
+        assert crash_free_rates[2] == 0.8 * 100
 
-@region_silo_test
-@parametrize_backend
-class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+    def test_extract_crash_free_rate_from_result_groups_with_none(self):
+        result_groups = [
+            {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
+            {"by": {"project_id": 2}, "totals": {"rate": None}},
+        ]
+        crash_free_rates = self.backend._extract_crash_free_rates_from_result_groups(result_groups)
+        assert crash_free_rates[1] == 0.66 * 100
+        assert crash_free_rates[2] is None
+
+    def test_extract_crash_free_rates_from_result_groups_only_none(self):
+        result_groups = [
+            {"by": {"project_id": 2}, "totals": {"rate": None}},
+        ]
+        crash_free_rates = self.backend._extract_crash_free_rates_from_result_groups(result_groups)
+        assert crash_free_rates[2] is None
+
+
+class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def test_empty(self):
         # Test no errors when no session data
@@ -1231,9 +1117,8 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         )
 
 
-@parametrize_backend
-class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class CheckReleasesHaveHealthDataTest(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
@@ -1273,9 +1158,8 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
 
 
-@parametrize_backend
-class CheckNumberOfSessions(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -1287,7 +1171,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
 
         # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
         # must be less than 90 days for the metrics DB TTL
-        ONE_DAY_AGO = datetime.now(tz=timezone.utc) - timedelta(days=1)
+        ONE_DAY_AGO = timezone.now() - timedelta(days=1)
         self.now_dt = ONE_DAY_AGO.replace(hour=17, minute=40, second=0)
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
@@ -1556,10 +1440,8 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
-@region_silo_test
-@parametrize_backend
-class InitWithoutUserTestCase(TestCase, SnubaTestCase):
-    backend = SessionsReleaseHealthBackend()
+class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
     def setUp(self):
         super().setUp()
@@ -1639,12 +1521,10 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
 
         inner = data[(self.project.id, self.session_release)]
         assert inner["total_users"] == 3
-        assert inner["total_users_24h"] == 3
         assert inner["crash_free_users"] == 66.66666666666667
-        assert inner["total_project_users_24h"] == 3
 
     def test_get_crash_free_breakdown(self):
-        start = django_timezone.now() - timedelta(days=4)
+        start = timezone.now() - timedelta(days=4)
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
             release=self.session_release,
@@ -1655,7 +1535,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         # Last returned date is generated within function, should be close to now:
         last_date = data[-1]["date"]
 
-        assert django_timezone.now() - last_date < timedelta(seconds=1)
+        assert timezone.now() - last_date < timedelta(seconds=1)
 
         assert data == [
             {
@@ -1682,7 +1562,7 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_get_project_release_stats_users(self):
-        end = django_timezone.now()
+        end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
             self.project.id,

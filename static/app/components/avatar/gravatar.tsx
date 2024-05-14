@@ -1,13 +1,33 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type HasherHelper from 'crypto-js/md5';
+import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 import type {ImageStyleProps} from './styles';
 import {imageStyle} from './styles';
+
+function isCryptoSubtleDigestAvailable() {
+  return (
+    !!window.crypto &&
+    !!window.crypto.subtle &&
+    typeof window.crypto.subtle.digest === 'function'
+  );
+}
+
+/**
+ * Available only in secure contexts. (https)
+ * Gravatar will not work in http
+ */
+async function hashGravatarId(message = ''): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hash = await window.crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 type Props = {
   remoteSize: number;
@@ -26,24 +46,28 @@ function Gravatar({
   onLoad,
   suggested,
 }: Props) {
-  const isMountedRef = useIsMountedRef();
-  const [MD5, setMD5] = useState<typeof HasherHelper>();
-
-  const loadMd5Helper = useCallback(async () => {
-    const mod = await import('crypto-js/md5');
-
-    if (isMountedRef.current) {
-      // XXX: Use function invocation of `useState`s setter since the mod.default
-      // is a function itself.
-      setMD5(() => mod.default);
-    }
-  }, [isMountedRef]);
-
+  const [sha256, setSha256] = useState<string | null>(null);
   useEffect(() => {
-    loadMd5Helper();
-  }, [loadMd5Helper]);
+    if (!isCryptoSubtleDigestAvailable()) {
+      return;
+    }
 
-  if (MD5 === undefined) {
+    hashGravatarId((gravatarId ?? '').trim())
+      .then(hash => {
+        setSha256(hash);
+      })
+      .catch((err: any) => {
+        // If there is an error with the hash, we should not render the gravatar
+        setSha256(null);
+
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['gravatar-hash-error']);
+          Sentry.captureException(err);
+        });
+      });
+  }, [gravatarId]);
+
+  if (!sha256) {
     return null;
   }
 
@@ -56,8 +80,7 @@ function Gravatar({
 
   const gravatarBaseUrl = ConfigStore.get('gravatarBaseUrl');
 
-  const md5 = MD5(gravatarId ?? '');
-  const url = `${gravatarBaseUrl}/avatar/${md5}?${query}`;
+  const url = `${gravatarBaseUrl}/avatar/${sha256}?${query}`;
 
   return (
     <Image

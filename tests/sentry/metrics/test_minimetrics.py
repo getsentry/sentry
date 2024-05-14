@@ -75,7 +75,7 @@ def hub():
             transport=DummyTransport,
             _experiments={
                 "enable_metrics": True,
-                "before_emit_metric": before_emit_metric,  # type:ignore
+                "before_emit_metric": before_emit_metric,  # type: ignore[typeddict-item]
             },
         )
     )
@@ -214,9 +214,6 @@ def test_gauge(backend, hub):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.allow_all_incr": True,
-        "delightful_metrics.allow_all_timing": True,
-        "delightful_metrics.allow_all_gauge": True,
         "delightful_metrics.enable_code_locations": True,
     }
 )
@@ -287,7 +284,7 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
 
     params = {"key": "sentrytest.unit", "value": 10.0, "tags": {"x": "bar"}}
 
-    backend.timing(**params)  # type:ignore
+    backend.timing(**params)  # type: ignore[arg-type]
     assert sentry_sdk.metrics.distribution.call_args.kwargs == {
         **params,
         "unit": expected_unit,

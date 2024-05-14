@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 function useUrlParams(
   defaultKey: string,
@@ -20,7 +21,10 @@ function useUrlParams(defaultKey?: string, defaultValue?: string) {
   const getParamValue = useCallback(
     (key: string) => {
       const location = browserHistory.getCurrentLocation();
-      return location.query[key] ?? defaultValue;
+      // location.query.key can return string[] but we expect a singular value from this function, so we return the first string (this is picked arbitrarily) if it's string[]
+      return Array.isArray(location.query[key])
+        ? location.query[key]?.at(0) ?? defaultValue
+        : location.query[key] ?? defaultValue;
     },
     [defaultValue]
   );

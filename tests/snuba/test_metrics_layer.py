@@ -11,6 +11,7 @@ from snuba_sdk import (
     Condition,
     Direction,
     Formula,
+    Limit,
     Metric,
     MetricsQuery,
     MetricsScope,
@@ -24,7 +25,13 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
-from sentry.snuba.metrics_layer.query import bulk_run_query, run_query
+from sentry.snuba.metrics_layer.query import (
+    bulk_run_query,
+    fetch_metric_mris,
+    fetch_metric_tag_keys,
+    fetch_metric_tag_values,
+    run_query,
+)
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -263,8 +270,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
-        assert rows[1]["aggregate_value"] == [6.0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
 
     def test_complex_generic_metrics(self) -> None:
         query = MetricsQuery(
@@ -300,9 +309,11 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
         assert rows[0]["transaction"] == "transaction_0"
-        assert rows[1]["aggregate_value"] == [6.0]
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
         assert rows[1]["transaction"] == "transaction_0"
 
     def test_totals(self) -> None:
@@ -734,7 +745,9 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
-            assert rows[i]["aggregate_value"] == [i]
+            # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+            # For now handle both cases for backwards compatibility
+            assert rows[i]["aggregate_value"] in ([i], i)
             assert (
                 rows[i]["time"]
                 == (
@@ -784,3 +797,196 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
                 ).isoformat()
             )
+
+    def test_resolve_all_mris(self) -> None:
+        for mri in [
+            "d:custom/sentry.event_manager.save@second",
+            "d:custom/sentry.event_manager.save_generic_events@second",
+        ]:
+            self.store_metric(
+                self.org_id,
+                self.project.id,
+                "distribution",
+                mri,
+                {
+                    "transaction": "transaction_1",
+                    "status_code": "200",
+                    "device": "BlackBerry",
+                },
+                self.ts(self.hour_ago + timedelta(minutes=5)),
+                1,
+                UseCaseID.CUSTOM,
+            )
+
+        query = MetricsQuery(
+            query=Formula(
+                function_name="plus",
+                parameters=[
+                    Timeseries(
+                        metric=Metric(
+                            mri="d:custom/sentry.event_manager.save@second",
+                        ),
+                        aggregate="avg",
+                    ),
+                    Timeseries(
+                        metric=Metric(
+                            mri="d:custom/sentry.event_manager.save_generic_events@second",
+                        ),
+                        aggregate="avg",
+                    ),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=None, totals=True, orderby=None, granularity=10),
+            scope=MetricsScope(
+                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="custom"
+            ),
+            limit=Limit(20),
+            offset=None,
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 1
+
+    def test_formulas_with_scalar_formulas(self) -> None:
+        query = MetricsQuery(
+            query=f"sum({TransactionMRI.DURATION.value}) + (24 * 3600)",
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 10
+        for row in result["data"]:
+            assert row["aggregate_value"] >= 86400
+
+
+class MQLMetaTest(TestCase, BaseMetricsTestCase):
+    def ts(self, dt: datetime) -> int:
+        return int(dt.timestamp())
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
+            TransactionMRI.DURATION.value: "distribution",
+            TransactionMRI.USER.value: "set",
+            TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
+            "g:transactions/test_gauge@none": "gauge",
+        }
+        self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+        self.hour_ago = self.now - timedelta(hours=1)
+        self.org_id = self.project.organization_id
+        for mri, metric_type in self.generic_metrics.items():
+            assert metric_type in {"counter", "distribution", "set", "gauge"}
+            for i in range(2):
+                value: int | dict[str, int]
+                if metric_type == "gauge":
+                    value = {
+                        "min": i,
+                        "max": i,
+                        "sum": i,
+                        "count": i,
+                        "last": i,
+                    }
+                else:
+                    value = i
+                self.store_metric(
+                    self.org_id,
+                    self.project.id,
+                    metric_type,
+                    mri,
+                    {
+                        "transaction": f"transaction_{i % 2}",
+                        "status_code": "500" if i % 2 == 0 else "200",
+                        "device": "BlackBerry" if i % 2 == 0 else "Nokia",
+                    },
+                    self.ts(self.hour_ago + timedelta(minutes=1 * i)),
+                    value,
+                    UseCaseID.TRANSACTIONS,
+                )
+
+    def test_fetch_metric_mris(self) -> None:
+        metric_mris = fetch_metric_mris(self.org_id, [self.project.id], UseCaseID.TRANSACTIONS)
+        assert len(metric_mris) == 1
+        assert len(metric_mris[self.project.id]) == 4
+        assert metric_mris[self.project.id] == [
+            "c:transactions/count_per_root_project@none",
+            "s:transactions/user@none",
+            "g:transactions/test_gauge@none",
+            "d:transactions/duration@millisecond",
+        ]
+
+    def test_fetch_metric_tag_keys(self) -> None:
+        tag_keys = fetch_metric_tag_keys(
+            self.org_id, [self.project.id], UseCaseID.TRANSACTIONS, "g:transactions/test_gauge@none"
+        )
+        assert len(tag_keys) == 1
+        assert len(tag_keys[self.project.id]) == 3
+        assert tag_keys[self.project.id] == ["status_code", "device", "transaction"]
+
+    def test_fetch_metric_tag_values(self) -> None:
+        tag_values = fetch_metric_tag_values(
+            self.org_id,
+            [self.project.id],
+            UseCaseID.TRANSACTIONS,
+            "g:transactions/test_gauge@none",
+            "transaction",
+        )
+        assert len(tag_values) == 2
+        assert tag_values == ["transaction_0", "transaction_1"]
+
+    def test_fetch_metric_tag_values_with_prefix(self) -> None:
+        tag_values = fetch_metric_tag_values(
+            self.org_id,
+            [self.project.id],
+            UseCaseID.TRANSACTIONS,
+            "g:transactions/test_gauge@none",
+            "status_code",
+            "5",
+        )
+        assert len(tag_values) == 1
+        assert tag_values == ["500"]
+
+    def test_fetch_metric_tag_values_for_multiple_projects(self) -> None:
+        new_project = self.create_project(name="New Project")
+        self.store_metric(
+            self.org_id,
+            new_project.id,
+            "gauge",
+            "g:transactions/test_gauge@none",
+            {"status_code": "524"},
+            self.ts(self.hour_ago + timedelta(minutes=10)),
+            10,
+            UseCaseID.TRANSACTIONS,
+        )
+
+        tag_values = fetch_metric_tag_values(
+            self.org_id,
+            [self.project.id, new_project.id],
+            UseCaseID.TRANSACTIONS,
+            "g:transactions/test_gauge@none",
+            "status_code",
+            "5",
+        )
+        assert len(tag_values) == 2
+        assert tag_values == ["500", "524"]

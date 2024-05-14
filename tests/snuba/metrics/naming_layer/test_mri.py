@@ -13,6 +13,11 @@ class TestMRIUtils(TestCase):
         assert format_mri_field("avg(c:custom/foo@none)") == "avg(foo)"
         assert format_mri_field("max(s:spans/user@none)") == "max(user)"
         assert format_mri_field("sum(d:spans/exclusive_time@millisecond)") == "sum(exclusive_time)"
+        assert (
+            format_mri_field("sum(c:custom/http.client.active_requests@{request})")
+            == "sum(http.client.active_requests)"
+        )
+        assert format_mri_field("sum(c:custom/foo...bar@{request})") == "sum(foo...bar)"
         assert format_mri_field("invalid_mri_field") == "invalid_mri_field"
         assert format_mri_field(cast(str, None)) is None
 

@@ -652,7 +652,7 @@ export interface ResponseContext {
   type: 'response';
 }
 
-type EventContexts = {
+export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
@@ -674,7 +674,7 @@ type EventContexts = {
   unity?: UnityContext;
 };
 
-export type Measurement = {value: number; unit?: string};
+export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
 

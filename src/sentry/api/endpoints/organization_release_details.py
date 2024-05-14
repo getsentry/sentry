@@ -22,7 +22,8 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models.activity import Activity
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseCommitError, ReleaseStatus, UnsafeReleaseDeletion
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -287,7 +288,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         Return details on an individual release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required
@@ -382,7 +383,7 @@ class OrganizationReleaseDetailsEndpoint(
         Update a release. This can change some metadata associated with
         the release (the ref, url, and dates).
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :param string ref: an optional commit reference.  This is useful if
@@ -509,7 +510,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         Permanently remove a release and all of its files.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required

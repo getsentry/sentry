@@ -11,8 +11,7 @@ from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -57,7 +56,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff_simple(self):
         self.login_as(user=self.staff_user, staff=True)
 
@@ -166,6 +165,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
+        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
@@ -179,12 +179,26 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
+        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
         assert user.email == "new@example.com"
         assert user.username == "new@example.com"
+
+    def test_cannot_change_username_to_non_verified(self):
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        self.create_useremail(user, "new@example.com", is_verified=False)
+        resp = self.get_error_response("me", username="new@example.com", status_code=400)
+        assert resp.data["detail"] == "Verified email address is not found."
+
+        user = User.objects.get(id=user.id)
+
+        assert user.email == "c@example.com"
+        assert user.username == "c@example.com"
 
 
 @control_silo_test
@@ -219,7 +233,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert not user.is_active
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_change_is_active(self):
         self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
@@ -235,7 +249,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert self.user.is_active
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_write_can_change_is_active(self):
         self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
@@ -313,8 +327,8 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
     @fixture(autouse=True)
-    def use_staff_feature_flag(self):
-        with Feature("auth:enterprise-staff-cookie"):
+    def _activate_staff_mode(self):
+        with override_options({"staff.ga-rollout": True}):
             yield
 
     def test_staff_can_change_is_active(self):
@@ -544,7 +558,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff_hard_delete_account_without_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -567,7 +581,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff_hard_delete_account_with_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -578,8 +592,8 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
-    @with_feature("auth:enterprise-staff-cookie")
-    def test_superuser_cannot_hard_delete_with_active_feature_flag(self):
+    @override_options({"staff.ga-rollout": True})
+    def test_superuser_cannot_hard_delete_with_active_option(self):
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")
 

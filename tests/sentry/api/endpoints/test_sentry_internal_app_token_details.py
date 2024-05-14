@@ -3,7 +3,7 @@ from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -20,8 +20,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         self.internal_sentry_app = self.create_internal_integration(
             name="My Internal App", organization=self.org
         )
-
-        self.api_token = ApiToken.objects.get(application=self.internal_sentry_app.application)
+        self.api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_sentry_app
+        )
 
         self.superuser = self.create_user(is_superuser=True)
 
@@ -45,7 +46,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
     def test_delete_token_another_app(self):
         another_app = self.create_internal_integration(name="Another app", organization=self.org)
-        api_token = ApiToken.objects.get(application=another_app.application)
+        api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=another_app
+        )
 
         self.login_as(user=self.user)
         self.get_error_response(
@@ -98,7 +101,7 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         assert not ApiToken.objects.filter(pk=self.api_token.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_delete(self):
         self.login_as(self.superuser, superuser=True)
 

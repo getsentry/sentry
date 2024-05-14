@@ -2,9 +2,9 @@ import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 
@@ -37,7 +37,7 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -52,16 +52,16 @@ describe('useReplaysFromIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[replay42,replay256]',
-      }),
-      fetchError: undefined,
-      isFetching: false,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: expect.objectContaining({
+          query: 'id:[replay42,replay256]',
+        }),
+        fetchError: undefined,
+        isFetching: false,
+        pageLinks: null,
+      })
+    );
   });
 
   it('should fetch a list of replay ids for a performance issue', async () => {
@@ -75,7 +75,7 @@ describe('useReplaysFromIssue', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -90,16 +90,16 @@ describe('useReplaysFromIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[replay42,replay256]',
-      }),
-      fetchError: undefined,
-      isFetching: false,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: expect.objectContaining({
+          query: 'id:[replay42,replay256]',
+        }),
+        fetchError: undefined,
+        isFetching: false,
+        pageLinks: null,
+      })
+    );
   });
 
   it('should return an empty EventView when there are no replay_ids returned from the count endpoint', async () => {
@@ -111,7 +111,7 @@ describe('useReplaysFromIssue', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysFromIssue, {
+    const {result} = renderHook(useReplaysFromIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -126,13 +126,13 @@ describe('useReplaysFromIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: null,
-      fetchError: undefined,
-      isFetching: false,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: null,
+        fetchError: undefined,
+        isFetching: false,
+        pageLinks: null,
+      })
+    );
   });
 });

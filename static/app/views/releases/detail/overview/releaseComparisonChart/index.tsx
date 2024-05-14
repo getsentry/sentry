@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -13,7 +12,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import Panel from 'sentry/components/panels/panel';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -32,6 +31,7 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -1040,7 +1040,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
-    p.withExpanders ? '75px' : ''};
+      p.withExpanders ? '75px' : ''};
 
   > * {
     border-bottom: 1px solid ${p => p.theme.border};
@@ -1048,7 +1048,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
 
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-      p.withExpanders ? '75px' : ''};
+        p.withExpanders ? '75px' : ''};
   }
 `;
 

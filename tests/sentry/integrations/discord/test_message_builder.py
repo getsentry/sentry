@@ -3,18 +3,16 @@ from __future__ import annotations
 from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
     get_started_at,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test
 class BuildMetricAlertAttachmentTest(TestCase):
     def setUp(self):
         super().setUp()

@@ -233,7 +233,6 @@ const config: Config.InitialOptions = {
   setupFilesAfterEnv: [
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
-    '@testing-library/jest-dom/extend-expect',
   ],
   testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
@@ -253,7 +252,7 @@ const config: Config.InitialOptions = {
       : '/node_modules/',
   ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
   testResultsProcessor: JEST_TEST_BALANCER
@@ -280,11 +279,13 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
+        dsn: CI
+          ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
+          : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 1 : 0.5,
-        profilesSampleRate: 0.1,
+        profilesSampleRate: CI ? 0.1 : 0,
         transportOptions: {keepAlive: true},
       },
       transactionOptions: {

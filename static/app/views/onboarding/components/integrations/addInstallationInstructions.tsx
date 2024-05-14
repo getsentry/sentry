@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
-// TODO: Make dyanmic for other platforms/integrations
+// TODO: Make dynamic for other platforms/integrations
 export default function AddInstallationInstructions() {
   return (
     <Fragment>

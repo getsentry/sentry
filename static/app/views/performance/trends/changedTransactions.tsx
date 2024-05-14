@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -27,7 +26,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -40,7 +41,8 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Chart from './chart';
 import type {
@@ -55,7 +57,6 @@ import {TrendChangeType} from './types';
 import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-  getSelectedQueryKey,
   getTrendProjectId,
   modifyTrendView,
   normalizeTrends,

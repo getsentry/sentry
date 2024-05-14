@@ -2,11 +2,9 @@ from django.urls import reverse
 
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.region import get_local_region
 
 
-@region_silo_test
 class ReleaseTokenGetTest(APITestCase):
     def test_simple(self):
         project = self.create_project(name="foo")
@@ -16,7 +14,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -31,7 +32,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -47,7 +51,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -66,7 +73,10 @@ class ReleaseTokenGetTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases-token",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)

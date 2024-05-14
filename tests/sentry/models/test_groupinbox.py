@@ -7,11 +7,9 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class GroupInboxTestCase(TestCase):
     def test_add_to_inbox(self):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)

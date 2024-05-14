@@ -7,11 +7,9 @@ from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()

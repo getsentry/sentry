@@ -18,11 +18,10 @@ from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
-from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go"]
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +31,17 @@ if TYPE_CHECKING:
 
 def process_error(error: ApiError, extra: dict[str, str]) -> None:
     """Log known issues and report unknown ones"""
-    msg = error.text
     if error.json:
-        json_data: JSONData = error.json
+        json_data: Any = error.json
         msg = json_data.get("message")
+    else:
+        msg = error.text
     extra["error"] = msg
 
-    if msg == "Not Found":
+    if msg is None:
+        logger.warning("No message found in ApiError.", extra=extra)
+        return
+    elif msg == "Not Found":
         logger.warning("The org has uninstalled the Sentry App.", extra=extra)
         return
     elif msg == "This installation has been suspended":
@@ -70,7 +73,6 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,
-    autoretry_for=(UnableToAcquireLock,),
     max_retries=3,
 )
 def derive_code_mappings(
@@ -92,19 +94,21 @@ def derive_code_mappings(
         "organization.slug": org.slug,
     }
 
-    if (
-        not features.has("organizations:derive-code-mappings", org)
-        or not data["platform"] in SUPPORTED_LANGUAGES
+    if not (
+        features.has("organizations:derive-code-mappings", org)
+        and data.get("platform") in SUPPORTED_LANGUAGES
     ):
         logger.info("Event should not be processed.", extra=extra)
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
+        logger.info("No stacktrace paths found.", extra=extra)
         return
 
     installation, organization_integration = get_installation(org)
     if not installation or not organization_integration:
+        logger.info("No installation or organization integration found.", extra=extra)
         return
 
     trees = {}
@@ -114,21 +118,20 @@ def derive_code_mappings(
     try:
         with lock.acquire():
             # This method is specific to the GithubIntegration
-            trees = installation.get_trees_for_org()  # type: ignore
+            trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
     except ApiError as error:
         process_error(error, extra)
         return
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
-        # This will cause the auto-retry logic to try again
-        raise
+        return
     except Exception:
         logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
         return
 
     if not trees:
-        logger.warning("The trees are empty.")
+        logger.warning("The trees are empty.", extra=extra)
         return
 
     trees_helper = CodeMappingTreesHelper(trees)

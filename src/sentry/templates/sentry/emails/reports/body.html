@@ -214,7 +214,7 @@
         </h1>
       </td>
       <td class="align-right">
-        <strong>Weekly Update for {{ organization.name }}</strong><br />
+        <strong>Weekly Update for {{ organization.name|sanitize_periods }}</strong><br />
         {{ start }} &ndash; {{ end }}
       </td>
     </tr>
@@ -274,7 +274,7 @@
     <td class="project-breakdown-graph-cell {% if has_replay_graph %}transactions-below{% else %}transactions{% endif %} {% if has_replay_graph and trends.total_replay_count == 0 %}some-empty-below{% endif %}">
       <h4 class="total-count-title">Total Project Transactions</h4>
       <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
-      {% url 'sentry-organization-perfomance' organization.slug as performance_landing %}
+      {% url 'sentry-organization-performance' organization.slug as performance_landing %}
       {% querystring referrer="weekly_report_view_all" notification_uuid=notification_uuid as query %}
       <a href="{% org_url organization performance_landing query=query %}"
          style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>

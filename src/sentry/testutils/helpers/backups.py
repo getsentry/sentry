@@ -3,9 +3,10 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -14,7 +15,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.crypto import (
@@ -42,7 +43,8 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
     IncidentSubscription,
@@ -50,6 +52,7 @@ from sentry.incidents.models import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -85,20 +88,19 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.token import AuthTokenType
 from sentry.utils import json
-from sentry.utils.json import JSONData
 
 __all__ = [
     "export_to_file",
@@ -129,7 +131,7 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
+def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> Any:
     """
     Helper function that exports the current state of the database to the specified file.
     """
@@ -176,7 +178,7 @@ def export_to_encrypted_tarball(
     scope: ExportScope,
     *,
     filter_by: set[str] | None = None,
-) -> JSONData:
+) -> Any:
     """
     Helper function that exports the current state of the database to the specified encrypted
     tarball.
@@ -251,11 +253,6 @@ def clear_database(*, reset_pks: bool = False):
     Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors.
     """
-
-    # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
-    with unguarded_write(using=router.db_for_write(Team)):
-        Team.objects.update(actor=None)
-
     reversed = reversed_dependencies()
     for model in reversed:
         if is_control_model(model):
@@ -279,7 +276,7 @@ def clear_database(*, reset_pks: bool = False):
             pass
 
 
-def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
+def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> Any:
     """
     Test helper that validates that data imported from an export of the current state of the test
     database correctly matches the actual outputted export data.
@@ -347,8 +344,8 @@ class BackupTestCase(TransactionTestCase):
         UserIP.objects.create(
             user=user,
             ip_address="127.0.0.2",
-            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
-            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
+            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
         Authenticator.objects.create(user=user, type=1)
 
@@ -422,14 +419,14 @@ class BackupTestCase(TransactionTestCase):
         NeglectedRule.objects.create(
             rule=rule,
             organization=org,
-            disable_date=datetime.now(),
-            sent_initial_email_date=datetime.now(),
-            sent_final_email_date=datetime.now(),
+            disable_date=timezone.now(),
+            sent_initial_email_date=timezone.now(),
+            sent_final_email_date=timezone.now(),
         )
         CustomDynamicSamplingRule.update_or_create(
             condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=django_timezone.now(),
-            end=django_timezone.now() + timedelta(hours=1),
+            start=timezone.now(),
+            end=timezone.now() + timedelta(hours=1),
             project_ids=[project.id],
             organization_id=org.id,
             num_samples=100,
@@ -458,6 +455,21 @@ class BackupTestCase(TransactionTestCase):
         )
         trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        activated_alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        )
+        self.create_alert_rule_activation(
+            alert_rule=activated_alert,
+            project=project,
+            metric_value=100,
+            activator="testing exhaustive",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        )
+        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -469,8 +481,8 @@ class BackupTestCase(TransactionTestCase):
         IncidentSnapshot.objects.create(
             incident=incident,
             event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=datetime.utcnow() - timedelta(hours=24),
-                end=datetime.utcnow(),
+                start=timezone.now() - timedelta(hours=24),
+                end=timezone.now(),
                 values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
                 period=1,
             ),
@@ -486,7 +498,7 @@ class BackupTestCase(TransactionTestCase):
 
         # *Snapshot
         PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=datetime.utcnow() + timedelta(hours=4)
+            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
         )
 
         # Dashboard
@@ -526,13 +538,15 @@ class BackupTestCase(TransactionTestCase):
 
         # misc
         Counter.increment(project, 1)
-        self.create_repo(
+        repo = self.create_repo(
             project=project,
             name="getsentry/getsentry",
             provider="integrations:github",
             integration_id=integration_id,
             url="https://github.com/getsentry/getsentry",
         )
+        repo.external_id = "https://git.example.com:1234"
+        repo.save()
 
         return org
 
@@ -573,7 +587,14 @@ class BackupTestCase(TransactionTestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_sentry_app(self, name: str, owner: User, org: Organization) -> SentryApp:
         # SentryApp*
-        app = self.create_sentry_app(name=name, organization=org)
+        app = self.create_sentry_app(
+            name=name,
+            organization=org,
+            overview="A sample description",
+            webhook_url="https://example.com/sentry-app/webhook/",
+            redirect_url="https://example.com/sentry-app/redirect/",
+        )
+
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
@@ -590,7 +611,7 @@ class BackupTestCase(TransactionTestCase):
         ApiGrant.objects.create(
             user=owner,
             application=app.application,
-            expires_at="2022-01-01 11:11",
+            expires_at="2022-01-01 11:11+00:00",
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
@@ -619,7 +640,10 @@ class BackupTestCase(TransactionTestCase):
         ControlOption.objects.create(key="bar", value="b")
         ApiAuthorization.objects.create(user=owner)
         ApiToken.objects.create(
-            user=owner, expires_at=None, name="create_exhaustive_global_configs"
+            user=owner,
+            expires_at=None,
+            name="create_exhaustive_global_configs",
+            token_type=AuthTokenType.USER,
         )
 
     @assume_test_silo_mode(SiloMode.REGION)
@@ -645,53 +669,53 @@ class BackupTestCase(TransactionTestCase):
         self.create_exhaustive_sentry_app("test app", owner, org)
         self.create_exhaustive_global_configs(owner)
 
-    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> JSONData:
+    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
 
     @cached_property
-    def _json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+    def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-maximum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_maximum_privileges(self) -> JSONData:
+    def json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_maximum_privileges)
 
     @cached_property
-    def _json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+    def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
+    def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
     @cached_property
-    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         with open(get_fixture_path("backup", "user-with-roles-no-superadmin.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_roles_no_superadmin)
 
     @cached_property
-    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         with open(get_fixture_path("backup", "user-with-superadmin-no-roles.json")) as backup_file:
             return json.load(backup_file)
 
-    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_superadmin_no_roles)
 
     @staticmethod
-    def sort_in_memory_json(json_data: JSONData) -> JSONData:
+    def sort_in_memory_json(json_data: Any) -> Any:
         """
         Helper function that takes an unordered set of JSON models and sorts them first in
         dependency order, and then, within each model, by ascending pk number.
         """
 
-        def sort_by_model_then_pk(a: JSONData, b: JSONData) -> int:
+        def sort_by_model_then_pk(a: Any, b: Any) -> int:
             sorted_deps = sorted_dependencies()
             a_model = get_model(NormalizedModelName(a["model"]))
             b_model = get_model(NormalizedModelName(b["model"]))
-            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore
+            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore[arg-type]
             if model_diff != 0:
                 return model_diff
 
@@ -702,7 +726,7 @@ class BackupTestCase(TransactionTestCase):
             key=cmp_to_key(sort_by_model_then_pk),
         )
 
-    def generate_tmp_users_json(self) -> JSONData:
+    def generate_tmp_users_json(self) -> Any:
         """
         Generates an in-memory JSON array of users with different combinations of admin privileges.
         """
@@ -721,7 +745,7 @@ class BackupTestCase(TransactionTestCase):
 
         return self.sort_in_memory_json(max_user + min_user + roles_user + superadmin_user)
 
-    def generate_tmp_users_json_file(self, tmp_path: Path) -> JSONData:
+    def generate_tmp_users_json_file(self, tmp_path: Path) -> Any:
         """
         Generates a file filled with users with different combinations of admin privileges.
         """

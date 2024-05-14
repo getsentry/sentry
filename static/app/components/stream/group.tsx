@@ -1,10 +1,14 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import AssigneeSelector from 'sentry/components/assigneeSelector';
+import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import AssigneeSelectorDropdown, {
+  type AssignableEntity,
+} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
@@ -33,14 +37,17 @@ import type {
   InboxDetails,
   NewQuery,
   Organization,
+  PriorityLevel,
   User,
 } from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -63,6 +70,7 @@ type Props = {
   index?: number;
   memberList?: User[];
   narrowGroups?: boolean;
+  onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
   queryFilterDescription?: string;
   showLastTriggered?: boolean;
@@ -93,6 +101,7 @@ function BaseGroupRow({
   useTintRow = true,
   narrowGroups = false,
   showLastTriggered = false,
+  onPriorityChange,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
@@ -102,6 +111,8 @@ function BaseGroupRow({
   const isSelected = selectedGroups[id];
 
   const {selection} = usePageFilters();
+
+  const [assigneeLoading, setAssigneeLoading] = useState<boolean>(false);
 
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
@@ -133,20 +144,44 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-  const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
-    useCallback(
-      (type, _assignee, suggestedAssignee) => {
-        if (query !== undefined) {
-          trackAnalytics('issues_stream.issue_assigned', {
-            ...sharedAnalytics,
-            did_assign_suggestion: !!suggestedAssignee,
-            assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-            assigned_type: type,
-          });
-        }
-      },
-      [query, sharedAnalytics]
-    );
+  const {mutate: handleAssigneeChange} = useMutation<
+    AssignableEntity | null,
+    RequestError,
+    AssignableEntity | null
+  >({
+    mutationFn: async (
+      newAssignee: AssignableEntity | null
+    ): Promise<AssignableEntity | null> => {
+      setAssigneeLoading(true);
+      if (newAssignee) {
+        await assignToActor({
+          id: group.id,
+          orgSlug: organization.slug,
+          actor: {id: newAssignee.id, type: newAssignee.type},
+          assignedBy: 'assignee_selector',
+        });
+        return Promise.resolve(newAssignee);
+      }
+
+      await clearAssignment(group.id, organization.slug, 'assignee_selector');
+      return Promise.resolve(null);
+    },
+    onSuccess: (newAssignee: AssignableEntity | null) => {
+      if (query !== undefined && newAssignee) {
+        trackAnalytics('issues_stream.issue_assigned', {
+          ...sharedAnalytics,
+          did_assign_suggestion: !!newAssignee.suggestedAssignee,
+          assigned_suggestion_reason: newAssignee.suggestedAssignee?.suggestedReason,
+          assigned_type: newAssignee.type,
+        });
+      }
+      setAssigneeLoading(false);
+    },
+    onError: () => {
+      addErrorMessage('Failed to updated assignee');
+      setAssigneeLoading(false);
+    },
+  });
 
   const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -428,7 +463,6 @@ function BaseGroupRow({
           organization={organization}
           data={group}
           query={query}
-          size="normal"
           source={referrer}
         />
         <EventOrGroupExtraDetails data={group} />
@@ -458,15 +492,21 @@ function BaseGroupRow({
           {organization.features.includes('issue-priority-ui') &&
           withColumns.includes('priority') ? (
             <PriorityWrapper narrowGroups={narrowGroups}>
-              {group.priority ? <GroupPriority group={group} /> : null}
+              {group.priority ? (
+                <GroupPriority group={group} onChange={onPriorityChange} />
+              ) : null}
             </PriorityWrapper>
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-              <AssigneeSelector
-                id={group.id}
+              <AssigneeSelectorDropdown
+                group={group}
+                loading={assigneeLoading}
                 memberList={memberList}
-                onAssign={trackAssign}
+                onAssign={(assignedActor: AssignableEntity | null) =>
+                  handleAssigneeChange(assignedActor)
+                }
+                onClear={() => handleAssigneeChange(null)}
               />
             </AssigneeWrapper>
           )}
@@ -592,7 +632,9 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
 
-  @media (max-width: ${p => (p.narrowGroups ? '1600px' : p.theme.breakpoints.xlarge)}) {
+  /* prettier-ignore */
+  @media (max-width: ${p =>
+    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -610,12 +652,13 @@ const EventCountsWrapper = styled('div')`
 `;
 
 const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
-  width: 85px;
+  width: 70px;
   margin: 0 ${space(2)};
   align-self: center;
   display: flex;
   justify-content: flex-end;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
@@ -627,6 +670,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   margin: 0 ${space(2)};
   align-self: center;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;

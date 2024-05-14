@@ -3,8 +3,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   BrowserClient,
-  defaultIntegrations,
   defaultStackParser,
+  getDefaultIntegrations,
   makeFetchTransport,
 } from '@sentry/react';
 import type {Event} from '@sentry/types';
@@ -35,7 +35,7 @@ export const feedbackClient = new BrowserClient({
   dsn: 'https://3c5ef4e344a04a0694d187a1272e96de@o1.ingest.sentry.io/6356259',
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
-  integrations: defaultIntegrations,
+  integrations: getDefaultIntegrations({}),
 });
 
 const defaultFeedbackTypes = [

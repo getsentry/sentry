@@ -16,7 +16,9 @@ import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
@@ -58,10 +60,16 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, aggregate} = this.props;
     const {id: targetIssueId} = issue;
 
-    openDiffModal({baseIssueId, targetIssueId, project, orgId});
+    const hasSimilarityEmbeddingsFeature = project.features.includes(
+      'similarity-embeddings'
+    );
+    const shouldBeGrouped = hasSimilarityEmbeddingsFeature
+      ? aggregate?.shouldBeGrouped
+      : '';
+    openDiffModal({baseIssueId, targetIssueId, project, orgId, shouldBeGrouped});
     event.stopPropagation();
   };
 
@@ -127,7 +135,7 @@ class Item extends Component<Props, State> {
             onChange={this.handleCheckClick}
           />
           <EventDetails>
-            <EventOrGroupHeader data={issue} size="normal" source="similar-issues" />
+            <EventOrGroupHeader data={issue} source="similar-issues" />
             <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
           </EventDetails>
 
@@ -181,6 +189,7 @@ const Details = styled('div')`
   ${p => p.theme.overflowEllipsis};
 
   display: grid;
+  align-items: start;
   gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   margin-left: ${space(2)};
@@ -216,6 +225,7 @@ const StyledCount = styled(Count)`
 `;
 
 const Diff = styled('div')`
+  height: 100%;
   display: flex;
   align-items: center;
   margin-right: ${space(0.25)};

@@ -13,11 +13,15 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
-    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
     QUERY_TYPE_VALID_DATASETS,
@@ -27,18 +31,19 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerActionSerializer,
     AlertRuleTriggerSerializer,
 )
-from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.models.environment import Environment
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -56,7 +61,6 @@ class TestAlertRuleSerializerBase(TestCase):
         )
 
 
-@region_silo_test
 class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
@@ -657,8 +661,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner == self.team.actor
-        assert alert_rule.owner.type == ACTOR_TYPES["team"]
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
 
         base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -667,8 +671,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         # Reload user for actor
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
-        assert alert_rule.owner == get_actor_for_user(self.user)
-        assert alert_rule.owner.type == ACTOR_TYPES["user"]
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
 
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()
@@ -684,7 +688,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 150
         assert triggers["warning"].alert_threshold == 140
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
     def test_comparison_delta_below(self):
         params = self.valid_params.copy()
@@ -701,7 +707,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 50
         assert triggers["warning"].alert_threshold == 60
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         params["comparison_delta"] = None
         params["resolveThreshold"] = 100
@@ -750,7 +758,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query.query == "status:unresolved"
 
 
-@region_silo_test
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -800,7 +807,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         }
 
 
-@region_silo_test
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -904,6 +910,98 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
+
+    def test_invalid_priority(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.MSTEAMS
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "P1",
+            },
+            {
+                "priority": [
+                    ErrorDetail("Can only be set for Pagerduty or Opsgenie", code="invalid")
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.PAGERDUTY
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "P1",
+            },
+            {
+                "priority": [
+                    ErrorDetail(
+                        f"Allowed priorities for Pagerduty are {str(PAGERDUTY_CUSTOM_PRIORITIES)}",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.OPSGENIE
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "priority": "critical",
+            },
+            {
+                "priority": [
+                    ErrorDetail(
+                        f"Allowed priorities for Opsgenie are {str(OPSGENIE_CUSTOM_PRIORITIES)}",
+                        code="invalid",
+                    )
+                ]
+            },
+        )
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("test", "test"),
+    )
+    def test_pagerduty_valid_priority(self, mock_get):
+        params = {
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.PAGERDUTY
+            ).slug,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "targetIdentifier": "123",
+            "priority": "critical",
+        }
+        serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
+        assert serializer.is_valid()
+        action = serializer.save()
+        assert action.sentry_app_config["priority"] == "critical"
+
+    @patch(
+        "sentry.incidents.logic.get_target_identifier_display_for_integration",
+        return_value=("test", "test"),
+    )
+    def test_opsgenie_valid_priority(self, mock_get):
+        params = {
+            "type": AlertRuleTriggerAction.get_registered_type(
+                AlertRuleTriggerAction.Type.OPSGENIE
+            ).slug,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
+            "targetIdentifier": "123",
+            "priority": "P1",
+        }
+        serializer = AlertRuleTriggerActionSerializer(data=params, context=self.context)
+        assert serializer.is_valid()
+        action = serializer.save()
+        assert action.sentry_app_config["priority"] == "P1"
 
     def test_discord(self):
         self.run_fail_validation_test(

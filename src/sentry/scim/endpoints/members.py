@@ -22,8 +22,10 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
-from sentry.api.endpoints.organization_member.details import ROLE_CHOICES
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -174,14 +176,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
+        organization_id_or_slug: int | str,
         member_id: str = "me",
         *args: Any,
         **kwargs: Any,
     ) -> tuple[Any, Any]:
         try:
             args, kwargs = super().convert_args(
-                request, organization_slug, member_id, *args, **kwargs
+                request, organization_id_or_slug, member_id, *args, **kwargs
             )
             return args, kwargs
         except ResourceDoesNotExist:
@@ -224,7 +226,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Query an Individual Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to query."),
         ],
         request=None,
@@ -251,7 +253,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=SCIMPatchRequestSerializer,
@@ -303,7 +305,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member via SCIM",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
@@ -332,7 +334,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
@@ -440,8 +442,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Members",
-        parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
+        operation_id="List an Organization's SCIM Members",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         responses={
             200: inline_sentry_response_serializer(
                 "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListMembersResponse
@@ -498,7 +500,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     @extend_schema(
         operation_id="Provision a New Organization Member",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMMemberProvision",
             fields={
@@ -550,7 +552,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
             scope.set_tag("invalid_role_selection", False)
-            serializer = OrganizationMemberSerializer(
+            serializer = OrganizationMemberRequestSerializer(
                 data={
                     "email": request.data.get("userName"),
                     "role": roles.get(role).id,

@@ -9,7 +9,13 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -59,10 +65,14 @@ const getConfigureJsonSnippet = (params: Params) => `
     // When configuring for the first time, to see what the SDK is doing:
     "Debug": true,
     // Opt-in for payload submission.
-    "MaxRequestBodySize": "Always",
+    "MaxRequestBodySize": "Always"${
+      params.isPerformanceSelected
+        ? `,
     // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // We recommend adjusting this value in production.
-    "TracesSampleRate": 1
+    "TracesSampleRate": 1`
+        : ''
+    }
   }
 }`;
 
@@ -194,11 +204,28 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/google-cloud-functions/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
   customMetricsOnboarding: getDotnetMetricsOnboarding({
     packageName: 'Sentry.Google.Cloud.Functions',
   }),
+  crashReportOnboarding,
 };
 
 export default docs;

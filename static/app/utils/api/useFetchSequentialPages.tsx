@@ -108,13 +108,13 @@ export default function useFetchSequentialPages<Data>({
 
   const fetch = useCallback(
     async function recursiveFetch() {
-      let parsedHeader: ParsedHeader = {
+      let parsedHeader: ParsedHeader | undefined = {
         cursor: initialCursor ?? '0:0:0',
         href: '',
         results: true,
       };
       try {
-        while (parsedHeader.results) {
+        while (parsedHeader?.results) {
           const cursor = parsedHeader.cursor;
           const queryKey = getQueryKey({cursor, per_page: perPage});
           if (!queryKey) {
@@ -138,7 +138,7 @@ export default function useFetchSequentialPages<Data>({
           parsedHeader = parseLinkHeader(pageLinks)?.next;
         }
       } catch (error) {
-        responsePages.current.set(parsedHeader.cursor, {
+        responsePages.current.set(parsedHeader?.cursor, {
           data: undefined,
           error,
           getResponseHeader: undefined,
@@ -149,7 +149,7 @@ export default function useFetchSequentialPages<Data>({
         const values = Array.from(responsePages.current.values());
         setState({
           pages: values.map(value => value.data).filter(defined),
-          error: values.map(value => value.error),
+          error: values.map(value => value.error).at(0),
           getLastResponseHeader: values.at(-1)?.getResponseHeader,
           isError: values.map(value => value.isError).some(Boolean),
           isFetching: values.map(value => value.isFetching).every(Boolean),

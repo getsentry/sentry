@@ -3,10 +3,14 @@ import type {MetricType} from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {
   DAY,
+  formatAbbreviatedNumberWithDynamicPrecision,
   formatNumberWithDynamicDecimalPoints,
   HOUR,
+  MICROSECOND,
+  MILLISECOND,
   MINUTE,
   MONTH,
+  NANOSECOND,
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
@@ -23,10 +27,6 @@ const metricTypeToReadable: Record<MetricType, string> = {
 export function getReadableMetricType(type?: string) {
   return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
-
-const MILLISECOND = 1;
-const MICROSECOND = MILLISECOND / 1000;
-const NANOSECOND = MICROSECOND / 1000;
 
 function formatDuration(seconds: number): string {
   if (!seconds) {
@@ -123,7 +123,8 @@ export const formattingSupportedMetricUnits = [
   'exabytes',
 ] as const;
 
-type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
+export type FormattingSupportedMetricUnit =
+  (typeof formattingSupportedMetricUnits)[number];
 
 const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   nanosecond: 'ns',
@@ -217,6 +218,9 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     case 'byte':
     case 'bytes':
       return formatBytesBase10(value);
+    // Only used internally to support normalized byte metrics while preserving base 2 formatting
+    case 'byte2' as FormattingSupportedMetricUnit:
+      return formatBytesBase2(value);
     case 'kibibyte':
     case 'kibibytes':
       return formatBytesBase2(value * 1024);
@@ -255,7 +259,7 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
       return formatBytesBase10(value, 6);
     case 'none':
     default:
-      return value.toLocaleString();
+      return formatAbbreviatedNumberWithDynamicPrecision(value);
   }
 }
 
@@ -275,16 +279,4 @@ export function formatMetricUsingFixedUnit(
   return op === 'count'
     ? formattedNumber
     : `${formattedNumber}${getShortMetricUnit(unit)}`.trim();
-}
-
-export function formatMetricsUsingUnitAndOp(
-  value: number | null,
-  unit: string,
-  operation?: string
-) {
-  if (operation === 'count') {
-    // if the operation is count, we want to ignore the unit and always format the value as a number
-    return value?.toLocaleString() ?? '';
-  }
-  return formatMetricUsingUnit(value, unit);
 }

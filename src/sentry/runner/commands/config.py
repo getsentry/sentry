@@ -1,17 +1,18 @@
 import click
 
+from sentry.runner.commands.init import generate_secret_key as _generate_secret_key
 from sentry.runner.decorators import configuration
 
 
 @click.group()
-def config():
+def config() -> None:
     "Manage runtime config options."
 
 
 @config.command()
 @click.argument("pattern", default="*", required=False)
 @configuration
-def list(pattern):
+def list(pattern: str) -> None:
     "List configuration options."
     from fnmatch import fnmatch
 
@@ -26,7 +27,7 @@ def list(pattern):
 @click.option("--silent", "-q", default=False, is_flag=True, help="Suppress extraneous output.")
 @click.argument("option")
 @configuration
-def get(option, silent):
+def get(option: str, silent: bool) -> None:
     "Get a configuration option."
     from django.conf import settings
 
@@ -58,7 +59,7 @@ def get(option, silent):
 @click.argument("key")
 @click.argument("value", required=False)
 @configuration
-def set(key, value, secret):
+def set(key: str, value: str | None, secret: bool) -> None:
     "Set a configuration option to a new value."
     from sentry import options
     from sentry.options import UpdateChannel
@@ -82,7 +83,7 @@ def set(key, value, secret):
 @click.option("--no-input", default=False, is_flag=True, help="Do not show confirmation.")
 @click.argument("option")
 @configuration
-def delete(option, no_input):
+def delete(option: str, no_input: bool) -> None:
     "Delete/unset a configuration option."
     from sentry import options
     from sentry.options.manager import UnknownOption
@@ -158,15 +159,13 @@ def dump(flags: int, only_set: bool, pretty_print: bool) -> None:
 
 
 @config.command(name="generate-secret-key")
-def generate_secret_key():
+def generate_secret_key() -> None:
     "Generate a new cryptographically secure secret key value."
-    from sentry.runner.settings import generate_secret_key
-
-    click.echo(generate_secret_key())
+    click.echo(_generate_secret_key())
 
 
 @config.command()
-def discover():
+def discover() -> None:
     "Print paths to config files."
     from sentry.runner.settings import discover_configs
 

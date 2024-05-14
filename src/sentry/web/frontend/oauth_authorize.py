@@ -293,7 +293,7 @@ class OAuthAuthorizeView(AuthLoginView):
             "oauth_authorize.get.approve",
             sample_rate=1.0,
             tags={
-                "respose_type": params["response_type"],
+                "response_type": params["response_type"],
             },
         )
 
@@ -307,7 +307,7 @@ class OAuthAuthorizeView(AuthLoginView):
             logger.info(
                 "approve.grant",
                 extra={
-                    "respose_type": params["response_type"],
+                    "response_type": params["response_type"],
                     "redirect_uri": params["redirect_uri"],
                     "scope": params["scopes"],
                 },
@@ -328,7 +328,7 @@ class OAuthAuthorizeView(AuthLoginView):
             logger.info(
                 "approve.token",
                 extra={
-                    "respose_type": params["response_type"],
+                    "response_type": params["response_type"],
                     "redirect_uri": params["redirect_uri"],
                     "scope": " ".join(token.get_scopes()),
                     "state": params["state"],

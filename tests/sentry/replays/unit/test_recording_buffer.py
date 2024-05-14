@@ -76,7 +76,7 @@ def test_recording_buffer_commit_deadline():
     traveller = time_machine.travel(now + datetime.timedelta(seconds=5))
     traveller.start()
     assert buffer.has_exceeded_last_buffer_commit_time
-    assert buffer.is_ready  # type: ignore
+    assert buffer.is_ready  # type: ignore[unreachable]
     traveller.stop()
 
     # 55 seconds after expiration.
@@ -131,7 +131,7 @@ def test_commit_uploads(_do_upload):
 
     _do_upload.side_effect = mocked
 
-    commit_uploads([{}])  # type: ignore
+    commit_uploads([{}])  # type: ignore[typeddict-item]
 
 
 @patch("sentry.replays.consumers.recording_buffered._do_upload")
@@ -144,4 +144,4 @@ def test_commit_uploads_failure(_do_upload):
     _do_upload.side_effect = mocked
 
     with pytest.raises(BufferCommitFailed):
-        commit_uploads([{}])  # type: ignore
+        commit_uploads([{}])  # type: ignore[typeddict-item]

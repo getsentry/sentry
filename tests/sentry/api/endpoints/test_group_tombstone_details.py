@@ -3,10 +3,8 @@ from django.urls import reverse
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class GroupTombstoneDetailsTest(APITestCase):
     def test_delete(self):
         self.user = self.create_user("foo@example.com")
@@ -32,7 +30,7 @@ class GroupTombstoneDetailsTest(APITestCase):
             "sentry-api-0-group-tombstone-details",
             kwargs={
                 "organization_slug": self.org.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "tombstone_id": tombstone.id,
             },
         )
@@ -70,7 +68,7 @@ class GroupTombstoneDetailsTest(APITestCase):
             "sentry-api-0-group-tombstone-details",
             kwargs={
                 "organization_slug": self.org.slug,
-                "project_slug": self.other_project.slug,
+                "project_id_or_slug": self.other_project.slug,
                 "tombstone_id": tombstone.id,
             },
         )

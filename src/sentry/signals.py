@@ -153,6 +153,9 @@ issue_archived = BetterSignal()  # ["project", "user", "group_list", "activity_d
 issue_escalating = BetterSignal()  # ["project", "group", "event", "was_until_escalating"]
 issue_unignored = BetterSignal()  # ["project", "user_id", "group", "transition_type"]
 issue_mark_reviewed = BetterSignal()  # ["project", "user", "group"]
+issue_update_priority = (
+    BetterSignal()
+)  # ["project", "group", "new_priority", "previous_priority", "user_id", "reason"]
 
 # comments
 comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"]
@@ -178,6 +181,7 @@ user_signup = BetterSignal()  # ["user", "source"]
 relocated = BetterSignal()  # ["relocation_uuid"]
 relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
 relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
+relocation_retry_link_promo_code = BetterSignal()  # ["old_relocation_uuid", "new_relocation_uuid"]
 
 # Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
 post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]

@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
+import orjson
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import add_identity, install_slack
-from sentry.utils import json
 
 
 class BaseEventTest(APITestCase):
@@ -39,7 +40,7 @@ class BaseEventTest(APITestCase):
             slack_user = {"id": self.external_id, "domain": "example"}
 
         if callback_id is None:
-            callback_id = json.dumps({"issue": self.group.id, "rule": self.rule.id})
+            callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         if original_message is None:
             original_message = {}
@@ -61,7 +62,7 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
 
         return self.client.post("/extensions/slack/action/", data=payload)
 
@@ -222,5 +223,5 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
         return self.client.post("/extensions/slack/action/", data=payload)

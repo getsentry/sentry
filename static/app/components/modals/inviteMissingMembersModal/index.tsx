@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,14 +13,14 @@ import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMe
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MissingMember, Organization, OrgRole} from 'sentry/types';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
@@ -58,42 +58,53 @@ export function InviteMissingMembersModal({
 
   const api = useApi();
 
+  const allowedRolesMap = useMemo<Record<string, OrgRole>>(
+    () => allowedRoles.reduce((rolesMap, role) => ({...rolesMap, [role.id]: role}), {}),
+    [allowedRoles]
+  );
+
+  const setRole = useCallback(
+    (role: string, index: number) => {
+      setMemberInvites(prevInvites => {
+        const invites = prevInvites.map(i => ({...i}));
+        invites[index].role = role;
+        if (!allowedRolesMap[role].isTeamRolesAllowed) {
+          invites[index].teamSlugs = new Set([]);
+        }
+        return invites;
+      });
+    },
+    [allowedRolesMap]
+  );
+
+  const setTeams = useCallback((teamSlugs: string[], index: number) => {
+    setMemberInvites(prevInvites => {
+      const invites = prevInvites.map(i => ({...i}));
+      invites[index].teamSlugs = new Set(teamSlugs);
+      return invites;
+    });
+  }, []);
+
+  const selectAll = useCallback(
+    (checked: boolean) => {
+      const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+      setMemberInvites(selectedMembers);
+    },
+    [memberInvites]
+  );
+
+  const toggleCheckbox = useCallback(
+    (checked: boolean, index: number) => {
+      const selectedMembers = [...memberInvites];
+      selectedMembers[index].selected = checked;
+      setMemberInvites(selectedMembers);
+    },
+    [memberInvites]
+  );
+
   if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
     return null;
   }
-
-  const setRole = (role: string, index: number) => {
-    setMemberInvites(currentMemberInvites =>
-      currentMemberInvites.map((member, i) => {
-        if (i === index) {
-          member.role = role;
-        }
-        return member;
-      })
-    );
-  };
-
-  const setTeams = (teamSlugs: string[], index: number) => {
-    setMemberInvites(currentMemberInvites =>
-      currentMemberInvites.map((member, i) => {
-        if (i === index) {
-          member.teamSlugs = new Set(teamSlugs);
-        }
-        return member;
-      })
-    );
-  };
-
-  const selectAll = (checked: boolean) => {
-    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
-    setMemberInvites(selectedMembers);
-  };
-
-  const toggleCheckbox = (checked: boolean, index: number) => {
-    const selectedMembers = [...memberInvites];
-    selectedMembers[index].selected = checked;
-    setMemberInvites(selectedMembers);
-  };
 
   const renderStatusMessage = () => {
     if (sendingInvites) {
@@ -119,9 +130,11 @@ export function InviteMissingMembersModal({
       return (
         <StatusMessage status="success">
           <IconCheckmark size="sm" />
-          {errorCount > 0
-            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-            : tct('Sent [invites]', tctComponents)}
+          <span>
+            {errorCount > 0
+              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+              : tct('Sent [invites]', tctComponents)}
+          </span>
         </StatusMessage>
       );
     }
@@ -189,13 +202,9 @@ export function InviteMissingMembersModal({
   const selectedAll = memberInvites.length === selectedCount;
 
   const inviteButtonLabel = () => {
-    return tct('Invite [memberCount] missing member[isPlural]', {
-      memberCount:
-        memberInvites.length === selectedCount
-          ? `all ${selectedCount}`
-          : selectedCount === 0
-            ? ''
-            : selectedCount,
+    return tct('Invite [prefix][memberCount] missing member[isPlural]', {
+      prefix: memberInvites.length === selectedCount ? 'all ' : '',
+      memberCount: selectedCount === 0 ? '' : selectedCount,
       isPlural: selectedCount !== 1 ? 's' : '',
     });
   };
@@ -227,6 +236,8 @@ export function InviteMissingMembersModal({
         {memberInvites?.map((member, i) => {
           const checked = memberInvites[i].selected;
           const username = member.externalId.split(':').pop();
+          const isTeamRolesAllowed =
+            allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
           return (
             <Fragment key={i}>
               <div>
@@ -264,8 +275,8 @@ export function InviteMissingMembersModal({
                 organization={organization}
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
-                disabled={false}
-                placeholder={t('None')}
+                disabled={!isTeamRolesAllowed}
+                placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable

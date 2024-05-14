@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from sentry.incidents.models import Incident, IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,

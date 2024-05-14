@@ -7,9 +7,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
 import {EventGroupVariantType, IssueCategory} from 'sentry/types';
 import type {Event, EventGroupVariant} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
@@ -37,7 +37,10 @@ type EventGroupingInfoResponse = {
 function generatePerformanceGroupInfo({
   event,
   group,
-}: {event: Event; group: Group}): EventGroupingInfoResponse | null {
+}: {
+  event: Event;
+  group: Group;
+}): EventGroupingInfoResponse | null {
   if (!event.occurrence) {
     return null;
   }

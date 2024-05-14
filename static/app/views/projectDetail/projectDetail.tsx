@@ -11,6 +11,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
@@ -266,6 +267,7 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
                 project={project}
                 organization={organization}
               />
+              <FloatingFeedbackWidget />
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters

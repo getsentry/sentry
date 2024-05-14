@@ -9,13 +9,12 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

@@ -6,11 +6,11 @@ import re
 import time
 from urllib.parse import parse_qsl
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 
 from sentry import http
-from sentry.utils import json
 from sentry.utils.meta import Meta
 from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
@@ -22,7 +22,7 @@ SOFT_TIMEOUT_FUZZINESS = 10
 HARD_TIMEOUT = 7200
 
 REACT_MAPPING_URL = (
-    "https://raw.githubusercontent.com/facebook/" "react/master/scripts/error-codes/codes.json"
+    "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
 
 error_processors: dict[str, Processor] = {}
@@ -44,7 +44,7 @@ class Processor:
         mapping = cache.get(key)
         cached_rv = None
         if mapping is not None:
-            ts, cached_rv = json.loads(mapping)
+            ts, cached_rv = orjson.loads(mapping)
             if not is_expired(ts):
                 return cached_rv
 
@@ -58,7 +58,7 @@ class Processor:
                 # Make sure we only get a 2xx to prevent caching bad data
                 response.raise_for_status()
             data = response.json()
-            cache.set(key, json.dumps([time.time(), data]), HARD_TIMEOUT)
+            cache.set(key, orjson.dumps([time.time(), data]).decode(), HARD_TIMEOUT)
         except Exception:
             if cached_rv is None:
                 raise

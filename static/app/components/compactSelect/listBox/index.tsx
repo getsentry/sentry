@@ -1,16 +1,16 @@
-import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
+import {forwardRef, Fragment, useCallback, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
-import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import type {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -18,7 +18,7 @@ import {ListBoxSection} from './section';
 interface ListBoxProps
   extends Omit<
       React.HTMLAttributes<HTMLUListElement>,
-      'onBlur' | 'onFocus' | 'autoFocus'
+      'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,
     Omit<
       AriaListBoxOptions<any>,
@@ -42,6 +42,16 @@ interface ListBoxProps
    * `useListBox()`.
    */
   listState: ListState<any>;
+  children?: CollectionChildren<any>;
+  /**
+   * Whether the list is filtered by search query or not.
+   * Used to determine whether to show the size limit message or not.
+   */
+  hasSearch?: boolean;
+  /**
+   * Set of keys that are hidden from the user (e.g. because not matching search query)
+   */
+  hiddenOptions?: Set<SelectKey>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
@@ -52,15 +62,24 @@ interface ListBoxProps
    * and before `onChange`.
    */
   onSectionToggle?: (
-    section: SelectSection<React.Key>,
+    section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
+  /**
+   * Used to determine whether to render the list box items or not
+   */
+  overlayIsOpen?: boolean;
+  /**
+   * Size of the list box and its items.
+   */
   size?: FormSize;
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
 }
+
+const EMPTY_SET = new Set<never>();
 
 /**
  * A list box with accessibile behaviors & attributes.
@@ -72,17 +91,23 @@ interface ListBoxProps
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-function ListBox({
-  listState,
-  size = 'md',
-  shouldFocusWrap = true,
-  shouldFocusOnHover = true,
-  onSectionToggle,
-  sizeLimitMessage,
-  keyDownHandler,
-  label,
-  ...props
-}: ListBoxProps) {
+const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
+  {
+    listState,
+    size = 'md',
+    shouldFocusWrap = true,
+    shouldFocusOnHover = true,
+    onSectionToggle,
+    sizeLimitMessage,
+    keyDownHandler,
+    label,
+    hiddenOptions = EMPTY_SET,
+    hasSearch,
+    overlayIsOpen,
+    ...props
+  }: ListBoxProps,
+  forwarderdRef
+) {
   const ref = useRef<HTMLUListElement>(null);
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -105,8 +130,6 @@ function ListBox({
     [keyDownHandler, listBoxProps]
   );
 
-  const {overlayIsOpen, search} = useContext(SelectContext);
-  const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
       [...listState.collection].filter(node => {
@@ -125,7 +148,11 @@ function ListBox({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <ListWrap {...mergeProps(listBoxProps, props)} onKeyDown={onKeyDown} ref={ref}>
+      <ListWrap
+        {...mergeProps(listBoxProps, props)}
+        onKeyDown={onKeyDown}
+        ref={mergeRefs([ref, forwarderdRef])}
+      >
         {overlayIsOpen &&
           listItems.map(item => {
             if (item.type === 'section') {
@@ -134,6 +161,7 @@ function ListBox({
                   key={item.key}
                   item={item}
                   listState={listState}
+                  hiddenOptions={hiddenOptions}
                   onToggle={onSectionToggle}
                   size={size}
                 />
@@ -150,7 +178,7 @@ function ListBox({
             );
           })}
 
-        {!search && hiddenOptions.size > 0 && (
+        {!hasSearch && hiddenOptions.size > 0 && (
           <SizeLimitMessage>
             {sizeLimitMessage ?? t('Use search to find more options…')}
           </SizeLimitMessage>
@@ -158,6 +186,6 @@ function ListBox({
       </ListWrap>
     </Fragment>
   );
-}
+});
 
 export {ListBox};

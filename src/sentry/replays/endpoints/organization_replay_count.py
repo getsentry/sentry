@@ -4,8 +4,8 @@ from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Request
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -23,15 +23,6 @@ from sentry.models.project import Project
 from sentry.replays.usecases.replay_counts import get_replay_counts
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-MAX_REPLAY_COUNT = 51
-MAX_VALS_PROVIDED = {
-    "issue.id": 25,
-    "transaction": 25,
-    "replay_id": 100,
-}
-
-FILTER_HAS_A_REPLAY = "AND !replayId:''"
 
 
 class ReplayDataSourceValidator(serializers.Serializer):
@@ -57,9 +48,9 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
 
@@ -69,7 +60,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
             OrganizationParams.PROJECT,
@@ -93,11 +84,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
-        if features.has(
-            "organizations:session-replay-count-query-optimize", organization, actor=request.user
-        ):
-            if not project_in_org_has_sent_replay(organization):
-                return Response({})
+        if not project_in_org_has_sent_replay(organization):
+            return Response({})
 
         result = ReplayDataSourceValidator(data=request.GET)
         if not result.is_valid():

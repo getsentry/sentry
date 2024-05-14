@@ -4,17 +4,17 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
@@ -37,6 +37,7 @@ class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
         assert Environment.objects.filter(id=env.id).exists()
         assert Project.objects.filter(id=project.id).exists()
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_cascade_from_user(self):
         org = self.create_organization()
         project = self.create_project(organization=org)

@@ -10,7 +10,6 @@ from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -29,7 +28,6 @@ from sentry.utils.snuba import (
 )
 
 
-@region_silo_test
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -611,7 +609,6 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
-@region_silo_test
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

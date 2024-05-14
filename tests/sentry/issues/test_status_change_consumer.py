@@ -34,7 +34,7 @@ def get_test_message_status_change(
 
 class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
     @django_db_all
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
@@ -42,12 +42,18 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
 
         self.occurrence = result[0]
+        assert self.occurrence is not None
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
         self.fingerprint = ["touch-id"]
 
     def _assert_statuses_set(
-        self, status, substatus, group_history_status, activity_type, priority=None
-    ):
+        self,
+        status: int,
+        substatus: int | None,
+        group_history_status: int,
+        activity_type: ActivityType,
+        priority: int | None = None,
+    ) -> None:
         self.group.refresh_from_db()
         assert self.group.status == status
         assert self.group.substatus == substatus
@@ -131,12 +137,9 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             substatus=GroupSubStatus.ESCALATING,
             priority=PriorityLevel.HIGH,
         )
-        GroupHistory.objects.create(
-            group=self.group,
-            project=self.group.project,
-            organization=self.organization,
-            status=GroupHistoryStatus.PRIORITY_MEDIUM,
-        )
+        self.group.data.get("metadata", {}).update({"initial_priority": PriorityLevel.MEDIUM})
+        self.group.save()
+
         message = get_test_message_status_change(
             self.project.id,
             fingerprint=self.fingerprint,
@@ -161,14 +164,16 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
 
 class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
     @django_db_all
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)
         assert result is not None
 
-        self.occurrence = result[0]
+        occurrence = result[0]
+        assert occurrence is not None
+        self.occurrence = occurrence
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
         self.fingerprint = ["touch-id"]
 
@@ -188,6 +193,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
+        assert occurrence2 is not None
         group2 = Group.objects.get(grouphash__hash=occurrence2.fingerprint[0])
 
         # get groups by fingerprint
@@ -203,15 +209,17 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         group2 = groups_by_fingerprint[(project2.id, occurrence2.fingerprint[0])]
         assert group2.id == group2.id
 
-    @patch("sentry.issues.status_change_consumer.logger.error")
-    def test_bulk_get_missing_hash(self, mock_logger_error: MagicMock) -> None:
+    @patch("sentry.issues.status_change_consumer.metrics.incr")
+    def test_bulk_get_missing_hash(self, mock_metrics_incr: MagicMock) -> None:
         # set up second project and occurrence
         project2 = self.create_project(organization=self.organization)
         message = get_test_message(project2.id, fingerprint="new-fingerprint")
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)
         assert result is not None
-        assert Group.objects.filter(grouphash__hash=result[0].fingerprint[0]).exists()
+        occurrence2 = result[0]
+        assert occurrence2 is not None
+        assert Group.objects.filter(grouphash__hash=occurrence2.fingerprint[0]).exists()
 
         # get groups by fingerprint
         groups_by_fingerprint = bulk_get_groups_from_fingerprints(
@@ -224,13 +232,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         assert len(groups_by_fingerprint) == 1
         group = groups_by_fingerprint[(self.project.id, self.occurrence.fingerprint[0])]
         assert group.id == self.group.id
-        mock_logger_error.assert_called_with(
-            "grouphash.not_found",
-            extra={
-                "project_id": project2.id,
-                "fingerprint": self.occurrence.fingerprint[0],
-            },
-        )
+        mock_metrics_incr.assert_called_with("occurrence_ingest.grouphash.not_found")
 
     def test_bulk_get_same_fingerprint(self) -> None:
         # Set up second project and occurrence with the same
@@ -241,7 +243,8 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
-        group2 = Group.objects.get(grouphash__hash=result[0].fingerprint[0], project=project2)
+        assert occurrence2 is not None
+        group2 = Group.objects.get(grouphash__hash=occurrence2.fingerprint[0], project=project2)
 
         assert occurrence2.fingerprint[0] == self.occurrence.fingerprint[0]
 

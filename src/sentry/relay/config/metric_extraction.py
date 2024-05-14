@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -14,8 +14,10 @@ from sentry_relay.processing import validate_sampling_condition
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
-from sentry.incidents.models import AlertRule, AlertRuleStatus
+from sentry.features.rollout import in_random_rollout
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
+    ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
@@ -27,11 +29,13 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
+    WIDGET_QUERY_CACHE_MAX_CHUNKS,
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
@@ -53,7 +57,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 2
+_METRIC_EXTRACTION_VERSION = 3
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
@@ -88,7 +92,9 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
-def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
+def get_metric_extraction_config(
+    timeout: TimeChecker, project: Project
+) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
 
@@ -98,15 +104,24 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
      - On-demand metrics widgets.
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
-    enabled_features = on_demand_metrics_feature_flags(project.organization)
     sentry_sdk.set_tag("organization_id", project.organization_id)
+    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
+        enabled_features = on_demand_metrics_feature_flags(project.organization)
+    timeout.check()
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
-    alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
-    widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
+    with sentry_sdk.start_span(op="get_widget_metric_specs"):
+        widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
 
-    metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+    with sentry_sdk.start_span(op="merge_metric_specs"):
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+    timeout.check()
+
     if not metric_specs:
         return None
 
@@ -169,15 +184,6 @@ def _get_alert_metric_specs(
 
             if results := _convert_snuba_query_to_metrics(project, alert_snuba_query, prefilling):
                 for spec in results:
-                    _log_on_demand_metric_spec(
-                        project_id=project.id,
-                        spec_for="alert",
-                        spec=spec,
-                        id=alert.id,
-                        field=alert_snuba_query.aggregate,
-                        query=alert_snuba_query.query,
-                        prefilling=prefilling,
-                    )
                     metrics.incr(
                         "on_demand_metrics.on_demand_spec.for_alert",
                         tags={"prefilling": prefilling},
@@ -188,6 +194,41 @@ def _get_alert_metric_specs(
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
+
+
+def _bulk_cache_query_key(project: Project, chunk: int) -> str:
+    return f"on-demand.bulk-query-cache.{chunk}.{project.organization.id}"
+
+
+def _get_bulk_cached_query(project: Project) -> tuple[dict[int, dict[str, bool]], list[int]]:
+    cache_result = {}
+    cold_cache_chunks = []
+    for i in range(WIDGET_QUERY_CACHE_MAX_CHUNKS):
+        query_bulk_cache_key = _bulk_cache_query_key(project, i)
+        chunk_result = cache.get(query_bulk_cache_key, None)
+        if chunk_result is None:
+            cold_cache_chunks.append(i)
+        sentry_sdk.set_tag(f"on_demand_metrics.query_cache.{i}", chunk_result is None)
+        cache_result[i] = chunk_result or {}
+    sentry_sdk.set_extra("cold_cache_chunks", cold_cache_chunks)
+    metrics.incr("on_demand_metrics.query_cache_cold_keys", amount=len(cold_cache_chunks))
+    return cache_result, cold_cache_chunks
+
+
+def _set_bulk_cached_query_chunk(
+    project: Project, chunk_cache: dict[str, bool], chunk: int
+) -> None:
+    query_bulk_cache_key = _bulk_cache_query_key(project, chunk)
+    cache.set(
+        query_bulk_cache_key, chunk_cache, timeout=900 + (137 * chunk)
+    )  # Add prime number jitter per cache. All cache turns over between 15-25 mins
+
+
+def _set_bulk_cached_query(
+    project: Project, query_cache: dict[int, dict[str, bool]], cold_cache_chunks: list[int]
+) -> None:
+    for i in cold_cache_chunks:
+        _set_bulk_cached_query_chunk(project, query_cache[i], i)
 
 
 @metrics.wraps("on_demand_metrics._get_widget_metric_specs")
@@ -217,6 +258,8 @@ def _get_widget_metric_specs(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
     )
 
+    organization_bulk_query_cache, cold_bulk_cache_chunks = _get_bulk_cached_query(project)
+
     ignored_widget_ids: dict[int, bool] = {}
     specs_for_widget: dict[int, list[HashedMetricSpec]] = defaultdict(list)
     widget_query_for_spec_hash: dict[str, DashboardWidgetQuery] = {}
@@ -226,7 +269,9 @@ def _get_widget_metric_specs(
 
     with metrics.timer("on_demand_metrics.widget_spec_convert"):
         for widget_query in widget_queries:
-            widget_specs = convert_widget_query_to_metric(project, widget_query, prefilling)
+            widget_specs = convert_widget_query_to_metric(
+                project, widget_query, prefilling, organization_bulk_query_cache
+            )
 
             if not widget_specs:
                 # Skip checking any widget queries that don't have specs,
@@ -272,6 +317,8 @@ def _get_widget_metric_specs(
 
     _update_state_with_spec_limit(trimmed_specs, widget_query_for_spec_hash)
     metrics.incr("on_demand_metrics.widget_query_specs", amount=len(specs))
+    if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
+        _set_bulk_cached_query(project, organization_bulk_query_cache, cold_bulk_cache_chunks)
     return specs
 
 
@@ -332,7 +379,7 @@ def _update_state_with_spec_limit(
     under the limit and not have churn.
     """
 
-    widget_queries: dict[int, set] = {}
+    widget_queries: dict[int, set[DashboardWidgetQuery]] = {}
 
     for spec in trimmed_specs:
         spec_hash, _, spec_version = spec
@@ -397,8 +444,11 @@ def _convert_snuba_query_to_metrics(
 
 
 def convert_widget_query_to_metric(
-    project: Project, widget_query: DashboardWidgetQuery, prefilling: bool
-) -> Sequence[HashedMetricSpec]:
+    project: Project,
+    widget_query: DashboardWidgetQuery,
+    prefilling: bool,
+    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
+) -> list[HashedMetricSpec]:
     """
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
@@ -408,39 +458,46 @@ def convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    for aggregate in widget_query.aggregates:
-        metrics.incr(
-            "on_demand_metrics.before_widget_spec_generation",
-            tags={"prefilling": prefilling},
-        )
-        if results := _convert_aggregate_and_query_to_metrics(
-            project,
-            # there is an internal check to make sure we extract metrics only for performance dataset
-            # however widgets do not have a dataset field, so we need to pass it explicitly
-            Dataset.PerformanceMetrics.value,
-            aggregate,
-            widget_query.conditions,
-            None,
-            prefilling,
-            groupbys=widget_query.columns,
-            spec_type=MetricSpecType.DYNAMIC_QUERY,
-        ):
-            for spec in results:
-                _log_on_demand_metric_spec(
-                    project_id=project.id,
-                    spec_for="widget",
-                    spec=spec,
-                    id=widget_query.id,
-                    field=aggregate,
-                    query=widget_query.conditions,
-                    prefilling=prefilling,
-                )
-                metrics.incr(
-                    "on_demand_metrics.on_demand_spec.for_widget",
-                    tags={"prefilling": prefilling},
-                )
-                metrics_specs.append(spec)
+    aggregates = widget_query.aggregates
+    groupbys = widget_query.columns
 
+    for aggregate in aggregates:
+        metrics_specs += _generate_metric_specs(
+            aggregate, widget_query, project, prefilling, groupbys, organization_bulk_query_cache
+        )
+
+    return metrics_specs
+
+
+def _generate_metric_specs(
+    aggregate: str,
+    widget_query: DashboardWidgetQuery,
+    project: Project,
+    prefilling: bool,
+    groupbys: Sequence[str] | None = None,
+    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
+) -> list[HashedMetricSpec]:
+    metrics_specs = []
+    metrics.incr("on_demand_metrics.before_widget_spec_generation")
+    if results := _convert_aggregate_and_query_to_metrics(
+        project,
+        # there is an internal check to make sure we extract metrics only for performance dataset
+        # however widgets do not have a dataset field, so we need to pass it explicitly
+        Dataset.PerformanceMetrics.value,
+        aggregate,
+        widget_query.conditions,
+        None,
+        prefilling,
+        groupbys=groupbys,
+        spec_type=MetricSpecType.DYNAMIC_QUERY,
+        organization_bulk_query_cache=organization_bulk_query_cache,
+    ):
+        for spec in results:
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.for_widget",
+                tags={"prefilling": prefilling},
+            )
+            metrics_specs.append(spec)
     return metrics_specs
 
 
@@ -515,12 +572,6 @@ def _can_widget_query_use_stateful_extraction(
 
     if set(spec_hashes) != set(on_demand_hashes):
         # Spec hashes should match.
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("spec_hashes", spec_hashes)
-            scope.set_extra("on_demand_hashes", on_demand_hashes)
-            scope.set_extra("spec_entries", metrics_specs)
-            scope.set_extra("on_demand_entries", on_demand_entries)
-            sentry_sdk.capture_message(f"Hashes don't match for widget_query: {widget_query.id}")
         metrics.incr(
             "on_demand_metrics.on_demand_spec.failed_on_demand_hashes",
             amount=len(metrics_specs),
@@ -558,12 +609,12 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     return on_demand_entry.extraction_enabled()
 
 
-def _get_widget_cardinality_query_ttl():
+def _get_widget_cardinality_query_ttl() -> int:
     # Add ttl + 25% jitter to query so queries aren't all made at once.
     return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
 
 
-def _get_widget_cardinality_softdeadline_ttl():
+def _get_widget_cardinality_softdeadline_ttl() -> int:
     # This is a much shorter deadline than the main cardinality TTL in the case softdeadline is hit
     # We want to query again soon, but still avoid thundering herd problems.
     return int(
@@ -574,14 +625,14 @@ def _get_widget_cardinality_softdeadline_ttl():
     )
 
 
-def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
+def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project) -> bool:
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
     group by clauses with high-cardinality tags are not added to the on_demand metric.
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "statsPeriod": "30m",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
@@ -687,6 +738,7 @@ def _convert_aggregate_and_query_to_metrics(
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Sequence[str] | None = None,
+    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
 ) -> Sequence[HashedMetricSpec] | None:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
@@ -698,7 +750,9 @@ def _convert_aggregate_and_query_to_metrics(
     # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
     # the supported state of a query, since if it's standard, and we added environment it will still be standard
     # and if it's on demand, it will always be on demand irrespectively of what we add.
-    if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys, prefilling):
+    if not should_use_on_demand_metrics(
+        dataset, aggregate, query, groupbys, prefilling, organization_bulk_query_cache
+    ):
         return None
 
     metric_specs_and_hashes = []
@@ -708,64 +762,44 @@ def _convert_aggregate_and_query_to_metrics(
         "query": query,
         "groupbys": groupbys,
     }
-    # Create as many specs as we support
-    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-        try:
-            on_demand_spec = OnDemandMetricSpec(
-                field=aggregate,
-                query=query,
-                environment=environment,
-                groupbys=groupbys,
-                spec_type=spec_type,
-                spec_version=spec_version,
-            )
-            metric_spec = on_demand_spec.to_metric_spec(project)
-            # TODO: switch to validate_rule_condition
-            if (condition := metric_spec.get("condition")) is not None:
-                validate_sampling_condition(json.dumps(condition))
-            else:
-                metrics.incr(
-                    "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
-                )
 
-            metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
-        except ValueError:
-            # raised by validate_sampling_condition or metric_spec lacking "condition"
-            metrics.incr("on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling})
-            logger.exception("Invalid on-demand metric spec", extra=extra)
-        except Exception:
-            # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
-            metrics.incr("on_demand_metrics.invalid_metric_spec.other")
-            logger.exception("Failed on-demand metric spec creation.", extra=extra)
+    with sentry_sdk.start_span(op="converting_aggregate_and_query") as span:
+        span.set_data("widget_query_args", {"query": query, "aggregate": aggregate})
+        # Create as many specs as we support
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            try:
+                on_demand_spec = OnDemandMetricSpec(
+                    field=aggregate,
+                    query=query,
+                    environment=environment,
+                    groupbys=groupbys,
+                    spec_type=spec_type,
+                    spec_version=spec_version,
+                )
+                metric_spec = on_demand_spec.to_metric_spec(project)
+                # TODO: switch to validate_rule_condition
+                if (condition := metric_spec.get("condition")) is not None:
+                    validate_sampling_condition(json.dumps(condition))
+                else:
+                    metrics.incr(
+                        "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
+                    )
+
+                metric_specs_and_hashes.append(
+                    (on_demand_spec.query_hash, metric_spec, spec_version)
+                )
+            except ValueError:
+                # raised by validate_sampling_condition or metric_spec lacking "condition"
+                metrics.incr(
+                    "on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling}
+                )
+                logger.exception("Invalid on-demand metric spec", extra=extra)
+            except Exception:
+                # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
+                metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+                logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
-
-
-def _log_on_demand_metric_spec(
-    project_id: int,
-    spec_for: Literal["alert", "widget"],
-    spec: HashedMetricSpec,
-    id: int,
-    field: str,
-    query: str,
-    prefilling: bool,
-) -> None:
-    spec_query_hash, spec_dict, spec_version = spec
-
-    logger.info(
-        "on_demand_metrics.on_demand_metric_spec",
-        extra={
-            "project_id": project_id,
-            f"{spec_for}.id": id,
-            f"{spec_for}.field": field,
-            f"{spec_for}.query": query,
-            "spec_for": spec_for,
-            "spec_query_hash": spec_query_hash,
-            "spec": spec_dict,
-            "spec_version": spec_version,
-            "prefilling": prefilling,
-        },
-    )
 
 
 # CONDITIONAL TAGGING
@@ -811,6 +845,7 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 
 
 def get_metric_conditional_tagging_rules(
+    timeout: Any,
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
     rules: list[MetricConditionalTaggingRule] = []
@@ -1429,24 +1464,24 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     return rules
 
 
-def get_current_widget_specs(organization):
-    # This can just be the first project we find, since spec hashes should not be project
-    # dependent. If spec hashes become project dependent then this may need to change.
-    project_for_query = Project.objects.filter(organization=organization).first()
-
-    enabled_features = on_demand_metrics_feature_flags(organization)
-    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    widget_specs = _get_widget_metric_specs(project_for_query, enabled_features, prefilling)
+def get_current_widget_specs(organization: Organization) -> set[str]:
     current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
-    return {
-        widget_hash
-        for widget_hash, _, spec_version in widget_specs
-        if spec_version == current_version
-    }
+    widget_specs = DashboardWidgetQueryOnDemand.objects.filter(
+        spec_version=current_version.version,
+        dashboard_widget_query__widget__dashboard__organization=organization,
+        extraction_state__startswith=ON_DEMAND_ENABLED_KEY,
+    ).values_list("spec_hashes", flat=True)
+    current_widget_specs: set[str] = set()
+    for spec_list in widget_specs:
+        current_widget_specs = current_widget_specs.union(spec_list)
+    return current_widget_specs
 
 
-def widget_exceeds_max_specs(new_specs, current_widget_specs, organization) -> bool:
+def widget_exceeds_max_specs(
+    new_specs: Sequence[tuple[str, MetricSpec, SpecVersion]],
+    current_widget_specs: set[str],
+    organization: Organization,
+) -> bool:
     current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
     new_widget_specs = {
         widget_hash for widget_hash, _, spec_version in new_specs if spec_version == current_version

@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -39,7 +40,9 @@ class GroupEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)
 
-    def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):
+    def convert_args(
+        self, request: Request, issue_id, organization_id_or_slug=None, *args, **kwargs
+    ):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
@@ -50,9 +53,17 @@ class GroupEndpoint(Endpoint):
         # string replacement, or making the endpoint aware of the URL pattern
         # that caused it to be dispatched, and reversing it with the correct
         # `issue_id` keyword argument.
-        if organization_slug:
+        if organization_id_or_slug:
             try:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                if (
+                    id_or_slug_path_params_enabled(
+                        self.convert_args.__qualname__, str(organization_id_or_slug)
+                    )
+                    and str(organization_id_or_slug).isdecimal()
+                ):
+                    organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
+                else:
+                    organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 

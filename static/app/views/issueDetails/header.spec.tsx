@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -7,6 +6,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, PriorityLevel} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -189,9 +189,16 @@ describe('GroupHeader', () => {
   });
 
   describe('priority', () => {
-    it('can change priority', async function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
+    });
+
+    it('can change priority', async () => {
       const mockModifyIssue = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/issues/`,
+        url: `/organizations/org-slug/issues/`,
         method: 'PUT',
         body: {},
       });

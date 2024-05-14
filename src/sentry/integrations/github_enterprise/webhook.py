@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 
+import orjson
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
@@ -19,7 +20,7 @@ from sentry.integrations.github.webhook import (
     get_github_external_id,
 )
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.sdk import configure_scope
 
 from .repository import GitHubEnterpriseRepositoryProvider
@@ -147,8 +148,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             try:
                 # XXX: Sometimes they send us this b'payload=%7B%22ref%22 Support this
                 # See https://sentry.io/organizations/sentry/issues/2565421410
-                event = json.loads(body.decode("utf-8"))
-            except json.JSONDecodeError:
+                event = orjson.loads(body)
+            except orjson.JSONDecodeError:
                 logger.warning(
                     "github_enterprise.webhook.invalid-json",
                     extra=extra,
@@ -181,7 +182,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     _handlers = {
         "push": GitHubEnterprisePushEventWebhook,

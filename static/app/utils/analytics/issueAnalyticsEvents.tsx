@@ -63,6 +63,16 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'highlights.edit_modal.add_context_key': {};
+  'highlights.edit_modal.add_tag': {};
+  'highlights.edit_modal.cancel_clicked': {};
+  'highlights.edit_modal.remove_context_key': {};
+  'highlights.edit_modal.remove_tag': {};
+  'highlights.edit_modal.save_clicked': {};
+  'highlights.edit_modal.use_default_clicked': {};
+  'highlights.issue_details.edit_clicked': {};
+  'highlights.issue_details.view_all_clicked': {};
+  'highlights.project_settings.updated_manually': {};
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
@@ -97,6 +107,7 @@ export type IssueEventParameters = {
     parent_stacktrace?: string;
     parent_transaction?: string;
     project_id?: string;
+    shouldBeGrouped?: string;
     stacktrace?: string;
     transaction?: string;
   };
@@ -105,6 +116,7 @@ export type IssueEventParameters = {
     parentGroupId: string;
     value: string;
     projectId?: string;
+    wouldGroup?: string;
   };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
@@ -189,7 +201,7 @@ export type IssueEventParameters = {
   };
   'issues_stream.archived': {
     action_status_details?: string;
-    action_substatus?: string;
+    action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
@@ -210,6 +222,9 @@ export type IssueEventParameters = {
   'issues_stream.sort_changed': {
     sort: string;
   };
+  'issues_stream.updated_priority': {
+    priority: PriorityLevel;
+  };
   'issues_tab.viewed': {
     num_issues: number;
     num_new_issues: number;
@@ -218,6 +233,7 @@ export type IssueEventParameters = {
     page: number;
     query: string;
     sort: string;
+    total_issues_count: number | null;
     tab?: string;
   };
   'project_modal.created': {
@@ -259,6 +275,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
+  'whats_new.link_clicked': {title?: string};
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -268,6 +285,18 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
+  'highlights.edit_modal.add_tag': 'Highlights: Add Tag in Edit Modal',
+  'highlights.edit_modal.cancel_clicked': 'Highlights: Cancel from Edit Modal',
+  'highlights.edit_modal.remove_context_key': 'Highlights: Remove Context in Edit Modal',
+  'highlights.edit_modal.remove_tag': 'Highlights: Remove Tag in Edit Modal',
+  'highlights.edit_modal.save_clicked': 'Highlights: Save from Edit Modal',
+  'highlights.edit_modal.use_default_clicked':
+    'Highlights: Defaults Applied from Edit Modal',
+  'highlights.issue_details.edit_clicked': 'Highlights: Open Edit Modal',
+  'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
+  'highlights.project_settings.updated_manually':
+    'Highlights: Updated Manually from Settings',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
@@ -294,6 +323,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.merged': 'Merged Issues from Issues Stream',
@@ -352,4 +382,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
+  'whats_new.link_clicked': "What's New: Link Clicked",
 };

@@ -31,9 +31,16 @@ function getTotalScore(data: TableDataRow): number {
   return data[`avg(measurements.score.total)`] as number;
 }
 
+function getWebVitalScoreCount(
+  data: TableDataRow,
+  webVital: WebVitals | 'total'
+): number {
+  return data[`count_scores(measurements.score.${webVital})`] as number;
+}
+
 function hasWebVitalScore(data: TableDataRow, webVital: WebVitals): boolean {
   if (data.hasOwnProperty(`count_scores(measurements.score.${webVital})`)) {
-    return (data[`count_scores(measurements.score.${webVital})`] as number) > 0;
+    return getWebVitalScoreCount(data, webVital) > 0;
   }
   return false;
 }
@@ -65,12 +72,36 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
     fidScore: hasFid ? Math.round(getWebVitalScore(data, 'fid') * 100) : undefined,
     inpScore: hasInp ? Math.round(getWebVitalScore(data, 'inp') * 100) : undefined,
     totalScore: Math.round(getTotalScore(data) * 100),
-    lcpWeight: Math.round(getWebVitalWeight(data, 'lcp') * 100),
-    fcpWeight: Math.round(getWebVitalWeight(data, 'fcp') * 100),
-    clsWeight: Math.round(getWebVitalWeight(data, 'cls') * 100),
-    ttfbWeight: Math.round(getWebVitalWeight(data, 'ttfb') * 100),
-    fidWeight: Math.round(getWebVitalWeight(data, 'fid') * 100),
-    inpWeight: Math.round(getWebVitalWeight(data, 'inp') * 100),
+    ...calculateWeights(data),
   };
   return scores;
 }
+
+const calculateWeights = (data: TableDataRow) => {
+  // We need to do this because INP and pageLoads are different score profiles
+  const inpScoreCount = getWebVitalScoreCount(data, 'inp') || 0;
+  const totalScoreCount = getWebVitalScoreCount(data, 'total');
+  const pageLoadCount = totalScoreCount - inpScoreCount;
+
+  const inpWeight = getWebVitalWeight(data, 'inp');
+  const inpActualWeight = Math.round(
+    ((inpWeight * inpScoreCount) / totalScoreCount) * 100
+  );
+
+  const pageLoadWebVitals: WebVitals[] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'];
+  const [lcpWeight, fcpWeight, clsWeight, ttfbWeight, fidWeight] = pageLoadWebVitals.map(
+    webVital => {
+      const weight = getWebVitalWeight(data, webVital);
+      const actualWeight = Math.round(((weight * pageLoadCount) / totalScoreCount) * 100);
+      return actualWeight;
+    }
+  );
+  return {
+    lcpWeight,
+    fcpWeight,
+    clsWeight,
+    ttfbWeight,
+    fidWeight,
+    inpWeight: inpActualWeight,
+  };
+};

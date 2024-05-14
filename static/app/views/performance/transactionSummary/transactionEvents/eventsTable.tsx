@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import type {RouteContextInterface} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
@@ -16,6 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -27,6 +27,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -38,7 +39,6 @@ import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
-  generateTransactionLink,
   normalizeSearchConditions,
 } from '../utils';
 
@@ -164,8 +164,19 @@ class EventsTable extends Component<Props, State> {
       if (isIssue && !isRegressionIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
       } else {
-        const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-        target = generateLink(transactionName)(organization, dataRow, location.query);
+        if (field === 'id') {
+          target = generateLinkToEventInTraceView({
+            traceSlug: dataRow.trace?.toString(),
+            projectSlug: dataRow['project.name']?.toString(),
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp,
+            location,
+            organization,
+            transactionName: transactionName,
+          });
+        } else {
+          target = generateTraceLink(transactionName)(organization, dataRow, location);
+        }
       }
 
       return (

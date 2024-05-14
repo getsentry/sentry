@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -330,7 +331,7 @@ describe('projectPerformance', function () {
       expect(slider).toHaveValue(indexOfValue.toString());
 
       // Slide value on range slider.
-      slider.focus();
+      act(() => slider.focus());
       const indexDelta = newValueIndex - indexOfValue;
       await userEvent.keyboard(
         indexDelta > 0 ? `{ArrowRight>${indexDelta}}` : `{ArrowLeft>${-indexDelta}}`

@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -56,8 +55,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -73,8 +72,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.prev_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -90,8 +89,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(
@@ -109,8 +108,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.next_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -120,7 +119,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] is None
 
 
-@region_silo_test
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
     def setup_data(self):
         one_min_ago = iso_format(before_now(minutes=1))
@@ -181,8 +179,8 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.cur_group.id})
@@ -193,7 +191,6 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         assert response.data["occurrence"]["id"] == self.cur_event.id
 
 
-@region_silo_test
 class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
@@ -253,8 +250,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_transaction_event.event_id,
-                "project_slug": self.cur_transaction_event.project.slug,
-                "organization_slug": self.cur_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.cur_transaction_event.project.slug,
+                "organization_id_or_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -271,8 +268,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.prev_transaction_event.event_id,
-                "project_slug": self.prev_transaction_event.project.slug,
-                "organization_slug": self.prev_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.prev_transaction_event.project.slug,
+                "organization_id_or_slug": self.prev_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -289,8 +286,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.next_transaction_event.event_id,
-                "project_slug": self.next_transaction_event.project.slug,
-                "organization_slug": self.next_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.next_transaction_event.project.slug,
+                "organization_id_or_slug": self.next_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -305,8 +302,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_transaction_event.event_id,
-                "project_slug": self.cur_transaction_event.project.slug,
-                "organization_slug": self.cur_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.cur_transaction_event.project.slug,
+                "organization_id_or_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -318,7 +315,6 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
         assert response.data["groupID"] is None
 
 
-@region_silo_test
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -338,8 +334,8 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": self.event_id,
             },
         )
@@ -359,8 +355,8 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "no" * 16,
             },
         )
@@ -381,8 +377,8 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": project2.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": project2.slug,
                 "event_id": self.event_id,
             },
         )

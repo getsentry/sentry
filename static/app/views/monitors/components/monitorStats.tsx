@@ -13,9 +13,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {intervalToMilliseconds} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -45,7 +45,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   }
 
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/stats/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/stats/`,
     {
       query: {
         since: since.toString(),

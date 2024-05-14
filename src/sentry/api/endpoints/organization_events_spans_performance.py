@@ -87,7 +87,7 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> dict[str, Any]:
+    ) -> ParamsType:
         params = super().get_snuba_params(request, organization, check_global_views)
 
         if len(params.get("project_id", [])) != 1:
@@ -399,6 +399,7 @@ class ExampleSpan:
     start_timestamp: float
     finish_timestamp: float
     exclusive_time: float
+    trace_id: str
 
     def serialize(self) -> Any:
         return {
@@ -406,6 +407,7 @@ class ExampleSpan:
             "startTimestamp": self.start_timestamp,
             "finishTimestamp": self.finish_timestamp,
             "exclusiveTime": self.exclusive_time,
+            "trace": self.trace_id,
         }
 
 
@@ -803,6 +805,7 @@ def get_example_transaction(
             start_timestamp=span["start_timestamp"],
             finish_timestamp=span["timestamp"],
             exclusive_time=span["exclusive_time"],
+            trace_id=trace_context["trace_id"],
         )
         for span in matching_spans
     ]

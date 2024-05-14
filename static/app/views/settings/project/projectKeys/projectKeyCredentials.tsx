@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ProjectKey} from 'sentry/types';
+import type {ProjectKey} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
@@ -190,6 +190,19 @@ function ProjectKeyCredentials({
               fixed: '__PROJECTID__',
             })}
           </TextCopyInput>
+        </FieldGroup>
+      )}
+
+      {data.useCase && (
+        <FieldGroup
+          label={t('Use Case')}
+          help={t('Whether the DSN is for the user or for internal data submissions.')}
+          inline
+          flexibleControlStateSize
+        >
+          <StyledField label={null} inline={false} flexibleControlStateSize>
+            {data.useCase}
+          </StyledField>
         </FieldGroup>
       )}
     </Fragment>

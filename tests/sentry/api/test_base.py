@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -7,7 +8,6 @@ from pytest import raises
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from sentry_sdk import Scope
-from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.base import Endpoint, EndpointSiloLimit
 from sentry.api.exceptions import SuperuserRequired
@@ -15,12 +15,15 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.types.region import subdomain_is_region
 from sentry.utils.cursors import Cursor
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 # Though it looks weird to have a method outside a class, this isn't a mistake but rather
@@ -291,6 +294,30 @@ class EndpointTest(APITestCase):
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
+    def test_update_token_access_record_is_called(self):
+        token_str = generate_token(self.organization.slug, "")
+        token_hashed = hash_token(token_str)
+        token = self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=token_hashed,
+            organization_id=self.organization.id,
+            token_last_characters="xyz",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+        assert token.date_last_used is None
+
+        with outbox_runner():
+            request = self.make_request(method="GET")
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str}"
+            _dummy_endpoint(request=request)
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        token.refresh_from_db()
+        assert isinstance(token.date_last_used, datetime)
+
     @mock.patch("sentry.api.base.Endpoint.convert_args")
     def test_method_not_allowed(self, mock_convert_args):
         request = self.make_request(method="POST")
@@ -350,28 +377,26 @@ class EndpointHandleExceptionTest(APITestCase):
                 scope_arg=scope_arg,
             )
 
-            with mock.patch("sys.exc_info", return_value=exc_info_from_error(handler_error)):
-                with mock.patch("sys.stderr.write") as mock_stderr_write:
-                    response = mock_endpoint(self.make_request(method="GET"))
+            with mock.patch("sys.stderr.write") as mock_stderr_write:
+                response = mock_endpoint(self.make_request(method="GET"))
 
-                    assert response.status_code == 500
-                    assert response.data == {
-                        "detail": "Internal Error",
-                        "errorId": "1231201211212012",
-                    }
-                    assert response.exception is True
+                assert response.status_code == 500
+                assert response.data == {
+                    "detail": "Internal Error",
+                    "errorId": "1231201211212012",
+                }
+                assert response.exception is True
 
-                    mock_stderr_write.assert_called_with("Exception: nope\n")
+                (((s,), _),) = mock_stderr_write.call_args_list
+                assert s.splitlines()[-1] == "Exception: nope"
 
-                    capture_exception_handler_context_arg = mock_capture_exception.call_args.args[0]
-                    capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get(
-                        "scope"
-                    )
+                capture_exception_handler_context_arg = mock_capture_exception.call_args.args[0]
+                capture_exception_scope_kwarg = mock_capture_exception.call_args.kwargs.get("scope")
 
-                    assert capture_exception_handler_context_arg == handler_error
-                    assert isinstance(capture_exception_scope_kwarg, Scope)
-                    assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
-                    assert capture_exception_scope_kwarg._tags == expected_scope_tags
+                assert capture_exception_handler_context_arg == handler_error
+                assert isinstance(capture_exception_scope_kwarg, Scope)
+                assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
+                assert capture_exception_scope_kwarg._tags == expected_scope_tags
 
 
 class CursorGenerationTest(APITestCase):

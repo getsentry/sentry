@@ -1,9 +1,7 @@
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-external-issue-details"
     method = "delete"

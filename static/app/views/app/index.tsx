@@ -35,10 +35,12 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard: React.FC<InstallWizardProps> = lazy(
+const InstallWizard = lazy(
   () => import('sentry/views/admin/installWizard')
-);
+  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
+) as unknown as React.ComponentType<InstallWizardProps>;
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
+const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
 /**
  * App is the root level container for all uathenticated routes.
@@ -166,16 +168,30 @@ function App({children, params}: Props) {
     ConfigStore.set('user', {...user, flags});
   }
 
+  function clearBeaconConsentPrompt() {
+    ConfigStore.set('shouldShowBeaconConsentPrompt', false);
+  }
+
   const displayInstallWizard =
     user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
   const newsletterConsentPrompt = user?.flags?.newsletter_consent_prompt;
   const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
+  const beaconConsentPrompt =
+    user?.isSuperuser && config.isSelfHosted && config.shouldShowBeaconConsentPrompt;
 
   function renderBody() {
     if (displayInstallWizard) {
       return (
         <Suspense fallback={null}>
-          <InstallWizard onConfigured={clearUpgrade} />;
+          <InstallWizard onConfigured={clearUpgrade} />
+        </Suspense>
+      );
+    }
+
+    if (beaconConsentPrompt) {
+      return (
+        <Suspense fallback={null}>
+          <BeaconConsent onSubmitSuccess={clearBeaconConsentPrompt} />
         </Suspense>
       );
     }

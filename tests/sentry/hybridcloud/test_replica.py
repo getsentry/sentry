@@ -8,7 +8,7 @@ from sentry.models.outbox import outbox_context
 from sentry.models.teamreplica import TeamReplica
 from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.replica import region_replica_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -218,16 +218,6 @@ def test_replicate_team():
     assert replicated.slug == team.slug
     assert replicated.name == team.name
     assert replicated.status == team.status
-    assert replicated.org_role == team.org_role
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        team.org_role = "boo"
-        team.save()
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = TeamReplica.objects.get(team_id=team.id)
-
-    assert replicated.org_role == team.org_role
 
     with assume_test_silo_mode(SiloMode.REGION):
         teams = [

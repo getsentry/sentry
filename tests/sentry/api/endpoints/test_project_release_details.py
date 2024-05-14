@@ -1,25 +1,25 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+import pytest
 from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models.activity import Activity
 from sentry.models.files.file import File
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
-pytestmark = [requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-@region_silo_test
 class ReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -37,7 +37,7 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -48,7 +48,6 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["newGroups"] == 5
 
 
-@region_silo_test
 class UpdateReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -64,7 +63,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -90,7 +89,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -121,11 +120,11 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -151,11 +150,11 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -189,7 +188,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -206,7 +205,6 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.ref == "master"
 
 
-@region_silo_test
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -227,7 +225,7 @@ class ReleaseDeleteTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -251,7 +249,7 @@ class ReleaseDeleteTest(APITestCase):
             "sentry-api-0-project-release-details",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -286,7 +284,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

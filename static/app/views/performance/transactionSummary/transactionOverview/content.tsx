@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -19,9 +18,11 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
@@ -40,7 +41,6 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {TransactionPercentage} from 'sentry/views/performance/transactionSummary/transactionOverview/transactionPercentage';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -58,7 +58,7 @@ import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
-  generateTransactionLink,
+  generateTransactionIdLink,
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
@@ -85,7 +85,6 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  unfilteredTotalValues?: Record<string, number> | null;
 };
 
 function SummaryContent({
@@ -100,7 +99,6 @@ function SummaryContent({
   projectId,
   transactionName,
   onChangeFilter,
-  unfilteredTotalValues,
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
@@ -332,15 +330,24 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
+
   return (
     <Fragment>
       <Layout.Main>
-        <FilterActions>
-          <Filter
-            organization={organization}
-            currentFilter={spanOperationBreakdownFilter}
-            onChangeFilter={onChangeFilter}
-          />
+        <FilterActions
+          hasTransactionSummaryCleanupFlag={hasTransactionSummaryCleanupFlag}
+        >
+          {!hasTransactionSummaryCleanupFlag && (
+            <Filter
+              organization={organization}
+              currentFilter={spanOperationBreakdownFilter}
+              onChangeFilter={onChangeFilter}
+            />
+          )}
+
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
@@ -385,7 +392,7 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionLink(transactionName),
+              id: generateTransactionIdLink(transactionName),
               trace: generateTraceLink(eventView.normalizeDateSelection(location)),
               replayId: generateReplayLink(routes),
               'profile.id': generateProfileLink(),
@@ -401,18 +408,21 @@ function SummaryContent({
           />
         </PerformanceAtScaleContextProvider>
 
-        <SuspectSpans
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          totals={
-            defined(totalValues?.['count()'])
-              ? {'count()': totalValues!['count()']}
-              : null
-          }
-          projectId={projectId}
-          transactionName={transactionName}
-        />
+        {!hasTransactionSummaryCleanupFlag && (
+          <SuspectSpans
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
+                : null
+            }
+            projectId={projectId}
+            transactionName={transactionName}
+          />
+        )}
+
         <TagExplorer
           eventView={eventView}
           organization={organization}
@@ -437,12 +447,6 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
-        <TransactionPercentage
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          unfilteredTotals={unfilteredTotalValues}
-        />
         <UserStats
           organization={organization}
           location={location}
@@ -556,7 +560,7 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const FilterActions = styled('div')`
+const FilterActions = styled('div')<{hasTransactionSummaryCleanupFlag: boolean}>`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
@@ -566,7 +570,10 @@ const FilterActions = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: auto auto 1fr;
+    ${p =>
+      p.hasTransactionSummaryCleanupFlag
+        ? `grid-template-columns: auto 1fr;`
+        : `grid-template-columns: auto auto 1fr;`}
   }
 `;
 

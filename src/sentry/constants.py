@@ -43,7 +43,7 @@ COMMIT_RANGE_DELIMITER = ".."
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
 SORT_OPTIONS = {
-    "priority": _("Priority"),
+    "trends": _("Trends"),
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
@@ -228,6 +228,8 @@ DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
 LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
 
+PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
+
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
@@ -264,7 +266,8 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
+    "sentry.rules.conditions.new_high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.existing_high_priority_issue.ExistingHighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -298,6 +301,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
     ]
 )
 
@@ -639,12 +643,13 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
-# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+# Defined at https://github.com/getsentry/relay/blob/master/py/sentry_relay/consts.py
 DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
@@ -703,6 +708,8 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
+    "*/_health",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",
@@ -904,6 +911,9 @@ EXTENSION_LANGUAGE_MAP = {
     "pm": "perl",
     "psgi": "perl",
     "t": "perl",
+    "ps1": "powershell",
+    "psd1": "powershell",
+    "psm1": "powershell",
     "py": "python",
     "gyp": "python",
     "gypi": "python",

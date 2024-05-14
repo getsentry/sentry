@@ -7,7 +7,8 @@ from django.test import RequestFactory, override_settings
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloLimit, SiloMode, unguarded_write
+from sentry.silo.base import SiloLimit, SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
@@ -199,6 +200,24 @@ class RegionDirectoryTest(TestCase):
     def test_find_all_multitenant_region_names(self):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
+        with self._in_global_state(directory):
+            result = find_all_multitenant_region_names()
+            assert set(result) == {"us", "eu"}
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_find_all_multitenant_region_names_non_visible(self):
+        inputs = [
+            *self._INPUTS,
+            {
+                "name": "ja",
+                "snowflake_id": 4,
+                "address": "https://ja.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+                "visible": False,
+            },
+        ]
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(inputs)
         with self._in_global_state(directory):
             result = find_all_multitenant_region_names()
             assert set(result) == {"us", "eu"}

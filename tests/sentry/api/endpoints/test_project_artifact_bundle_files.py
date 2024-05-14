@@ -6,10 +6,8 @@ from django.utils import timezone
 from sentry.models.artifactbundle import ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @freeze_time("2023-03-15 00:00:00")
 class ProjectArtifactBundleFilesEndpointTest(APITestCase):
     def test_get_artifact_bundle_files_with_multiple_files(self):
@@ -44,7 +42,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             "sentry-api-0-project-artifact-bundle-files",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
             },
         )
@@ -135,7 +133,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             "sentry-api-0-project-artifact-bundle-files",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
             },
         )
@@ -241,7 +239,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             "sentry-api-0-project-artifact-bundle-files",
             kwargs={
                 "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
             },
         )

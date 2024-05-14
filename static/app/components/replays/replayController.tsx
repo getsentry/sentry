@@ -20,6 +20,7 @@ const COMPACT_WIDTH_BREAKPOINT = 500;
 
 interface Props {
   toggleFullscreen: () => void;
+  disableSettings?: boolean;
   speedOptions?: number[];
 }
 
@@ -59,7 +60,13 @@ function ReplayPlayPauseBar() {
   );
 }
 
-function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
+function ReplayOptionsMenu({
+  speedOptions,
+  disableSettings,
+}: {
+  disableSettings: boolean;
+  speedOptions: number[];
+}) {
   const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
   const SKIP_OPTION_VALUE = 'skip';
 
@@ -74,6 +81,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
           icon={<IconSettings size="sm" />}
         />
       )}
+      disabled={disableSettings}
     >
       <CompositeSelect.Region
         label={t('Playback Speed')}
@@ -104,6 +112,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
 function ReplayControls({
   toggleFullscreen,
+  disableSettings = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
@@ -129,7 +138,10 @@ function ReplayControls({
         <TimeAndScrubberGrid isCompact={isCompact} showZoom />
       </Container>
       <ButtonBar gap={1}>
-        <ReplayOptionsMenu speedOptions={speedOptions} />
+        <ReplayOptionsMenu
+          speedOptions={speedOptions}
+          disableSettings={disableSettings}
+        />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
       </ButtonBar>
     </ButtonGrid>

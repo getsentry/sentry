@@ -15,10 +15,8 @@ from sentry.api.endpoints.custom_rules import (
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class CustomRulesGetEndpoint(APITestCase):
     """
     Tests the GET endpoint
@@ -171,7 +169,6 @@ class CustomRulesGetEndpoint(APITestCase):
         assert resp.status_code == 204
 
 
-@region_silo_test
 class CustomRulesEndpoint(APITestCase):
     """
     Tests that calling the endpoint converts the query to a rule returns it and saves it in the db

@@ -1,12 +1,14 @@
 import re
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+import orjson
 import pytest
 import responses
 from django.core import mail
 from django.test import override_settings
+from django.utils import timezone
 from requests import Request
 from responses import matchers
 
@@ -24,8 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import control_silo_test, region_silo_test
-from sentry.utils import json
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -36,11 +37,10 @@ GITHUB_CODEOWNERS = {
 }
 
 
-@region_silo_test
 class GitHubAppsClientTest(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
-        ten_days = datetime.utcnow() + timedelta(days=10)
+        ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -77,7 +77,7 @@ class GitHubAppsClientTest(TestCase):
                 },
             },
         )
-        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             gh_rate_limit = self.github_client.get_rate_limit()
             assert gh_rate_limit.limit == 5000
             assert gh_rate_limit.remaining == 4999
@@ -101,7 +101,7 @@ class GitHubAppsClientTest(TestCase):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_file(self, get_jwt):
         path = "src/sentry/integrations/github/client.py"
@@ -118,7 +118,7 @@ class GitHubAppsClientTest(TestCase):
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_no_file(self, get_jwt):
         path = "src/santry/integrations/github/client.py"
@@ -131,7 +131,7 @@ class GitHubAppsClientTest(TestCase):
             self.github_client.check_file(self.repo, path, version)
         assert responses.calls[0].response.status_code == 404
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_stacktrace_link(self, get_jwt):
         path = "/src/sentry/integrations/github/client.py"
@@ -152,7 +152,7 @@ class GitHubAppsClientTest(TestCase):
             == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_with_pagination(self, get_jwt):
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
@@ -188,7 +188,7 @@ class GitHubAppsClientTest(TestCase):
         assert len(responses.calls) == 4
         assert responses.calls[0].response.status_code == 200
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_with_pagination_only_one_page(self, get_jwt):
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
@@ -203,7 +203,7 @@ class GitHubAppsClientTest(TestCase):
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
         return_value=GITHUB_CODEOWNERS["html_url"],
     )
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_codeowner_file(self, mock_jwt, mock_check_file):
         self.config = self.create_code_mapping(
@@ -235,7 +235,7 @@ class GitHubAppsClientTest(TestCase):
         )
         repo_key = f"github:repo:{self.repo.name}:source-code"
         assert cache.get(repo_key) is None
-        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert cache.get(repo_key) == files
             # Calling a second time should work
@@ -262,11 +262,11 @@ class GitHubAppsClientTest(TestCase):
         )
         repo_key = f"github:repo:{self.repo.name}:all"
         assert cache.get(repo_key) is None
-        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert files == ["src/foo.py"]
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_update_comment(self, get_jwt):
         responses.add(
@@ -309,7 +309,7 @@ class GitHubAppsClientTest(TestCase):
         assert responses.calls[1].response.status_code == 200
         assert responses.calls[1].request.body == b'{"body": "world"}'
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_comment_reactions(self, get_jwt):
         comment_reactions = {
@@ -548,9 +548,8 @@ class GithubProxyClientTest(TestCase):
             client.assert_proxy_request(request, is_proxy=True)
 
 
-@region_silo_test
 class GitHubClientFileBlameBase(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         integration = self.create_integration(
             organization=self.organization,
@@ -597,7 +596,7 @@ class GitHubClientFileBlameBase(TestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -608,17 +607,16 @@ class GitHubClientFileBlameBase(TestCase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
 
 
-@region_silo_test
 class GitHubClientFileBlameIntegrationDisableTest(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
-        ten_days = datetime.utcnow() + timedelta(days=10)
+        ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -646,7 +644,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             lineno=10,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
@@ -683,7 +681,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -694,7 +692,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
@@ -781,7 +779,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         assert self.integration.status == ObjectStatus.DISABLED
 
 
-@region_silo_test
 class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files builds the correct GraphQL query
@@ -790,7 +787,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     def setUp(self):
         super().setUp()
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_same_repo(self, get_jwt):
         """
@@ -802,28 +799,28 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
-        query = """query {
-    repository0: repository(name: "foo", owner: "Test-Organization") {
-        ref0: ref(qualifiedName: "master") {
+        query = """query ($repo_name_0: String!, $repo_owner_0: String!, $ref_0_0: String!, $path_0_0_0: String!, $path_0_0_1: String!) {
+    repository0: repository(name: $repo_name_0, owner: $repo_owner_0) {
+        ref0: ref(qualifiedName: $ref_0_0) {
             target {
                 ... on Commit {
-                    blame0: blame(path: "src/sentry/integrations/github/client_1.py") {
+                    blame0: blame(path: $path_0_0_0) {
                         ranges {
                             commit {
                                 oid
@@ -839,7 +836,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
                             age
                         }
                     }
-                    blame1: blame(path: "src/sentry/integrations/github/client_2.py") {
+                    blame1: blame(path: $path_0_0_1) {
                         ranges {
                             commit {
                                 oid
@@ -871,9 +868,16 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "repo_name_0": "foo",
+            "repo_owner_0": "Test-Organization",
+            "ref_0_0": "master",
+            "path_0_0_0": "src/sentry/integrations/github/client_1.py",
+            "path_0_0_1": "src/sentry/integrations/github/client_2.py",
+        }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_different_repos(self, get_jwt):
         """
@@ -885,28 +889,28 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/getsentry/file.py",
             lineno=20,
             ref="master",
             repo=self.repo_2,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
-        query = """query {
-    repository0: repository(name: "foo", owner: "Test-Organization") {
-        ref0: ref(qualifiedName: "master") {
+        query = """query ($repo_name_0: String!, $repo_owner_0: String!, $ref_0_0: String!, $path_0_0_0: String!, $path_0_0_1: String!, $repo_name_1: String!, $repo_owner_1: String!, $ref_1_0: String!, $path_1_0_0: String!) {
+    repository0: repository(name: $repo_name_0, owner: $repo_owner_0) {
+        ref0: ref(qualifiedName: $ref_0_0) {
             target {
                 ... on Commit {
-                    blame0: blame(path: "src/sentry/integrations/github/client_1.py") {
+                    blame0: blame(path: $path_0_0_0) {
                         ranges {
                             commit {
                                 oid
@@ -922,7 +926,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
                             age
                         }
                     }
-                    blame1: blame(path: "src/sentry/integrations/github/client_2.py") {
+                    blame1: blame(path: $path_0_0_1) {
                         ranges {
                             commit {
                                 oid
@@ -942,11 +946,11 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             }
         }
     }
-    repository1: repository(name: "bar", owner: "Test-Organization") {
-        ref0: ref(qualifiedName: "master") {
+    repository1: repository(name: $repo_name_1, owner: $repo_owner_1) {
+        ref0: ref(qualifiedName: $ref_1_0) {
             target {
                 ... on Commit {
-                    blame0: blame(path: "src/getsentry/file.py") {
+                    blame0: blame(path: $path_1_0_0) {
                         ranges {
                             commit {
                                 oid
@@ -978,9 +982,20 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "repo_name_0": "foo",
+            "repo_owner_0": "Test-Organization",
+            "ref_0_0": "master",
+            "path_0_0_0": "src/sentry/integrations/github/client_1.py",
+            "path_0_0_1": "src/sentry/integrations/github/client_2.py",
+            "repo_name_1": "bar",
+            "repo_owner_1": "Test-Organization",
+            "ref_1_0": "master",
+            "path_1_0_0": "src/getsentry/file.py",
+        }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_different_refs(self, get_jwt):
         """
@@ -992,28 +1007,28 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=20,
             ref="staging",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
-        query = """query {
-    repository0: repository(name: "foo", owner: "Test-Organization") {
-        ref0: ref(qualifiedName: "master") {
+        query = """query ($repo_name_0: String!, $repo_owner_0: String!, $ref_0_0: String!, $path_0_0_0: String!, $ref_0_1: String!, $path_0_1_0: String!) {
+    repository0: repository(name: $repo_name_0, owner: $repo_owner_0) {
+        ref0: ref(qualifiedName: $ref_0_0) {
             target {
                 ... on Commit {
-                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                    blame0: blame(path: $path_0_0_0) {
                         ranges {
                             commit {
                                 oid
@@ -1032,10 +1047,10 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
                 }
             }
         }
-        ref1: ref(qualifiedName: "staging") {
+        ref1: ref(qualifiedName: $ref_0_1) {
             target {
                 ... on Commit {
-                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                    blame0: blame(path: $path_0_1_0) {
                         ranges {
                             commit {
                                 oid
@@ -1067,9 +1082,17 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "repo_name_0": "foo",
+            "repo_owner_0": "Test-Organization",
+            "ref_0_0": "master",
+            "path_0_0_0": "src/sentry/integrations/github/client.py",
+            "ref_0_1": "staging",
+            "path_0_1_0": "src/sentry/integrations/github/client.py",
+        }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_trim_file_path_for_query(self, get_jwt):
         """
@@ -1081,15 +1104,15 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
-        query = """query {
-    repository0: repository(name: "foo", owner: "Test-Organization") {
-        ref0: ref(qualifiedName: "master") {
+        query = """query ($repo_name_0: String!, $repo_owner_0: String!, $ref_0_0: String!, $path_0_0_0: String!) {
+    repository0: repository(name: $repo_name_0, owner: $repo_owner_0) {
+        ref0: ref(qualifiedName: $ref_0_0) {
             target {
                 ... on Commit {
-                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                    blame0: blame(path: $path_0_0_0) {
                         ranges {
                             commit {
                                 oid
@@ -1121,10 +1144,15 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "repo_name_0": "foo",
+            "repo_owner_0": "Test-Organization",
+            "ref_0_0": "master",
+            "path_0_0_0": "src/sentry/integrations/github/client.py",
+        }
 
 
-@region_silo_test
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files handles the GraphQL response correctly
@@ -1138,21 +1166,21 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         self.data = {
@@ -1219,7 +1247,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             }
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_full_response(self, get_jwt):
         """
@@ -1248,7 +1276,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo1",
                         commitAuthorEmail="foo1@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1258,7 +1286,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo2",
                         commitAuthorEmail="foo2@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1268,13 +1296,13 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo3",
                         commitAuthorEmail="foo3@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
             ],
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_cached_blame_for_files_full_response(self, get_jwt):
         """
@@ -1289,10 +1317,12 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             content_type="application/json",
         )
 
-        data = create_blame_query(
+        query, variables = create_blame_query(
             generate_file_path_mapping([self.file1, self.file2, self.file3]), extra={}
         )
-        cache_key = self.github_client.get_cache_key("/graphql", data)
+        cache_key = self.github_client.get_cache_key(
+            "/graphql", orjson.dumps({"query": query, "variables": variables}).decode()
+        )
         assert self.github_client.check_cache(cache_key) is None
         response = self.github_client.get_blame_for_files(
             [self.file1, self.file2, self.file3], extra={}
@@ -1308,7 +1338,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo1",
                         commitAuthorEmail="foo1@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1318,7 +1348,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo2",
                         commitAuthorEmail="foo2@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2021, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
                 FileBlameInfo(
@@ -1328,7 +1358,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName="foo3",
                         commitAuthorEmail="foo3@example.com",
                         commitMessage="hello",
-                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2020, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
             ],
@@ -1349,7 +1379,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_response_partial_data(self, get_jwt):
         """
@@ -1360,28 +1390,28 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file3 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=20,
             ref="master",
             repo=self.repo_2,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file4 = SourceLineInfo(
             path="src/sentry/integrations/github/client.py",
             lineno=25,
             ref="master",
             repo=self.repo_3,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         data = {
             "repository0": {
@@ -1430,14 +1460,14 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                         commitAuthorName=None,
                         commitAuthorEmail=None,
                         commitMessage=None,
-                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                        committedDate=datetime(2022, 1, 1, 0, 0, 0, tzinfo=UTC),
                     ),
                 ),
             ],
         )
 
     @mock.patch("sentry.integrations.github.client.logger.error")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_error):
         """
@@ -1448,14 +1478,14 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         file2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=15,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type:ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         data = {
             "repository0": {
@@ -1539,7 +1569,6 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         )
 
 
-@region_silo_test
 class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     """
     Tests that rate limits are handled correctly
@@ -1552,7 +1581,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
             lineno=10,
             ref="master",
             repo=self.repo_1,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         responses.reset()
         responses.add(
@@ -1565,7 +1594,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -1576,13 +1605,13 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
 
     @mock.patch("sentry.integrations.github.client.logger.error")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_rate_limit_exceeded(self, get_jwt, mock_logger_error):
         with pytest.raises(ApiRateLimitedError):
@@ -1598,7 +1627,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
             },
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_no_rate_limiting(self, get_jwt):
         """

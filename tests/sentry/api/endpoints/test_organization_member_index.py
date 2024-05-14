@@ -5,19 +5,19 @@ from django.core import mail
 
 from sentry import roles
 from sentry.api.endpoints.accept_organization_invite import get_invite_state
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models.authenticator import Authenticator
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.useremail import UserEmail
 from sentry.roles import organization_roles
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -31,8 +31,7 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
     return wrapped_method
 
 
-@region_silo_test
-class OrganizationMemberSerializerTest(TestCase):
+class OrganizationMemberRequestSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {
@@ -41,14 +40,14 @@ class OrganizationMemberSerializerTest(TestCase):
             "teamRoles": [{"teamSlug": self.team.slug, "role": None}],
         }
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
 
     def test_valid_deprecated_fields(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
 
     def test_gets_team_objects(self):
@@ -59,7 +58,7 @@ class OrganizationMemberSerializerTest(TestCase):
             "teamRoles": [{"teamSlug": self.team.slug, "role": "admin"}],
         }
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
         assert serializer.validated_data["teamRoles"][0] == (self.team, "admin")
 
@@ -67,7 +66,7 @@ class OrganizationMemberSerializerTest(TestCase):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {"email": "eric@localhost", "orgRole": "member", "teams": [self.team.slug]}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
         assert serializer.validated_data["teams"][0] == self.team
 
@@ -79,7 +78,7 @@ class OrganizationMemberSerializerTest(TestCase):
         context = {"organization": org, "allowed_roles": [roles.get("member")]}
         data = {"email": user.email, "orgRole": "member", "teamRoles": []}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert not serializer.is_valid()
         assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
 
@@ -95,7 +94,7 @@ class OrganizationMemberSerializerTest(TestCase):
             )
             invite_helper.accept_invite(user)
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert not serializer.is_valid()
         assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
 
@@ -103,7 +102,7 @@ class OrganizationMemberSerializerTest(TestCase):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {"email": "eric@localhost", "orgRole": "member", "teams": ["faketeam"]}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
         assert serializer.errors == {"teams": ["Invalid teams"]}
@@ -112,7 +111,7 @@ class OrganizationMemberSerializerTest(TestCase):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {"email": "eric@localhost", "orgRole": "owner", "teamRoles": []}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
         assert serializer.errors == {
@@ -127,7 +126,7 @@ class OrganizationMemberSerializerTest(TestCase):
         }
         data = {"email": "eric@localhost", "orgRole": "admin", "teamRoles": []}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
         assert serializer.is_valid()
 
     @with_feature("organizations:team-roles")
@@ -138,7 +137,7 @@ class OrganizationMemberSerializerTest(TestCase):
         }
         data = {"email": "eric@localhost", "orgRole": "admin", "teamRoles": []}
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
 
         assert serializer.is_valid()
 
@@ -150,7 +149,7 @@ class OrganizationMemberSerializerTest(TestCase):
             "teamRoles": [{"teamSlug": self.team.slug, "role": "no-such-team-role"}],
         }
 
-        serializer = OrganizationMemberSerializer(context=context, data=data)
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
         assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
@@ -169,9 +168,19 @@ class OrganizationMemberListTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
 class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     def test_simple(self):
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
+        assert not response.data[0]["pending"]
+        assert not response.data[0]["expired"]
+
+    def test_staff_simple(self):
+        staff_user = self.create_user("staff@localhost", is_staff=True)
+        self.login_as(user=staff_user, staff=True)
         response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
@@ -251,27 +260,17 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
-        member_team = self.create_team(organization=self.organization, org_role="member")
-        user = self.create_user("zoo@localhost", username="zoo")
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role="owner",
-            teams=[member_team],
-        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}
         )
-        assert len(response.data) == 2
+        assert len(response.data) == 1
         assert response.data[0]["email"] == self.user2.email
-        assert response.data[1]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:owner"}
         )
-        assert len(response.data) == 2
+        assert len(response.data) == 1
         assert response.data[0]["email"] == self.user.email
-        assert response.data[1]["email"] == user.email
 
     def test_is_invited_query(self):
         response = self.get_success_response(
@@ -475,8 +474,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert member.role == "manager"
         self.assert_org_member_mapping(org_member=member)
 
+    @with_feature({"organizations:team-roles": False})
+    def test_can_invite_retired_role_without_flag(self):
+        data = {"email": "baz@example.com", "role": "admin", "teams": [self.team.slug]}
 
-@region_silo_test
+        with self.settings(SENTRY_ENABLE_INVITES=True):
+            self.get_success_response(self.organization.slug, method="post", **data)
+
+    @with_feature("organizations:team-roles")
+    def test_cannot_invite_retired_role_with_flag(self):
+        data = {"email": "baz@example.com", "role": "admin", "teams": [self.team.slug]}
+
+        with self.settings(SENTRY_ENABLE_INVITES=True):
+            response = self.get_error_response(
+                self.organization.slug, method="post", **data, status_code=400
+            )
+        assert (
+            response.data["role"][0]
+            == "The role 'admin' is deprecated and may no longer be assigned."
+        )
+
+
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
@@ -614,7 +632,6 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         )
 
 
-@region_silo_test
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
@@ -691,9 +708,12 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["member:write"]
+        )
         token = self.create_internal_integration_token(
-            user=self.user, org=self.organization, scopes=["member:write"]
+            user=self.user, internal_integration=internal_integration
         )
         err_message = (
             "Integration tokens are restricted to inviting new members with the member role only."

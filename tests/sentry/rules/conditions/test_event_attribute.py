@@ -1,13 +1,11 @@
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 
@@ -770,3 +768,32 @@ class EventAttributeConditionTest(RuleTestCase):
             data={"match": MatchType.EQUAL, "attribute": "unreal.crash_type", "value": "NoCrash"}
         )
         self.assertDoesNotPass(rule, event)
+
+    def test_does_not_error_with_none(self):
+        exception = {
+            "values": [
+                None,
+                {
+                    "type": "SyntaxError",
+                    "value": "hello world",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "filename": "example.php",
+                                "module": "example",
+                                "context_line": 'echo "hello";',
+                                "abs_path": "path/to/example.php",
+                            }
+                        ]
+                    },
+                    "thread_id": 1,
+                },
+            ]
+        }
+
+        event = self.get_event(exception=exception)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "exception.type", "value": "SyntaxError"}
+        )
+        self.assertPasses(rule, event)

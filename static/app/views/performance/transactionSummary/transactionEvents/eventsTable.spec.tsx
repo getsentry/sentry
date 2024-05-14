@@ -211,7 +211,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', function () {
+  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
     const initialData = initializeData();
 
     fields = [
@@ -257,7 +257,7 @@ describe('Performance GridEditable Table', function () {
       {context: initialData.routerContext}
     );
 
-    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(await screen.findAllByRole('columnheader')).toHaveLength(6);
     expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
     expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();

@@ -25,7 +25,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -91,24 +91,25 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        top_functions = functions.query(
-            selected_columns=[
-                "project.id",
-                "fingerprint",
-                "package",
-                "function",
-                "count()",
-                "examples()",
-            ],
-            query=data.get("query"),
-            params=params,
-            orderby=["-count()"],
-            limit=TOP_FUNCTIONS_LIMIT,
-            referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            transform_alias_to_input_format=True,
-        )
+        with handle_query_errors():
+            top_functions = functions.query(
+                selected_columns=[
+                    "project.id",
+                    "fingerprint",
+                    "package",
+                    "function",
+                    "count()",
+                    "examples()",
+                ],
+                query=data.get("query"),
+                params=params,
+                orderby=["-count()"],
+                limit=TOP_FUNCTIONS_LIMIT,
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+            )
 
         def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
             rollup = get_rollup_from_range(params["end"] - params["start"])
@@ -137,7 +138,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 )
                 for chunk in chunks
             ]
-            bulk_results = bulk_snql_query(
+            bulk_results = bulk_snuba_queries(
                 [builder.get_snql_query() for builder in builders],
                 Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
             )

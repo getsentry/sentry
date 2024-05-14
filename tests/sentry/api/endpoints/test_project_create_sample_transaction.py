@@ -1,13 +1,11 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ProjectCreateSampleTransactionTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -19,7 +17,10 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -33,7 +34,10 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -45,7 +49,10 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -57,7 +64,10 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -69,7 +79,10 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 
@@ -82,7 +95,10 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, format="json")
 

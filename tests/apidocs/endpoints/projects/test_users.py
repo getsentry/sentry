@@ -7,11 +7,9 @@ from django.utils import timezone
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
-@region_silo_test
 class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -19,7 +17,10 @@ class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
         timestamp = iso_format(timezone.now() - timedelta(hours=1))
         self.url = reverse(
             "sentry-api-0-project-users",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
         self.event1 = self.store_event(

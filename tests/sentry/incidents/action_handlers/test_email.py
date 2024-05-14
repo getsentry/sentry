@@ -14,13 +14,8 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    IncidentStatus,
-    TriggerStatus,
-)
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
@@ -31,7 +26,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 from . import FireTest
 
@@ -39,7 +34,6 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
-@region_silo_test
 class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
@@ -77,7 +71,6 @@ class EmailActionHandlerTest(FireTest):
         )
 
 
-@region_silo_test
 class EmailActionHandlerGetTargetsTest(TestCase):
     @cached_property
     def incident(self):
@@ -238,7 +231,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE

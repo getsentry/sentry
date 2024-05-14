@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
 import pytest
 
@@ -16,11 +17,9 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class SnapshotTests(BackupTestCase):
     """
     Tests against specific JSON snapshots.
@@ -32,7 +31,7 @@ class SnapshotTests(BackupTestCase):
 
     def import_export_fixture_then_validate(
         self, *, tmp_out_path: Path, fixture_file_name: str
-    ) -> json.JSONData:
+    ) -> Any:
         """
         Test helper that validates that data imported from a fixture `.json` file correctly matches
         the actual outputted export data.

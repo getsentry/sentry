@@ -8,7 +8,9 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();
@@ -17,6 +19,7 @@ function ReplayCurrentUrl() {
   const projId = replayRecord?.project_id;
   const {projects} = useProjects();
   const projSlug = projects.find(p => p.id === projId)?.slug ?? undefined;
+  const organization = useOrganization();
 
   const url = useMemo(() => {
     try {
@@ -47,7 +50,11 @@ function ReplayCurrentUrl() {
               </ExternalLink>
             ),
             settings: projSlug ? (
-              <Link to={`/settings/projects/${projSlug}/security-and-privacy/`}>
+              <Link
+                to={normalizeUrl(
+                  `/settings/${organization.slug}/projects/${projSlug}/security-and-privacy/`
+                )}
+              >
                 {'Settings, under Security & Privacy'}
               </Link>
             ) : (

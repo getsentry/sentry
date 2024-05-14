@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcMemberSsoState,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
@@ -36,14 +36,6 @@ class AccessService(abc.ABC):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
-        pass
-
-    @abc.abstractmethod
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
-        pass
-
-    @abc.abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
         pass
 
     def auth_identity_is_valid(

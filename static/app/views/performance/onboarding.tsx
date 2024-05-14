@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -27,12 +26,14 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -188,10 +189,23 @@ function Onboarding({organization, project}: Props) {
             const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
             try {
               const eventData = await api.requestPromise(url, {method: 'POST'});
+              const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
+
               browserHistory.push(
-                normalizeUrl(
-                  `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
-                )
+                generateLinkToEventInTraceView({
+                  eventId: eventData.eventID,
+                  projectSlug: project.slug,
+                  organization,
+                  location: {
+                    ...location,
+                    query: {
+                      ...location.query,
+                      demo: `${project.slug}:${eventData.eventID}`,
+                    },
+                  },
+                  timestamp: eventData.endTimestamp,
+                  traceSlug,
+                })
               );
               clearIndicators();
             } catch (error) {

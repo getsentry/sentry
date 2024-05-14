@@ -10,7 +10,7 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.apps import SentryAppUpdater, expand_events
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -38,9 +38,15 @@ class TestUpdater(TestCase):
         sentry_app = self.create_internal_integration(
             scopes=("project:read",), organization=self.org
         )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=sentry_app
+        )
+
         updater = SentryAppUpdater(sentry_app=sentry_app)
         updater.scopes = ["project:read", "project:write"]
         updater.run(user=self.user)
+        token.refresh_from_db()
+
         assert sentry_app.get_scopes() == ["project:read", "project:write"]
         assert ApiToken.objects.get(application=sentry_app.application).get_scopes() == [
             "project:read",

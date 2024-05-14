@@ -1,5 +1,6 @@
 import logging
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -12,12 +13,12 @@ from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +33,14 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
 
     def get(self, request: Request) -> Response:
         status = request.GET.get("status")
+        elevated_user = is_active_superuser(request) or is_active_staff(request)
 
         if status == "published":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
 
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
-            if not is_active_superuser(request):
+            if not elevated_user:
                 queryset = queryset.filter(
                     owner_id__in=[
                         o.id
@@ -49,7 +51,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 )
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
-            if not is_active_superuser(request):
+            if not elevated_user:
                 queryset = queryset.filter(
                     owner_id__in=[
                         o.id
@@ -59,7 +61,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     ]
                 )
         else:
-            if is_active_superuser(request):
+            if elevated_user:
                 queryset = SentryApp.objects.all()
             else:
                 queryset = SentryApp.objects.filter(status=SentryAppStatus.PUBLISHED)
@@ -88,9 +90,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "schema": request.json_body.get("schema", {}),
             "overview": request.json_body.get("overview"),
             "allowedOrigins": request.json_body.get("allowedOrigins", []),
-            "popularity": request.json_body.get("popularity")
-            if is_active_superuser(request)
-            else None,
+            "popularity": (
+                request.json_body.get("popularity") if is_active_superuser(request) else None
+            ),
         }
 
         if self._has_hook_events(request) and not features.has(
@@ -141,7 +143,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             for error_message in serializer.errors["schema"]:
                 name = "sentry_app.schema_validation_error"
                 log_info = {
-                    "schema": json.dumps(data["schema"]),
+                    "schema": orjson.dumps(data["schema"]).decode(),
                     "user_id": request.user.id,
                     "sentry_app_name": data["name"],
                     "organization_id": organization.id,

@@ -1,32 +1,42 @@
-import type {Location} from 'history';
-
+import type {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import type {IndexedProperty, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const DEFAULT_LIMIT = 10;
-
-interface Filters {
-  [key: string]: string;
+interface UseIndexedSpansOptions<Fields> {
+  cursor?: string;
+  enabled?: boolean;
+  fields?: Fields;
+  limit?: number;
+  referrer?: string;
+  search?: MutableSearch;
+  sorts?: Sort[];
 }
 
-export const useIndexedSpans = (
-  filters: Filters,
-  sorts: Sort[] = [{field: 'timestamp', kind: 'desc'}],
-  limit: number = DEFAULT_LIMIT,
-  enabled: boolean = true,
-  referrer: string = 'use-indexed-spans'
+export const useIndexedSpans = <Fields extends IndexedProperty[]>(
+  options: UseIndexedSpansOptions<Fields> = {}
 ) => {
-  const location = useLocation();
-  const eventView = getEventView(filters, location, sorts);
+  const {
+    fields = [],
+    search = undefined,
+    sorts = [],
+    limit,
+    cursor,
+    referrer,
+    enabled,
+  } = options;
+
+  const pageFilters = usePageFilters();
+
+  const eventView = getEventView(search, fields, sorts, pageFilters.selection);
 
   return useSpansQuery<SpanIndexedFieldTypes[]>({
     eventView,
+    cursor,
     limit,
     initialData: [],
     enabled,
@@ -34,26 +44,24 @@ export const useIndexedSpans = (
   });
 };
 
-function getEventView(filters: Filters, location: Location, sorts?: Sort[]) {
-  // TODO: Add a `MutableSearch` constructor that accept a key-value mapping
-  const search = new MutableSearch([]);
-
-  for (const filterName in filters) {
-    search.addFilterValue(filterName, filters[filterName]);
-  }
-
-  const eventView = EventView.fromNewQueryWithLocation(
+function getEventView(
+  search: MutableSearch | undefined,
+  fields: string[] = [],
+  sorts: Sort[] = [],
+  pageFilters: PageFilters
+) {
+  const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: search.formatString(),
-      fields: Object.values(SpanIndexedField),
+      query: search?.formatString() ?? '',
+      fields,
       dataset: DiscoverDatasets.SPANS_INDEXED,
       version: 2,
     },
-    location
+    pageFilters
   );
 
-  if (sorts) {
+  if (sorts.length > 0) {
     eventView.sorts = sorts;
   }
 

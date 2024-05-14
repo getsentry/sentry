@@ -99,6 +99,34 @@ describe('App', function () {
     user.flags.newsletter_consent_prompt = false;
   });
 
+  it('renders BeaconConsent', async function () {
+    ConfigStore.set('shouldShowBeaconConsentPrompt', true);
+    ConfigStore.get('user').isSuperuser = true;
+    ConfigStore.set('isSelfHosted', true);
+
+    MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {
+        problems: [],
+      },
+    });
+
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    await waitFor(() => OrganizationsStore.getAll().length === 1);
+
+    const beaconConsentText = await screen.findByText(
+      'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.',
+      undefined,
+      {timeout: 2000, interval: 100}
+    );
+    expect(beaconConsentText).toBeInTheDocument();
+  });
+
   it('renders PartnershipAgreement', async function () {
     ConfigStore.set('partnershipAgreementPrompt', {
       partnerDisplayName: 'Foo',

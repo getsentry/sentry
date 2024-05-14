@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from django.utils import timezone
@@ -171,7 +171,7 @@ class TestUpdateDsyms:
 
     @django_db_all
     def test_get_persisted_build(self, default_project, config, build):
-        seen = datetime(2020, 2, 20)
+        seen = datetime(2020, 2, 20, tzinfo=UTC)
 
         AppConnectBuild.objects.create(
             project=default_project,
@@ -198,7 +198,7 @@ class TestUpdateDsyms:
 
     @django_db_all
     def test_get_persisted_build_preserves_existing_fetched(self, default_project, config, build):
-        seen = datetime(2020, 2, 20)
+        seen = datetime(2020, 2, 20, tzinfo=UTC)
 
         AppConnectBuild.objects.create(
             project=default_project,

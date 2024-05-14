@@ -14,7 +14,7 @@ from sentry.search.utils import tokenize_query
 
 @region_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -24,9 +24,9 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         Retrieve attachments for an event
         `````````````````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event.
         :auth: required

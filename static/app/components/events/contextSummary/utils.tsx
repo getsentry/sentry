@@ -11,6 +11,8 @@ const serverSideSdks = [
   'sentry.javascript.sveltekit',
 ];
 
+export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;
+
 function isServerSideRenderedEvent(event: Event) {
   return event.sdk && serverSideSdks.includes(event.sdk.name);
 }

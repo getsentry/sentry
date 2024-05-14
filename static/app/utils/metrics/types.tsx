@@ -1,4 +1,5 @@
-import type {DateString, MRI, PageFilters} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -11,44 +12,81 @@ export type MetricTag = {
 };
 
 export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
+  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | 'total' | undefined;
   order: 'asc' | 'desc';
 };
 
+export enum MetricSeriesFilterUpdateType {
+  ADD = 'add',
+  EXCLUDE = 'exclude',
+}
+
 export interface FocusedMetricsSeries {
-  seriesName: string;
+  id: string;
   groupBy?: Record<string, string>;
 }
 
-export interface MetricWidgetQueryParams extends MetricsQuerySubject {
+export interface MetricsQuery {
+  mri: MRI;
+  op: string;
+  groupBy?: string[];
+  query?: string;
+}
+
+export enum MetricExpressionType {
+  QUERY = 1,
+  EQUATION = 2,
+}
+
+export enum MetricChartOverlayType {
+  RELEASES = 'releases',
+  SAMPLES = 'samples',
+}
+
+export interface BaseWidgetParams {
   displayType: MetricDisplayType;
+  id: number;
+  isHidden: boolean;
+  type: MetricExpressionType;
   focusedSeries?: FocusedMetricsSeries[];
-  highlightedSample?: string | null;
-  powerUserMode?: boolean;
+  overlays?: MetricChartOverlayType[];
   sort?: SortState;
 }
 
-export interface DdmQueryParams {
-  widgets: string; // stringified json representation of MetricWidgetQueryParams
+export interface MetricsQueryWidget extends BaseWidgetParams, MetricsQuery {
+  type: MetricExpressionType.QUERY;
+  powerUserMode?: boolean;
+}
+
+export interface MetricsEquationWidget extends BaseWidgetParams {
+  formula: string;
+  type: MetricExpressionType.EQUATION;
+}
+
+export type MetricsWidget = MetricsQueryWidget | MetricsEquationWidget;
+
+export function isMetricsEquationWidget(
+  widget: MetricsWidget
+): widget is MetricsEquationWidget {
+  return widget.type === MetricExpressionType.EQUATION;
+}
+
+export function isMetricsQueryWidget(
+  widget: MetricsWidget
+): widget is MetricsQueryWidget {
+  return widget.type === MetricExpressionType.QUERY;
+}
+
+export interface MetricsQueryParams {
+  widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;
   environment?: string[];
+  interval?: string;
   project?: number[];
   start?: DateString;
   statsPeriod?: string | null;
   utc?: boolean | null;
 }
-
-export type MetricsQuery = {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  mri: MRI;
-  projects: PageFilters['projects'];
-  groupBy?: string[];
-  op?: string;
-  query?: string;
-};
-
-export type MetricsQuerySubject = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;
@@ -104,10 +142,3 @@ export type MetricCorrelation = {
     spanOp: string;
   }[];
 };
-
-export interface SelectionRange {
-  end?: DateString;
-  max?: number;
-  min?: number;
-  start?: DateString;
-}

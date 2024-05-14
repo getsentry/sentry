@@ -310,13 +310,13 @@ def normalize_stacktraces_for_grouping(
             if frames:
                 stacktrace_frames.append(frames)
                 stacktrace_containers.append(
-                    stacktrace_info.container if stacktrace_info.is_exception else None
+                    stacktrace_info.container if stacktrace_info.is_exception else {}
                 )
 
     if not stacktrace_frames:
         return
 
-    platform = data.get("platform")
+    platform = data.get("platform", "")
     sentry_sdk.set_tag("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if
@@ -331,11 +331,10 @@ def normalize_stacktraces_for_grouping(
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            extra_fingerprint = f"{grouping_config.id}.{grouping_config.enhancements.dumps()}"
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, stacktrace_container, extra_fingerprint=extra_fingerprint
+                    frames, platform, stacktrace_container
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
@@ -579,6 +578,7 @@ def dedup_errors(errors):
     return rv
 
 
+@sentry_sdk.tracing.trace
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:

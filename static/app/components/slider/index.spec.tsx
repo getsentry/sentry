@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Slider} from 'sentry/components/slider';
 
@@ -38,7 +38,9 @@ describe('Slider', function () {
     // To focus on the slider, we should call the focus() method. The slider input element
     // is visually hidden and only rendered for screen-reader & keyboard accessibility —
     // users can't actually click on it.
-    screen.getByRole('slider', {name: 'Test'}).focus();
+    act(() => {
+      screen.getByRole('slider', {name: 'Test'}).focus();
+    });
 
     await userEvent.keyboard('{ArrowRight}');
     expect(onChangeMock).toHaveBeenCalledWith(6);
@@ -63,7 +65,9 @@ describe('Slider', function () {
     // To focus on the slider, we should call the focus() method. The slider input element
     // is visually hidden and only rendered for screen-reader & keyboard accessibility —
     // users can't actually click on it.
-    screen.getByRole('slider', {name: 'Test'}).focus();
+    act(() => {
+      screen.getByRole('slider', {name: 'Test'}).focus();
+    });
 
     await userEvent.keyboard('{ArrowRight}');
     expect(onChangeEndMock).toHaveBeenCalledWith(10);
@@ -84,7 +88,9 @@ describe('Slider', function () {
     // To focus on the slider, we should call the focus() method. The slider input element
     // is visually hidden and only rendered for screen-reader & keyboard accessibility —
     // users can't actually click on it.
-    screen.getByRole('slider', {name: 'Test'}).focus();
+    act(() => {
+      screen.getByRole('slider', {name: 'Test'}).focus();
+    });
 
     // Pressing Arrow Right/Left increases/decreases value by 1
     await userEvent.keyboard('{ArrowRight}');

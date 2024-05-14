@@ -3,12 +3,11 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import TypedDict
 
-import sentry_sdk
-
 from sentry import options
 from sentry.utils.sdk_crashes.path_replacer import (
     FixedPathReplacer,
     KeepAfterPatternMatchPathReplacer,
+    KeepFieldPathReplacer,
     PathReplacer,
 )
 
@@ -17,7 +16,7 @@ from sentry.utils.sdk_crashes.path_replacer import (
 class SDKFrameConfig:
     function_patterns: set[str]
 
-    filename_patterns: set[str]
+    path_patterns: set[str]
 
     path_replacer: PathReplacer
 
@@ -26,6 +25,8 @@ class SDKFrameConfig:
 class SdkName(Enum):
     Cocoa = "cocoa"
     ReactNative = "react-native"
+    Java = "java"
+    Native = "native"
 
 
 @dataclass
@@ -84,7 +85,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
-            system_library_path_patterns={r"/System/Library/*", r"/usr/lib/*"},
+            system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
                     r"*sentrycrash*",
@@ -92,7 +93,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     r"*(Sentry*)*",  # Objective-C class extension categories
                     r"SentryMX*",  # MetricKit Swift classes
                 },
-                filename_patterns={"Sentry**"},
+                path_patterns={"Sentry**"},
                 path_replacer=FixedPathReplacer(path="Sentry.framework"),
             ),
             # [SentrySDK crash] is a testing function causing a crash.
@@ -117,12 +118,12 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # We require at least sentry-react-native 4.0.0 to only detect SDK crashes for not too old versions.
             min_sdk_version="4.0.0",
             system_library_path_patterns={
-                r"*/react-native/Libraries/*",
-                r"*/react-native-community/*",
+                r"**/react-native/Libraries/**",
+                r"**/react-native-community/**",
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
-                filename_patterns={
+                path_patterns={
                     # Development path
                     r"**/sentry-react-native/dist/**",
                     # Production paths taken from https://github.com/getsentry/sentry-react-native/blob/037d5fa2f38b02eaf4ca92fda569e0acfd6c3ebe/package.json#L68-L77
@@ -150,6 +151,111 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
         )
         configs.append(react_native_config)
 
+    java_options = _get_options(sdk_name=SdkName.Java, has_organization_allowlist=True)
+    if java_options:
+        java_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Java,
+            project_id=java_options["project_id"],
+            sample_rate=java_options["sample_rate"],
+            organization_allowlist=java_options["organization_allowlist"],
+            sdk_names=[
+                "sentry.java.android",
+                "sentry.java.android.capacitor",
+                "sentry.java.android.dotnet",
+                "sentry.java.android.flutter",
+                "sentry.java.android.kmp",
+                "sentry.java.android.react-native",
+                "sentry.java.android.timber",
+                "sentry.java.android.unity",
+                "sentry.java.android.unreal",
+                "sentry.java.jul",
+                "sentry.java.kmp",
+                "sentry.java.log4j2",
+                "sentry.java.logback",
+                "sentry.java.opentelemetry.agent",
+                "sentry.java.spring",
+                "sentry.java.spring-boot",
+                "sentry.java.spring-boot.jakarta",
+                "sentry.java.spring.jakarta",
+            ],
+            # The sentry-java SDK sends SDK frames for uncaught exceptions since 7.0.0, which is required for detecting SDK crashes.
+            # 7.0.0 was released in Nov 2023, see https://github.com/getsentry/sentry-java/releases/tag/7.0.0
+            min_sdk_version="7.0.0",
+            system_library_path_patterns={
+                r"java.**",
+                r"javax.**",
+                r"android.**",
+                r"androidx.**",
+                r"com.android.internal.**",
+                r"kotlin.**",
+                r"dalvik.**",
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns=set(),
+                path_patterns={
+                    r"io.sentry.**",
+                },
+                path_replacer=KeepFieldPathReplacer(fields={"module", "filename"}),
+            ),
+            sdk_crash_ignore_functions_matchers=set(),
+        )
+        configs.append(java_config)
+
+    native_options = _get_options(sdk_name=SdkName.Native, has_organization_allowlist=True)
+
+    if native_options:
+        native_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Native,
+            project_id=native_options["project_id"],
+            sample_rate=native_options["sample_rate"],
+            organization_allowlist=native_options["organization_allowlist"],
+            sdk_names=[
+                "sentry.native",
+                "sentry.native.android",
+                "sentry.native.android.capacitor",
+                "sentry.native.android.flutter",
+                "sentry.native.android.react-native",
+                "sentry.native.android.unity",
+                "sentry.native.android.unreal",
+                "sentry.native.dotnet",
+                "sentry.native.unity",
+                "sentry.native.unreal",
+            ],
+            # 0.6.0 was released in Feb 2023, see https://github.com/getsentry/sentry-native/releases/tag/0.6.0.
+            min_sdk_version="0.6.0",
+            system_library_path_patterns={
+                # well known locations for unix paths
+                r"/lib/**",
+                r"/usr/lib/**",
+                r"/usr/local/lib/**",
+                r"/usr/local/Cellar/**",
+                r"linux-gate.so*",
+                # others
+                r"/System/Library/Frameworks/**",  # macOS
+                r"C:/Windows/**",
+                r"/system/**",
+                r"/vendor/**",
+                r"**/libart.so",
+                r"/apex/com.android.*/lib*/**",  # Android
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns={
+                    r"sentry_*",  # public interface
+                    r"sentry__*",  # module level interface
+                    r"Java_io_sentry_android_ndk_*",  # JNI interface
+                },
+                path_patterns=set(),
+                path_replacer=KeepAfterPatternMatchPathReplacer(
+                    patterns={
+                        r"sentry_.*",
+                    },
+                    fallback_path="sentry",
+                ),
+            ),
+            sdk_crash_ignore_functions_matchers=set(),
+        )
+        configs.append(native_config)
+
     return configs
 
 
@@ -160,7 +266,6 @@ def _get_options(
 
     project_id = options.get(f"{options_prefix}.project_id")
     if not project_id:
-        sentry_sdk.capture_message(f"{sdk_name.value} project_id is not set.")
         return None
 
     sample_rate = options.get(f"{options_prefix}.sample_rate")

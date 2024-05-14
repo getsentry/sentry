@@ -9,12 +9,14 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
   onMerge: () => void;
   groupId?: string;
+  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
   organization?: Organization;
   project?: Project;
 };
@@ -55,6 +57,9 @@ class SimilarToolbar extends Component<Props, State> {
       return;
     }
     for (const parentGroupId of this.state.mergeList) {
+      const itemWouldGroup = this.props.itemsWouldGroup?.find(
+        item => item.id === parentGroupId
+      );
       trackAnalytics(
         'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
         {
@@ -63,6 +68,7 @@ class SimilarToolbar extends Component<Props, State> {
           parentGroupId,
           groupId: this.props.groupId,
           value,
+          wouldGroup: itemWouldGroup?.shouldBeGrouped,
         }
       );
     }

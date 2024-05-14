@@ -2,22 +2,21 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-import re
 import uuid
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import OperationalError, connection, router, transaction
-from django.db.models import Func
+from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
 from usageaccountant import UsageUnit
 
@@ -32,11 +31,12 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEVERITY_DETECTION_RETRIES
+from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    PLACEHOLDER_EVENT_TITLES,
     DataCategory,
 )
 from sentry.culprit import generate_culprit
@@ -45,19 +45,39 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
-from sentry.grouping.ingest import (
-    add_group_id_to_grouphashes,
-    check_for_category_mismatch,
-    check_for_group_creation_load_shed,
+from sentry.grouping.api import (
+    NULL_GROUPHASH_INFO,
+    GroupHashInfo,
+    GroupingConfig,
+    get_grouping_config_dict_for_project,
+)
+from sentry.grouping.ingest.config import (
+    is_in_transition,
+    project_uses_optimized_grouping,
+    update_grouping_config_if_needed,
+)
+from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
-    record_new_group_metrics,
-    update_grouping_config_if_needed,
+    maybe_run_background_grouping,
+    maybe_run_secondary_grouping,
+    run_primary_grouping,
 )
+from sentry.grouping.ingest.metrics import (
+    record_calculation_metric_with_result,
+    record_hash_calculation_metrics,
+    record_new_group_metrics,
+)
+from sentry.grouping.ingest.utils import (
+    add_group_id_to_grouphashes,
+    check_for_category_mismatch,
+    check_for_group_creation_load_shed,
+    extract_hashes,
+)
+from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -73,29 +93,25 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.pullrequest import PullRequest
-from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.models.userreport import UserReport
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_transaction_received,
     issue_unresolved,
 )
-from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -103,10 +119,15 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.circuit_breaker import (
+    ERROR_COUNT_CACHE_KEY,
+    CircuitBreakerPassthrough,
+    circuit_breaker_activated,
+)
+from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
@@ -114,6 +135,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
@@ -126,9 +148,10 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 HIGH_SEVERITY_THRESHOLD = 0.1
+
+SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
 
 
 @dataclass
@@ -280,7 +303,7 @@ class ScoreClause(Func):
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
                 self.times_seen,
-                to_timestamp(self.last_seen),
+                self.last_seen.timestamp(),
             )
         else:
             sql = "log(times_seen) * 600 + last_seen::abstime::int"
@@ -364,11 +387,14 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
+            json_dumps=orjson.dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
+        )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -378,7 +404,7 @@ class EventManager:
     def get_data(self) -> CanonicalKeyDict:
         return self._data
 
-    @metrics.wraps("event_manager.save")
+    @sentry_sdk.tracing.trace
     def save(
         self,
         project_id: int | None,
@@ -387,6 +413,7 @@ class EventManager:
         start_time: int | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
+        has_attachments: bool = False,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -412,13 +439,10 @@ class EventManager:
                 self.normalize(project_id=project_id)
             self._normalized = True
 
-        with metrics.timer("event_manager.save.project.get_from_cache"):
-            project = Project.objects.get_from_cache(id=project_id)
-
-        with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
+        project = Project.objects.get_from_cache(id=project_id)
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        )
 
         projects = {project.id: project}
 
@@ -430,8 +454,7 @@ class EventManager:
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
-        with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
-            _pull_out_data([job], projects)
+        _pull_out_data([job], projects)
 
         event_type = self._data.get("type")
         if event_type == "transaction":
@@ -450,15 +473,29 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
+            project = job["event"].project
+            job["optimized_grouping"] = project_uses_optimized_grouping(project)
+            job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "using_transition_optimization": job["optimized_grouping"],
+                "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
-                return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
+                return self.save_error_events(
+                    project,
+                    job,
+                    projects,
+                    metric_tags,
+                    raw,
+                    cache_key,
+                    has_attachments=has_attachments,
+                )
 
+    @sentry_sdk.tracing.trace
     def save_error_events(
         self,
         project: Project,
@@ -467,6 +504,7 @@ class EventManager:
         metric_tags: MutableTags,
         raw: bool = False,
         cache_key: str | None = None,
+        has_attachments: bool = False,
     ) -> Event:
         jobs = [job]
 
@@ -482,19 +520,15 @@ class EventManager:
 
         is_reprocessed = is_reprocessed_event(job["data"])
 
-        with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
-            _get_or_create_release_many(jobs, projects)
-
-        with sentry_sdk.start_span(op="event_manager.save.get_event_user_many"):
-            _get_event_user_many(jobs, projects)
+        _get_or_create_release_many(jobs, projects)
+        _get_event_user_many(jobs, projects)
 
         job["project_key"] = None
         if job["key_id"] is not None:
-            with metrics.timer("event_manager.load_project_key"):
-                try:
-                    job["project_key"] = ProjectKey.objects.get_from_cache(id=job["key_id"])
-                except ProjectKey.DoesNotExist:
-                    pass
+            try:
+                job["project_key"] = ProjectKey.objects.get_from_cache(id=job["key_id"])
+            except ProjectKey.DoesNotExist:
+                pass
 
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
@@ -503,24 +537,15 @@ class EventManager:
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
         # based on the group counter.
-        with metrics.timer("event_manager.get_attachments"):
-            with sentry_sdk.start_span(op="event_manager.save.get_attachments"):
-                attachments = get_attachments(cache_key, job)
+        if has_attachments:
+            attachments = get_attachments(cache_key, job)
+        else:
+            attachments = []
 
         try:
-            with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
-                group_info = assign_event_to_group(
-                    event=job["event"], job=job, metric_tags=metric_tags
-                )
+            group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded as err:
-            logger.info(
-                "event_manager.save.discard",
-                extra={
-                    "reason": err.reason,
-                    "tombstone_id": err.tombstone_id,
-                },
-            )
+        except HashDiscarded:
             discard_event(job, attachments)
             raise
 
@@ -541,17 +566,13 @@ class EventManager:
         job["event"].data.bind_ref(job["event"])
 
         _get_or_create_environment_many(jobs, projects)
-        _get_or_create_group_environment_many(jobs, projects)
+        _get_or_create_group_environment_many(jobs)
         _get_or_create_release_associated_models(jobs, projects)
         _increment_release_associated_counts_many(jobs, projects)
-        _get_or_create_group_release_many(jobs, projects)
+        _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
 
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
-
-        with metrics.timer("event_manager.filter_attachments_for_group"):
+        if attachments:
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -599,9 +620,8 @@ class EventManager:
         # We do not need this for reprocessed events as for those we update the
         # group_id on existing models in post_process_group, which already does
         # this because of indiv. attachments.
-        if not is_reprocessed:
-            with metrics.timer("event_manager.save_attachments"):
-                save_attachments(cache_key, attachments, job)
+        if not is_reprocessed and attachments:
+            save_attachments(cache_key, attachments, job)
 
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
@@ -626,7 +646,7 @@ class EventManager:
         return job["event"]
 
 
-@metrics.wraps("save_event.pull_out_data")
+@sentry_sdk.tracing.trace
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
     Update every job in the list with required information and store it in the nodestore.
@@ -685,61 +705,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["groups"] = []
 
 
-def _is_commit_sha(version: str) -> bool:
-    return re.match(r"[0-9a-f]{40}", version) is not None
-
-
-def _associate_commits_with_release(release: Release, project: Project) -> None:
-    previous_release = release.get_previous_release(project)
-    possible_repos = (
-        RepositoryProjectPathConfig.objects.select_related("repository")
-        .filter(project=project, repository__provider="integrations:github")
-        .all()
-    )
-    if possible_repos:
-        # If it does exist, kick off a task to look if the commit exists in the repository
-        target_repo = None
-        for repo_proj_path_model in possible_repos:
-            ois = integration_service.get_organization_integrations(
-                org_integration_ids=[repo_proj_path_model.organization_integration_id]
-            )
-            oi = ois[0]
-            if not oi:
-                continue
-            integration = integration_service.get_integration(integration_id=oi.integration_id)
-            if not integration:
-                continue
-            integration_installation = integration.get_installation(
-                organization_id=oi.organization_id
-            )
-            if not integration_installation:
-                continue
-            repo_client = integration_installation.get_client()
-            try:
-                repo_client.get_commit(
-                    repo=repo_proj_path_model.repository.name, sha=release.version
-                )
-                target_repo = repo_proj_path_model.repository
-                break
-            except ApiError as exc:
-                if exc.code != 404:
-                    raise
-
-        if target_repo is not None:
-            # If it does exist, fetch the commits for that repo
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": release.id,
-                    "user_id": None,
-                    "refs": [{"repository": target_repo.name, "commit": release.version}],
-                    "prev_release_id": (
-                        previous_release.id if previous_release is not None else None
-                    ),
-                }
-            )
-
-
-@metrics.wraps("save_event.get_or_create_release_many")
+@sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
     release_date_added: dict[tuple[int, Release], datetime] = {}
@@ -773,11 +739,6 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
             )
 
         if release:
-            if features.has(
-                "projects:auto-associate-commits-to-release", projects[project_id]
-            ) and _is_commit_sha(release.version):
-                safe_execute(_associate_commits_with_release, release, projects[project_id])
-
             for job in jobs_to_update:
                 # Don't allow a conflicting 'release' tag
                 data = job["data"]
@@ -840,7 +801,7 @@ def _get_environment_from_transaction(data: EventDict) -> str | None:
     return environment
 
 
-@metrics.wraps("save_event.get_event_user_many")
+@sentry_sdk.tracing.trace
 def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         data = job["data"]
@@ -853,7 +814,7 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
         job["user"] = user
 
 
-@metrics.wraps("save_event.derive_plugin_tags_many")
+@sentry_sdk.tracing.trace
 def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     # XXX: We ought to inline or remove this one for sure
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
@@ -869,7 +830,7 @@ def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                         set_tag(data, key, value)
 
 
-@metrics.wraps("save_event.derive_interface_tags_many")
+@sentry_sdk.tracing.trace
 def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
@@ -883,7 +844,7 @@ def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
                 data.pop(iface.path, None)
 
 
-@metrics.wraps("save_event.materialize_metadata_many")
+@sentry_sdk.tracing.trace
 def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         # we want to freeze not just the metadata and type in but also the
@@ -968,7 +929,7 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
     return kwargs
 
 
-@metrics.wraps("save_event.get_or_create_environment_many")
+@sentry_sdk.tracing.trace
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         job["environment"] = Environment.get_or_create(
@@ -976,8 +937,8 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
         )
 
 
-@metrics.wraps("save_event.get_or_create_group_environment_many")
-def _get_or_create_group_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+@sentry_sdk.tracing.trace
+def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         _get_or_create_group_environment(job["environment"], job["release"], job["groups"])
 
@@ -993,7 +954,6 @@ def _get_or_create_group_environment(
         )[1]
 
 
-@metrics.wraps("save_event.get_or_create_release_associated_models")
 def _get_or_create_release_associated_models(
     jobs: Sequence[Job], projects: ProjectsMapping
 ) -> None:
@@ -1061,8 +1021,7 @@ def _increment_release_associated_counts(
         )
 
 
-@metrics.wraps("save_event.get_or_create_group_release_many")
-def _get_or_create_group_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _get_or_create_group_release_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         _get_or_create_group_release(
             job["environment"], job["release"], job["event"], job["groups"]
@@ -1085,7 +1044,6 @@ def _get_or_create_group_release(
             )
 
 
-@metrics.wraps("save_event.tsdb_record_all_metrics")
 def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
     """
     Do all tsdb-related things for save_event in here s.t. we can potentially
@@ -1144,9 +1102,8 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
-@metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
-    inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    inserted_time = datetime.now(timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
         subkeys = {}
@@ -1176,7 +1133,6 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         job["event"].data.save(subkeys=subkeys)
 
 
-@metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         if is_sample_event(job):
@@ -1230,12 +1186,18 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                     "sample_event": True,
                 },
             )
+
+        # Skip running grouping for "transaction" events:
+        primary_hash = (
+            None if job["data"].get("type") == "transaction" else job["event"].get_primary_hash()
+        )
+
         eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            primary_hash=job["event"].get_primary_hash(),
+            primary_hash=primary_hash,
             received_timestamp=job["received_timestamp"],
             # We are choosing to skip consuming the event back
             # in the eventstream if it's flagged as raw.
@@ -1247,7 +1209,6 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         )
 
 
-@metrics.wraps("save_event.track_outcome_accepted_many")
 def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
@@ -1264,7 +1225,6 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
         )
 
 
-@metrics.wraps("event_manager.get_event_instance")
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
@@ -1361,20 +1321,9 @@ def get_culprit(data: Mapping[str, Any]) -> str:
     )
 
 
+@sentry_sdk.tracing.trace
 def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    project = event.project
-
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    if (
-        features.has(
-            "organizations:grouping-suppress-unnecessary-secondary-hash",
-            project.organization,
-        )
-        and not has_mobile_config
-    ):
+    if job["optimized_grouping"]:
         group_info = _save_aggregate_new(
             event=event,
             job=job,
@@ -1406,6 +1355,7 @@ def _save_aggregate(
     project = event.project
 
     primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
@@ -1480,26 +1430,40 @@ def _save_aggregate(
         ):
             raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
-        with sentry_sdk.start_span(
-            op="event_manager.create_group_transaction"
-        ) as span, metrics.timer(
-            "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+            metrics.timer("event_manager.create_group_transaction") as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            span.set_tag("create_group_transaction.outcome", "no_group")
-            metric_tags["create_group_transaction.outcome"] = "no_group"
+            # These values will get overridden with whatever happens inside the lock if we do manage
+            # to acquire it, so it should only end up with `wait-for-lock` if we don't
+            span.set_tag("outcome", "wait_for_lock")
+            metric_tags["outcome"] = "wait_for_lock"
 
             all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
                 all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
+            # If we're in this branch, we checked our grouphashes and didn't find one with a group
+            # attached. We thus want to create a new group, but we need to guard against another
+            # event with the same hash coming in before we're done here and also thinking it needs
+            # to create a new group. To prevent this, we're using double-checked locking
+            # (https://en.wikipedia.org/wiki/Double-checked_locking).
+
+            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
+            # hashed) event is also in the process of creating a group and has grabbed the lock
+            # before us, we'll block here until it's done. If not, we've now got the lock and other
+            # identically-hashed events will have to wait for us.
             all_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
             )
 
             flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
+            # Now check again to see if any of our grouphashes have a group. In the first race
+            # condition scenario above, we'll have been blocked long enough for the other event to
+            # have created the group and updated our grouphashes with a group id, which means this
+            # time, we'll find something.
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
@@ -1511,6 +1475,8 @@ def _save_aggregate(
             else:
                 root_hierarchical_grouphash = None
 
+            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
+            # the group.
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_creation_kwargs)
 
@@ -1526,8 +1492,13 @@ def _save_aggregate(
                 is_new = True
                 is_regression = False
 
-                span.set_tag("create_group_transaction.outcome", "new_group")
-                metric_tags["create_group_transaction.outcome"] = "new_group"
+                span.set_tag("outcome", "new_group")
+                metric_tags["outcome"] = "new_group"
+                record_calculation_metric_with_result(
+                    project=project,
+                    has_secondary_hashes=has_secondary_hashes,
+                    result="new_group",
+                )
 
                 metrics.incr(
                     "group.created",
@@ -1583,6 +1554,18 @@ def _save_aggregate(
     else:
         new_hashes = []
 
+    primary_hash_values = set(extract_hashes(primary_hashes))
+    new_hash_values = {gh.hash for gh in new_hashes}
+    all_primary_hashes_are_new = primary_hash_values.issubset(new_hash_values)
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=has_secondary_hashes,
+        # If at least one primary hash value isn't new, then we will have found it, since we check
+        # those before the secondary hash values. If the primary hash values are all new, then we
+        # must have found a secondary hash (or we'd be in the group-creation branch).
+        result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
+    )
+
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
         # existing group. A classic example is when grouping makes changes to
@@ -1628,10 +1611,54 @@ def _save_aggregate_new(
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
+    secondary = NULL_GROUPHASH_INFO
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
-    _, _, hashes = get_hash_values(project, job, metric_tags)
+    # Try looking for an existing group using the current grouping config
+    primary = get_hashes_and_grouphashes(job, run_primary_grouping, metric_tags)
+
+    # If we've found one, great. No need to do any more calculations
+    if primary.existing_grouphash:
+        group_info = handle_existing_grouphash(
+            job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
+        )
+        result = "found_primary"
+    # If we haven't, try again using the secondary config
+    else:
+        secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
+        all_grouphashes = primary.grouphashes + secondary.grouphashes
+
+        # Now we know for sure whether or not a group already exists, so handle both cases
+        if secondary.existing_grouphash:
+            group_info = handle_existing_grouphash(
+                job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
+            )
+            result = "found_secondary"
+
+        else:
+            group_info = create_group_with_grouphashes(
+                job, all_grouphashes, group_processing_kwargs
+            )
+            result = "new_group"
+
+    # From here on out, we're just doing housekeeping
+
+    # Background grouping is a way for us to get performance metrics for a new
+    # config without having it actually affect on how events are grouped. It runs
+    # either before or after the main grouping logic, depending on the option value.
+    maybe_run_background_grouping(project, job)
+
+    record_hash_calculation_metrics(
+        project, primary.config, primary.hashes, secondary.config, secondary.hashes
+    )
+    # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
+    # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
+    record_calculation_metric_with_result(
+        project=project,
+        has_secondary_hashes=len(extract_hashes(secondary.hashes)) > 0,
+        result=result,
+    )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
@@ -1639,71 +1666,55 @@ def _save_aggregate_new(
     # erroneously create new groups.
     update_grouping_config_if_needed(project)
 
-    grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
-    ]
+    return group_info
 
-    existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-    if existing_grouphash is None:
-        check_for_group_creation_load_shed(project, event)
+def get_hashes_and_grouphashes(
+    job: Job,
+    hash_calculation_function: Callable[
+        [Project, Job, MutableTags],
+        tuple[GroupingConfig, CalculatedHashes],
+    ],
+    metric_tags: MutableTags,
+) -> GroupHashInfo:
+    """
+    Calculate hashes for the job's event, create corresponding `GroupHash` entries if they don't yet
+    exist, and determine if there's an existing group associated with any of the hashes.
 
-        with (
-            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
-            metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
-            transaction.atomic(router.db_for_write(GroupHash)),
-        ):
-            span.set_tag("create_group_transaction.outcome", "no_group")
-            metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
+    If the callback determines that it doesn't need to run its calculations (as may be the case with
+    secondary grouping), this will return an empty list of grouphashes (so iteration won't break)
+    and Nones for everything else.
+    """
+    project = job["event"].project
 
-            # If we're in this branch, we checked our grouphashes and didn't find one with a group
-            # attached. We thus want to create a new group, but we need to guard against another
-            # event with the same hash coming in before we're done here and also thinking it needs
-            # to create a new group. To prevent this, we're using double-checked locking
-            # (https://en.wikipedia.org/wiki/Double-checked_locking).
+    # These will come back as Nones if the calculation decides it doesn't need to run
+    grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
-            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
-            # hashed) event is also in the process of creating a group and has grabbed the lock
-            # before us, we'll block here until it's done. If not, we've now got the lock and other
-            # identically-hashed events will have to wait for us.
-            grouphashes = list(
-                GroupHash.objects.filter(
-                    id__in=[h.id for h in grouphashes],
-                ).select_for_update()
-            )
+    if extract_hashes(hashes):
+        grouphashes = [
+            GroupHash.objects.get_or_create(project=project, hash=hash)[0]
+            for hash in extract_hashes(hashes)
+        ]
 
-            # Now check again to see if any of our grouphashes have a group. In the first race
-            # condition scenario above, we'll have been blocked long enough for the other event to
-            # have created the group and updated our grouphashes with a group id, which means this
-            # time, we'll find something.
-            existing_grouphash = find_existing_grouphash_new(grouphashes)
+        existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
-            # the group.
-            if existing_grouphash is None:
-                group = _create_group(project, event, **group_processing_kwargs)
+        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+    else:
+        return NULL_GROUPHASH_INFO
 
-                add_group_id_to_grouphashes(group, grouphashes)
 
-                span.set_tag("create_group_transaction.outcome", "new_group")
-                metrics_timer_tags["create_group_transaction.outcome"] = "new_group"
+def handle_existing_grouphash(
+    job: Job,
+    existing_grouphash: GroupHash,
+    all_grouphashes: list[GroupHash],
+    group_processing_kwargs: dict[str, Any],
+) -> GroupInfo | None:
+    """
+    Handle the case where an incoming event matches an existing group, by assigning the event to the
+    group, updating the group metadata with data from the event, and linking any newly-calculated
+    grouphashes to the group.
+    """
 
-                record_new_group_metrics(event)
-
-                return GroupInfo(group=group, is_new=True, is_regression=False)
-
-    group = Group.objects.get(id=existing_grouphash.group_id)
-
-    if check_for_category_mismatch(group):
-        return None
-
-    # There may still be secondary hashes that we did not use to find an
-    # existing group. A classic example is when grouping makes changes to
-    # the app-hash (changes to in_app logic), but the system hash stays
-    # stable and is used to find an existing group. Associate any new
-    # hashes with the group such that event saving continues to be
-    # resilient against grouping algorithm changes.
-    #
     # There is a race condition here where two processes could "steal"
     # hashes from each other. In practice this should not be user-visible
     # as group creation is synchronized, meaning the only way hashes could
@@ -1714,18 +1725,29 @@ def _save_aggregate_new(
     #    codepath which has transaction isolation/acquires row locks)
     # 2) AND are looking at the same set, or an overlapping set of hashes
     #    (otherwise they would not operate on the same rows)
-    # 3) yet somehow also sort their respective events into two different groups
+    # 3) yet somehow also retrieve different groups here
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
     # _save_aggregate had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
-    add_group_id_to_grouphashes(group, grouphashes)
+    group = Group.objects.get(id=existing_grouphash.group_id)
+
+    if check_for_category_mismatch(group):
+        return None
+
+    # There may still be hashes that we did not use to find an existing
+    # group. A classic example is when grouping makes changes to the
+    # app-hash (changes to in_app logic), but the system hash stays
+    # stable and is used to find an existing group. Associate any new
+    # hashes with the group such that event saving continues to be
+    # resilient against grouping algorithm changes.
+    add_group_id_to_grouphashes(group, all_grouphashes)
 
     is_regression = _process_existing_aggregate(
         group=group,
-        event=event,
+        event=job["event"],
         incoming_group_values=group_processing_kwargs,
         release=job["release"],
     )
@@ -1733,19 +1755,86 @@ def _save_aggregate_new(
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
-def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
-    try:
-        short_id = project.next_short_id()
-    except OperationalError:
-        metrics.incr("next_short_id.timeout")
-        sentry_sdk.capture_message("short_id.timeout")
-        raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
+def create_group_with_grouphashes(
+    job: Job, grouphashes: list[GroupHash], group_processing_kwargs: dict[str, Any]
+) -> GroupInfo | None:
+    """
+    Create a group from the data in `job` and `group_processing_kwargs` and link it to the given
+    grouphashes.
+
+    In very rare circumstances, we can end up in a race condition with another process trying to
+    create the same group. If the current process loses the race, this function will update the
+    group the other process just created, rather than creating a group itself.
+    """
+    event = job["event"]
+    project = event.project
+
+    # If the load-shed killswitch is enabled, this will raise a `HashDiscarded` error to pop us out
+    # of this function all the way back to `save_error_events`, preventing group creation
+    check_for_group_creation_load_shed(project, event)
+
+    with (
+        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
+        transaction.atomic(router.db_for_write(GroupHash)),
+    ):
+        # These values will get overridden with whatever happens inside the lock if we do manage to
+        # acquire it, so it should only end up with `wait-for-lock` if we don't
+        span.set_tag("outcome", "wait_for_lock")
+        metrics_timer_tags["outcome"] = "wait_for_lock"
+
+        # If we're in this branch, we checked our grouphashes and didn't find one with a group
+        # attached. We thus want to create a new group, but we need to guard against another
+        # event with the same hash coming in before we're done here and also thinking it needs
+        # to create a new group. To prevent this, we're using double-checked locking
+        # (https://en.wikipedia.org/wiki/Double-checked_locking).
+
+        # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
+        # hashed) event is also in the process of creating a group and has grabbed the lock
+        # before us, we'll block here until it's done. If not, we've now got the lock and other
+        # identically-hashed events will have to wait for us.
+        grouphashes = list(
+            GroupHash.objects.filter(
+                id__in=[h.id for h in grouphashes],
+            ).select_for_update()
+        )
+
+        # Now check again to see if any of our grouphashes have a group. In the first race
+        # condition scenario above, we'll have been blocked long enough for the other event to
+        # have created the group and updated our grouphashes with a group id, which means this
+        # time, we'll find something.
+        existing_grouphash = find_existing_grouphash_new(grouphashes)
+
+        # If we still haven't found a matching grouphash, we're now safe to go ahead and create
+        # the group.
+        if existing_grouphash is None:
+            span.set_tag("outcome", "new_group")
+            metrics_timer_tags["outcome"] = "new_group"
+            record_new_group_metrics(event)
+
+            group = _create_group(project, event, **group_processing_kwargs)
+            add_group_id_to_grouphashes(group, grouphashes)
+
+            return GroupInfo(group=group, is_new=True, is_regression=False)
+
+        # On the other hand, if we did in fact end up on the losing end of a race condition, treat
+        # this the same way we would if we'd found a grouphash to begin with (and never landed in
+        # this function at all)
+        else:
+            # TODO: should we be setting tags here, too?
+            return handle_existing_grouphash(
+                job, existing_grouphash, grouphashes, group_processing_kwargs
+            )
+
+
+def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) -> Group:
+    short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
     # make sure it still exists
-    first_release = kwargs.pop("first_release", None)
-    first_release_id = (
+    first_release = group_creation_kwargs.pop("first_release", None)
+    group_creation_kwargs["first_release_id"] = (
         Release.objects.filter(id=cast(Release, first_release).id)
         .values_list("id", flat=True)
         .first()
@@ -1753,27 +1842,138 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
-    group_data = kwargs.pop("data", {})
+    group_data = group_creation_kwargs.pop("data", {})
 
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
-    severity = _get_severity_metadata_for_group(event)
-    group_data["metadata"].update(severity)
+    severity: Mapping[str, Any] = {}
+    try:
+        group_type = group_creation_kwargs.get("type", None)
+        severity = _get_severity_metadata_for_group(event, project.id, group_type)
+        group_data["metadata"].update(severity)
+    except Exception as e:
+        logger.exception(
+            "Failed to get severity metadata for group",
+            repr(e),
+            extra={"event_id": event.event_id},
+        )
 
     if features.has("projects:issue-priority", project, actor=None):
-        priority = _get_priority_for_group(severity, kwargs)
-        kwargs["priority"] = priority
+        # the kwargs only include priority for non-error issue platform events, which takes precedence.
+        priority = group_creation_kwargs.get("priority", None)
+        if priority is None:
+            priority = _get_priority_for_group(severity, group_creation_kwargs)
+
+        group_creation_kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
 
-    return Group.objects.create(
-        project=project,
-        short_id=short_id,
-        first_release_id=first_release_id,
-        data=group_data,
-        **kwargs,
-    )
+    group_creation_kwargs["data"] = group_data
+
+    try:
+        with transaction.atomic(router.db_for_write(Group)):
+            # This is the 99.999% path. The rest of the function is all to handle a very rare and
+            # very confounding bug which keeps projects from creating new groups.
+            group = Group.objects.create(
+                project=project,
+                short_id=short_id,
+                **group_creation_kwargs,
+            )
+
+    # Attempt to handle The Mysterious Case of the Stuck Project Counter
+    except IntegrityError as err:
+        if not _is_stuck_counter_error(err, project, short_id):
+            raise
+
+        # Note: There is a potential race condition here, if two events simultaneously try to fix
+        # the counter. Our hunch is that the only effect of that would be to over-increment, which
+        # shouldn't cause any problems. Nonetheless, if we run into trouble with this workaround,
+        # that's one thing to further investigate.
+        new_short_id = _handle_stuck_project_counter(project, short_id)
+
+        # Now that we've theoretically unstuck the counter, try again to create the group
+        try:
+            with transaction.atomic(router.db_for_write(Group)):
+                group = Group.objects.create(
+                    project=project,
+                    short_id=new_short_id,
+                    **group_creation_kwargs,
+                )
+
+        except Exception:
+            # Maybe the stuck counter was hiding some other error
+            logger.exception("Error after unsticking project counter")
+            raise
+
+    return group
+
+
+def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
+    """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
+
+    error_message = err.args[0]
+
+    if not error_message.startswith("UniqueViolation"):
+        return False
+
+    for substring in [
+        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+    ]:
+        if substring in error_message:
+            return True
+
+    return False
+
+
+def _handle_stuck_project_counter(project: Project, current_short_id: int) -> int:
+    """
+    Sometimes, for reasons unknown, a project's `Counter` value falls behind its latest group `short_id` value.
+    When that happens, that incorrect counter value leads us to try to create groups with `short_id`s which
+    are already taken.
+
+    This handles that case by updating the counter's value to the latest group `short_id`, and then returns
+    the new value.
+    """
+    new_short_id = current_short_id
+
+    # Ordinarily running max on this many rows would be prohibitively expensive, but a) this is
+    # a very rare case (< 20 ever that we know of), and b) project and short id are indexed
+    # together in order to enforce the unique constraint which got us here in the first place,
+    # so it's faster than it otherwise might be. We can time it just in case, though.
+    with metrics.timer("stuck_project.max_short_id_query"):
+        max_short_id_for_project = Group.objects.filter(project_id=project.id).aggregate(
+            Max("short_id")
+        )["short_id__max"]
+
+    # Add 1 because we're trying to mimic a value which would already have been incremented
+    correct_value = max_short_id_for_project + 1
+
+    if current_short_id < correct_value:
+        difference = correct_value - current_short_id
+        # `_get_next_short_id` corrects the `Counter` value before it returns the new short_id
+        new_short_id = _get_next_short_id(project, delta=difference)
+
+        logger.info(
+            "Fixed stuck counter value.", extra={"project": project.id, "difference": difference}
+        )
+        metrics.incr(
+            "stuck_project.fixed_counter", tags={"difference": difference}, sample_rate=1.0
+        )
+
+    return new_short_id
+
+
+def _get_next_short_id(project: Project, delta: int = 1) -> int:
+    try:
+        short_id = project.next_short_id(delta=delta)
+    except OperationalError:
+        metrics.incr("next_short_id.timeout")
+        sentry_sdk.capture_message("short_id.timeout")
+        raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
+
+    return short_id
 
 
 def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
@@ -1918,6 +2118,48 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
     return is_regression
 
 
+def _is_placeholder_title(title):
+    return title in PLACEHOLDER_EVENT_TITLES
+
+
+def _is_real_title(title):
+    return bool(title) and title not in PLACEHOLDER_EVENT_TITLES
+
+
+def _get_updated_group_title(existing_container, incoming_container):
+    """
+    Given either `group.data` or `group.data["metadata"]`, in both existing and incoming forms, pick
+    the correct title to use when updating the group. Uses the incoming title (or `None` if there
+    isn't one) except in  the case where a placeholder title (`<unlabeled event>`, `<untitled>`,
+    etc) would be replacing a non-placeholder title (either `None` or a real title).
+
+    This stems from an incident during which we were interpreting error events as default-type
+    events and thereby overwriting good titles with placeholder ones and inserting placeholder
+    titles where there shouldn't have been a title at all. (The second case matters because
+    default-type and error-type events differ in where they include a `title` attribute, and we
+    count on the lack of a `title` attribute in certain cases as well as the presence of one.) This
+    prevents that from happening in the future and will delete errant placeholder titles by
+    overwriting them with `None`.
+    """
+
+    existing_title = existing_container.get("title")
+    incoming_title = incoming_container.get("title")
+
+    return (
+        incoming_title
+        if (
+            # Real titles beat both placeholder and non-existent titles
+            _is_real_title(incoming_title)
+            or
+            # Conversely, placeholder titles lose to both real titles and lack of a title (the
+            # latter in order to fix the regression caused by error events being interpreted as
+            # default-type events)
+            _is_placeholder_title(existing_title)
+        )
+        else existing_title
+    )
+
+
 def _process_existing_aggregate(
     group: Group,
     event: BaseEvent,
@@ -1933,6 +2175,7 @@ def _process_existing_aggregate(
     if (
         event.search_message
         and event.search_message != group.message
+        and not _is_placeholder_title(event.search_message)
         and event.get_event_type() != TransactionEvent.key
     ):
         updated_group_values["message"] = event.search_message
@@ -1949,19 +2192,25 @@ def _process_existing_aggregate(
 
     is_regression = _handle_regression(group, event, release)
 
-    # Merge new data with existing data
+    existing_data = group.data
+    existing_metadata = group.data.get("metadata", {})
+
     incoming_data = incoming_group_values["data"]
     incoming_metadata = incoming_group_values["data"].get("metadata", {})
 
-    existing_data = group.data
-    # Grab a reference to this before it gets clobbered when we update `existing_data`
-    existing_metadata = group.data.get("metadata", {})
-
-    existing_data.update(incoming_data)
-    existing_metadata.update(incoming_metadata)
-
-    updated_group_values["data"] = existing_data
-    updated_group_values["data"]["metadata"] = existing_metadata
+    # Merge old and new data/metadata, keeping the existing title if the incoming title is a
+    # placeholder (`<unlabeled event`, `<untitled>`, etc.) and the existing one isn't. See
+    # `_get_updated_group_title` docstring.
+    updated_group_values["data"] = {
+        **existing_data,
+        **incoming_data,
+        "title": _get_updated_group_title(existing_data, incoming_data),
+    }
+    updated_group_values["data"]["metadata"] = {
+        **existing_metadata,
+        **incoming_metadata,
+        "title": _get_updated_group_title(existing_metadata, incoming_metadata),
+    }
 
     update_kwargs = {"times_seen": 1}
 
@@ -1971,40 +2220,104 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEVERITY_DETECTION_URL,
-    retries=Retry(
-        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
-        status_forcelist=[
-            408,  # Request timeout
-            429,  # Too many requests
-            502,  # Bad gateway
-            503,  # Service unavailable
-            504,  # Gateway timeout
-        ],
-    ),
-    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+    settings.SEER_SEVERITY_URL,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
-def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+def _get_severity_metadata_for_group(
+    event: Event, project_id: int, group_type: int | None
+) -> Mapping[str, Any]:
     """
-    Returns severity metadata for an event if the feature flag is enabled.
-    Returns {} on feature flag not enabled or exception.
+    Returns severity metadata for an event if all of the following are true
+    - the feature flag is enabled
+    - the event platform supports severity
+    - the event group type is an error
+
+    Returns {} if conditions aren't met or on exception.
     """
-    if features.has("projects:first-event-severity-calculation", event.project):
-        try:
-            severity, reason = _get_severity_score(event)
+    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
 
-            return {
-                "severity": severity,
-                "severity_reason": reason,
-            }
-        except Exception as e:
-            logger.warning("Failed to calculate severity score for group", repr(e))
+    if killswitch_matches_context("issues.skip-seer-requests", {"project_id": event.project_id}):
+        logger.warning(
+            "get_severity_metadata_for_group.seer_killswitch_enabled",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.seer_killswitch_enabled")
+        return {}
 
-            return {}
+    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
+    if not feature_enabled:
+        return {}
 
-    return {}
+    is_supported_platform = (
+        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
+        if event.platform
+        else False
+    )
+    is_error_group = group_type == ErrorGroupType.type_id if group_type else True
+    if not is_supported_platform or not is_error_group:
+        return {}
+
+    passthrough_data = options.get(
+        "issues.severity.seer-circuit-breaker-passthrough-limit",
+        CircuitBreakerPassthrough(limit=1, window=10),
+    )
+    if circuit_breaker_activated("sentry.seer.severity", passthrough_data=passthrough_data):
+        logger.warning(
+            "get_severity_metadata_for_group.circuit_breaker_activated",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        return {}
+
+    from sentry import ratelimits as ratelimiter
+
+    ratelimit = options.get("issues.severity.seer-global-rate-limit")
+    # This is temporary until we update the option values to be a dict
+    if "limit" not in ratelimit or "window" not in ratelimit:
+        return {}
+
+    if ratelimiter.backend.is_limited(
+        "seer:severity-calculation:global-limit",
+        limit=ratelimit["limit"],
+        window=ratelimit["window"],
+    ):
+        logger.warning(
+            "get_severity_metadata_for_group.rate_limited_globally",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.rate_limited_globally")
+        return {}
+
+    ratelimit = options.get("issues.severity.seer-project-rate-limit")
+    # This is temporary until we update the option values to be a dict
+    if "limit" not in ratelimit or "window" not in ratelimit:
+        return {}
+
+    if ratelimiter.backend.is_limited(
+        f"seer:severity-calculation:{project_id}",
+        limit=ratelimit["limit"],
+        window=ratelimit["window"],
+    ):
+        logger.warning(
+            "get_severity_metadata_for_group.rate_limited_for_project",
+            extra={"event_id": event.event_id, "project_id": project_id},
+        )
+        metrics.incr("issues.severity.rate_limited_for_project", tags={"project_id": project_id})
+        return {}
+
+    try:
+        severity, reason = _get_severity_score(event)
+
+        return {
+            "severity": severity,
+            "severity_reason": reason,
+        }
+    except Exception as e:
+        logger.warning("Failed to calculate severity score for group", repr(e))
+        update_severity_error_count()
+        metrics.incr("issues.severity.error")
+        return {}
 
 
 def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
@@ -2047,6 +2360,19 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.MEDIUM
 
 
+def update_severity_error_count(reset=False) -> None:
+    timeout = 60 * 60  # 1 hour
+    if reset:
+        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)
+        return
+
+    try:
+        cache.incr(SEER_ERROR_COUNT_KEY)
+        cache.touch(SEER_ERROR_COUNT_KEY, timeout=timeout)
+    except ValueError:
+        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=timeout)
+
+
 def _get_severity_score(event: Event) -> tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
     level = str(event.data.get("level", "error"))
@@ -2078,15 +2404,9 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         # Fall back to using just the title for events without an exception.
         title = event.title
 
-    # If the event hasn't yet been given a helpful title, attempt to calculate one
-    if title in NON_TITLE_EVENT_TITLES:
-        title = event_type.get_title(metadata)
-
-    # If there's still nothing helpful to be had, bail
-    if title in NON_TITLE_EVENT_TITLES:
-        logger_data.update(
-            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
-        )
+    # If all we have is `<unlabeled event>` (or one of its equally unhelpful friends), bail
+    if title in PLACEHOLDER_EVENT_TITLES:
+        logger_data.update({"event_type": event_type.key, "title": title})
         logger.warning(
             "Unable to get severity score because of unusable `message` value '%s'",
             title,
@@ -2110,23 +2430,30 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
     with sentry_sdk.start_span(op=op):
         try:
             with metrics.timer(op):
+                timeout = options.get(
+                    "issues.severity.seer-timout",
+                    settings.SEER_SEVERITY_TIMEOUT / 1000,
+                )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps(payload),
+                    body=orjson.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
+                    timeout=timeout,
                 )
-                severity = json.loads(response.data).get("severity")
+                severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError as e:
             logger.warning(
                 "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                SEER_SEVERITY_RETRIES,
+                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
                 repr(e.reason),
                 extra=logger_data,
             )
             reason = "microservice_max_retry"
+            update_severity_error_count()
+            metrics.incr("issues.severity.max_retry_error")
         except Exception as e:
             logger.warning(
                 "Unable to get severity score from microservice. Got: %s.",
@@ -2134,6 +2461,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 extra=logger_data,
             )
             reason = "microservice_error"
+            update_severity_error_count()
+            metrics.incr("issues.severity.error")
         else:
             logger.info(
                 "Got severity score of %s for event %s",
@@ -2141,6 +2470,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 event.data["event_id"],
                 extra=logger_data,
             )
+            update_severity_error_count(reset=True)
 
     return severity, reason
 
@@ -2217,6 +2547,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     )
 
 
+@sentry_sdk.tracing.trace
 def get_attachments(cache_key: str | None, job: Job) -> list[Attachment]:
     """
     Retrieves the list of attachments for this event.
@@ -2242,6 +2573,7 @@ def get_attachments(cache_key: str | None, job: Job) -> list[Attachment]:
     return [attachment for attachment in attachments if not attachment.rate_limited]
 
 
+@sentry_sdk.tracing.trace
 def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> list[Attachment]:
     """
     Removes crash reports exceeding the group-limit.
@@ -2370,7 +2702,7 @@ def save_attachment(
     if start_time is not None:
         timestamp = to_datetime(start_time)
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+        timestamp = datetime.now(timezone.utc)
 
     try:
         attachment.data
@@ -2446,7 +2778,7 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
         )
 
 
-@metrics.wraps("event_manager.save_transactions.materialize_event_metrics")
+@sentry_sdk.tracing.trace
 def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
     for job in jobs:
         # Ensure the _metrics key exists. This is usually created during
@@ -2455,7 +2787,9 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event"].data["_metrics"] = event_metrics
 
         # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
+        event_metrics["bytes.stored.event"] = len(
+            orjson.dumps(dict(job["event"].data.items())).decode()
+        )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
@@ -2464,15 +2798,14 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event_metrics"] = event_metrics
 
 
-@metrics.wraps("save_event.calculate_span_grouping")
+@sentry_sdk.tracing.trace
 def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
         # as the feature is under development.
         try:
             event = job["event"]
-            with metrics.timer("event_manager.save.get_span_groupings.default"):
-                groupings = event.get_span_groupings()
+            groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
             metrics.distribution("save_event.transaction.span_count", len(groupings.results))
@@ -2489,11 +2822,13 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             sentry_sdk.capture_exception()
 
 
-@metrics.wraps("save_event.detect_performance_problems")
-def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+@sentry_sdk.tracing.trace
+def _detect_performance_problems(
+    jobs: Sequence[Job], projects: ProjectsMapping, is_standalone_spans: bool = False
+) -> None:
     for job in jobs:
         job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]]
+            job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
         )
 
 
@@ -2510,7 +2845,7 @@ class PerformanceJob(TypedDict, total=False):
     release: Release
 
 
-def _save_grouphash_and_group(
+def save_grouphash_and_group(
     project: Project,
     event: Event,
     new_grouphash: str,
@@ -2532,7 +2867,7 @@ def _save_grouphash_and_group(
     return group, created
 
 
-@metrics.wraps("save_event.send_occurrence_to_platform")
+@sentry_sdk.tracing.trace
 def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         event = job["event"]
@@ -2560,24 +2895,19 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
             produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
 
 
-@metrics.wraps("event_manager.save_transaction_events")
+@sentry_sdk.tracing.trace
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
-        organization_ids = {project.organization_id for project in projects.values()}
+    organization_ids = {project.organization_id for project in projects.values()}
+    organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
-    with metrics.timer("event_manager.save_transactions.fetch_organizations"):
-        organizations = {
-            o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)
-        }
+    for project in projects.values():
+        try:
+            project.set_cached_field_value("organization", organizations[project.organization_id])
+        except KeyError:
+            continue
 
-    with metrics.timer("event_manager.save_transactions.set_organization_cache"):
-        for project in projects.values():
-            try:
-                project.set_cached_field_value(
-                    "organization", organizations[project.organization_id]
-                )
-            except KeyError:
-                continue
+    set_measurement(measurement_name="jobs", value=len(jobs))
+    set_measurement(measurement_name="projects", value=len(projects))
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
@@ -2597,24 +2927,16 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     return jobs
 
 
-@metrics.wraps("event_manager.save_generic_events")
+@sentry_sdk.tracing.trace
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
-    with metrics.timer("event_manager.save_generic.organization_ids"):
-        organization_ids = {project.organization_id for project in projects.values()}
+    organization_ids = {project.organization_id for project in projects.values()}
+    organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
-    with metrics.timer("event_manager.save_generic.fetch_organizations"):
-        organizations = {
-            o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)
-        }
-
-    with metrics.timer("event_manager.save_generic.set_organization_cache"):
-        for project in projects.values():
-            try:
-                project.set_cached_field_value(
-                    "organization", organizations[project.organization_id]
-                )
-            except KeyError:
-                continue
+    for project in projects.values():
+        try:
+            project.set_cached_field_value("organization", organizations[project.organization_id])
+        except KeyError:
+            continue
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)

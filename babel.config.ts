@@ -15,34 +15,17 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.27',
+        corejs: '3.37',
       },
     ],
-    '@babel/preset-typescript',
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
   overrides: [],
-  plugins: [
-    '@emotion/babel-plugin',
-    '@babel/plugin-transform-runtime',
-    '@babel/plugin-transform-class-properties',
-  ],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
       plugins: [
-        [
-          'transform-react-remove-prop-types',
-          {
-            mode: 'remove', // remove from bundle
-            removeImport: true, // removes `prop-types` import statements
-            classNameMatchers: [
-              'SelectField',
-              'FormField',
-              'DeprecatedAsyncComponent',
-              'DeprecatedAsyncView',
-            ],
-            additionalLibraries: [/app\/sentryTypes$/],
-          },
-        ],
         ['babel-plugin-add-react-displayname'],
         '@sentry/babel-plugin-component-annotate',
       ],
@@ -58,8 +41,6 @@ const config: TransformOptions = {
     test: {
       sourceMaps: process.env.CI ? false : true,
       plugins: [
-        // Required, see https://github.com/facebook/jest/issues/9430
-        'dynamic-import-node',
         // Disable emotion sourcemaps in tests
         // Since emotion spends lots of time parsing and inserting sourcemaps
         [

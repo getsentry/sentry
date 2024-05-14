@@ -10,15 +10,15 @@ import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
+import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import {MetaData} from './styles';
+import {TraceLink} from './traceLink';
 
 interface Props
   extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
@@ -45,7 +45,7 @@ export default function QuickTraceMeta({
 
   const noFeatureMessage = t('Requires performance monitoring.');
 
-  const docsLink = getConfigureTracingDocsLink(project);
+  const docsLink = getConfigurePerformanceDocsLink(project);
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
   let body: React.ReactNode;

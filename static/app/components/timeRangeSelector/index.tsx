@@ -11,7 +11,7 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDateWithTimezoneInUtc,
@@ -222,7 +222,7 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map(item => ({
+      return filteredItems.map<SelectOption<string>>(item => ({
         value: item.value,
         label: item.label,
         textValue: item.searchKey,
@@ -362,7 +362,7 @@ export function TimeRangeSelector({
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>
-                {!showAbsoluteSelector && menuBody}
+                {!showAbsoluteSelector && (menuBody as React.ReactNode)}
                 {showAbsoluteSelector && (
                   <AbsoluteDateRangeWrap>
                     <StyledDateRangeHook
@@ -429,7 +429,7 @@ export function TimeRangeSelector({
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
                     )}
                     <FooterWrap>
-                      <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+                      <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
                         <AbsoluteSelectorFooter>
                           {showRelative && (

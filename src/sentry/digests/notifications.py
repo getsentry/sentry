@@ -15,7 +15,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tsdb.base import TSDBModel
-from sentry.utils.dates import to_timestamp
 from sentry.utils.pipeline import Pipeline
 
 logger = logging.getLogger("sentry.digests")
@@ -71,7 +70,7 @@ def event_to_record(
     return Record(
         event.event_id,
         Notification(event, [rule.id for rule in rules], notification_uuid),
-        to_timestamp(event.datetime),
+        event.datetime.timestamp(),
     )
 
 
@@ -91,14 +90,14 @@ def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any
         "rules": Rule.objects.in_bulk(
             itertools.chain.from_iterable(record.value.rules for record in records)
         ),
-        "event_counts": tsdb.get_sums(
+        "event_counts": tsdb.backend.get_sums(
             TSDBModel.group,
             list(groups.keys()),
             start,
             end,
             tenant_ids=tenant_ids,
         ),
-        "user_counts": tsdb.get_distinct_counts_totals(
+        "user_counts": tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             list(groups.keys()),
             start,

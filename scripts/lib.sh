@@ -34,18 +34,6 @@ require() {
     command -v "$1" >/dev/null 2>&1
 }
 
-configure-sentry-cli() {
-    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
-        if ! require sentry-cli; then
-            if [ -f "${venv_name}/bin/pip" ]; then
-                pip-install sentry-cli
-            else
-                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
-            fi
-        fi
-    fi
-}
-
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
@@ -91,7 +79,7 @@ sudo-askpass() {
 }
 
 pip-install() {
-    pip install --constraint requirements-dev-frozen.txt "$@"
+    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
 upgrade-pip() {
@@ -111,9 +99,6 @@ install-py-dev() {
 
     pip-install -r requirements-dev-frozen.txt
 
-    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-    # and acceptance tests, which webpack automatically if run.
     python3 -m tools.fast_editable --path .
 }
 
@@ -135,16 +120,8 @@ setup-git() {
 
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-    # shellcheck disable=SC2016
-    python3 -c '' || (
-        echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
-        exit 1
-    )
-    if ! require pre-commit; then
-        pip-install -r requirements-dev.txt
-    fi
-    pre-commit install --install-hooks
-    echo ""
+
+    .venv/bin/pre-commit install --install-hooks
 }
 
 node-version-check() {
@@ -177,7 +154,7 @@ develop() {
 }
 
 init-config() {
-    sentry init --dev
+    sentry init --dev --no-clobber
 }
 
 run-dependent-services() {
@@ -188,12 +165,14 @@ create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-    echo "--> Creating 'control' and 'region' database"
+    echo "--> Creating 'control', 'region' and 'secondary' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary || true
 }
 
 apply-migrations() {
+    create-db
     echo "--> Applying migrations"
     sentry upgrade --noinput
 }
@@ -210,7 +189,7 @@ create-superuser() {
 
 build-platform-assets() {
     echo "--> Building platform assets"
-    echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    python3 -m sentry.build._integration_docs
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
 }
@@ -219,7 +198,6 @@ bootstrap() {
     develop
     init-config
     run-dependent-services
-    create-db
     apply-migrations
     create-superuser
     # Load mocks requires a superuser
@@ -247,22 +225,14 @@ drop-db() {
     echo "--> Dropping 'control' and 'region' database"
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary
 }
 
 reset-db() {
     drop-db
-    create-db
     apply-migrations
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
-}
-
-prerequisites() {
-    if [ -z "${CI+x}" ]; then
-        brew update -q && brew bundle -q
-    else
-        HOMEBREW_NO_AUTO_UPDATE=on brew install pyenv
-    fi
 }
 
 direnv-help() {

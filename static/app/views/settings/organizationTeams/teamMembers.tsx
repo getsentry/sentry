@@ -26,7 +26,8 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {Config} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -310,10 +311,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
 
   renderMembers(isTeamAdmin: boolean) {
     const {config, organization, team} = this.props;
-    const {access} = organization;
 
-    // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
     const {teamMembers, loading} = this.state;
 
     if (loading) {
@@ -325,7 +323,6 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
           <TeamMembersRow
             key={member.id}
             hasWriteAccess={isTeamAdmin}
-            isOrgOwner={isOrgOwner}
             organization={organization}
             team={team}
             member={member}

@@ -1,9 +1,12 @@
-import type {Entry, EntrySpans} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import type {Entry, EntrySpans} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useEventDetails} from 'sentry/views/starfish/queries/useEventDetails';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
+
+const DEFAULT_SORT: Sort[] = [{field: 'timestamp', kind: 'desc'}];
 
 // NOTE: Fetching the top one is a bit naive, but works for now. A better
 // approach might be to fetch several at a time, and let the hook consumer
@@ -20,7 +23,18 @@ export function useFullSpanFromTrace(
     filters[SpanIndexedField.SPAN_GROUP] = group;
   }
 
-  const indexedSpansResponse = useIndexedSpans(filters, sorts, 1, enabled);
+  // TODO: we're using all SpanIndexedFields here, but maybe we should only use what we need?
+  // Truncate to 20 fields otherwise discover will complain.
+  const fields = Object.values(SpanIndexedField).slice(0, 20);
+
+  const indexedSpansResponse = useIndexedSpans({
+    search: MutableSearch.fromQueryObject(filters),
+    sorts: sorts || DEFAULT_SORT,
+    limit: 1,
+    enabled,
+    fields,
+    referrer: 'api.starfish.full-span-from-trace',
+  });
 
   const firstIndexedSpan = indexedSpansResponse.data?.[0];
 

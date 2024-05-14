@@ -26,9 +26,9 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS_REVERSE,
     PERSONAL_NOTIFICATION_PROVIDERS,
@@ -36,7 +36,7 @@ from sentry.types.integrations import (
     ExternalProviders,
 )
 
-Recipient = Union[RpcActor, Team, RpcUser, User]
+Recipient = Union[Actor, Team, RpcUser, User]
 TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
 
 
@@ -85,10 +85,10 @@ class NotificationController:
                 if recipient_is_team(
                     recipient
                 ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
-                    if team_is_valid_recipient(recipient):  # type: ignore
+                    if team_is_valid_recipient(recipient):  # type: ignore[arg-type]
                         self.recipients.append(recipient)
                     else:
-                        self.recipients += get_team_members(recipient)  # type: ignore
+                        self.recipients += get_team_members(recipient)  # type: ignore[arg-type]
                 else:
                     self.recipients.append(recipient)
         else:
@@ -412,7 +412,7 @@ class NotificationController:
         type: NotificationSettingEnum,
         actor_type: ActorType | None = None,
         project_id: int | None = None,
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[Actor]]:
         """
         Returns the recipients that should be notified for each provider,
         filtered by the given notification type.
@@ -423,9 +423,9 @@ class NotificationController:
         combined_settings = self.get_combined_settings(
             type=type, actor_type=actor_type, project_id=project_id
         )
-        recipients: Mapping[ExternalProviders, set[RpcActor]] = defaultdict(set)
+        recipients: Mapping[ExternalProviders, set[Actor]] = defaultdict(set)
         for recipient, type_map in combined_settings.items():
-            actor = RpcActor.from_object(recipient)
+            actor = Actor.from_object(recipient)
             for type, provider_map in type_map.items():
                 for provider, value in provider_map.items():
                     if value == NotificationSettingsOptionEnum.NEVER:
@@ -522,9 +522,7 @@ class NotificationController:
 
     def get_participants(
         self,
-    ) -> MutableMapping[
-        RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
-    ]:
+    ) -> MutableMapping[Actor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
         """
         Returns a mapping of recipients to the providers they should be notified on.
         Note that this returns the ExternalProviders int enum instead of the ExternalProviderEnum string.
@@ -535,10 +533,10 @@ class NotificationController:
 
         combined_settings = self.get_combined_settings(type=self.type)
         user_to_providers: MutableMapping[
-            RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
+            Actor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
         for recipient, setting_map in combined_settings.items():
-            actor = RpcActor.from_object(recipient)
+            actor = Actor.from_object(recipient)
             provider_map = setting_map[self.type]
             user_to_providers[actor] = {
                 EXTERNAL_PROVIDERS_REVERSE[provider]: value

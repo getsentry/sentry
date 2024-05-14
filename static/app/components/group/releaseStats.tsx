@@ -2,6 +2,7 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
@@ -105,7 +106,9 @@ function GroupReleaseStats({
 
           <SidebarSection.Wrap>
             <SidebarSection.Title>
-              {t('Last Seen')}
+              <GuideAnchor target="issue_sidebar_releases" position="left">
+                {t('Last Seen')}
+              </GuideAnchor>
               <QuestionTooltip
                 title={t('When the most recent event in this issue was captured.')}
                 size="xs"

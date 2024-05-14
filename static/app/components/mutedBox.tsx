@@ -1,9 +1,9 @@
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types';
+import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 type Props = {
   statusDetails: IgnoredStatusDetails;

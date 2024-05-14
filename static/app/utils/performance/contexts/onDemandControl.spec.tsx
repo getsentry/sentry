@@ -1,4 +1,4 @@
-import {_isOnDemandMetricWidget} from 'sentry/utils/performance/contexts/onDemandControl';
+import {isOnDemandMetricWidget} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
@@ -27,25 +27,24 @@ function widget(
 describe('isOnDemandMetricWidget', () => {
   it('should return true for a widget that contains non standard fields', () => {
     expect(
-      _isOnDemandMetricWidget(widget(['count()'], 'transaction.duration:>1'))
+      isOnDemandMetricWidget(widget(['count()'], 'transaction.duration:>1'))
     ).toBeTruthy();
-    expect(_isOnDemandMetricWidget(widget(['count()'], 'device.name:foo'))).toBeTruthy();
-    expect(_isOnDemandMetricWidget(widget(['count()'], 'geo.region:>US'))).toBeTruthy();
+    expect(isOnDemandMetricWidget(widget(['count()'], 'device.name:foo'))).toBeTruthy();
+    expect(isOnDemandMetricWidget(widget(['count()'], 'geo.region:>US'))).toBeTruthy();
   });
 
   it('should return false for a widget that has only standard fields', () => {
-    expect(_isOnDemandMetricWidget(widget(['count()'], 'release:1.0'))).toBeFalsy();
-    expect(_isOnDemandMetricWidget(widget(['count()'], 'platform:foo'))).toBeFalsy();
+    expect(isOnDemandMetricWidget(widget(['count()'], 'release:1.0'))).toBeFalsy();
+    expect(isOnDemandMetricWidget(widget(['count()'], 'platform:foo'))).toBeFalsy();
   });
 
-  it('should return false for a widget that has multiple or unsupported aggregates', () => {
+  it('should return false for a widget with freetext', () => {
     expect(
-      _isOnDemandMetricWidget(
-        widget(['count()', 'count_unique()'], 'transaction.duration:>1')
-      )
+      isOnDemandMetricWidget(widget(['count()', 'count_unique()'], 'test123'))
     ).toBeFalsy();
-    expect(
-      _isOnDemandMetricWidget(widget(['apdex(100)'], 'transaction.duration:>1'))
-    ).toBeFalsy();
+  });
+
+  it('should return true for a widget with no conditions', () => {
+    expect(isOnDemandMetricWidget(widget(['count()', 'count_unique()'], ''))).toBeFalsy();
   });
 });

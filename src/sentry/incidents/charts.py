@@ -15,7 +15,8 @@ from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.user import User
@@ -196,7 +197,7 @@ def build_metric_alert_chart(
     }
 
     allow_mri = features.has(
-        "organizations:ddm-experimental",
+        "organizations:custom-metrics",
         organization,
         actor=user,
     )

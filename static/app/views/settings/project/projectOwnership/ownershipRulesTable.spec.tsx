@@ -20,12 +20,12 @@ describe('OwnershipRulesTable', () => {
     MemberListStore.loadInitialData([user1, user2]);
   });
 
-  it('should render empty state', () => {
+  it('should render empty state', async () => {
     render(<OwnershipRulesTable projectRules={[]} codeowners={[]} />);
-    expect(screen.getByText('No ownership rules found')).toBeInTheDocument();
+    expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
   });
 
-  it('should render project owners members', () => {
+  it('should render project owners members', async () => {
     const rules: ParsedOwnershipRule[] = [
       {
         matcher: {pattern: 'pattern', type: 'path'},
@@ -35,12 +35,12 @@ describe('OwnershipRulesTable', () => {
 
     render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
 
-    expect(screen.getByText('path')).toBeInTheDocument();
+    expect(await screen.findByText('path')).toBeInTheDocument();
     expect(screen.getByText('pattern')).toBeInTheDocument();
     expect(screen.getByText(user1.name)).toBeInTheDocument();
   });
 
-  it('should filter codeowners rules without actor names', () => {
+  it('should filter codeowners rules without actor names', async () => {
     const rules: ParsedOwnershipRule[] = [
       {
         matcher: {pattern: 'pattern', type: 'path'},
@@ -60,12 +60,12 @@ describe('OwnershipRulesTable', () => {
       />
     );
 
-    expect(screen.getByText('pattern')).toBeInTheDocument();
+    expect(await screen.findByText('pattern')).toBeInTheDocument();
     expect(screen.getByText('my/path')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Everyone'})).toBeEnabled();
   });
 
-  it('should render multiple project owners', () => {
+  it('should render multiple project owners', async () => {
     const rules: ParsedOwnershipRule[] = [
       {
         matcher: {pattern: 'pattern', type: 'path'},
@@ -78,7 +78,7 @@ describe('OwnershipRulesTable', () => {
 
     render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
 
-    expect(screen.getByText('path')).toBeInTheDocument();
+    expect(await screen.findByText('path')).toBeInTheDocument();
     expect(screen.getByText('pattern')).toBeInTheDocument();
     expect(screen.getByText(`${user1.name} and 1 other`)).toBeInTheDocument();
     expect(screen.queryByText(user2.name)).not.toBeInTheDocument();

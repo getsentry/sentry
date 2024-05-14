@@ -1,3 +1,4 @@
+import orjson
 import responses
 
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
@@ -7,8 +8,7 @@ from sentry.integrations.slack.views.unlink_identity import (
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.testutils.helpers import get_response_text
-from sentry.testutils.silo import control_silo_test, region_silo_test
-from sentry.utils import json
+from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
@@ -26,11 +26,10 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
         assert response.status_code == 200
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert SUCCESS_LINKED_MESSAGE in get_response_text(data)
 
 
-@region_silo_test
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
@@ -64,11 +63,10 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
         assert response.status_code == 200
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert SUCCESS_UNLINKED_MESSAGE in get_response_text(data)
 
 
-@region_silo_test
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 

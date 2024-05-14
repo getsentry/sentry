@@ -17,12 +17,10 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 
-@region_silo_test
 class SetRefsTest(TestCase):
     """
     tests that when finish_release is called on a release hook,
@@ -126,7 +124,6 @@ class SetRefsTest(TestCase):
         )
 
 
-@region_silo_test
 class HookHandleTest(TestCase):
     @pytest.fixture(autouse=True)
     def patch_is_valid_signature(self):
@@ -149,7 +146,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -170,7 +167,7 @@ class HookHandleTest(TestCase):
             },
             "action": "create",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert not Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 0
@@ -191,7 +188,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -211,7 +208,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
@@ -229,6 +226,6 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = json.dumps(body).encode()
         with pytest.raises(HookValidationError):
             hook.handle(req)

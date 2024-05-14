@@ -1,12 +1,9 @@
-import type {
-  Avatar,
-  Group,
-  Organization,
-  Project,
-  Team,
-  User,
-  UserEmail,
-} from 'sentry/types';
+import type {Avatar} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User, UserEmail} from 'sentry/types/user';
+
 /**
  * @deprecated
  */
@@ -354,38 +351,6 @@ function isProject(
 /**
  * @deprecated
  */
-function isOrganization(
-  props: unknown,
-  propName: string,
-  _componentName: unknown
-): null | Error {
-  if (typeof props !== 'object' || props === null) {
-    return new Error('props does not contain organization property');
-  }
-
-  if (!(propName in props)) {
-    return null;
-  }
-
-  if (!props[propName]) {
-    return null;
-  }
-
-  const organization = props[propName] as Partial<Organization>;
-
-  if (
-    !('id' in organization) ||
-    ('id' in organization && typeof organization.id !== 'string')
-  ) {
-    return new Error(`id must be string.`);
-  }
-
-  return null;
-}
-
-/**
- * @deprecated
- */
 function isObject(
   props: unknown,
   propName: string,
@@ -415,6 +380,5 @@ function isObject(
 export const SentryPropTypeValidators = {
   isGroup,
   isProject,
-  isOrganization,
   isObject,
 };

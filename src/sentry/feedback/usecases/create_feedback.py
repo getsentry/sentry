@@ -1,23 +1,27 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
 
+from sentry import features
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.usecases.spam_detection import is_spam
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
-from sentry.utils.dates import ensure_aware
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
 
@@ -32,11 +36,41 @@ class FeedbackCreationSource(Enum):
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
+    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
+
+    @classmethod
+    def new_feedback_category_values(cls) -> set[str]:
+        return {
+            c.value
+            for c in [
+                cls.NEW_FEEDBACK_ENVELOPE,
+                cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
+            ]
+        }
+
+    @classmethod
+    def old_feedback_category_values(cls) -> set[str]:
+        return {
+            c.value
+            for c in [
+                cls.CRASH_REPORT_EMBED_FORM,
+                cls.USER_REPORT_ENVELOPE,
+                cls.USER_REPORT_DJANGO_ENDPOINT,
+                cls.UPDATE_USER_REPORTS_TASK,
+            ]
+        }
 
 
-def make_evidence(feedback, source: FeedbackCreationSource):
+def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
+    if feedback.get("associated_event_id"):
+        evidence_data["associated_event_id"] = feedback["associated_event_id"]
+        evidence_display.append(
+            IssueEvidence(
+                name="associated_event_id", value=feedback["associated_event_id"], important=False
+            )
+        )
     if feedback.get("contact_email"):
         evidence_data["contact_email"] = feedback["contact_email"]
         evidence_display.append(
@@ -54,6 +88,12 @@ def make_evidence(feedback, source: FeedbackCreationSource):
     evidence_data["source"] = source.value
     evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
+    if is_message_spam is True:
+        evidence_data["is_spam"] = is_message_spam
+        evidence_display.append(
+            IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
+        )
+
     return evidence_data, evidence_display
 
 
@@ -62,9 +102,7 @@ def fix_for_issue_platform(event_data):
     # for event schema, so we need to massage the data a bit
     ret_event: dict[str, Any] = {}
 
-    ret_event["timestamp"] = ensure_aware(
-        datetime.fromtimestamp(event_data["timestamp"])
-    ).isoformat()
+    ret_event["timestamp"] = datetime.fromtimestamp(event_data["timestamp"], UTC).isoformat()
 
     ret_event["received"] = event_data["received"]
 
@@ -119,34 +157,63 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
+
+    if (
+        event.get("contexts") is None
+        or event["contexts"].get("feedback") is None
+        or event["contexts"]["feedback"].get("message") is None
+    ):
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={"reason": "missing_context"},
+        )
+        return True
+
     if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-        metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={"reason": "unreal.unattended"},
+        )
         return True
 
     if event["contexts"]["feedback"]["message"].strip() == "":
-        metrics.incr("feedback.filtered", tags={"reason": "empty"}, sample_rate=1.0)
+        metrics.incr("feedback.create_feedback_issue.filtered", tags={"reason": "empty"})
         return True
 
     return False
 
 
-def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
+    metrics.incr("feedback.create_feedback_issue.entered")
+
     if should_filter_feedback(event, project_id, source):
         return
 
-    metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
+    project = Project.objects.get_from_cache(id=project_id)
+
+    is_message_spam = None
+    if features.has(
+        "organizations:user-feedback-spam-filter-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection"):
+        try:
+            is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
+        except Exception:
+            # until we have LLM error types ironed out, just catch all exceptions
+            logger.exception("Error checking if message is spam")
+
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
-    detection_time = ensure_aware(datetime.fromtimestamp(event["timestamp"]))
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
+    detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
+    evidence_data, evidence_display = make_evidence(
+        event["contexts"]["feedback"], source, is_message_spam
+    )
+    issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
         project_id=project_id,
-        fingerprint=[
-            uuid4().hex
-        ],  # random UUID for fingerprint so feedbacks are grouped individually
+        fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
         subtitle=event["contexts"]["feedback"]["message"],
         resource_id=None,
@@ -170,8 +237,6 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
-    project = Project.objects.get_from_cache(id=project_id)
-
     if not project.flags.has_feedbacks:
         first_feedback_received.send_robust(project=project, sender=Project)
 
@@ -188,7 +253,13 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
-
+    if is_message_spam:
+        auto_ignore_spam_feedbacks(project, issue_fingerprint)
+    metrics.incr(
+        "feedback.create_feedback_issue.produced_occurrence",
+        tags={"referrer": source.value},
+        sample_rate=1.0,
+    )
     track_outcome(
         org_id=project.organization_id,
         project_id=project_id,
@@ -210,7 +281,11 @@ def validate_issue_platform_event_schema(event_data):
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
-        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        try:
+            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        except jsonschema.exceptions.ValidationError:
+            metrics.incr("feedback.create_feedback_issue.invalid_schema")
+            raise
 
 
 class UserReportShimDict(TypedDict):
@@ -223,7 +298,7 @@ class UserReportShimDict(TypedDict):
 
 def shim_to_feedback(
     report: UserReportShimDict,
-    event: Event,
+    event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
 ):
@@ -261,6 +336,8 @@ def shim_to_feedback(
             feedback_event["tags"] = [list(item) for item in event.tags]
 
         else:
+            metrics.incr("feedback.user_report.missing_event", sample_rate=1.0)
+
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"
             feedback_event["level"] = report.get("level", "info")
@@ -272,4 +349,18 @@ def shim_to_feedback(
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"
+        )
+
+
+def auto_ignore_spam_feedbacks(project, issue_fingerprint):
+    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
+        metrics.incr("feedback.spam-detection-actions.set-ignored")
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project.id,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                new_substatus=GroupSubStatus.FOREVER,
+            ),
         )

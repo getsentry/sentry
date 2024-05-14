@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T18:45:37.447995Z'
+created: '2024-03-22T11:57:23.290728+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           frame
             function (function name is not used if module or filename are available)
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "__99+[Something else]_block_invoke_2"
           frame (non app frame)
@@ -35,7 +35,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function (function name is not used if module or filename are available)
               "__99+[Something else]_block_invoke_2"
           frame

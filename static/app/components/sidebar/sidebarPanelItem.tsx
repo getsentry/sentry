@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   /**
@@ -44,6 +46,7 @@ function SidebarPanelItem({
   titleAction,
   children,
 }: Props) {
+  const organization = useOrganization();
   return (
     <SidebarPanelItemRoot>
       {title && (
@@ -58,7 +61,14 @@ function SidebarPanelItem({
 
       {link && (
         <Text>
-          <ExternalLink href={link}>{cta || t('Read More')}</ExternalLink>
+          <ExternalLink
+            href={link}
+            onClick={() =>
+              trackAnalytics('whats_new.link_clicked', {organization, title})
+            }
+          >
+            {cta || t('Read More')}
+          </ExternalLink>
         </Text>
       )}
     </SidebarPanelItemRoot>

@@ -4,6 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+import sentry_sdk.tracing
+
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
 from sentry.models.project import Project
@@ -86,7 +88,7 @@ class BoostedReleases:
         # We get release models in order to have all the information to extend the releases we get from the cache.
         models = self._get_releases_models()
 
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+        current_timestamp = datetime.now(timezone.utc).timestamp()
 
         extended_boosted_releases = []
         expired_boosted_releases = []
@@ -154,7 +156,7 @@ class ProjectBoostedReleases:
         self.redis_client.hset(
             cache_key,
             self._generate_cache_key_for_boosted_release(release_id, environment),
-            datetime.utcnow().replace(tzinfo=timezone.utc).timestamp(),
+            datetime.now(timezone.utc).timestamp(),
         )
         # In order to avoid having the boosted releases hash in memory for an indefinite amount of time, we will expire
         # it after a specific timeout.
@@ -209,7 +211,7 @@ class ProjectBoostedReleases:
         """
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         boosted_releases = self.redis_client.hgetall(cache_key)
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+        current_timestamp = datetime.now(timezone.utc).timestamp()
 
         LRBRelease = namedtuple("LRBRelease", ["key", "timestamp"])
         lrb_release = None
@@ -226,7 +228,7 @@ class ProjectBoostedReleases:
                 #
                 # We run this logic while counting the number of active release so that we can remove the lrb release
                 # in O(1) in case the number of active releases is >= the limit.
-                if lrb_release is None or timestamp < lrb_release.timestamp:  # type:ignore
+                if lrb_release is None or timestamp < lrb_release.timestamp:  # type: ignore[unreachable]
                     lrb_release = LRBRelease(key=boosted_release_key, timestamp=timestamp)
                 # We count this release because it is an active release.
                 active_releases += 1
@@ -296,6 +298,7 @@ class LatestReleaseBias:
             self.latest_release_params.project.id
         )
 
+    @sentry_sdk.tracing.trace
     def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
         # Here we want to evaluate the observed first, so that if it is false, we don't bother verifying whether it
         # is a latest release.

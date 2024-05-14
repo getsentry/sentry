@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -8,6 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
@@ -114,7 +114,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
 
     it('if user default is recommended, it will show it as default', async () => {
@@ -123,7 +123,9 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Recommended')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Recommended'})
+      ).toBeInTheDocument();
     });
 
     it('if user default is latest, it will show it as default', async () => {
@@ -132,7 +134,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Latest')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Latest'})).toBeInTheDocument();
     });
 
     it('if user default is oldest, it will show it as default', async () => {
@@ -141,7 +143,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Oldest')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Oldest'})).toBeInTheDocument();
     });
   });
 

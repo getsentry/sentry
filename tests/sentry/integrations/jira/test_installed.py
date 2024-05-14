@@ -107,7 +107,7 @@ class JiraInstalledTest(APITestCase):
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
 
     @patch("sentry_sdk.set_tag")
@@ -121,5 +121,5 @@ class JiraInstalledTest(APITestCase):
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE

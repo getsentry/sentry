@@ -1,13 +1,11 @@
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class SharedGroupDetailsTest(APITestCase):
     def _get_path_functions(self):
         # The urls for shared group details are supported both with an org slug and without.
@@ -17,6 +15,7 @@ class SharedGroupDetailsTest(APITestCase):
         return (
             lambda share_id: f"/api/0/shared/issues/{share_id}/",
             lambda share_id: f"/api/0/organizations/{self.organization.slug}/shared/issues/{share_id}/",
+            lambda share_id: f"/api/0/organizations/{self.organization.id}/shared/issues/{share_id}/",
         )
 
     def test_simple(self):

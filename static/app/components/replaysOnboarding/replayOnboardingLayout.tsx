@@ -36,6 +36,7 @@ export function ReplayOnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isFeedbackSelected: false,
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: true,

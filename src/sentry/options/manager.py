@@ -210,6 +210,14 @@ class OptionsManager:
         elif not opt.type.test(value):
             raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
+        if key == "processing.calculate-severity-on-group-creation":
+            logger.error(
+                "Option %s set to %s. previous update channel: %s",
+                key,
+                value,
+                channel,
+                stack_info=True,
+            )
         return self.store.set(opt, value, channel=channel)
 
     def lookup_key(self, key: str):

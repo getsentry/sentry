@@ -1,12 +1,11 @@
-import {browserHistory} from 'react-router';
-
 import {Button} from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import {SavedSearchType} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -95,8 +94,8 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
   // Hide if we are already on the default search,
   // except when the user has a different search pinned.
   if (
-    isDefaultIssueStreamSearch({query, sort}) &&
-    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch))
+    isDefaultIssueStreamSearch({query, sort}, {organization}) &&
+    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch, {organization}))
   ) {
     return null;
   }

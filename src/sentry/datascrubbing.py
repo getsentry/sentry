@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import orjson
+import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.processing import (
     convert_datascrubbing_config,
@@ -11,24 +13,14 @@ from sentry_relay.processing import (
     validate_pii_selector,
 )
 
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-
-
-def _escape_key(key: str) -> str:
-    """
-    Attempt to escape the key for PII config path selectors.
-
-    If this fails and we cannot represent the key, return None
-    """
-
-    return "'{}'".format(key.replace("'", "''"))
 
 
 def get_pii_config(project):
     def _decode(value):
         if value:
-            return safe_execute(json.loads, value, _with_transaction=False)
+            return safe_execute(orjson.loads, value, _with_transaction=False)
 
     # Order of merging is important here. We want to apply organization rules
     # before project rules. For example:
@@ -87,9 +79,12 @@ def get_all_pii_configs(project):
     if pii_config:
         yield pii_config
 
-    yield convert_datascrubbing_config(get_datascrubbing_settings(project))
+    settings = get_datascrubbing_settings(project)
+
+    yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
 
 
+@sentry_sdk.tracing.trace
 def scrub_data(project, event):
     for config in get_all_pii_configs(project):
         metrics.distribution(
@@ -103,7 +98,7 @@ def scrub_data(project, event):
 
         metrics.distribution("datascrubbing.config.rules.size", total_rules)
 
-        event = pii_strip_event(config, event)
+        event = pii_strip_event(config, event, json_loads=orjson.loads, json_dumps=orjson.dumps)
 
     return event
 

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
@@ -44,7 +44,7 @@ describe('useAggregatedQueryKeys', () => {
       },
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useAggregatedQueryKeys, {
+    const {result} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps,
     });
@@ -69,7 +69,7 @@ describe('useAggregatedQueryKeys', () => {
       url: `/api/test/`,
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useAggregatedQueryKeys, {
+    const {result} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {...initialProps, bufferLimit: 2},
     });
@@ -97,7 +97,7 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     // Initial instance, nothing is cached yet
-    const {result: result1, waitFor} = reactHooks.renderHook(useAggregatedQueryKeys, {
+    const {result: result1} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(queryClient),
       initialProps,
     });
@@ -117,7 +117,7 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     // 2nd instance, re-uses the same cache
-    const {result: result2} = reactHooks.renderHook(useAggregatedQueryKeys, {
+    const {result: result2} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(queryClient),
       initialProps,
     });
@@ -139,7 +139,7 @@ describe('useAggregatedQueryKeys', () => {
       body: mockResponse,
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useAggregatedQueryKeys, {
+    const {result} = renderHook(useAggregatedQueryKeys, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps,
     });
@@ -156,5 +156,52 @@ describe('useAggregatedQueryKeys', () => {
       expect.arrayContaining([mockResponse]),
       ['1111', '2222', '3333']
     );
+  });
+
+  it('should separate callsites that have different cacheKeys', async () => {
+    const wrapper = makeWrapper(makeTestQueryClient());
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/api/test/`,
+    });
+    const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
+      return {
+        ...prevState,
+        ...response[0],
+      };
+    });
+    const responseReducer2 = jest.fn((prevState: any, response: ApiResult) => {
+      return {
+        ...prevState,
+        ...response[0],
+      };
+    });
+
+    const {result: result1} = renderHook(useAggregatedQueryKeys, {
+      wrapper,
+      initialProps: {
+        ...initialProps,
+        cacheKey: 'cache key 1',
+        responseReducer: responseReducer1,
+      },
+    });
+
+    const {result: result2} = renderHook(useAggregatedQueryKeys, {
+      wrapper,
+      initialProps: {
+        ...initialProps,
+        cacheKey: 'cache key 2',
+        responseReducer: responseReducer2,
+      },
+    });
+
+    result1.current.buffer(['1111']);
+    result2.current.buffer(['2222']);
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledTimes(2);
+    });
   });
 });

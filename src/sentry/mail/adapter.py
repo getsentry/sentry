@@ -20,8 +20,8 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.tasks.digests import deliver_digest
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -108,7 +108,7 @@ class MailAdapter:
         notifications for the provided project.
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
-        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        actors = [Actor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
         recipients = get_notification_recipients(
             recipients=actors,
             type=NotificationSettingEnum.ISSUE_ALERTS,

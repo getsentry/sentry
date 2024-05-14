@@ -3,15 +3,18 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
-import StatusIndicator from 'sentry/components/statusIndicator';
+import {
+  StatusIndicator,
+  type StatusIndicatorProps,
+} from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
@@ -34,9 +37,9 @@ type Props = {
   orgSlug: string;
 };
 
-const checkStatusToIndicatorStatus: Record<
+export const checkStatusToIndicatorStatus: Record<
   CheckInStatus,
-  'success' | 'error' | 'muted' | 'warning'
+  StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
   [CheckInStatus.ERROR]: 'error',
@@ -49,7 +52,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',

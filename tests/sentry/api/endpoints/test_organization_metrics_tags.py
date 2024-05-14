@@ -11,7 +11,6 @@ from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
     mocked_mri_resolver,
@@ -24,9 +23,7 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
     return {}
 
 
-@region_silo_test
 class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
-
     endpoint = "sentry-api-0-organization-metrics-tags"
 
     @property
@@ -46,6 +43,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             {"key": "tag2"},
             {"key": "tag3"},
             {"key": "tag4"},
+            {"key": "project"},
         ]
 
         # When metric names are supplied, get intersection of tag names:
@@ -53,16 +51,13 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug,
             metric=["metric1", "metric2"],
         )
-        assert response.data == [
-            {"key": "tag1"},
-            {"key": "tag2"},
-        ]
+        assert response.data == [{"key": "tag1"}, {"key": "tag2"}, {"key": "project"}]
 
         response = self.get_success_response(
             self.organization.slug,
             metric=["metric1", "metric2", "metric3"],
         )
-        assert response.data == []
+        assert response.data == [{"key": "project"}]
 
     @patch(
         "sentry.snuba.metrics.datasource.get_mri",
@@ -79,6 +74,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             {"key": "tag2"},
             {"key": "tag3"},
             {"key": "tag4"},
+            {"key": "project"},
         ]
 
         response = self.get_success_response(
@@ -110,7 +106,32 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
         response = self.get_success_response(
             self.organization.slug,
         )
-        assert response.data == []
+        assert response.data == [{"key": "project"}]
+
+    def test_staff_session_metric_tags(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+            {"key": "project"},
+        ]
 
     def test_session_metric_tags(self):
         self.store_session(
@@ -131,6 +152,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             {"key": "tag2"},
             {"key": "tag3"},
             {"key": "tag4"},
+            {"key": "project"},
         ]
 
     def test_metric_tags_metric_does_not_exist_in_naming_layer(self):
@@ -167,10 +189,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug,
             metric=["session.crash_free_rate"],
         )
-        assert response.data == [
-            {"key": "environment"},
-            {"key": "release"},
-        ]
+        assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
 
         response = self.get_success_response(
             self.organization.slug,
@@ -179,10 +198,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
                 SessionMetricKey.ALL.value,
             ],
         )
-        assert response.data == [
-            {"key": "environment"},
-            {"key": "release"},
-        ]
+        assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
 
     def test_composite_derived_metrics(self):
         for minute in range(4):
@@ -199,10 +215,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug,
             metric=[SessionMetricKey.HEALTHY.value],
         )
-        assert response.data == [
-            {"key": "environment"},
-            {"key": "release"},
-        ]
+        assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.datasource.get_mri")
@@ -248,7 +261,7 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
                 UseCaseID.CUSTOM,
             )
 
-        for stats_period, expected_count in (("1d", 1), ("2d", 2), ("2w", 3)):
+        for stats_period, expected_count in (("1d", 2), ("2d", 3), ("2w", 4)):
             response = self.get_success_response(
                 self.organization.slug,
                 metric=[mri],
@@ -277,4 +290,4 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             project=self.project.id,
             useCase="custom",
         )
-        assert len(response.data) == 3
+        assert len(response.data) == 4

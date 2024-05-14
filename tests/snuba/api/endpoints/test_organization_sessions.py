@@ -10,12 +10,10 @@ from sentry import release_health
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
-from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.link_header import parse_link_header
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
-from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -38,7 +36,7 @@ MOCK_DATETIME_PLUS_ONE_HOUR = MOCK_DATETIME + datetime.timedelta(hours=1)
 SNUBA_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 MOCK_DATETIME_START_OF_DAY = MOCK_DATETIME.replace(hour=0, minute=0, second=0)
 
-TIMESTAMP = to_timestamp(MOCK_DATETIME)
+TIMESTAMP = MOCK_DATETIME.timestamp()
 RECEIVED = TIMESTAMP
 SESSION_STARTED = TIMESTAMP // 3600 * 3600  # round to the hour
 
@@ -88,7 +86,7 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
     return end
 
 
-class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -135,7 +133,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 
@@ -1312,14 +1310,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
         ]
 
-
-@region_silo_test
-@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
-class OrganizationSessionsEndpointMetricsTest(
-    BaseMetricsTestCase, OrganizationSessionsEndpointTest
-):
-    """Repeat all tests with metrics backend"""
-
     @freeze_time(MOCK_DATETIME)
     def test_orderby(self):
         response = self.do_request(
@@ -1891,14 +1881,13 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
-@region_silo_test
 @patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 

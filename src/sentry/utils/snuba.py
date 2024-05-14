@@ -30,13 +30,14 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
-from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
+from sentry.utils.dates import outside_retention_with_modified_start
 
 logger = logging.getLogger(__name__)
 
@@ -111,17 +112,17 @@ SPAN_COLUMN_MAP = {
     "description": "description",
     "domain": "domain",
     "group": "group",
-    "module": "module",
     "id": "span_id",
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
-    "span.duration": "duration",
+    # DO NOT directly expose span.duration, we should always use the alias
+    # "span.duration": "duration",
     "span.group": "group",
-    "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
     "span.status": "span_status",
@@ -132,7 +133,9 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
-    "profile_id": "profile_id",
+    "profile_id": "profile_id",  # deprecated in favour of `profile.id`
+    "profile.id": "profile_id",
+    "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -140,11 +143,38 @@ SPAN_COLUMN_MAP = {
     "environment": "sentry_tags[environment]",
     "device.class": "sentry_tags[device.class]",
     "category": "sentry_tags[category]",
+    "span.category": "sentry_tags[category]",
+    "span.status_code": "sentry_tags[status_code]",
+    "replay_id": "sentry_tags[replay_id]",
+    "replay.id": "sentry_tags[replay_id]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
+    "browser.name": "sentry_tags[browser.name]",
+    "origin.transaction": "sentry_tags[transaction]",
+    "is_transaction": "is_segment",
+    "sdk.name": "sentry_tags[sdk.name]",
+    "trace.status": "sentry_tags[trace.status]",
+    "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "tags.key": "tags.key",
+}
+
+METRICS_SUMMARIES_COLUMN_MAP = {
+    "project": "project_id",
+    "id": "span_id",
+    "trace": "trace_id",
+    "metric": "metric_mri",
+    "timestamp": "end_timestamp",
+    "segment.id": "segment_id",
+    "span.duration": "duration_ms",
+    "span.group": "group",
+    "min_metric": "min",
+    "max_metric": "max",
+    "sum_metric": "sum",
+    "count_metric": "count",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -197,6 +227,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
+    Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
@@ -213,6 +244,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
+    Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -810,7 +842,8 @@ SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
 RequestQueryBody = tuple[Request, Translator, Translator]
 LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
-ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+# TODO: Would be nice to make this a concrete structure
+ResultSet = list[Mapping[str, Any]]
 
 
 def raw_snql_query(
@@ -825,17 +858,6 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     return bulk_snuba_queries([request], referrer, use_cache)[0]
-
-
-def bulk_snql_query(
-    requests: list[Request],
-    referrer: str | None = None,
-    use_cache: bool = False,
-) -> ResultSet:
-    """
-    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
-    """
-    return bulk_snuba_queries(requests, referrer, use_cache)
 
 
 def bulk_snuba_queries(
@@ -953,9 +975,9 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
 
         parent_api: str = "<missing>"
-        with sentry_sdk.configure_scope() as scope:
-            if scope.transaction:
-                parent_api = scope.transaction.name
+        scope = sentry_sdk.Scope.get_current_scope()
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -977,7 +999,7 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data, skip_trace=True)
+            body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
                     log_snuba_info(
@@ -998,13 +1020,18 @@ def _bulk_snuba_query(
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
-
+            metrics.incr(
+                "snuba.client.api.error",
+                tags={"status_code": response.status, "referrer": query_referrer},
+            )
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:
                     raise RateLimitExceeded(error["message"])
                 elif error["type"] == "schema":
                     raise SchemaValidationError(error["message"])
+                elif error["type"] == "invalid_query":
+                    raise UnqualifiedQueryError(error["message"])
                 elif error["type"] == "clickhouse":
                     raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
                         error["message"]
@@ -1198,6 +1225,7 @@ def resolve_column(dataset) -> Callable:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
+
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         elif (
@@ -1222,7 +1250,6 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
-
         return f"tags[{col}]"
 
     return _resolve_column
@@ -1458,7 +1485,7 @@ def get_json_type(snuba_type):
 def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
     Some models are stored differently in snuba, eg. as the environment
-    name instead of the the environment ID. Here we create and return forward()
+    name instead of the environment ID. Here we create and return forward()
     and reverse() translation functions that perform all the required changes.
 
     forward() is designed to work on the filter_keys and so should be called
@@ -1476,9 +1503,14 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
 
     # Helper lambdas to compose translator functions
-    identity = lambda x: x
-    compose = lambda f, g: lambda x: f(g(x))
-    replace = lambda d, key, val: d.update({key: val}) or d
+    def identity(x):
+        return x
+
+    def compose(f, g):
+        return lambda x: f(g(x))
+
+    def replace(d, key, val):
+        return d.update({key: val}) or d
 
     forward = identity
     reverse = identity
@@ -1550,7 +1582,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
+            replace(row, "time", int(parse_datetime(row["time"]).timestamp()))
             if "time" in row
             else row
         ),
@@ -1559,7 +1591,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"]))))
+            replace(row, "bucketed_end", int(parse_datetime(row["bucketed_end"]).timestamp()))
             if "bucketed_end" in row
             else row
         ),

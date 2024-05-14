@@ -45,17 +45,17 @@ def test_adjust_sample_rates_org_with_few_projects(projects_rebalancing_model):
         RebalancedItem(
             id=1,
             count=9,
-            new_sample_rate=pytest.approx(0.14814814814814817),  # type:ignore
+            new_sample_rate=pytest.approx(0.14814814814814817),  # type: ignore[arg-type]
         ),
         RebalancedItem(
             id=2,
             count=7,
-            new_sample_rate=pytest.approx(0.1904761904761905),  # type:ignore
+            new_sample_rate=pytest.approx(0.1904761904761905),  # type: ignore[arg-type]
         ),
         RebalancedItem(
             id=3,
             count=3,
-            new_sample_rate=pytest.approx(0.4444444444444444),  # type:ignore
+            new_sample_rate=pytest.approx(0.4444444444444444),  # type: ignore[arg-type]
         ),
         RebalancedItem(
             id=4,
@@ -148,7 +148,7 @@ def test_adjust_sample_rates_org_with_even_num_projects(projects_rebalancing_mod
         RebalancedItem(
             id=2,
             count=7.0,
-            new_sample_rate=pytest.approx(0.21428571428571427),  # type:ignore
+            new_sample_rate=pytest.approx(0.21428571428571427),  # type: ignore[arg-type]
         ),
         RebalancedItem(
             id=3,
@@ -180,7 +180,7 @@ def test_adjust_sample_rates_org_with_same_counts_projects(projects_rebalancing_
         RebalancedItem(
             id=1,
             count=9.0,
-            new_sample_rate=pytest.approx(0.16666666666666666),  # type:ignore
+            new_sample_rate=pytest.approx(0.16666666666666666),  # type: ignore[arg-type]
         ),
         RebalancedItem(
             id=2,

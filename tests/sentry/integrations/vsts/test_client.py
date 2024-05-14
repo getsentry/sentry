@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import call
 from urllib.parse import parse_qs, quote_plus
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -17,8 +18,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
-from sentry.utils import json
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -112,7 +112,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             else:
                 projects = [self.project_a, self.project_b] * 50
             resp_body = {"value": projects, "count": len(projects)}
-            return (200, {}, json.dumps(resp_body))
+            return 200, {}, orjson.dumps(resp_body).decode()
 
         self.assert_installation()
         responses.reset()
@@ -310,7 +310,6 @@ def assert_proxy_request(request, is_proxy=True):
         assert request.headers[PROXY_OI_HEADER] is not None
 
 
-@region_silo_test
 class VstsProxyApiClientTest(VstsIntegrationTestCase):
     def setUp(self):
         super().setUp()

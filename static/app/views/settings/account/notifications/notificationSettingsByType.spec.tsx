@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
 import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization as TOrganization} from 'sentry/types';
@@ -258,5 +258,21 @@ describe('NotificationSettingsByType', function () {
     const multiSelect = screen.getByRole('textbox', {name: 'Delivery Method'});
     await selectEvent.select(multiSelect, ['Email']);
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders spend notifications page instead of quota notifications with flag', async function () {
+    const organizationWithFlag = OrganizationFixture();
+    organizationWithFlag.features.push('spend-visibility-notifications');
+    const organizationNoFlag = OrganizationFixture();
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organizationWithFlag, organizationNoFlag],
+    });
+
+    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+    expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Control the notifications you receive for organization spend.')
+    ).toBeInTheDocument();
   });
 });

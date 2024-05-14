@@ -1,14 +1,24 @@
+import '@testing-library/jest-dom';
+
 /* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import MockDate from 'mockdate';
+import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
 
+import {resetMockDate} from 'sentry-test/utils';
+
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
+import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
+
+/**
+ * Set locale to English
+ */
+setLocale(DEFAULT_LOCALE_DATA);
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -30,8 +40,7 @@ configureRtl({testIdAttribute: 'data-test-id'});
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
-const constantDate = new Date(1508208080000);
-MockDate.set(constantDate);
+resetMockDate();
 
 /**
  * Global testing configuration
@@ -93,8 +102,8 @@ jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
 jest.mock('@sentry/react', function sentryReact() {
   const SentryReact = jest.requireActual('@sentry/react');
   return {
+    ...SentryReact,
     init: jest.fn(),
-    configureScope: jest.fn(),
     setTag: jest.fn(),
     setTags: jest.fn(),
     setExtra: jest.fn(),
@@ -104,37 +113,32 @@ jest.mock('@sentry/react', function sentryReact() {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
+    getDefaultIntegrations: jest.spyOn(SentryReact, 'getDefaultIntegrations'),
     startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
     getClient: jest.spyOn(SentryReact, 'getClient'),
-    getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
+    getCurrentScope: jest.spyOn(SentryReact, 'getCurrentScope'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
-    Hub: SentryReact.Hub,
-    Scope: SentryReact.Scope,
-    Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
     metrics: {
-      MetricsAggregator: jest.fn().mockReturnValue({}),
-      metricsAggregatorIntegration: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
       distribution: jest.fn(),
     },
-    BrowserTracing: jest.fn().mockReturnValue({}),
-    BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
-    addGlobalEventProcessor: jest.fn(),
+    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    browserTracingIntegration: jest.fn().mockReturnValue({}),
+    browserProfilingIntegration: jest.fn().mockReturnValue({}),
+    addEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
     }),
-    startTransaction: () => ({
-      finish: jest.fn(),
-      setTag: jest.fn(),
-      setData: jest.fn(),
+    startInactiveSpan: () => ({
+      end: jest.fn(),
       setStatus: jest.fn(),
       startChild: jest.fn().mockReturnValue({
-        finish: jest.fn(),
+        end: jest.fn(),
       }),
     }),
   };
@@ -149,12 +153,10 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // biome-ignore lint/style/noVar: Not required
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // biome-ignore lint/style/noVar: Not required
   var MockApiClient: typeof Client;
 }
 
@@ -212,8 +214,14 @@ window.IntersectionObserver = class IntersectionObserver {
   thresholds = [];
   takeRecords = jest.fn();
 
-  constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}
 };
+
+// Mock the crypto.subtle API for Gravatar
+Object.defineProperty(global.self, 'crypto', {
+  value: {
+    subtle: webcrypto.subtle,
+  },
+});

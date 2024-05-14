@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -57,7 +57,7 @@ class TestGrantExchanger(TestCase):
             self.grant_exchanger.call()
 
     def test_grant_must_be_active(self):
-        self.orm_install.api_grant.update(expires_at=(datetime.utcnow() - timedelta(hours=1)))
+        self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(APIUnauthorized):
             self.grant_exchanger.call()

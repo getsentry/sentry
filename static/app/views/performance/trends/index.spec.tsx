@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -18,6 +17,7 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import TrendsIndex from 'sentry/views/performance/trends/';
 import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
@@ -345,7 +345,7 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p95&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
     );
   });
 
@@ -426,15 +426,17 @@ describe('Performance > Trends', function () {
     const input = await screen.findByTestId('smart-search-input');
     enterSearch(input, 'transaction.duration:>9000');
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: expect.objectContaining({
-        project: ['1'],
-        query: 'transaction.duration:>9000',
-        improvedCursor: undefined,
-        regressionCursor: undefined,
-      }),
-    });
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: expect.objectContaining({
+          project: ['1'],
+          query: 'transaction.duration:>9000',
+          improvedCursor: undefined,
+          regressionCursor: undefined,
+        }),
+      })
+    );
   });
 
   it('exclude greater than list menu action modifies query', async function () {
@@ -541,7 +543,7 @@ describe('Performance > Trends', function () {
     );
 
     const trendDropdownButton = await getTrendDropdown();
-    expect(trendDropdownButton).toHaveTextContent('Percentilep50');
+    expect(trendDropdownButton).toHaveTextContent('Percentilep95');
   });
 
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
@@ -733,7 +735,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', function () {
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(
@@ -744,13 +746,15 @@ describe('Performance > Trends', function () {
       }
     );
 
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: {
-          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-        },
-      })
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          query: {
+            query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          },
+        })
+      )
     );
   });
 

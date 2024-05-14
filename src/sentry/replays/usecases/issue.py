@@ -10,7 +10,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
 def new_issue_occurrence(
     culprit: str,
-    environment: str,
+    environment: str | None,
     fingerprint: Sequence[str],
     issue_type: type[GroupType],
     level: str,
@@ -43,7 +43,7 @@ def new_issue_occurrence(
         level=level,
     )
 
-    event_data = {
+    event_data: dict[str, Any] = {
         "id": event_id,
         "environment": environment,
         "platform": platform,

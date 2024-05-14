@@ -5,7 +5,7 @@ import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -51,6 +51,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
                 pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
                 query: {
                   ...location.query,
+                  project: undefined,
                   referrer: 'issues_trace_timeline',
                 },
               }}

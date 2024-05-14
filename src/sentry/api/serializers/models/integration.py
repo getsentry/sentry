@@ -15,7 +15,6 @@ from sentry.services.hybrid_cloud.integration import (
     integration_service,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 class IntegrationSerializer(Serializer):
     def serialize(
         self, obj: Integration | RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         provider = obj.get_provider()
         return {
             "id": str(obj.id),
@@ -82,7 +81,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         user: User,
         include_config: bool = True,
         **kwargs: Any,
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
 
         if not include_config:
@@ -105,7 +104,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             # Query param "action" only attached in TicketRuleForm modal.
             if self.params.get("action") == "create":
                 # This method comes from IssueBasicMixin within the integration's installation class
-                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore
+                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore[attr-defined]
                     None, user, params=self.params
                 )
 
@@ -137,12 +136,12 @@ class OrganizationIntegrationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: RpcIntegration = attrs.get("integration")  # type: ignore
+        integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
         serialized_integration: MutableMapping[str, Any] = serialize(
             objects=integration,
             user=user,
@@ -162,7 +161,7 @@ class OrganizationIntegrationSerializer(Serializer):
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data() if include_config else None  # type: ignore
+                config_data = installation.get_config_data() if include_config else None  # type: ignore[assignment]
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
                 # If there is an ApiError from our 3rd party integration
@@ -197,7 +196,7 @@ class OrganizationIntegrationSerializer(Serializer):
 class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         org_slug = kwargs.pop("organization").slug
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None

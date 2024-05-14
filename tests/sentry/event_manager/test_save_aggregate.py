@@ -12,7 +12,6 @@ from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 
 
 @django_db_all(transaction=True)
@@ -39,7 +38,6 @@ from sentry.testutils.silo import region_silo_test
     ],
     ids=(" is_race_free: True ", " is_race_free: False "),
 )
-@region_silo_test
 def test_group_creation_race_new(
     monkeypatch, default_project, is_race_free, use_save_aggregate_new
 ):
@@ -76,7 +74,7 @@ def test_group_creation_race_new(
     # Mypy has a bug and can't handle the combo of a `...` input type and a ternary for the value
     # See https://github.com/python/mypy/issues/14661
     save_aggregate_fn: Callable[..., GroupInfo | None] = (
-        _save_aggregate_new if use_save_aggregate_new else _save_aggregate  # type: ignore
+        _save_aggregate_new if use_save_aggregate_new else _save_aggregate  # type: ignore[assignment]
     )
     group_kwargs_fn_name = (
         "_get_group_processing_kwargs" if use_save_aggregate_new else "_get_group_creation_kwargs"
@@ -85,7 +83,7 @@ def test_group_creation_race_new(
     group_processing_kwargs = {"level": 10, "culprit": "", "data": {}}
     save_aggregate_kwargs = {
         "event": event,
-        "job": {"event_metadata": {}, "release": "dogpark"},
+        "job": {"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
         "metric_tags": {},
     }
     if not use_save_aggregate_new:
@@ -99,8 +97,8 @@ def test_group_creation_race_new(
     def save_event():
         try:
             with patch(
-                "sentry.event_manager.get_hash_values",
-                return_value=(hashes, hashes, hashes),
+                "sentry.grouping.ingest.hashing._calculate_event_grouping",
+                return_value=hashes,
             ):
                 with patch(
                     f"sentry.event_manager.{group_kwargs_fn_name}",

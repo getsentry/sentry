@@ -299,6 +299,11 @@ urlpatterns += [
                     name="sentry-account-recover-confirm",
                 ),
                 re_path(
+                    r"^relocation/reclaim/(?P<user_id>[\d]+)/$",
+                    accounts.relocate_reclaim,
+                    name="sentry-account-relocate-reclaim",
+                ),
+                re_path(
                     r"^password/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.set_password_confirm,
                     name="sentry-account-set-password-confirm",
@@ -687,7 +692,7 @@ urlpatterns += [
     ),
     # Issues
     re_path(
-        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^issues/(?P<project_id_or_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-customer-domain-sentry-group-tag-export",
     ),
@@ -702,17 +707,17 @@ urlpatterns += [
         react_page_view,
         name="alerts",
     ),
+    # AI Monitoring
+    re_path(
+        r"^ai-monitoring/",
+        react_page_view,
+        name="ai-monitoring",
+    ),
     # Performance
     re_path(
         r"^performance/",
         react_page_view,
         name="performance",
-    ),
-    # Starfish
-    re_path(
-        r"^starfish/",
-        react_page_view,
-        name="starfish",
     ),
     # Profiling
     re_path(
@@ -748,7 +753,13 @@ urlpatterns += [
         react_page_view,
         name="discover",
     ),
-    # DDM
+    # DDM new
+    re_path(
+        r"^metrics/",
+        react_page_view,
+        name="metrics",
+    ),
+    # TODO(metrics): fade this out
     re_path(
         r"^ddm/",
         react_page_view,
@@ -922,7 +933,7 @@ urlpatterns += [
                     name="sentry-organization-project-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_id_or_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-project-event-redirect",
                 ),
@@ -994,6 +1005,16 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-rage-clicks",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/$",
+                    react_page_view,
+                    name="sentry-organization-crons",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-cron-monitor-details",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
@@ -1161,7 +1182,7 @@ urlpatterns += [
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-join-request",
     ),
-    # Keep named URL for for things using reverse
+    # Keep named URL for things using reverse
     re_path(
         r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
         react_page_view,
@@ -1198,17 +1219,17 @@ urlpatterns += [
         name="sentry-alert-rule",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
         GroupPluginActionView.as_view(),
         name="sentry-group-plugin-action",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
         ProjectEventRedirect.as_view(),
         name="sentry-project-event-redirect",
     ),

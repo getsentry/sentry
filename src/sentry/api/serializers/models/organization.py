@@ -29,6 +29,7 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -425,6 +426,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
+    aggregatedDataConsent: bool
+    genAIConsent: bool
     isDynamicallySampled: bool
 
 
@@ -434,7 +437,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(  # type: ignore
+    def serialize(  # type: ignore[explicit-override, override]
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
@@ -540,6 +543,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
+                "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
+                "aggregatedDataConsent": bool(
+                    obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
+                ),
             }
         )
 
@@ -553,16 +560,24 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
+
+        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
         context["isDynamicallySampled"] = (
             features.has("organizations:dynamic-sampling", obj)
             and sample_rate is not None
             and sample_rate < 1.0
         )
+
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
-        desired_sample_rate: float | None = get_sliding_window_org_sample_rate(obj.id)
+
+        if sample_rate is not None:
+            context["planSampleRate"] = sample_rate
+
+        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
+            org_id=obj.id, default_sample_rate=sample_rate
+        )
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 
@@ -606,7 +621,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return team_list
 
-    def serialize(  # type: ignore
+    def serialize(  # type: ignore[explicit-override, override]
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
         from sentry.api.serializers.models.project import (

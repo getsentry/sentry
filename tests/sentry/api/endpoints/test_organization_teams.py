@@ -8,11 +8,9 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -168,7 +166,6 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"

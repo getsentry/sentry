@@ -1,6 +1,6 @@
 import itertools
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -47,14 +47,13 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaTSResult
 
 
 @pytest.fixture
 def timestamp():
-    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=timezone.utc)
+    return datetime(2023, 8, 1, 12, 7, 42, 521000, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -263,8 +262,8 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
 
     assert functions_query.called
     params = functions_query.mock_calls[0].kwargs["params"]
-    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=timezone.utc)
-    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=timezone.utc)
+    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
+    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
@@ -303,6 +302,7 @@ def test_detect_transaction_trends(
     assert detect_transaction_change_points.apply_async.called
 
 
+@mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
 @mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
@@ -312,6 +312,7 @@ def test_detect_transaction_trends_auto_resolution(
     produce_occurrence_to_kafka,
     detect_transaction_change_points,
     raw_snql_query,
+    mock_uuid4,
     timestamp,
     project,
 ):
@@ -893,7 +894,7 @@ def test_detect_function_change_points(
     timestamp,
     project,
 ):
-    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    start_of_hour = timestamp.replace(minute=0, second=0, microsecond=0)
 
     fingerprint = 12345
 
@@ -1132,10 +1133,12 @@ def test_save_regressions_with_versions(
         pytest.param(GroupStatus.IGNORED, GroupSubStatus.FOREVER, False, id="forever"),
     ],
 )
+@mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
 @django_db_all
 def test_redirect_escalations(
     produce_occurrence_to_kafka,
+    mock_uuid4,
     detector_cls,
     object_name,
     baseline,
@@ -1288,15 +1291,12 @@ def test_redirect_escalations(
         )
 
 
-@region_silo_test
 class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.now = before_now(minutes=10)
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.projects = [
             self.create_project(organization=self.organization, teams=[self.team], name="Foo"),
             self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
@@ -1371,7 +1371,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 "trend_percentage": 1.23,
                 "absolute_percentage_change": 1.23,
                 "trend_difference": 1.23,
-                "breakpoint": (self.hour_ago - timedelta(hours=12)).timestamp(),
+                "breakpoint": int((self.hour_ago - timedelta(hours=12)).timestamp()),
             }
             for project in self.projects
         ]
@@ -1381,7 +1381,6 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         assert emitted == 5
 
 
-@region_silo_test
 @pytest.mark.sentry_metrics
 class TestTransactionsQuery(MetricsAPIBaseTestCase):
     def setUp(self):
@@ -1389,9 +1388,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
         self.num_projects = 2
         self.num_transactions = 4
 
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -1465,7 +1462,6 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             assert trend_payload.timestamp == self.hour_ago
 
 
-@region_silo_test
 @pytest.mark.sentry_metrics
 class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
     def setUp(self):
@@ -1473,9 +1469,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         self.num_projects = 2
         self.num_transactions = 4
 
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
         self.org = self.create_organization(owner=self.user)
         self.projects = [

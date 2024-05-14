@@ -7,6 +7,7 @@ from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
@@ -15,7 +16,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -25,6 +26,7 @@ from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -43,8 +45,7 @@ from sentry.services.hybrid_cloud.repository.service import repository_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
-from sentry.utils import json, metrics
-from sentry.utils.json import JSONData
+from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -529,9 +530,13 @@ class PullRequestEventWebhook(Webhook):
             )
 
             if action == "opened" and created:
-                if not features.has("organizations:integrations-open-pr-comment", organization):
+                if not OrganizationOption.objects.get_value(
+                    organization=organization,
+                    key="sentry:github_open_pr_bot",
+                    default=True,
+                ):
                     logger.info(
-                        "github.open_pr_comment.flag_missing",
+                        "github.open_pr_comment.option_missing",
                         extra={"organization_id": organization.id},
                     )
                     return
@@ -559,7 +564,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     _handlers = {
@@ -568,8 +573,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "installation": InstallationEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
-        handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
+    def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
+        handler: Callable[[], Callable[[Any], Any]] | None = self._handlers.get(event_type)
         return handler
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
@@ -621,7 +626,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         if not handler:
-            logger.error(
+            logger.info(
                 "github.webhook.missing-handler",
                 extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )
@@ -639,8 +644,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=401)
 
         try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
             logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)

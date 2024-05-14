@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Sequence
 
 import jsonschema
+import orjson
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
@@ -44,7 +45,6 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
@@ -157,9 +157,9 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
         Retrieve a list of associated releases for a given Proguard File.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
         :qparam string proguard_uuid: the uuid of the Proguard file.
         :auth: required
@@ -227,9 +227,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         Retrieve a list of debug information files for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      DIFs of.
         :qparam string query: If set, this parameter is used to locate DIFs with.
         :qparam string id: If set, the specified DIF will be sent in the response.
@@ -312,9 +312,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         Delete a debug information file for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           file belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      DIF.
         :qparam string id: The id of the DIF to delete.
         :auth: required
@@ -346,9 +346,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         contains the individual debug images.  Uploading through this endpoint
         will create different files for the contained images.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
         :param file file: the multipart encoded file.
         :auth: required
@@ -419,7 +419,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         }
 
         try:
-            files = json.loads(request.body)
+            files = orjson.loads(request.body)
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
@@ -507,10 +507,10 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -521,9 +521,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         Retrieve a list of source map archives (releases, later bundles) for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           source map archive belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      source map archives of.
         :qparam string query: If set, this parameter is used to locate source map archives with.
         :auth: required
@@ -585,9 +585,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         Delete all artifacts inside given archive.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                             archive belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                         archive of.
         :qparam string name: The name of the archive to delete.
         :auth: required
@@ -597,9 +597,14 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         if archive_name:
             with atomic_transaction(using=router.db_for_write(ReleaseFile)):
-                release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, version=archive_name
-                )
+                try:
+                    release = Release.objects.get(
+                        organization_id=project.organization_id,
+                        projects=project,
+                        version=archive_name,
+                    )
+                except Release.DoesNotExist:
+                    raise ResourceDoesNotExist(detail="The provided release does not exist")
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release_id=release.id)
                     release_files.delete()

@@ -20,18 +20,25 @@
         "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
         "useHookAtTopLevel": "error",
-        "useIsNan": "error"
+        "useIsNan": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noInvalidUseBeforeDeclaration": "error"
       },
       "complexity": {
         "useFlatMap": "error",
-        "useOptionalChain": "error"
+        "useOptionalChain": "error",
+        "noEmptyTypeParameters": "error",
+        "noUselessLoneBlockStatements": "error",
+        "noUselessEmptyExport": "error",
+        "noUselessConstructor": "error",
+        "noUselessTypeConstraint": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noNodejsModules": "error",
-        "useExportType": "error",
-        "useImportType": "error",
-        "useShorthandFunctionType": "error"
+        "noNodejsModules": "error"
+      },
+      "performance": {
+        "noBarrelFile": "error"
       },
       "security": {
         "noDangerouslySetInnerHtmlWithChildren": "error"
@@ -48,14 +55,25 @@
         "noSparseArray": "error",
         "noUnsafeDeclarationMerging": "error",
         "noUnsafeNegation": "error",
-        "useIsArray": "error"
+        "useIsArray": "error",
+        "noApproximativeNumericConstant": "error",
+        "noMisrefactoredShorthandAssign": "error",
+        "useAwait": "error",
+        "useNamespaceKeyword": "error"
       },
       "style": {
         "noCommaOperator": "error",
         "noShoutyConstants": "error",
         "noParameterProperties": "error",
         "noVar": "error",
-        "useConst": "error"
+        "useConst": "error",
+        "useShorthandFunctionType": "error",
+        "useExportType": "error",
+        "useImportType": "error",
+        "useNodejsImportProtocol": "error",
+        "useLiteralEnumMembers": "error",
+        "useEnumInitializers": "error",
+        "useAsConstAssertion": "error"
       }
     }
   },
@@ -66,11 +84,12 @@
       "static/app/data/world.json",
       "**/*.sourcemap.js",
       "**/*.min.js",
-      "fixtures"
+      "fixtures",
+      ".devenv"
     ]
   },
   "formatter": {
-    "enabled": true,
+    "enabled": false,
     "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
@@ -79,7 +98,7 @@
   },
   "javascript": {
     "formatter": {
-      "enabled": true,
+      "enabled": false,
       "lineWidth": 90,
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
@@ -94,18 +113,23 @@
   "json": {
     "formatter": {
       "enabled": true
-    },
-    "parser": {
-      "allowComments": true,
-      "allowTrailingCommas": true
     }
   },
   "overrides": [
     {
+      "include": ["biome.json", "config/tsconfig.*", "tsconfig.json", ".vscode/*"],
+      "json": {
+        "parser": {
+          "allowComments": true,
+          "allowTrailingCommas": true
+        }
+      }
+    },
+    {
       "include": [
         "api-docs/*.ts",
         "build-utils/*.ts",
-        "config/webpack.chartcuterie.config.ts",
+        "config/*.ts",
         "scripts",
         "tests/js/sentry-test/loadFixtures.ts",
         "tests/js/jest-pegjs-transform.js",
@@ -127,6 +151,26 @@
         "rules": {
           "style": {
             "noVar": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": [
+        "static/app/utils/replays/types.tsx",
+        "static/app/utils/queryClient.tsx",
+        "static/app/views/performance/traceDetails/styles.tsx",
+        "static/app/icons/index.tsx",
+        "static/app/components/tabs/index.tsx",
+        "static/app/components/sparklines/line.tsx",
+        "static/app/types/index.tsx",
+        "tests/js/sentry-test/reactTestingLibrary.tsx",
+        "tests/js/sentry-test/index.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
           }
         }
       }

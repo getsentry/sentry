@@ -18,7 +18,6 @@ from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -26,7 +25,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = requires_snuba
 
 
-@region_silo_test
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -279,12 +277,12 @@ class GroupTest(TestCase, SnubaTestCase):
         last_release = Release.objects.create(
             organization_id=self.organization.id,
             version="100",
-            date_added=iso_format(now - timedelta(seconds=10)),
+            date_added=now - timedelta(seconds=10),
         )
         first_release = Release.objects.create(
             organization_id=self.organization.id,
             version="200",
-            date_added=iso_format(now - timedelta(seconds=100)),
+            date_added=now - timedelta(seconds=100),
         )
         GroupRelease.objects.create(
             project_id=project.id,
@@ -353,7 +351,6 @@ class GroupTest(TestCase, SnubaTestCase):
         assert logger.error.call_count == len(status_substatus_pairs)
 
 
-@region_silo_test
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group

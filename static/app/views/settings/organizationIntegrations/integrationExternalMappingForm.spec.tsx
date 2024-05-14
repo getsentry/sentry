@@ -78,7 +78,9 @@ describe('IntegrationExternalMappingForm', function () {
     expect(
       await screen.findByDisplayValue(MOCK_USER_MAPPING.externalName)
     ).toBeInTheDocument();
-    expect(screen.getByText(`option${MOCK_USER_MAPPING.userId}`)).toBeInTheDocument();
+    expect(
+      await screen.findByText(`option${MOCK_USER_MAPPING.userId}`)
+    ).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
   it('renders with a full mapping provided as an inline field', async function () {

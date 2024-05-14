@@ -1,7 +1,5 @@
 import logging
-import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -22,6 +20,8 @@ from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.iterators import chunked
+from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -86,22 +86,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         trend_function = request.GET.get("trendFunction", "p50()")
 
-        selected_columns = self.get_field_list(organization, request)
+        selected_columns = ["project_id", "transaction"]
 
         query = request.GET.get("query")
 
-        top_trending_transactions = {}
-
-        experiment_use_project_id = features.has(
-            "organizations:performance-trendsv2-dev-only",
-            organization,
-            actor=request.user,
-        )
-
         def get_top_events(user_query, params, event_limit, referrer):
-            top_event_columns = cast(list[str], selected_columns[:])
+            top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
-            top_event_columns.append("project_id")
 
             # Granularity is set to 1d - the highest granularity possible
             # in order to optimize the top event query since we don't care
@@ -119,33 +110,40 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
         def generate_top_transaction_query(events):
-            top_transaction_names = [
-                re.sub(r'"', '\\"', event.get("transaction")) for event in events
+            pairs = [
+                (event["project_id"], escape_transaction(event["transaction"])) for event in events
             ]
-            top_transaction_as_str = ", ".join(
-                f'"{transaction}"' for transaction in top_transaction_names
-            )
-            return f"transaction:[{top_transaction_as_str}]"
+            conditions = [
+                f'(project_id:{project_id} transaction:"{transaction}")'
+                for project_id, transaction in pairs
+            ]
+            return " OR ".join(conditions)
 
         def get_timeseries(top_events, _, rollup, zerofill_results):
             # Split top events into multiple queries for bulk timeseries query
             data = top_events["data"]
-            split_top_events = [
-                data[i : i + EVENTS_PER_QUERY] for i in range(0, len(data), EVENTS_PER_QUERY)
-            ]
-            queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
-            timeseries_columns = cast(list[str], selected_columns[:])
+            queries = [
+                generate_top_transaction_query(chunk) for chunk in chunked(data, EVENTS_PER_QUERY)
+            ]
+
+            timeseries_columns = selected_columns[:]
             timeseries_columns.append(trend_function)
 
             # When all projects or my projects options selected,
             # keep only projects that top events belong to to reduce query cardinality
-            used_project_ids = list({event["project"] for event in data})
-
-            request.GET.projectSlugs = used_project_ids  # type: ignore
+            used_project_ids = set({event["project_id"] for event in data})
 
             # Get new params with pruned projects
             pruned_params = self.get_snuba_params(request, organization)
+            pruned_params["project_objects"] = [
+                project
+                for project in pruned_params["project_objects"]
+                if project.id in used_project_ids
+            ]
+            pruned_params["project_id"] = [
+                project.id for project in pruned_params["project_objects"]
+            ]
 
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
@@ -154,33 +152,30 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
-                groupby=Column("transaction"),
+                groupby=[Column("project_id"), Column("transaction")],
                 apply_formatting=False,
             )
 
             # Parse results
-            translated_groupby = ["transaction"]
+            translated_groupby = ["project_id", "transaction"]
             results = {}
             formatted_results = {}
-            for index, item in enumerate(top_events["data"]):
+            for index, item in enumerate(data):
                 result_key = create_result_key(item, translated_groupby, {})
-                if experiment_use_project_id:
-                    results[result_key] = {
-                        "order": index,
-                        "data": [],
-                        "project_id": item["project_id"],
-                    }
-                else:
-                    results[result_key] = {
-                        "order": index,
-                        "data": [],
-                        "project": item["project"],
-                    }
-            for row in result.get("data", []):  # type: ignore
+                results[result_key] = {
+                    "order": index,
+                    "data": [],
+                    "project_id": item["project_id"],
+                }
+
+            discarded = 0
+
+            for row in result.get("data", []):
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)
                 else:
+                    discarded += 1
                     # TODO filter out entries that don't have transaction or trend_function
                     logger.warning(
                         "trends.top-events.timeseries.key-mismatch",
@@ -189,12 +184,23 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                             "top_event_keys": list(results.keys()),
                         },
                     )
-            for key, item in results.items():
-                key = (
-                    f'{item["project_id"]},{key}'
-                    if experiment_use_project_id
-                    else f'{item["project"]},{key}'
+
+            # If we discard any rows, there's a chance we have a bad query and it'll
+            # most likely be a transaction name being parsed in an unexpected way in
+            # the search.
+            # A common side effect of this is that we return data for the same series
+            # in more than 1 query which can lead to a validation error in seer.
+            if discarded > 0:
+                logger.warning(
+                    "trends.top-events.timeseries.discarded-rows",
+                    extra={
+                        "discarded": discarded,
+                        "transactions": [event["transaction"] for event in data],
+                    },
                 )
+                sentry_sdk.capture_message("Possibility of bad trends query")
+
+            for key, item in results.items():
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
@@ -206,9 +212,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         )
                         if zerofill_results
                         else item["data"],
-                        "project": item["project_id"]
-                        if experiment_use_project_id
-                        else item["project"],
+                        "project": item["project_id"],
                         "isMetricsData": True,
                         "order": item["order"],
                     },
@@ -225,7 +229,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
 
             # Fetch transactions names with the highest event count
-            nonlocal top_trending_transactions
             top_trending_transactions = get_top_events(
                 user_query=user_query,
                 params=params,
@@ -251,41 +254,27 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             data[1]["data_start"] = data_start
             data[1]["data_end"] = data_end
             # user requested start and end
-            data[1]["request_start"] = params["start"].timestamp()
+            data[1]["request_start"] = int(params["start"].timestamp())
             data[1]["request_end"] = data_end
             return data
 
         def get_trends_data(stats_data, request):
-            trend_function = request.GET.get("trendFunction", "p50()")
-
-            trends_request: dict[str, Any] = {
-                "data": {},
-                "sort": None,
-                "trendFunction": None,
-            }
-
-            trends_request["sort"] = (
-                "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
-            )
-            trends_request["trendFunction"] = trend_function
-
-            # list of requests to send to microservice async
-            trends_requests = []
-
             stats_data = dict(
                 [format_start_end(data) for data in list(stats_data.items()) if data[1] is not None]
             )
 
-            # split the txns data into multiple dictionaries
-            split_transactions_data = [
-                dict(list(stats_data.items())[i : i + EVENTS_PER_QUERY])
-                for i in range(0, len(stats_data), EVENTS_PER_QUERY)
-            ]
+            trend_sort = "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
+            trend_function = request.GET.get("trendFunction", "p50()")
 
-            for i in range(len(split_transactions_data)):
-                trends_request = trends_request.copy()
-                trends_request["data"] = split_transactions_data[i]
-                trends_requests.append(trends_request)
+            # list of requests to send to microservice async
+            trends_requests = [
+                {
+                    "data": dict(chunk),
+                    "sort": trend_sort,
+                    "trendFunction": trend_function,
+                }
+                for chunk in chunked(stats_data.items(), EVENTS_PER_QUERY)
+            ]
 
             # send the data to microservice
             results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
@@ -297,9 +286,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trend_results += output_dict
 
             # sort the results into trending events list
-            if trends_request["sort"] == "trend_percentage()":
+            if trend_sort == "trend_percentage()":
                 trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
-            elif trends_request["sort"] == "-trend_percentage()":
+            elif trend_sort == "-trend_percentage()":
                 trending_events = sorted(
                     trend_results, key=lambda d: d["trend_percentage"], reverse=True
                 )
@@ -349,14 +338,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     True,
                 ),
                 "stats": trending_transaction_names_stats,
-                # temporary change to see what stats data is returned
-                "raw_stats": trends_requests
-                if features.has(
-                    "organizations:performance-trendsv2-dev-only",
-                    organization,
-                    actor=request.user,
-                )
-                else {},
             }
 
         with handle_query_errors():

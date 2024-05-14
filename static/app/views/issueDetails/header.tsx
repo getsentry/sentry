@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import Badge from 'sentry/components/badge';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
-import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -20,7 +20,7 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Organization, Project} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -31,9 +31,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 
 import GroupActions from './actions';
-import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
+import {ShortIdBreadcrumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
-import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
 type Props = {
@@ -59,7 +58,9 @@ function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
 
   const projectFeatures = new Set(project ? project.features : []);
@@ -230,7 +231,7 @@ function GroupHeader({
   const disableActions = !!disabledTabs.length;
 
   const shortIdBreadcrumb = (
-    <ShortIdBreadrcumb organization={organization} project={project} group={group} />
+    <ShortIdBreadcrumb organization={organization} project={project} group={group} />
   );
 
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -263,6 +264,9 @@ function GroupHeader({
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
+              {group.issueCategory === IssueCategory.REPLAY && (
+                <StyledFeatureBadge type="new" />
+              )}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
@@ -272,20 +276,24 @@ function GroupHeader({
                 fontSize="md"
               />
             </TitleHeading>
-            <StyledTagAndMessageWrapper>
-              {group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled && <UnhandledInboxTag />}
-              <EventMessage message={message} />
-            </StyledTagAndMessageWrapper>
+            <EventMessage
+              message={message}
+              level={group.level}
+              levelIndicatorSize="11px"
+              type={group.type}
+              showUnhandled={group.isUnhandled}
+            />
           </TitleWrapper>
           {issueTypeConfig.stats.enabled && (
             <StatsWrapper>
-              <div className="count">
-                <h6 className="nav-header">{t('Events')}</h6>
-                <Link disabled={disableActions} to={eventRoute}>
-                  <Count className="count" value={group.count} />
-                </Link>
-              </div>
+              <GuideAnchor target="issue_header_stats">
+                <div className="count">
+                  <h6 className="nav-header">{t('Events')}</h6>
+                  <Link disabled={disableActions} to={eventRoute}>
+                    <Count className="count" value={group.count} />
+                  </Link>
+                </div>
+              </GuideAnchor>
               <div className="count">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
@@ -364,13 +372,6 @@ const StatsWrapper = styled('div')`
   }
 `;
 
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-start;
-  line-height: 1.2;
-`;
-
 const IconBadge = styled(Badge)`
   display: flex;
   align-items: center;
@@ -384,4 +385,8 @@ const StyledTabList = styled(TabList)`
 const PriorityContainer = styled('div')`
   /* Ensures that the layout doesn't shift when changing priority */
   min-width: 80px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  align-items: flex-start;
 `;

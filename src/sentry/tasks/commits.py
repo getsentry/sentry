@@ -11,15 +11,16 @@ from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.organization import Organization
-from sentry.models.release import Release, ReleaseCommitError
+from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.plugins.base import bindings
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

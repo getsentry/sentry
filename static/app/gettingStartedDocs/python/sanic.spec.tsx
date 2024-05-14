@@ -15,7 +15,9 @@ describe('sanic onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[sanic\]/))
+      screen.getByText(
+        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[sanic\]'/)
+      )
     ).toBeInTheDocument();
   });
 });

@@ -10,8 +10,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.projectplatform import ProjectPlatform
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
 
 
 @region_silo_endpoint
@@ -27,7 +28,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         The data returned from here is auxiliary meta data that the UI uses.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required

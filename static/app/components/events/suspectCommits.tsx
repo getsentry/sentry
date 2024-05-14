@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import type {CommitRowProps} from 'sentry/components/commitRow';
-import {DataSection, SuspectCommitHeader} from 'sentry/components/events/styles';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject, Commit, Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Commit} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -79,7 +81,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
-    <DataSection>
+    <div>
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
@@ -109,7 +111,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
           />
         ))}
       </StyledPanel>
-    </DataSection>
+    </div>
   );
 }
 

@@ -231,25 +231,21 @@ const getInputStyles = ({
   size,
   theme,
 }: InputStyleProps & {theme: Theme}) => css`
-  ${
-    leadingWidth &&
-    `
+  ${leadingWidth &&
+  `
     padding-left: calc(
       ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
       + ${leadingWidth}px
     );
-  `
-  }
+  `}
 
-  ${
-    trailingWidth &&
-    `
+  ${trailingWidth &&
+  `
     padding-right: calc(
       ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
       + ${trailingWidth}px
     );
-  `
-  }
+  `}
 `;
 
 const StyledInput = styled(_Input)<InputStyleProps>`

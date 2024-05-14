@@ -4,10 +4,8 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -45,7 +43,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
 
         url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
 
-        response = self.client.get(url, format="json")
+        response = self.client.get(url, {"statsPeriod": "14d"}, format="json")
         assert response.status_code == 200, response.content
         data = response.data
         data.sort(key=lambda val: val["totalValues"], reverse=True)

@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
@@ -19,7 +19,6 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -70,15 +69,12 @@ export default function WebVitalMeters({
   showTooltip = true,
 }: Props) {
   const theme = useTheme();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   if (!projectScore) {
     return null;
   }
 
-  const webVitalsConfig = shouldReplaceFidWithInp
-    ? WEB_VITALS_METERS_CONFIG_WITH_INP
-    : WEB_VITALS_METERS_CONFIG;
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG_WITH_INP;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.charts.getColorPalette(3);

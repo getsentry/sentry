@@ -22,9 +22,9 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import type {EventTransaction, RequestState} from 'sentry/types';
-import {EntryType} from 'sentry/types';
-import type {EntrySpans} from 'sentry/types/event';
+import type {RequestState} from 'sentry/types/core';
+import type {EntrySpans, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -303,13 +303,16 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
-    const transaction = Sentry.startTransaction({
-      op: 'import',
-      name: 'flamegraph.constructor',
-    });
+    const span = Sentry.withScope(scope => {
+      scope.setTag('sorting', sorting.split(' ').join('_'));
+      scope.setTag('view', view.split(' ').join('_'));
 
-    transaction.setTag('sorting', sorting.split(' ').join('_'));
-    transaction.setTag('view', view.split(' ').join('_'));
+      return Sentry.startInactiveSpan({
+        op: 'import',
+        name: 'flamegraph.constructor',
+        forceTransaction: true,
+      });
+    });
 
     const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
@@ -320,7 +323,8 @@ function Flamegraph(): ReactElement {
         profile.unit
       ),
     });
-    transaction.finish();
+
+    span?.end();
 
     return newFlamegraph;
   }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);

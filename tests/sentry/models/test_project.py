@@ -1,6 +1,6 @@
 from collections.abc import Iterable
+from unittest.mock import patch
 
-from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -11,26 +11,26 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test
 class ProjectTest(APITestCase, TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
@@ -65,6 +65,11 @@ class ProjectTest(APITestCase, TestCase):
             label="Golden Rule",
             data={},
         )
+        environment_from_new = self.create_environment(organization=from_org)
+        environment_from_existing = self.create_environment(organization=from_org)
+        environment_to_existing = self.create_environment(
+            organization=to_org, name=environment_from_existing.name
+        )
 
         monitor = Monitor.objects.create(
             name="test-monitor",
@@ -82,6 +87,12 @@ class ProjectTest(APITestCase, TestCase):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        monitor_env_new = MonitorEnvironment.objects.create(
+            monitor=monitor_also, environment_id=environment_from_new.id
+        )
+        monitor_env_existing = MonitorEnvironment.objects.create(
+            monitor=monitor_also, environment_id=environment_from_existing.id
         )
 
         monitor_other = Monitor.objects.create(
@@ -123,6 +134,12 @@ class ProjectTest(APITestCase, TestCase):
         assert updated_monitor.id == monitor_also.id
         assert updated_monitor.organization_id == to_org.id
         assert updated_monitor.project_id == project.id
+        monitor_env_new.refresh_from_db()
+        environment_to_new = Environment.objects.get(id=monitor_env_new.environment_id)
+        assert environment_to_new.organization_id == to_org.id
+        assert environment_to_new.name == environment_from_new.name
+        monitor_env_existing.refresh_from_db()
+        assert monitor_env_existing.environment_id == environment_to_existing.id
 
         unmoved_monitor = Monitor.objects.get(slug="test-monitor-other")
         assert unmoved_monitor.id == monitor_other.id
@@ -228,19 +245,23 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[project],
-            owner=ActorTuple.from_actor_identifier(f"team:{team.id}"),
+            owner=Actor.from_identifier(f"team:{team.id}"),
             environment=environment,
         )
         snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = Rule.objects.create(label="another test rule", project=project, owner=team.actor)
+        rule1 = Rule.objects.create(label="another test rule", project=project, owner_team=team)
         rule2 = Rule.objects.create(
-            label="rule4", project=project, owner=get_actor_for_user(from_user)
+            label="rule4",
+            project=project,
+            owner_user_id=from_user.id,
         )
 
         # should keep their owners
-        rule3 = Rule.objects.create(label="rule2", project=project, owner=to_team.actor)
+        rule3 = Rule.objects.create(label="rule2", project=project, owner_team=to_team)
         rule4 = Rule.objects.create(
-            label="rule3", project=project, owner=get_actor_for_user(to_user)
+            label="rule3",
+            project=project,
+            owner_user_id=to_user.id,
         )
 
         assert EnvironmentProject.objects.count() == 1
@@ -261,11 +282,18 @@ class ProjectTest(APITestCase, TestCase):
         assert EnvironmentProject.objects.count() == 1
         assert snuba_query.environment != environment
         assert alert_rule.organization_id == to_org.id
-        assert alert_rule.owner is None
-        assert rule1.owner is None
-        assert rule2.owner is None
-        assert rule3.owner is not None
-        assert rule4.owner is not None
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
+
+        for rule in (rule1, rule2):
+            assert rule.owner_user_id is None
+            assert rule.owner_team_id is None
+
+        assert rule3.owner_user_id is None
+        assert rule3.owner_team_id
+
+        assert rule4.owner_user_id
+        assert rule4.owner_team_id is None
 
     def test_transfer_to_organization_external_issues(self):
         from_org = self.create_organization()
@@ -341,8 +369,44 @@ class ProjectTest(APITestCase, TestCase):
             url == f"http://{self.organization.slug}.testserver/issues/?project={self.project.id}"
         )
 
+    def test_get_next_short_id_simple(self):
+        with patch("sentry.models.Counter.increment", return_value=1231):
+            assert self.project.next_short_id() == 1231
 
-@region_silo_test
+    def test_next_short_id_increments_by_one_if_no_delta_passed(self):
+        assert self.project.next_short_id() == 1
+        assert self.project.next_short_id() == 2
+
+    def test_get_next_short_id_increments_by_delta_value(self):
+        assert self.project.next_short_id() == 1
+        assert self.project.next_short_id(delta=2) == 3
+
+    def test_add_team(self):
+        team = self.create_team(organization=self.organization)
+        assert self.project.add_team(team)
+
+        teams = self.project.teams.all()
+        assert team.id in {t.id for t in teams}
+
+    def test_remove_team_clears_alerts(self):
+        team = self.create_team(organization=self.organization)
+        assert self.project.add_team(team)
+
+        rule = Rule.objects.create(project=self.project, label="issa rule", owner_team_id=team.id)
+        alert_rule = self.create_alert_rule(
+            organization=self.organization, owner=Actor.from_id(team_id=team.id)
+        )
+        self.project.remove_team(team)
+
+        rule.refresh_from_db()
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id is None
+
+        alert_rule.refresh_from_db()
+        assert alert_rule.team_id is None
+        assert alert_rule.user_id is None
+
+
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -441,15 +505,13 @@ class CopyProjectSettingsTest(TestCase):
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
         recipients = get_notification_recipients(
-            recipients=RpcActor.many_from_object(users),
+            recipients=Actor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[self.project.id],
             organization_id=self.project.organization.id,
         )
         actual_recipients = recipients[ExternalProviders.EMAIL]
-        expected_recipients = {
-            RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
-        }
+        expected_recipients = {Actor.from_object(user) for user in expected_users}
         assert actual_recipients == expected_recipients
 
     def test(self):
@@ -547,7 +609,6 @@ class FilterToSubscribedUsersTest(TestCase):
         )
 
 
-@region_silo_test
 class ProjectDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()

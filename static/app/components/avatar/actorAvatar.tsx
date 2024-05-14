@@ -1,26 +1,17 @@
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import MemberListStore from 'sentry/stores/memberListStore';
-import type {Actor} from 'sentry/types';
+import Placeholder from 'sentry/components/placeholder';
+import type {Actor} from 'sentry/types/core';
+import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-interface ActorAvatarProps {
+import type {BaseAvatarProps} from './baseAvatar';
+
+interface Props extends BaseAvatarProps {
   actor: Actor;
-  className?: string;
-  default?: string;
-  gravatar?: boolean;
-  hasTooltip?: boolean;
-  onClick?: () => void;
-  round?: boolean;
-  size?: number;
-  suggested?: boolean;
-  title?: string;
-  tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
 }
 
 /**
@@ -34,13 +25,33 @@ function LoadTeamAvatar({
   const team = teams.find(t => t.id === teamId);
 
   if (isLoading) {
-    return <LoadingIndicator mini />;
+    const size = `${props.size}px`;
+    return <Placeholder width={size} height={size} />;
   }
 
   return <TeamAvatar team={team} {...props} />;
 }
 
-function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: ActorAvatarProps) {
+/**
+ * Wrapper to assist loading the user from api or store
+ */
+function LoadMemberAvatar({
+  userId,
+  ...props
+}: {userId: string} & Omit<React.ComponentProps<typeof UserAvatar>, 'team'>) {
+  const ids = useMemo(() => [userId], [userId]);
+  const {members, fetching} = useMembers({ids});
+  const user = members.find(u => u.id === userId);
+
+  if (fetching) {
+    const size = `${props.size}px`;
+    return <Placeholder shape="circle" width={size} height={size} />;
+  }
+
+  return <UserAvatar user={user} {...props} />;
+}
+
+function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   const otherProps = {
     size,
     hasTooltip,
@@ -48,8 +59,7 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: ActorAvata
   };
 
   if (actor.type === 'user') {
-    const user = actor.id ? MemberListStore.getById(actor.id) ?? actor : actor;
-    return <UserAvatar user={user} {...otherProps} />;
+    return <LoadMemberAvatar userId={actor.id} {...otherProps} />;
   }
 
   if (actor.type === 'team') {

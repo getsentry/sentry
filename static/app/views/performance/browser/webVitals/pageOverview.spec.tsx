@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,7 +13,7 @@ jest.mock('sentry/utils/useOrganization');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
-    features: ['starfish-browser-webvitals', 'performance-database-view'],
+    features: ['spans-first-ui'],
   });
 
   let eventsMock;
@@ -66,7 +66,7 @@ describe('PageOverview', function () {
     jest.clearAllMocks();
   });
 
-  it('renders performance score migration alert', async () => {
+  it('renders FID deprecation alert', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -77,39 +77,100 @@ describe('PageOverview', function () {
       key: '',
     });
     render(<PageOverview />);
+    await screen.findByText(/\(Interaction to Next Paint\) will replace/);
     await screen.findByText(
-      /We made improvements to how Performance Scores are calculated for your projects/
+      /\(First Input Delay\) in our performance score calculation./
     );
   });
 
-  it('renders pageload and interaction switcher', async () => {
+  it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: [
-        'starfish-browser-webvitals',
-        'performance-database-view',
-        'starfish-browser-webvitals-replace-fid-with-inp',
-      ],
+      features: ['spans-first-ui'],
     });
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
-      query: {useStoredScores: 'true', transaction: '/'},
+      query: {useStoredScores: 'true', transaction: '/', type: 'interactions'},
       hash: '',
       state: undefined,
       action: 'PUSH',
       key: '',
     });
     render(<PageOverview />);
-    await screen.findAllByText('Interactions');
-    userEvent.click(screen.getAllByText('Interactions')[0]);
     await waitFor(() =>
-      expect(eventsMock).toHaveBeenLastCalledWith(
+      expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
+            dataset: 'spansIndexed',
+            field: [
+              'measurements.inp',
+              'measurements.score.inp',
+              'measurements.score.weight.inp',
+              'measurements.score.total',
+              'span_id',
+              'timestamp',
+              'profile_id',
+              'replay.id',
+              'user',
+              'origin.transaction',
+              'project',
+              'browser.name',
+              'span.self_time',
+              'span.description',
+            ],
             query:
-              'transaction.op:pageload transaction:"/" has:measurements.score.total has:measurements.fid (has:profile.id OR has:replayId) ',
+              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
+          }),
+        })
+      )
+    );
+  });
+
+  it('escapes transaction name before querying discover', async () => {
+    const organizationWithInp = OrganizationFixture({
+      features: ['spans-first-ui'],
+    });
+    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        useStoredScores: 'true',
+        transaction: '/page-with-a-*/',
+        type: 'interactions',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+    render(<PageOverview />);
+    await waitFor(() =>
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spansIndexed',
+            field: [
+              'measurements.inp',
+              'measurements.score.inp',
+              'measurements.score.weight.inp',
+              'measurements.score.total',
+              'span_id',
+              'timestamp',
+              'profile_id',
+              'replay.id',
+              'user',
+              'origin.transaction',
+              'project',
+              'browser.name',
+              'span.self_time',
+              'span.description',
+            ],
+            query:
+              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
           }),
         })
       )

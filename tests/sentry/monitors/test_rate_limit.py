@@ -40,7 +40,7 @@ class MonitorRateLimit(TestCase):
             env = self.create_environment(self.project, name=f"test-{i}")
             MonitorEnvironment.objects.create(
                 monitor=monitor,
-                environment=env,
+                environment_id=env.id,
                 status=MonitorStatus.OK,
             )
 
@@ -55,7 +55,7 @@ class MonitorRateLimit(TestCase):
         )
         MonitorEnvironment.objects.create(
             monitor=monitor2,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
 

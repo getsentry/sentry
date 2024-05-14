@@ -15,7 +15,6 @@ from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
@@ -24,10 +23,6 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.indexer.limiters.cardinality import (
-    TimeseriesCardinalityLimiter,
-    cardinality_limiter_factory,
-)
 from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -368,7 +363,7 @@ invalid_payloads = [
     ),
     (
         {
-            "name": SessionMRI.RAW_ERROR.value * 21,
+            "name": "s:sessions/error@" + ("none" * 50),
             "tags": {
                 "environment": "production",
                 "session.status": "errored",
@@ -528,57 +523,6 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert "dropped_message" in caplog.text
-
-
-@pytest.mark.django_db
-def test_process_messages_cardinality_limited(
-    caplog, settings, monkeypatch, set_sentry_option
-) -> None:
-    """
-    Test that the message processor correctly calls the cardinality limiter.
-    """
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-
-    # set any limit at all to ensure we actually use the underlying rate limiter
-    with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
-
-        class MockCardinalityLimiter(CardinalityLimiter):
-            def check_within_quotas(self, requested_quotas):
-                # Grant nothing, limit everything
-                return 123, []
-
-            def use_quotas(self, grants, timestamp):
-                pass
-
-        monkeypatch.setitem(
-            cardinality_limiter_factory.rate_limiters,
-            "releasehealth",
-            TimeseriesCardinalityLimiter("releasehealth", MockCardinalityLimiter()),
-        )
-
-        message_payloads = [counter_payload, distribution_payload, set_payload]
-        message_batch = [
-            Message(
-                BrokerValue(
-                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-                    Partition(Topic("topic"), 0),
-                    i + 1,
-                    datetime.now(),
-                )
-            )
-            for i, payload in enumerate(message_payloads)
-        ]
-
-        last = message_batch[-1]
-        outer_message = Message(Value(message_batch, last.committable))
-
-        with caplog.at_level(logging.ERROR):
-            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-
-        compare_message_batches_ignoring_metadata(new_batch, [])
 
 
 def test_valid_metric_name() -> None:

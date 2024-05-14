@@ -6,7 +6,7 @@ import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStac
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -71,8 +71,9 @@ export function MissingFrame() {
   );
 }
 
-const FrameContainer = styled('div')`
+export const FrameContainer = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};

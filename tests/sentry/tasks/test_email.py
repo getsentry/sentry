@@ -1,14 +1,12 @@
 from sentry.models.activity import Activity
 from sentry.tasks.email import process_inbound_email
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ProcessInboundEmailTest(TestCase):
     def test_simple(self):
         group = self.create_group()

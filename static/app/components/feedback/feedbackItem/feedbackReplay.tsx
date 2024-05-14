@@ -1,14 +1,12 @@
-import {Fragment} from 'react';
-
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import Placeholder from 'sentry/components/placeholder';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
+import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event, Organization} from 'sentry/types';
+import type {Event, Organization, PlatformKey} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -23,43 +21,45 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
-  const replayId = eventData?.contexts?.feedback?.replay_id;
+  // replay ID can be found in two places
+  const replayId =
+    eventData?.contexts?.feedback?.replay_id ??
+    eventData?.tags?.find(({key}) => key === 'replayId')?.value;
   const {hasSentOneReplay, fetching: isFetchingSentOneReplay} =
     useHaveSelectedProjectsSentAnyReplayEvents();
-  const platformSupported = replayPlatforms.includes(feedbackItem.platform);
-
-  if (!platformSupported && !(feedbackItem.platform === 'other')) {
-    return (
-      <ReplayUnsupportedAlert
-        primaryAction="create"
-        projectSlug={feedbackItem.project.slug}
-      />
-    );
-  }
+  const platformSupported = replayPlatforms.includes(
+    feedbackItem.project.platform as PlatformKey
+  );
 
   if (replayId && hasReplayId) {
     return (
-      <ErrorBoundary mini>
-        <ReplaySection
-          eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
-          organization={organization}
-          replayId={replayId}
-        />
-      </ErrorBoundary>
+      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+        <ErrorBoundary mini>
+          <ReplaySection
+            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+            organization={organization}
+            replayId={replayId}
+          />
+        </ErrorBoundary>
+      </Section>
     );
   }
 
   if ((replayId && hasReplayId === undefined) || isFetchingSentOneReplay) {
-    return <Placeholder />;
+    return (
+      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+        <Placeholder />
+      </Section>
+    );
   }
 
   if (!hasSentOneReplay && platformSupported) {
-    return <ReplayInlineCTAPanel />;
+    return (
+      <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+        <ReplayInlineCTAPanel />
+      </Section>
+    );
   }
 
-  if (replayId) {
-    return <MissingReplayAlert orgSlug={organization.slug} />;
-  }
-
-  return <Fragment>{t('No replay captured')}</Fragment>;
+  return null;
 }

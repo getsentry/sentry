@@ -63,7 +63,7 @@ describe('WebVitalsDetailPanel', function () {
     render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />);
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     // Once for project web vitals and once for samples
-    expect(eventsMock).toHaveBeenCalledTimes(2);
+    expect(eventsMock).toHaveBeenCalledTimes(3);
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Largest Contentful Paint (P75)')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();

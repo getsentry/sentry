@@ -2,13 +2,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  type Activity,
-  EventOrGroupType,
-  GroupActivityType,
-  IssueCategory,
-  IssueType,
-} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {Activity} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 
 export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
   return {

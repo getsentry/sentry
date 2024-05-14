@@ -5,11 +5,10 @@ from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE_INSTALLATION
 
 
-@region_silo_test
 class InstallationPushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -18,12 +19,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -31,10 +33,11 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
+_default_logger = logging.getLogger(__name__)
+
+
 class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
-        from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
-
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
         initial_priority = None
@@ -42,11 +45,13 @@ class ActivityManager(BaseManager["Activity"]):
         if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
         else:
-            event_metadata = group.get_event_metadata()
             # Check if 'initial_priority' is available and the feature flag is on
-            initial_priority_key = event_metadata.get("initial_priority")
+            initial_priority_value = group.get_event_metadata().get(
+                "initial_priority", None
+            ) or group.get_event_metadata().get("initial_priority", None)
+
             initial_priority = (
-                PRIORITY_LEVEL_TO_STR[initial_priority_key] if initial_priority_key else None
+                PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
             )
 
         prev_sig = None
@@ -102,7 +107,7 @@ class ActivityManager(BaseManager["Activity"]):
         return activity
 
 
-@region_silo_only_model
+@region_silo_model
 class Activity(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -145,6 +150,23 @@ class Activity(Model):
         created = bool(not self.id)
 
         super().save(*args, **kwargs)
+
+        # The receiver for the post_save signal was not working in production, so just execute directly and safely
+        try:
+            from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+                activity_created_receiver,
+            )
+
+            activity_created_receiver(self, created)
+        except Exception as err:
+            _default_logger.info(
+                "there was an error trying to kick off activity receiver",
+                exc_info=err,
+                extra={
+                    "activity_id": self.id,
+                },
+            )
+            pass
 
         if not created:
             return

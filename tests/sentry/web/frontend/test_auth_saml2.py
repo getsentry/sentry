@@ -17,7 +17,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
@@ -229,9 +229,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         data = {"init": True, "provider": self.provider_name}
 
-        with Feature(["organizations:sso-basic", "organizations:sso-saml2"]), assume_test_silo_mode(
-            SiloMode.REGION
-        ):
+        with Feature(["organizations:sso-basic", "organizations:sso-saml2"]):
             setup = self.client.post(self.setup_path, data)
 
         assert setup.status_code == 302

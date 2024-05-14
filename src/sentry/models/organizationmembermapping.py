@@ -6,17 +6,20 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import organization_roles
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationMemberMapping(Model):
     """
     This model resides exclusively in the control silo, and will
     - map a user or an email to a specific organization to indicate an organization membership
+
+    Note: If we ever expand this model to include flags we need to update the bulk updates
+    that are skipping outboxes because we assume flags are not replicated in a few place.
     """
 
     # This model is "autocreated" via an outbox write from the regional `Organization` it

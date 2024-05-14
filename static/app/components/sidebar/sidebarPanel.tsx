@@ -35,9 +35,9 @@ const PanelContainer = styled('div')<PositionProps>`
       : css`
           width: 460px;
           top: 0;
-          left: ${
-            p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth
-          };
+          left: ${p.collapsed
+            ? p.theme.sidebar.collapsedWidth
+            : p.theme.sidebar.expandedWidth};
         `};
 `;
 

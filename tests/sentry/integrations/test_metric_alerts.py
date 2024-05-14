@@ -5,12 +5,11 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.incidents.models import IncidentStatus, IncidentTrigger
+from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils.dates import to_timestamp
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -183,18 +182,18 @@ MOCK_NOW = timezone.now().replace(hour=13, minute=0, second=0, microsecond=0)
 
 
 @freeze_time(MOCK_NOW)
-class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
+class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
-        self._5_min_ago = to_timestamp(self.now - timedelta(minutes=5))
+        self._5_min_ago = (self.now - timedelta(minutes=5)).timestamp()
         self.date_started = self.now - timedelta(minutes=120)
 
     def create_incident_and_related_objects(self, field="sessions"):
         self.alert_rule = self.create_alert_rule(
             query="",
             aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
         )
         self.incident = self.create_incident(
@@ -265,7 +264,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)

@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -7,7 +6,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -37,6 +36,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -514,7 +514,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               {hideRegressions ? null : (
                 <ProfileDigestContainer>
                   <ProfileDigestScrollContainer>
-                    <ProfileDigest onViewChange={onSetView} />
+                    <ProfileDigest onViewChange={onSetView} transaction={transaction} />
                     <MostRegressedProfileFunctions transaction={transaction} />
                     <SlowestProfileFunctions transaction={transaction} />
                   </ProfileDigestScrollContainer>
@@ -713,12 +713,19 @@ const percentiles = ['p75()', 'p95()', 'p99()'] as const;
 
 interface ProfileDigestProps {
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
+  transaction: string;
 }
 
 function ProfileDigest(props: ProfileDigestProps) {
   const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+
+  const query = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [props.transaction]);
+    return conditions.formatString();
+  }, [props.transaction]);
 
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
@@ -728,7 +735,7 @@ function ProfileDigest(props: ProfileDigestProps) {
   const profiles = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
     fields: PROFILE_DIGEST_FIELDS,
-    query: '',
+    query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
   });

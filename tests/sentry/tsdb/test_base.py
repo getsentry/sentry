@@ -4,7 +4,6 @@ from unittest import TestCase
 
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, BaseTSDB
-from sentry.utils.dates import to_timestamp
 
 
 class BaseTSDBTest(TestCase):
@@ -50,25 +49,25 @@ class BaseTSDBTest(TestCase):
 
         assert self.tsdb.get_optimal_rollup_series(start) == (
             10,
-            [to_timestamp(start + timedelta(seconds=10) * i) for i in range(4)],
+            [(start + timedelta(seconds=10) * i).timestamp() for i in range(4)],
         )
 
         start = datetime.now(timezone.utc) - timedelta(minutes=30)
         assert self.tsdb.get_optimal_rollup_series(start) == (
             ONE_MINUTE,
-            [to_timestamp(start + timedelta(minutes=1) * i) for i in range(31)],
+            [(start + timedelta(minutes=1) * i).timestamp() for i in range(31)],
         )
 
         start = datetime.now(timezone.utc) - timedelta(hours=5)
         assert self.tsdb.get_optimal_rollup_series(start) == (
             ONE_HOUR,
-            [to_timestamp(start + timedelta(hours=1) * i) for i in range(6)],
+            [(start + timedelta(hours=1) * i).timestamp() for i in range(6)],
         )
 
         start = datetime.now(timezone.utc) - timedelta(days=7)
         assert self.tsdb.get_optimal_rollup_series(start) == (
             ONE_DAY,
-            [to_timestamp(start + timedelta(hours=24) * i) for i in range(8)],
+            [(start + timedelta(hours=24) * i).timestamp() for i in range(8)],
         )
 
     @freeze_time("2016-08-01 00:00:15")
@@ -84,8 +83,8 @@ class BaseTSDBTest(TestCase):
         assert self.tsdb.get_optimal_rollup_series(start, rollup=10) == (
             10,
             [
-                to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                to_timestamp(datetime(2016, 8, 1, 0, 0, 10, tzinfo=timezone.utc)),
+                datetime(2016, 8, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
+                datetime(2016, 8, 1, 0, 0, 10, tzinfo=timezone.utc).timestamp(),
             ],
         )
 
@@ -93,14 +92,14 @@ class BaseTSDBTest(TestCase):
         start = now - timedelta(seconds=ONE_MINUTE - 1)
         assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_MINUTE) == (
             ONE_MINUTE,
-            [to_timestamp(datetime(2016, 8, 1, 0, 0, 0, tzinfo=timezone.utc))],
+            [datetime(2016, 8, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp()],
         )
 
         now = datetime.now(timezone.utc) + timedelta(hours=11, seconds=45)
         start = now - timedelta(seconds=ONE_DAY - 1)
         assert self.tsdb.get_optimal_rollup_series(start, rollup=ONE_DAY) == (
             ONE_DAY,
-            [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=timezone.utc))],
+            [datetime(2016, 8, 1, 0, tzinfo=timezone.utc).timestamp()],
         )
 
     @freeze_time("2016-08-01")
@@ -108,21 +107,21 @@ class BaseTSDBTest(TestCase):
 
         start = datetime.now(timezone.utc) - timedelta(seconds=30)
         assert self.tsdb.make_series(0, start) == [
-            (to_timestamp(start + timedelta(seconds=10) * i), 0) for i in range(4)
+            ((start + timedelta(seconds=10) * i).timestamp(), 0) for i in range(4)
         ]
 
         start = datetime.now(timezone.utc) - timedelta(minutes=30)
         assert self.tsdb.make_series(lambda timestamp: 1, start) == [
-            (to_timestamp(start + timedelta(minutes=1) * i), 1) for i in range(31)
+            ((start + timedelta(minutes=1) * i).timestamp(), 1) for i in range(31)
         ]
 
         counter = itertools.count()
         start = datetime.now(timezone.utc) - timedelta(hours=5)
         assert self.tsdb.make_series(lambda timestamp: next(counter), start) == [
-            (to_timestamp(start + timedelta(hours=1) * i), i) for i in range(6)
+            ((start + timedelta(hours=1) * i).timestamp(), i) for i in range(6)
         ]
 
         start = datetime.now(timezone.utc) - timedelta(days=7)
         assert self.tsdb.make_series(0, start) == [
-            (to_timestamp(start + timedelta(hours=24) * i), 0) for i in range(8)
+            ((start + timedelta(hours=24) * i).timestamp(), 0) for i in range(8)
         ]

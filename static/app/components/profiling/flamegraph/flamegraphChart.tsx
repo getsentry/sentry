@@ -9,7 +9,7 @@ import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -261,6 +261,27 @@ export function FlamegraphChart({
     [configSpaceCursor, chartView]
   );
 
+  let message: string | undefined;
+
+  if (chart) {
+    if (
+      chart.configSpace.width < 200 * 1e6 &&
+      (chart.status === 'insufficient data' || chart.status === 'empty metrics')
+    ) {
+      message = t('Profile duration was too short to collect enough metrics');
+    } else if (chart.configSpace.width >= 200 && chart.status === 'insufficient data') {
+      message =
+        noMeasurementMessage ||
+        t(
+          'Profile failed to collect a sufficient amount of measurements to render a chart'
+        );
+    } else if (chart.status === 'no metrics') {
+      message = noMeasurementMessage || t('Profile has no measurements');
+    } else if (chart.status === 'empty metrics') {
+      message = t('Profile has empty measurements');
+    }
+  }
+
   return (
     <Fragment>
       <Canvas
@@ -284,17 +305,8 @@ export function FlamegraphChart({
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && !chart?.series.length ? (
-        <CollapsibleTimelineMessage>
-          {noMeasurementMessage || t('Profile has no measurements')}
-        </CollapsibleTimelineMessage>
-      ) : (chart?.series?.length ?? 0) > 0 &&
-        chart?.series.every(
-          s => s.points.length < FlamegraphChartModel.MIN_RENDERABLE_POINTS
-        ) ? (
-        <CollapsibleTimelineMessage>
-          {noMeasurementMessage || t('Profile has no measurements')}
-        </CollapsibleTimelineMessage>
+      ) : profiles.type === 'resolved' && chart?.status !== 'ok' ? (
+        <CollapsibleTimelineMessage>{message}</CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
   );

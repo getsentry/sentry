@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
 from snuba_sdk import Column, Condition, Direction, Op
-from snuba_sdk.expressions import Granularity, Limit
+from snuba_sdk.expressions import Granularity, Limit, Offset
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -45,8 +45,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.utils import json
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import to_datetime
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
 
@@ -122,13 +121,31 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return projects, org_ids.pop()
 
     @staticmethod
+    def _extract_crash_free_rates_from_result_groups(
+        result_groups: Sequence[Any],
+    ) -> dict[int, float | None]:
+        crash_free_rates: dict[int, float | None] = {}
+        for result_group in result_groups:
+            project_id = get_path(result_group, "by", "project_id")
+            if project_id is None:
+                continue
+
+            totals = get_path(result_group, "totals", "rate", should_log=True)
+            if totals is not None:
+                crash_free_rates[project_id] = totals * 100
+            else:
+                crash_free_rates[project_id] = None
+
+        return crash_free_rates
+
+    @staticmethod
     def _get_crash_free_rate_data(
         org_id: int,
         projects: Sequence[Project],
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> dict[int, float]:
+    ) -> dict[int, float | None]:
 
         project_ids = [p.id for p in projects]
 
@@ -151,30 +168,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             include_totals=True,
         )
         result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
-
-        groups = get_path(result, "groups", default=[])
-        ret_val = {}
-        for group in groups:
-            project_id = get_path(group, "by", "project_id")
-            assert project_id is not None
-            totals = get_path(group, "totals", "rate", should_log=True)
-            try:
-                if totals is None:
-                    logger.info(
-                        "sentry.release_health.metrics._get_crash_free_rate_data.totals_is_none",
-                        extra={
-                            "group": json.dumps(group),
-                            "project_id": json.dumps(project_id),
-                            "organization_id": org_id,
-                            "timeseries_for_query": json.dumps(result),
-                        },
-                    )
-            except Exception as e:
-                logger.exception("Unable to log; %s", e)
-            assert totals is not None
-            ret_val[project_id] = totals * 100
-
-        return ret_val
+        result_groups = get_path(result, "groups", default=[])
+        return MetricsReleaseHealthBackend._extract_crash_free_rates_from_result_groups(
+            result_groups=result_groups
+        )
 
     def is_metrics_based(self) -> bool:
         return True
@@ -551,9 +548,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         includes_releases = isinstance(projects_list[0], tuple)
 
         if includes_releases:
-            project_ids: list[ProjectId] = [x[0] for x in projects_list]  # type: ignore
+            project_ids: list[ProjectId] = [x[0] for x in projects_list]  # type: ignore[index]
         else:
-            project_ids = projects_list  # type: ignore
+            project_ids = projects_list  # type: ignore[assignment]
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
@@ -565,7 +562,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         if includes_releases:
-            where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore
+            where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore[arg-type]
             groupby.append(MetricGroupByField(field="release"))
 
         query = MetricsQuery(
@@ -597,7 +594,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             else:
                 proj_id = get_path(group, "by", "project_id")
                 ret_val.add(proj_id)
-        return ret_val  # type: ignore
+        return ret_val  # type: ignore[return-value]
 
     def check_releases_have_health_data(
         self,
@@ -1079,10 +1076,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 rv_row["stats"] = {health_stats_period: health_stats_data[project_id, release]}
 
         if fetch_has_health_data_releases:
-            has_health_data = self.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
+            has_health_data = self.check_has_health_data(fetch_has_health_data_releases)  # type: ignore[assignment]
 
             for key in fetch_has_health_data_releases:
-                rv[key]["has_health_data"] = key in has_health_data  # type: ignore
+                rv[key]["has_health_data"] = key in has_health_data  # type: ignore[operator]
 
         return rv
 
@@ -1400,13 +1397,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id([project_id])
 
-        start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+        start = to_datetime((start.timestamp() // rollup + 1) * rollup)
 
         # since snuba end queries are exclusive of the time and we're bucketing to
         # 10 seconds, we need to round to the next 10 seconds since snuba is
         # exclusive on the end.
         end = to_datetime(
-            (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
+            (end.timestamp() // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
         )
 
         where = [
@@ -1520,7 +1517,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     value[key] = series[key][idx]
                 ret_series.append((timestamp, value))
 
-        return ret_series, totals  # type: ignore
+        return ret_series, totals  # type: ignore[return-value]
 
     def get_project_sessions_count(
         self,
@@ -1716,6 +1713,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             orderby=orderby,
             groupby=groupby,
             granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
+            offset=Offset(offset) if offset is not None else None,
             limit=Limit(limit) if limit is not None else None,
             include_series=False,
             include_totals=True,

@@ -12,7 +12,6 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 
 
 @pytest.fixture
@@ -202,7 +201,6 @@ def test_partial_move(default_project, fast_save):
     assert new_group_info.group.id == group_info.group.id
 
 
-@region_silo_test
 class EventManagerGroupingTest(TestCase):
     def test_applies_secondary_grouping_hierarchical(self):
         project = self.project

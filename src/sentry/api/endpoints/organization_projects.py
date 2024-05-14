@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
@@ -47,10 +47,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_SLUG, CursorQueryParam],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -118,7 +119,21 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 elif key == "id":
-                    queryset = queryset.filter(id__in=value)
+                    if all(v.isdigit() for v in value):
+                        queryset = queryset.filter(id__in=value)
+                    else:
+                        return Response(
+                            {
+                                "error": {
+                                    "params": {
+                                        "stats_period": {
+                                            "message": "All 'id' values must be integers."
+                                        }
+                                    }
+                                }
+                            },
+                            status=400,
+                        )
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "team":

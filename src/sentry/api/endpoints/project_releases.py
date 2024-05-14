@@ -42,9 +42,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Retrieve a list of releases for a given project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
+        :pparam string project_id_or_slug: the id or slug of the project to list the
                                      releases of.
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
@@ -97,9 +97,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to create a
+        :pparam string project_id_or_slug: the id or slug of the project to create a
                                      release for.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.
@@ -162,7 +162,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     release.status = new_status
                     release.save()
 
-                created = release.add_project(project)
+                _, releaseproject_created = release.add_project(project)
 
                 commit_list = result.get("commits")
                 if commit_list:
@@ -179,7 +179,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                         datetime=release.date_released,
                     )
 
-                if not created:
+                if not releaseproject_created:
                     # This is the closest status code that makes sense, and we want
                     # a unique 2xx response code so people can understand when
                     # behavior differs.
@@ -205,6 +205,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
                 # Disable snuba here as it often causes 429s when overloaded and
                 # a freshly created release won't have health data anyways.
-                return Response(serialize(release, request.user, no_snuba=True), status=status)
+                return Response(
+                    serialize(release, request.user, no_snuba_for_release_creation=True),
+                    status=status,
+                )
             scope.set_tag("failure_reason", "serializer_error")
             return Response(serializer.errors, status=400)

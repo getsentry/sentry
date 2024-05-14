@@ -12,9 +12,9 @@ external source, makes decisions around what to query and when, and is responsib
 intelligible output for the "post_process" module.  More information on its implementation can be
 found in the function.
 """
+
 from __future__ import annotations
 
-from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, cast
@@ -124,6 +124,8 @@ def search_filter_to_condition(
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
 # Leaving it here for now so this is easier to review/remove.
+import dataclasses
+
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
@@ -132,7 +134,11 @@ from sentry.replays.usecases.query.configs.scalar import (
     scalar_search_config,
 )
 
-Paginators = namedtuple("Paginators", ("limit", "offset"))
+
+@dataclasses.dataclass
+class Paginators:
+    limit: int
+    offset: int
 
 
 def query_using_optimized_search(
@@ -140,11 +146,12 @@ def query_using_optimized_search(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     environments: list[str],
     sort: str | None,
-    pagination: Paginators | None,
+    pagination: Paginators,
     organization: Organization | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None = None,
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -178,16 +185,21 @@ def query_using_optimized_search(
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
 
-    if pagination:
-        query = query.set_limit(pagination.limit)
-        query = query.set_offset(pagination.offset)
+    query = query.set_limit(pagination.limit)
+    query = query.set_offset(pagination.offset)
 
     subquery_response = execute_query(query, tenant_id, referrer)
+
+    # The query "has more rows" if the number of rows found matches the limit (which is
+    # the requested limit + 1).
+    has_more = len(subquery_response.get("data", [])) == pagination.limit
+    if has_more:
+        subquery_response["data"].pop()
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
-        return []
+        return [], has_more
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -201,12 +213,13 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_end=period_stop,
+            request_user_id=request_user_id,
         ),
         tenant_id,
         referrer="replays.query.browse_query",
     )["data"]
 
-    return _make_ordered(replay_ids, results)
+    return _make_ordered(replay_ids, results), has_more
 
 
 def make_scalar_search_conditions_query(
@@ -274,15 +287,20 @@ def make_full_aggregation_query(
     project_ids: list[int],
     period_start: datetime,
     period_end: datetime,
+    request_user_id: int | None,
 ) -> Query:
-    """Return a query to fetch every replay in the set."""
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
+    """Return a query to fetch every replay in the set.
+
+    Arguments:
+        fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
+    """
+    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
 
     def _select_from_fields() -> list[Column | Function]:
         if fields:
-            return select_from_fields(list(set(fields)))
+            return select_from_fields(list(set(fields)), user_id=request_user_id)
         else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values())
+            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
 
     return Query(
         match=Entity("replays"),
@@ -302,7 +320,7 @@ def make_full_aggregation_query(
         #
         # This condition ensures that every replay shown to the user is valid.
         having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
-        groupby=[Column("project_id"), Column("replay_id")],
+        groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
 

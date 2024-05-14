@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import random
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
@@ -24,7 +26,11 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import (
+    OrgAuthToken,
+    is_org_auth_token_auth,
+    update_org_auth_token_last_used,
+)
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.models.user import User
@@ -33,7 +39,7 @@ from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
@@ -130,6 +136,14 @@ def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
+
+
+def update_token_access_record(auth: object):
+    """
+    Perform updates to token models for security purposes (i.e. 'date_last_used')
+    """
+    if is_org_auth_token_auth(auth):
+        update_org_auth_token_last_used(auth, [])
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -294,9 +308,81 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
+class TokenStrLookupRequired(Exception):
+    """
+    Used in combination with `apitoken.use-and-update-hash-rate` option.
+
+    If raised, calling code should peform API token lookups based on its
+    plaintext value and not its hashed value.
+    """
+
+    pass
+
+
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
+
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken | ApiTokenReplica:
+        """
+        Find token by hash or update token's hash value if only found via plaintext.
+
+        1. Hash provided plaintext token.
+        2. Perform lookup based on hashed value.
+        3. If found, return the token.
+        4. If not found, search for the token based on its plaintext value.
+        5. If found, update the token's hashed value and return the token.
+        6. If not found via hash or plaintext value, raise AuthenticationFailed
+
+        Returns `ApiTokenReplica` if running in REGION silo or
+        `ApiToken` if running in CONTROL silo.
+        """
+
+        hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
+
+        rate = options.get("apitoken.use-and-update-hash-rate")
+        random_rate = random.random()
+        use_hashed_token = rate > random_rate
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            try:
+                if use_hashed_token:
+                    # Try to find the token by its hashed value first
+                    return ApiTokenReplica.objects.get(hashed_token=hashed_token)
+                else:
+                    raise TokenStrLookupRequired
+            except (ApiTokenReplica.DoesNotExist, TokenStrLookupRequired):
+                try:
+                    # If we can't find it by hash, use the plaintext string
+                    return ApiTokenReplica.objects.get(token=token_str)
+                except ApiTokenReplica.DoesNotExist:
+                    # If the token does not exist by plaintext either, it is not a valid token
+                    raise AuthenticationFailed("Invalid token")
+        else:
+            try:
+                # Try to find the token by its hashed value first
+                if use_hashed_token:
+                    return ApiToken.objects.select_related("user", "application").get(
+                        hashed_token=hashed_token
+                    )
+                else:
+                    raise TokenStrLookupRequired
+            except (ApiToken.DoesNotExist, TokenStrLookupRequired):
+                try:
+                    # If we can't find it by hash, use the plaintext string
+                    api_token = ApiToken.objects.select_related("user", "application").get(
+                        token=token_str
+                    )
+                except ApiToken.DoesNotExist:
+                    # If the token does not exist by plaintext either, it is not a valid token
+                    raise AuthenticationFailed("Invalid token")
+                else:
+                    if use_hashed_token:
+                        # Update it with the hashed value if found by plaintext
+                        api_token.hashed_token = hashed_token
+                        api_token.save(update_fields=["hashed_token"])
+
+                    return api_token
 
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
@@ -320,25 +406,16 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         application_is_inactive = False
 
         if not token:
-            if SiloMode.get_current_mode() == SiloMode.REGION:
-                atr = token = ApiTokenReplica.objects.filter(token=token_str).last()
-                if not atr:
-                    raise AuthenticationFailed("Invalid token")
-                user = user_service.get_user(user_id=atr.user_id)
-                application_is_inactive = not atr.application_is_active
-            else:
-                try:
-                    at = token = (
-                        ApiToken.objects.filter(token=token_str)
-                        .select_related("user", "application")
-                        .get()
-                    )
-                except ApiToken.DoesNotExist:
-                    raise AuthenticationFailed("Invalid token")
-                user = at.user
+            token = self._find_or_update_token_by_hash(token_str)
+            if isinstance(token, ApiTokenReplica):  # we're running as a REGION silo
+                user = user_service.get_user(user_id=token.user_id)
+                application_is_inactive = not token.application_is_active
+            else:  # the token returned is an ApiToken from the CONTROL silo
+                user = token.user
                 application_is_inactive = (
-                    at.application is not None and not at.application.is_active
+                    token.application is not None and not token.application.is_active
                 )
+
         elif isinstance(token, SystemToken):
             user = token.user
 
@@ -379,17 +456,18 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         token_hashed = hash_token(token_str)
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            token = OrgAuthTokenReplica.objects.filter(
-                token_hashed=token_hashed,
-                date_deactivated__isnull=True,
-            ).last()
-            if token is None:
+            try:
+                token = OrgAuthTokenReplica.objects.get(
+                    token_hashed=token_hashed,
+                    date_deactivated__isnull=True,
+                )
+            except OrgAuthTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:
-                token = OrgAuthToken.objects.filter(
+                token = OrgAuthToken.objects.get(
                     token_hashed=token_hashed, date_deactivated__isnull=True
-                ).get()
+                )
             except OrgAuthToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
 

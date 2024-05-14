@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import router
 from django.db.models import Count
 from django.utils import timezone
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.models.artifactbundle import (
@@ -16,7 +17,6 @@ from sentry.models.artifactbundle import (
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
-    FlatFileIndexState,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
@@ -42,9 +42,9 @@ INDEXING_CACHE_TIMEOUT = 600
 # ===== Indexing of Artifact Bundles =====
 
 
-def get_redis_cluster_for_artifact_bundles():
+def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def get_refresh_key() -> str:
@@ -68,7 +68,7 @@ def set_artifact_bundle_being_indexed_if_null(
     #
     # For now the state will just contain one, since it's unary but in case we would like to expand it, it will be
     # straightforward by just using a set of integers.
-    return redis_client.set(cache_key, 1, ex=INDEXING_CACHE_TIMEOUT, nx=True)
+    return redis_client.set(cache_key, 1, ex=INDEXING_CACHE_TIMEOUT, nx=True) or False
 
 
 def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_id: int) -> None:
@@ -143,13 +143,6 @@ def index_urls_in_bundle(
                         # metadata:
                         organization_id=organization_id,
                         date_added=artifact_bundle.date_added,
-                        # legacy:
-                        # TODO: We fill these in with empty-ish values before they are
-                        # dropped for good
-                        release_name="",
-                        dist_name="",
-                        date_last_modified=artifact_bundle.date_last_modified
-                        or artifact_bundle.date_added,
                     )
                 )
     finally:
@@ -195,6 +188,7 @@ def index_urls_in_bundle(
 
 @sentry_sdk.tracing.trace
 def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: list[str]):
+    # Note: This random rollout is reversed because it is an early return
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
         return
 
@@ -265,7 +259,6 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             router.db_for_write(ReleaseArtifactBundle),
             router.db_for_write(DebugIdArtifactBundle),
             router.db_for_write(ArtifactBundleIndex),
-            router.db_for_write(FlatFileIndexState),
         )
     ):
         # We check again for the date_added condition in order to achieve consistency, this is done because
@@ -285,9 +278,6 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
             ArtifactBundleIndex.objects.filter(
-                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-            ).update(date_added=now)
-            FlatFileIndexState.objects.filter(
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
 

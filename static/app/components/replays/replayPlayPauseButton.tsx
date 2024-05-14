@@ -10,7 +10,7 @@ function ReplayPlayPauseButton(props: BaseButtonProps) {
   return isFinished ? (
     <Button
       title={t('Restart Replay')}
-      icon={<IconRefresh size="md" />}
+      icon={<IconRefresh />}
       onClick={restart}
       aria-label={t('Restart Replay')}
       priority="primary"
@@ -19,7 +19,7 @@ function ReplayPlayPauseButton(props: BaseButtonProps) {
   ) : (
     <Button
       title={isPlaying ? t('Pause') : t('Play')}
-      icon={isPlaying ? <IconPause size="md" /> : <IconPlay size="md" />}
+      icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => togglePlayPause(!isPlaying)}
       aria-label={isPlaying ? t('Pause') : t('Play')}
       priority="primary"

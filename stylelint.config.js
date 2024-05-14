@@ -3,11 +3,6 @@ module.exports = {
   customSyntax: 'postcss-styled-syntax',
   extends: ['stylelint-config-recommended'],
   rules: {
-    'declaration-colon-newline-after': null,
-
-    // This is formatting related
-    'declaration-bang-space-before': null,
-
     // Doesn't work when we use values from theme
     'unit-no-unknown': null,
     'font-family-no-missing-generic-family-keyword': null,

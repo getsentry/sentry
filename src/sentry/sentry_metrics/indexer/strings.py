@@ -181,6 +181,25 @@ SHARED_TAG_STRINGS = {
     # Resource span
     "file_extension": PREFIX + 264,
     "app_start_type": PREFIX + 265,  # Mobile app start type
+    # Profiles
+    "function": PREFIX + 266,  # Function name
+    "package": PREFIX
+    + 267,  # it could be either a package or a module, but in profiling we don't make a distinction
+    "fingerprint": PREFIX + 268,  # takes into account function name and package
+    "is_application": PREFIX + 269,
+    "platform": PREFIX + 270,
+    "os.version": PREFIX + 271,
+    # Performance Score
+    "sentry.score_profile_version": PREFIX + 272,
+    # Metric stats
+    "mri": PREFIX + 273,
+    "mri.type": PREFIX + 274,
+    "mri.namespace": PREFIX + 275,
+    "outcome.id": PREFIX + 276,
+    "outcome.reason": PREFIX + 277,
+    "cardinality.window": PREFIX + 278,
+    "cardinality.limit": PREFIX + 279,
+    "cardinality.scope": PREFIX + 280,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -208,6 +227,9 @@ SPAN_METRICS_NAMES = {
     "d:spans/webvital.score.weight.inp@ratio": PREFIX + 416,
     "d:spans/webvital.inp@millisecond": PREFIX + 417,
     "c:spans/usage@none": PREFIX + 418,
+    "g:spans/self_time@millisecond": PREFIX + 419,
+    "g:spans/self_time_light@millisecond": PREFIX + 420,
+    "g:spans/total_time@millisecond": PREFIX + 421,
     # Last possible index: 499
 }
 
@@ -216,11 +238,31 @@ ESCALATING_ISSUES_METRIC_NAMES = {
     "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
+# 600-699
+PROFILING_METRIC_NAMES = {
+    "d:profiles/function.duration@millisecond": PREFIX + 600,
+}
+
+# 700-799
+BUNDLE_ANALYSIS_METRIC_NAMES = {
+    "d:bundle_analysis/bundle_size@byte": PREFIX + 700,
+}
+
+# 800-899
+METRIC_STATS_METRIC_NAMES = {
+    "c:metric_stats/volume@none": PREFIX + 800,
+    "g:metric_stats/cardinality@none": PREFIX + 801,
+}
+
+
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
     **ESCALATING_ISSUES_METRIC_NAMES,
+    **PROFILING_METRIC_NAMES,
+    **BUNDLE_ANALYSIS_METRIC_NAMES,
+    **METRIC_STATS_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}

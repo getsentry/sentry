@@ -5,144 +5,35 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t, tct} from 'sentry/locale';
-import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
-  getDefaultNodeImports,
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {t, tct} from 'sentry/locale';
+import {
+  getImportInstrumentSnippet,
   getInstallConfig,
+  getSdkInitSnippet,
+  getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const productSelection = (params: Params): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
+const getSdkSetupSnippet = () => `
+${getImportInstrumentSnippet()}
 
-const getSdkSetupSnippet = (params: Params) => `
-${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
-import { stripUrlQueryAndFragment } from "@sentry/utils";
-import Koa from "koa";
+${getSentryImportSnippet('node')}
+const Koa = require("koa");
 
 const app = new Koa();
 
-Sentry.init({
-  dsn: "${params.dsn}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-      // Automatically instrument Node.js libraries and frameworks
-      ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-      new ProfilingIntegration(),`
-      : ''
-  }
-],${
-  params.isPerformanceSelected
-    ? `
-      // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-    : ''
-}
-});${
-  params.isPerformanceSelected
-    ? `
+Sentry.setupKoaErrorHandler(app);
 
-const requestHandler = (ctx, next) => {
-  return new Promise((resolve, reject) => {
-    Sentry.runWithAsyncContext(async () => {
-      const hub = Sentry.getCurrentHub();
-      hub.configureScope((scope) =>
-        scope.addEventProcessor((event) =>
-          Sentry.addRequestDataToEvent(event, ctx.request, {
-            include: {
-              user: false,
-            },
-          })
-        )
-      );
-
-      try {
-        await next();
-      } catch (err) {
-        reject(err);
-      }
-      resolve();
-    });
-  });
-};
-
-// This tracing middleware creates a transaction per request
-const tracingMiddleWare = async (ctx, next) => {
-  const reqMethod = (ctx.method || "").toUpperCase();
-  const reqUrl = ctx.url && stripUrlQueryAndFragment(ctx.url);
-
-  // Connect to trace of upstream app
-  let traceparentData;
-  if (ctx.request.get("sentry-trace")) {
-    traceparentData = Sentry.extractTraceparentData(
-      ctx.request.get("sentry-trace")
-    );
-  }
-
-  const transaction = Sentry.startTransaction({
-    name: \`\${reqMethod} \${reqUrl}\`,
-    op: "http.server",
-    ...traceparentData,
-  });
-
-  ctx.__sentry_transaction = transaction;
-
-  // We put the transaction on the scope so users can attach children to it
-  Sentry.getCurrentHub().configureScope((scope) => {
-    scope.setSpan(transaction);
-  });
-
-  ctx.res.on("finish", () => {
-    // Push \`transaction.finish\` to the next event loop so open spans have a chance to finish before the transaction closes
-    setImmediate(() => {
-      // If you're using koa router, set the matched route as transaction name
-      if (ctx._matchedRoute) {
-        const mountPath = ctx.mountPath || "";
-        transaction.setName(\`\${reqMethod} \${mountPath}\${ctx._matchedRoute}\`);
-      }
-      transaction.setHttpStatus(ctx.status);
-      transaction.finish();
-    });
-  });
-
-  await next();
-};
-
-app.use(requestHandler);
-app.use(tracingMiddleWare);`
-    : ''
-}
-
-// Send errors to Sentry
-app.on("error", (err, ctx) => {
-  Sentry.withScope((scope) => {
-    scope.addEventProcessor((event) => {
-      return Sentry.addRequestDataToEvent(event, ctx.request);
-    });
-    Sentry.captureException(err);
-  });
-});
+// All your controllers should live here
 
 app.listen(3000);`;
 
@@ -157,27 +48,49 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params, {
-        additionalPackages: params.isPerformanceSelected ? ['@sentry/utils'] : [],
-      }),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, for example in your [code:index.ts/js] entry point:",
-        {code: <code />}
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
       ),
       configurations: [
         {
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
+          description: tct(
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'instrument.(js|mjs)',
+              code: getSdkInitSnippet(params, 'node'),
+            },
+          ],
+        },
+        {
+          description: tct(
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)].",
+            {code1: <code />, code2: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(),
+            },
+          ],
         },
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/node/guides/koa/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/koa/sourcemaps/',
       ...params,
     }),
   ],
@@ -197,9 +110,63 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const feedbackOnboardingNode: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/node";
+
+const eventId = Sentry.captureMessage("User Feedback");
+// OR: const eventId = Sentry.lastEventId();
+
+const userFeedback = {
+  event_id: eventId,
+  name: "John Doe",
+  email: "john@doe.com",
+  comments: "I really like your App, thanks!",
+};
+Sentry.captureUserFeedback(userFeedback);
+`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/koa/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: feedbackOnboardingNode,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
+  crashReportOnboarding,
 };
 
 export default docs;

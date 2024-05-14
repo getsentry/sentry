@@ -3,17 +3,17 @@ import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
-import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, Project} from 'sentry/types';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
@@ -112,22 +112,26 @@ class UsageTable extends Component<Props> {
         )}
       </CellStat>,
       <CellStat key={5}>
-        <Button
-          title="Go to project level stats"
-          data-test-id={project.slug}
-          size="xs"
-          onClick={() => {
-            this.loadProject(parseInt(stat.project.id, 10));
-          }}
-        >
-          <StyledIconGraph type="bar" size="sm" />
-          <span>View Stats</span>
-        </Button>
-        <Link to={stat.projectSettingsLink}>
-          <StyledSettingsButton size="xs" title="Go to project settings">
-            <SettingsIcon size="sm" />
-          </StyledSettingsButton>
-        </Link>
+        <ButtonBar gap={1}>
+          <Button
+            icon={<IconGraph type="bar" />}
+            title="Go to project level stats"
+            data-test-id={project.slug}
+            size="xs"
+            onClick={() => {
+              this.loadProject(parseInt(stat.project.id, 10));
+            }}
+          >
+            {t('View Stats')}
+          </Button>
+          <LinkButton
+            icon={<IconSettings />}
+            size="xs"
+            aria-label={t('Project Settings')}
+            title={t('Go to project settings')}
+            to={stat.projectSettingsLink}
+          />
+        </ButtonBar>
       </CellStat>,
     ];
   }
@@ -159,10 +163,6 @@ const StyledPanelTable = styled(PanelTable)`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr repeat(5, minmax(0, auto));
   }
-
-  ${PanelTableHeader} {
-    height: 45px;
-  }
 `;
 
 export const CellStat = styled('div')`
@@ -170,8 +170,6 @@ export const CellStat = styled('div')`
   align-items: center;
   font-variant-numeric: tabular-nums;
   justify-content: right;
-  padding-top: 9px;
-  padding-bottom: 9px;
 `;
 
 export const CellProject = styled(CellStat)`
@@ -182,32 +180,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const SettingsIcon = styled(IconSettings)`
-  color: ${p => p.theme.gray300};
-  align-items: center;
-  display: inline-flex;
-  justify-content: space-between;
-  margin-right: ${space(1.0)};
-  margin-left: ${space(1.0)};
-  transition: 0.5s opacity ease-out;
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
-const StyledIconGraph = styled(IconGraph)`
-  color: ${p => p.theme.gray300};
-  margin-right: 5px;
-  &:hover {
-    color: ${p => p.theme.textColor};
-    cursor: pointer;
-  }
-`;
-
-const StyledSettingsButton = styled(Button)`
-  padding: 0px;
-  margin-left: 7px;
 `;

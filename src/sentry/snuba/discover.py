@@ -29,11 +29,10 @@ from sentry.search.events.fields import (
 from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     SnubaTSResult,
-    bulk_snql_query,
+    bulk_snuba_queries,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -119,7 +118,7 @@ def format_time(data, start, end, rollup, orderby):
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+            obj["time"] = int(datetime.fromisoformat(obj["time"]).timestamp())
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -150,7 +149,7 @@ def zerofill(data, start, end, rollup, orderby, time_col_name=None):
             # ISO 8601 parser. It is only the inverse function of `datetime.isoformat`, which is
             # the format returned by snuba. This is significantly faster when compared to other
             # parsers like `dateutil.parser.parse` and `datetime.strptime`.
-            obj["time"] = int(to_timestamp(datetime.fromisoformat(obj["time"])))
+            obj["time"] = int(datetime.fromisoformat(obj["time"]).timestamp())
         if obj["time"] in data_by_time:
             data_by_time[obj["time"]].append(obj)
         else:
@@ -270,7 +269,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, Any],
+    params: ParamsType,
     rollup: int,
     referrer: str | None = None,
     zerofill_results: bool = True,
@@ -336,7 +335,9 @@ def timeseries_query(
             )
             query_list.append(comparison_builder)
 
-        query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
+        query_results = bulk_snuba_queries(
+            [query.get_snql_query() for query in query_list], referrer
+        )
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
         results = []
@@ -496,7 +497,7 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
         )
-        result, other_result = bulk_snql_query(
+        result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
         )
@@ -599,7 +600,7 @@ def get_facets(
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
-    fetch_projects = len(params.get("project_id", [])) > 1
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(

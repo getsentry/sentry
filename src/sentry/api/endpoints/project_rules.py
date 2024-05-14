@@ -28,12 +28,24 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.processor import is_condition_slow
+from sentry.rules.actions.base import instantiate_action
+from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
+
+
+def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
+    for action in rule.data.get("actions", ()):
+        action_inst = instantiate_action(rule, action)
+        safe_execute(
+            action_inst.send_confirmation_notification,
+            rule=rule,
+            new=new,
+            changed=changed,
+        )
 
 
 def clean_rule_data(data):
@@ -359,12 +371,14 @@ A list of actions that take place when all required conditions and filters for t
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
 - `channel_id` (optional) - The ID of the channel to send the notification to.
 - `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
     "workspace": 293854098,
     "channel": "#warning",
     "tags": "environment,level"
+    "notes": "Please <http://example.com|click here> for triage information"
 }
 ```
 
@@ -439,6 +453,25 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 
+**Create a GitHub Enterprise Issue**
+- `integration` - The integration ID associated with GitHub Enterprise.
+- `repo` - The name of the repository to create the issue in.
+- `title` - The title of the issue.
+- `body` (optional) - The contents of the issue.
+- `assignee` (optional) - The GitHub user to assign the issue to.
+- `labels` (optional) - A list of labels to assign to the issue.
+```json
+{
+    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+    "integration": 93749,
+    "repo": default,
+    "title": "My Test Issue",
+    "assignee": "Baxter the Hacker",
+    "labels": ["bug", "p1"]
+    ""
+}
+```
+
 **Create an Azure DevOps work item**
 - `integration` - The integration ID.
 - `project` - The ID of the Azure DevOps project.
@@ -456,22 +489,26 @@ A list of actions that take place when all required conditions and filters for t
 **Send a PagerDuty notification**
 - `account` - The integration ID associated with the PagerDuty account.
 - `service` - The ID of the service to send the notification to.
+- `severity` - The severity of the Pagerduty alert. This is optional, the default is `critical` for fatal issues, `error` for error issues, `warning` for warning issues, and `info` for info and debug issues.
 ```json
 {
     "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
     "account": 92385907,
-    "service": 9823924
+    "service": 9823924,
+    "severity": "critical"
 }
 ```
 
 **Send an Opsgenie notification**
 - `account` - The integration ID associated with the Opsgenie account.
 - `team` - The ID of the Opsgenie team to send the notification to.
+- `priority` - The priority of the Opsgenie alert. This is optional, the default is `P3`.
 ```json
 {
     "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
     "account": 8723897589,
-    "team": "9438930258-fairy"
+    "team": "9438930258-fairy",
+    "priority": "P1"
 }
 ```
 
@@ -642,7 +679,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
@@ -676,8 +713,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Create an Issue Alert Rule for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectRulesPostSerializer,
         responses={
@@ -785,13 +822,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         owner = data.get("owner")
         if owner:
-            try:
-                kwargs["owner"] = owner.resolve_to_actor().id
-            except (User.DoesNotExist, Team.DoesNotExist):
-                return Response(
-                    "Could not resolve owner",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            kwargs["owner"] = owner
 
         if data.get("pending_save"):
             client = RedisRuleStatus()
@@ -821,7 +852,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         alert_rule_created.send_robust(
             user=request.user,
             project=project,
-            rule=rule,
+            rule_id=rule.id,
             rule_type="issue",
             sender=self,
             is_api_token=request.auth is not None,
@@ -829,5 +860,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+        if features.has(
+            "organizations:rule-create-edit-confirm-notification", project.organization
+        ):
+            send_confirmation_notification(rule=rule, new=True)
+            metrics.incr(
+                "rule_confirmation.create.notification.sent",
+                skip_internal=False,
+            )
 
         return Response(serialize(rule, request.user))

@@ -5,6 +5,7 @@ import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from django.utils import timezone
 from pytest import raises
 
 from sentry.processing.backpressure.health import record_consumer_health
@@ -93,7 +94,7 @@ def process_one_message():
         "organization_id": 1,
         "project_id": 1,
         "key_id": 1,
-        "received": int(datetime.utcnow().timestamp()),
+        "received": int(timezone.now().timestamp()),
         "payload": json.dumps({"platform": "android", "profile": ""}),
     }
     payload = msgpack.packb(message_dict)

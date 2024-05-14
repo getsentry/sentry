@@ -15,7 +15,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -77,7 +77,7 @@ def assemble_download(
         with sentry_sdk.configure_scope() as scope:
             if data_export.user_id:
                 user = dict(id=data_export.user_id)
-                scope.user = user
+                scope.set_user(user)
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)
@@ -309,7 +309,7 @@ def merge_export_blobs(data_export_id, **kwargs):
         with sentry_sdk.configure_scope() as scope:
             if data_export.user_id:
                 user = dict(id=data_export.user_id)
-                scope.user = user
+                scope.set_user(user)
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)
@@ -352,7 +352,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
                 # This is in a separate atomic transaction because in prod, files exist
                 # outside of the primary database which means that the transaction to
-                # the primary database is idle the entire time the writes the the files
+                # the primary database is idle the entire time the writes the files
                 # database is happening. In the event the writes to the files database
                 # takes longer than the idle timeout, the connection to the primary
                 # database can timeout causing a failure.

@@ -18,7 +18,7 @@ import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/c
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
@@ -805,7 +805,8 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           {({height, isScrolling, onChildScroll, scrollTop, registerChild}) => (
             <AutoSizer disableHeight>
               {({width}) => (
-                <div ref={el => registerChild(el)}>
+                // TODO(TS): registerChild expects a ReactNode instead of a HTML ref
+                <div ref={el => registerChild(el as any)}>
                   <ReactVirtualizedList
                     autoHeight
                     isScrolling={isScrolling}

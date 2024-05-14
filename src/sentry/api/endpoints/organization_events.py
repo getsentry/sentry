@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -7,7 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -18,12 +19,13 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
     Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
     Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS.value,
     Referrer.API_PROFILING_LANDING_TABLE.value,
     Referrer.API_PROFILING_LANDING_FUNCTIONS_CARD.value,
     Referrer.API_PROFILING_PROFILE_SUMMARY_TOTALS.value,
@@ -77,6 +80,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_RELEASE_SELECTOR.value,
     Referrer.API_STARFISH_MOBILE_DEVICE_BREAKDOWN.value,
     Referrer.API_STARFISH_MOBILE_EVENT_SAMPLES.value,
+    Referrer.API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY.value,
     Referrer.API_STARFISH_MOBILE_SCREEN_TOTALS.value,
     Referrer.API_STARFISH_MOBILE_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE.value,
@@ -86,54 +90,99 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
+    Referrer.API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST.value,
+    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON.value,
+    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST.value,
+    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES.value,
+    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON.value,
+    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_BAR_CHART.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_EVENT_SAMPLES.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_SCREEN_TABLE.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_SPAN_TABLE.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
+    Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
+    Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
-RATE_LIMIT = 30
-RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 15
-
-DEFAULT_RATE_LIMIT = 50
-DEFAULT_RATE_LIMIT_WINDOW = 1
-DEFAULT_CONCURRENT_RATE_LIMIT = 50
-
-DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
-    "GET": {
-        RateLimitCategory.IP: RateLimit(
-            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-        ),
-        RateLimitCategory.USER: RateLimit(
-            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-        ),
-        RateLimitCategory.ORGANIZATION: RateLimit(
-            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
-        ),
-    }
-}
+LEGACY_RATE_LIMIT = dict(limit=30, window=1, concurrent_limit=15)
+# reduced limit will be the future default for all organizations not explicitly on increased limit
+DEFAULT_REDUCED_RATE_LIMIT = dict(
+    limit=1000, window=300, concurrent_limit=15  # 1000 requests per 5 minutes
+)
+DEFAULT_INCREASED_RATE_LIMIT = dict(limit=50, window=1, concurrent_limit=50)
 
 
-def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
-    try:
-        organization = Organization.objects.get_from_cache(slug=organization_slug)
-    except Organization.DoesNotExist:
-        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
-    # Check for feature flag to enforce rate limit otherwise use default rate limit
-    if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
+def rate_limit_events(
+    request: Request, organization_id_or_slug: str | None = None, *args, **kwargs
+) -> dict[str, dict[RateLimitCategory, RateLimit]]:
+    """
+    Decision tree for rate limiting for organization events endpoint.
+    ```mermaid
+     flowchart TD
+         A[Get organization] --> B{Organization\nexists}
+         B -->|No| C[Return legacy rate limit]
+         B -->|Yes| D{Organization\nin increased\nrate limit}
+         D -->|Yes| E[Return increased rate limit]
+         D -->|No| F{Organization in\nreduced limit\nroll-out}
+         F -->|Yes| G[Return reduced rate limit]
+         F -->|No| H[Return legacy rate limit]
+     ```
+    """
+
+    def _config_for_limit(limit: RateLimit) -> dict[str, dict[RateLimitCategory, RateLimit]]:
         return {
             "GET": {
-                RateLimitCategory.IP: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.USER: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
-                RateLimitCategory.ORGANIZATION: RateLimit(
-                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
-                ),
+                RateLimitCategory.IP: limit,
+                RateLimitCategory.USER: limit,
+                RateLimitCategory.ORGANIZATION: limit,
             }
         }
-    return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+
+    def _validated_limits(limits: dict[str, Any], fallback: dict[str, Any]) -> RateLimit:
+        """
+        Validate the rate limit configuration has required values of correct type.
+        """
+        try:
+            # dataclass doesn't check types, so forcing int which will raise if not int or numeric string
+            limits = {k: int(v) for k, v in limits.items()}
+            return RateLimit(**limits)
+        except Exception:
+            logger.exception("invalid rate limit config", extra={"limits": limits})
+            return RateLimit(**fallback)
+
+    rate_limit = RateLimit(**LEGACY_RATE_LIMIT)
+
+    try:
+        if str(organization_id_or_slug).isdecimal():
+            organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
+        else:
+            organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "organization.slug.invalid", extra={"organization_id_or_slug": organization_id_or_slug}
+        )
+        return _config_for_limit(rate_limit)
+
+    if organization.id in options.get("api.organization_events.rate-limit-increased.orgs", []):
+        rate_limit = _validated_limits(
+            options.get("api.organization_events.rate-limit-increased.limits"),
+            DEFAULT_INCREASED_RATE_LIMIT,
+        )
+
+    elif features.has(
+        "organizations:api-organization_events-rate-limit-reduced-rollout",
+        organization=organization,
+    ):
+
+        rate_limit = _validated_limits(
+            options.get("api.organization_events.rate-limit-reduced.limits"),
+            DEFAULT_REDUCED_RATE_LIMIT,
+        )
+
+    return _config_for_limit(rate_limit)
 
 
 @extend_schema(tags=["Discover"])
@@ -145,7 +194,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     enforce_rate_limit = True
 
-    def rate_limits(*args, **kwargs) -> RateLimitConfig:
+    def rate_limits(*args, **kwargs) -> dict[str, dict[RateLimitCategory, RateLimit]]:
         return rate_limit_events(*args, **kwargs)
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
@@ -186,7 +235,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
@@ -274,16 +323,17 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        def data_fn(offset, limit):
-            return dataset.query(
+        def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
+            return scopedDataset.query(
                 selected_columns=self.get_field_list(organization, request),
-                query=request.GET.get("query"),
+                query=query,
                 params=params,
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
@@ -302,6 +352,95 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
             )
+
+        def data_fn_factory(scopedDataset):
+            """
+            This factory closes over query and dataset in order to make an additional request to the errors dataset
+            in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
+
+            This should be removed once the discover dataset is completely split in dashboards.
+            """
+            scoped_query = request.GET.get("query")
+            dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
+
+            def fn(offset, limit) -> dict[str, Any]:
+                if not (metrics_enhanced and dashboard_widget_id):
+                    return _data_fn(scopedDataset, offset, limit, scoped_query)
+
+                try:
+                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    does_widget_have_split = widget.discover_widget_split is not None
+                    has_override_feature = features.has(
+                        "organizations:performance-discover-widget-split-override-save",
+                        organization,
+                        actor=request.user,
+                    )
+
+                    if does_widget_have_split and not has_override_feature:
+                        # This is essentially cached behaviour and we skip the check
+                        split_query = scoped_query
+                        if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
+                            split_dataset = discover
+                            split_query = f"({scoped_query}) AND !event.type:transaction"
+                        elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            # We can't add event.type:transaction for now because of on-demand.
+                            split_dataset = scopedDataset
+                        else:
+                            split_dataset = discover
+
+                        return _data_fn(split_dataset, offset, limit, split_query)
+
+                    try:
+                        error_results = _data_fn(
+                            discover, offset, limit, f"({scoped_query}) AND !event.type:transaction"
+                        )
+                        # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                        has_errors = len(error_results["data"]) > 0
+                    except SnubaError:
+                        has_errors = False
+                        error_results = None
+
+                    original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
+                    if original_results.get("data"):
+                        dataset_meta = original_results.get("data").get("meta", {})
+                    else:
+                        dataset_meta = (
+                            list(original_results.values())[0].get("data").get("meta", {})
+                        )
+                    using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
+                        "isMetricsExtractedData", False
+                    )
+                    has_other_data = len(original_results["data"]) > 0
+
+                    has_transactions = has_other_data
+                    transaction_results = None
+                    if has_errors and has_other_data and not using_metrics:
+                        # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
+                        sentry_sdk.set_tag("third_split_query", True)
+                        transactions_only_query = f"({scoped_query}) AND event.type:transaction"
+                        transaction_results = _data_fn(
+                            discover, offset, limit, transactions_only_query
+                        )
+                        has_transactions = len(transaction_results["data"]) > 0
+
+                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+
+                    if decision == DashboardWidgetTypes.DISCOVER:
+                        return _data_fn(discover, offset, limit, scoped_query)
+                    elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        return original_results
+                    elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                        return error_results
+                    else:
+                        return original_results
+                except Exception as e:
+                    # Swallow the exception if it was due to the discover split, and try again one more time.
+                    sentry_sdk.capture_exception(e)
+                    return _data_fn(scopedDataset, offset, limit, scoped_query)
+
+            return fn
+
+        data_fn = data_fn_factory(dataset)
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them

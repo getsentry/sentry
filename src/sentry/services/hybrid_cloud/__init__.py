@@ -12,7 +12,7 @@ import pydantic
 from django.db import router, transaction
 from django.db.models import Model
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ OptionValue = Any
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
-DEFAULT_DATE = datetime.datetime(2000, 1, 1)
+DEFAULT_DATE = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
 
 
 class ValueEqualityEnum(Enum):
@@ -100,7 +100,7 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
+class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore[misc]
     """A unifying metaclass for RpcModel classes that also implement a Protocol."""
 
 

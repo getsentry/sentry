@@ -2,11 +2,9 @@ from sentry.models.project import Project
 from sentry.services.hybrid_cloud.project.service import project_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 
 
 @django_db_all(transaction=True)
-@region_silo_test
 def test_get_or_create_project():
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")

@@ -1,5 +1,6 @@
 from urllib.parse import urlencode, urlparse
 
+import orjson
 import pytest
 import responses
 
@@ -11,7 +12,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -63,7 +63,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
 
         resp = self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
+            "{}?{}".format(self.setup_path, urlencode({"config": orjson.dumps(config).decode()}))
         )
 
         self.assertDialogSuccess(resp)
@@ -92,7 +92,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
 
         resp = self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
+            "{}?{}".format(self.setup_path, urlencode({"config": orjson.dumps(config).decode()}))
         )
 
         self.assertDialogSuccess(resp)
@@ -146,7 +146,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi.refresh_from_db()
         services = get_services(oi)
         assert services[1]["id"]
-        del services[1]["id"]  # type: ignore
+        del services[1]["id"]  # type: ignore[misc]
         assert services == [
             service,
             dict(
@@ -175,7 +175,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi.refresh_from_db()
         services = get_services(oi)
 
-        del services[1]["id"]  # type: ignore
+        del services[1]["id"]  # type: ignore[misc]
 
         assert services == [
             dict(

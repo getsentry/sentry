@@ -23,7 +23,7 @@ def performance() -> None:
 )
 @click.option("-v", "--verbose", count=True)
 @configuration
-def detect(filename, detector_class, verbose):
+def detect(filename: str, detector_class: str | None, verbose: int) -> None:
     """
     Runs performance problem detection on event data in the supplied filename
     using default detector settings with every detector. Filename should be a
@@ -80,7 +80,7 @@ def detect(filename, detector_class, verbose):
     "-n", required=False, type=int, default=1000, help="Number of times to run detection."
 )
 @configuration
-def timeit(filename, detector_class, n):
+def timeit(filename: str, detector_class: str, n: int) -> None:
     """
     Runs timing on performance problem detection on event data in the supplied
     filename and report results.
@@ -99,7 +99,7 @@ def timeit(filename, detector_class, n):
 
     detector = performance_detection.__dict__[detector_class](settings, data)
 
-    def detect():
+    def detect() -> None:
         performance_detection.run_detector_on_data(detector, data)
 
     result = timeit.timeit(stmt=detect, number=n)

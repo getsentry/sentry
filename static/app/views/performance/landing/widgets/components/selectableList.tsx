@@ -10,10 +10,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
+import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/performance/http/settings';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -102,6 +103,46 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
   );
 }
 
+export function TimeConsumingDomainsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Domains may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
+                {t('Requests module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/caches/">
+                {t('Cache module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
 export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();
@@ -115,9 +156,9 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   }
 
   const project = fullProjects.projects.find(p => p.id === '' + projects[0]);
-  const url = getConfigureIntegrationsDocsLink(project);
+  const docsLink = getConfigurePerformanceDocsLink(project);
 
-  if (!url) {
+  if (!docsLink) {
     return <WidgetEmptyStateWarning />;
   }
 
@@ -126,10 +167,14 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
         {tct(
-          'No transactions with [spanCategory] spans found, you may need to [added].',
+          'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
           {
-            spanCategory: type === 'db' ? t('Database') : t('HTTP'),
-            added: <ExternalLink href={url}>{t('add integrations')}</ExternalLink>,
+            spanCategory: type === 'db' ? t('Database') : HTTP_MODULE_TITLE,
+            link: (
+              <ExternalLink href={docsLink}>
+                {t('performance monitoring setup')}
+              </ExternalLink>
+            ),
           }
         )}
       </SecondaryMessage>

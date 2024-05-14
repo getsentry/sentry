@@ -152,11 +152,13 @@ function NewTraceView({
   ...props
 }: Props) {
   const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
-  const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-  const sentrySpan = sentryTransaction?.startChild({
+
+  const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
-    description: 'trace-view-content',
+    name: 'trace-view-content',
+    onlyIfParent: true,
   });
+
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
   const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
   useEffect(() => {
@@ -495,7 +497,7 @@ function NewTraceView({
     </TraceDetailBody>
   );
 
-  sentrySpan?.finish();
+  sentrySpan?.end();
 
   return traceView;
 }

@@ -32,6 +32,10 @@ describe('AnomaliesTab', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
     anomaliesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/transaction-anomaly-detection/',
       body: {},

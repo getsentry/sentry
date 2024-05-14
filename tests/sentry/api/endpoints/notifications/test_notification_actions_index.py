@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import orjson
 import responses
 from rest_framework import serializers, status
 
@@ -14,14 +15,12 @@ from sentry.models.notificationaction import (
     NotificationActionProject,
 )
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.utils import json
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
@@ -287,7 +286,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
             ),
         )
@@ -296,7 +295,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             url="https://slack.com/api/chat.deleteScheduledMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": True}),
+            body=orjson.dumps({"ok": True}),
         )
         response = self.get_success_response(
             self.organization.slug,

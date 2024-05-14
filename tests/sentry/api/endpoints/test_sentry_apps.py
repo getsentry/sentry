@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 from django.test import override_settings
 from django.urls import reverse
@@ -21,8 +22,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 POPULARITY = 27
 EXPECTED = {
@@ -47,7 +48,7 @@ class SentryAppsTest(APITestCase):
         super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
-    def set_up_apps(self):
+    def setup_apps(self):
         self.published_app = self.create_sentry_app(organization=self.organization, published=True)
         self.unpublished_app = self.create_sentry_app(organization=self.organization)
         self.unowned_unpublished_app = self.create_sentry_app(
@@ -56,16 +57,14 @@ class SentryAppsTest(APITestCase):
             webhook_url="https://example.com",
         )
 
-    def set_up_super_user(self) -> None:
-        self.superuser = self.create_user(email="a@example.com", is_superuser=True)
-        self.super_org = self.create_organization(owner=self.superuser)
-        self.login_as(self.superuser, superuser=True)
-
-    def set_up_internal_app(self) -> None:
+    def setup_internal_app(self) -> None:
         self.internal_organization = self.create_organization(owner=self.user)
         self.create_project(organization=self.internal_organization)
         self.internal_app = self.create_internal_integration(
             name="Internal", organization=self.internal_organization
+        )
+        self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_app
         )
 
     def assert_response_has_serialized_sentry_app(
@@ -75,6 +74,7 @@ class SentryAppsTest(APITestCase):
         organization: Organization,
         has_features: bool = False,
         mask_secret: bool = False,
+        scopes: list[str] | None = None,
     ) -> None:
         assert sentry_app.application is not None
         data = {
@@ -92,7 +92,7 @@ class SentryAppsTest(APITestCase):
             "popularity": self.default_popularity,
             "redirectUrl": sentry_app.redirect_url,
             "schema": {},
-            "scopes": [],
+            "scopes": scopes if scopes else [],
             "slug": sentry_app.slug,
             "status": sentry_app.get_status_display(),
             "uuid": sentry_app.uuid,
@@ -102,7 +102,6 @@ class SentryAppsTest(APITestCase):
         }
 
         if mask_secret:
-            data["scopes"] = ["project:write"]
             data["clientSecret"] = MASKED_VALUE
 
         if has_features:
@@ -117,7 +116,7 @@ class SentryAppsTest(APITestCase):
                 }
             ]
 
-        assert data in json.loads(response.content)
+        assert data in orjson.loads(response.content)
 
     def get_data(self, **kwargs: Any) -> Mapping[str, Any]:
         return {
@@ -159,14 +158,19 @@ class SentryAppsTest(APITestCase):
 
 
 @control_silo_test
-class SuperUserGetSentryAppsTest(SentryAppsTest):
+class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
-        self.set_up_super_user()
-        self.set_up_apps()
+        self.setup_apps()
 
-    def test_superuser_sees_all_apps(self):
-        response = self.get_success_response()
+        self.superuser = self.create_user(is_superuser=True)
+        self.login_as(self.superuser, superuser=True)
+
+    def test_staff_sees_all_apps(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(staff_user, staff=True)
+
+        response = self.get_success_response(status_code=200)
         response_uuids = {o["uuid"] for o in response.data}
 
         assert self.published_app.uuid in response_uuids
@@ -174,24 +178,35 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid in response_uuids
 
         with self.settings(SENTRY_SELF_HOSTED=False):
-            self.get_success_response()
+            self.get_success_response(status_code=200)
+
+    def test_superuser_sees_all_apps(self):
+        response = self.get_success_response(status_code=200)
+        response_uuids = {o["uuid"] for o in response.data}
+
+        assert self.published_app.uuid in response_uuids
+        assert self.unpublished_app.uuid in response_uuids
+        assert self.unowned_unpublished_app.uuid in response_uuids
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            self.get_success_response(status_code=200)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_sees_all_apps(self):
-        self.get_success_response()
+        self.get_success_response(status_code=200)
 
         self.add_user_permission(self.superuser, "superuser.write")
-        self.get_success_response()
+        self.get_success_response(status_code=200)
 
     def test_superusers_filter_on_internal_apps(self):
-        self.set_up_internal_app()
+        self.setup_internal_app()
         new_org = self.create_organization()
         self.create_project(organization=new_org)
 
         internal_app = self.create_internal_integration(name="Internal Nosee", organization=new_org)
 
-        response = self.get_success_response(qs_params={"status": "internal"})
+        response = self.get_success_response(qs_params={"status": "internal"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response, sentry_app=self.internal_app, organization=self.internal_organization
         )
@@ -202,7 +217,7 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_superuser_filter_on_published(self):
-        response = self.get_success_response(qs_params={"status": "published"})
+        response = self.get_success_response(qs_params={"status": "published"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
             sentry_app=self.published_app,
@@ -215,7 +230,7 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_superuser_filter_on_unpublished(self):
-        response = self.get_success_response(qs_params={"status": "unpublished"})
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
 
         response_uuids = {o["uuid"] for o in response.data}
         assert self.unpublished_app.uuid in response_uuids
@@ -227,11 +242,11 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
 class GetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
-        self.set_up_apps()
+        self.setup_apps()
         self.login_as(self.user)
 
     def test_users_see_published_apps(self):
-        response = self.get_success_response()
+        response = self.get_success_response(status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
             sentry_app=self.published_app,
@@ -240,8 +255,8 @@ class GetSentryAppsTest(SentryAppsTest):
         )
 
     def test_users_filter_on_internal_apps(self):
-        self.set_up_internal_app()
-        response = self.get_success_response(qs_params={"status": "internal"})
+        self.setup_internal_app()
+        response = self.get_success_response(qs_params={"status": "internal"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
             sentry_app=self.internal_app,
@@ -253,7 +268,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_user_filter_on_unpublished(self):
-        response = self.get_success_response(qs_params={"status": "unpublished"})
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
             sentry_app=self.unpublished_app,
@@ -265,35 +280,58 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_user_filter_on_published(self):
-        response = self.get_success_response(qs_params={"status": "published"})
+        response = self.get_success_response(qs_params={"status": "published"}, status_code=200)
         response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid in response_uuids
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_client_secret_is_masked(self):
-        user = self.create_user(email="bloop@example.com")
-        self.create_member(organization=self.organization, user=user)
-        # Create an app with higher permissions that what the member role has.
+    def test_client_secret_is_not_masked(self):
+        manager_user = self.create_user(email="bleep@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        # Create an app with the same permission that what the manager role has.
         sentry_app = self.create_sentry_app(
-            name="Boo Far", organization=self.organization, scopes=("project:write",)
+            name="Boo Far", organization=self.organization, scopes=("org:write",)
         )
 
-        response = self.get_success_response(qs_params={"status": "unpublished"})
+        self.login_as(manager_user)
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
+        self.assert_response_has_serialized_sentry_app(
+            response=response,
+            sentry_app=sentry_app,
+            organization=self.organization,
+            has_features=True,
+            mask_secret=False,
+            scopes=["org:write"],
+        )
+
+    def test_client_secret_is_masked(self):
+        manager_user = self.create_user(email="bloop@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        # Create an app with higher permissions that what the manager role has.
+        sentry_app = self.create_sentry_app(
+            name="Boo Far", organization=self.organization, scopes=("org:admin",)
+        )
+
+        self.login_as(manager_user)
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
             sentry_app=sentry_app,
             organization=self.organization,
             has_features=True,
             mask_secret=True,
+            scopes=["org:admin"],
         )
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
-        response = self.get_success_response()
+        response = self.get_success_response(status_code=200)
         assert self.unpublished_app.uuid not in [a["uuid"] for a in response.data]
 
     def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
-        response = self.get_success_response()
+        response = self.get_success_response(status_code=200)
         assert self.unowned_unpublished_app.uuid not in [a["uuid"] for a in response.data]
 
     def test_users_dont_see_internal_apps_outside_their_orgs(self):
@@ -302,20 +340,27 @@ class GetSentryAppsTest(SentryAppsTest):
 
         internal_app = self.create_internal_integration(name="Internal Nosee", organization=new_org)
 
-        response = self.get_success_response()
+        response = self.get_success_response(status_code=200)
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
 
 
 @control_silo_test
-class SuperUserPostSentryAppsTest(SentryAppsTest):
+class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
     method = "post"
 
     def setUp(self):
         super().setUp()
-        self.set_up_super_user()
+        self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
+        self.login_as(self.superuser, superuser=True)
+
+    def test_staff_cannot_create_app(self):
+        """We do not allow staff to create Sentry Apps b/c this cannot be done in _admin."""
+        self.login_as(self.staff_user, staff=True)
+        response = self.get_error_response(**self.get_data(), status_code=404)
+        assert response.data["detail"] == "Not found."
 
     def test_superuser_cannot_create_app_in_nonexistent_organization(self):
-        self.create_project(organization=self.super_org)
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
         data = self.get_data(name=sentry_app.name, organization="some-non-existent-org")
@@ -325,22 +370,26 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
         }
 
     def test_superuser_can_create_with_popularity(self):
-        response = self.get_success_response(**self.get_data(popularity=POPULARITY))
-        assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
+        response = self.get_success_response(
+            **self.get_data(popularity=POPULARITY), status_code=201
+        )
+        assert {"popularity": POPULARITY}.items() <= orjson.loads(response.content).items()
 
         with self.settings(SENTRY_SELF_HOSTED=False):
-            self.get_success_response(**self.get_data(popularity=25, name="myApp 2"))
+            self.get_success_response(
+                **self.get_data(popularity=25, name="myApp 2"), status_code=201
+            )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_create(self):
         self.get_error_response(**self.get_data(name="POPULARITY"))
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_can_create(self):
         self.add_user_permission(self.superuser, "superuser.write")
-        self.get_success_response(**self.get_data(popularity=POPULARITY))
+        self.get_success_response(**self.get_data(popularity=POPULARITY), status_code=201)
 
 
 @control_silo_test
@@ -348,7 +397,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.set_up_internal_app()
+        self.setup_internal_app()
 
     def assert_no_permission(
         self, organization: Organization, sentry_app: SentryApp, slug: str | None
@@ -415,8 +464,8 @@ class PostSentryAppsTest(SentryAppsTest):
             assert response.status_code == status_code
 
     def test_creates_sentry_app(self):
-        response = self.get_success_response(**self.get_data())
-        content = json.loads(response.content)
+        response = self.get_success_response(**self.get_data(), status_code=201)
+        content = orjson.loads(response.content)
         for key, value in EXPECTED.items():
             assert key in content
             if isinstance(value, list):
@@ -439,7 +488,7 @@ class PostSentryAppsTest(SentryAppsTest):
         )
 
         data = self.get_data(name=sentry_app.name)
-        response = self.get_success_response(**data)
+        response = self.get_success_response(**data, status_code=201)
         assert response.data["name"] == sentry_app.name
         assert response.data["slug"] != sentry_app.slug
 
@@ -471,8 +520,10 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["detail"].startswith("User does not belong to")
 
     def test_nonsuperuser_cannot_create_with_popularity(self):
-        response = self.get_success_response(**self.get_data(popularity=POPULARITY))
-        assert {"popularity": self.default_popularity}.items() <= json.loads(
+        response = self.get_success_response(
+            **self.get_data(popularity=POPULARITY), status_code=201
+        )
+        assert {"popularity": self.default_popularity}.items() <= orjson.loads(
             response.content
         ).items()
 
@@ -496,8 +547,8 @@ class PostSentryAppsTest(SentryAppsTest):
         expected = {**EXPECTED, "schema": {"elements": [self.create_alert_rule_action_schema()]}}
 
         data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
-        response = self.get_success_response(**data)
-        content = json.loads(response.content)
+        response = self.get_success_response(**data, status_code=201)
+        content = orjson.loads(response.content)
         for key, value in expected.items():
             assert key in content
             if isinstance(value, list):
@@ -540,7 +591,7 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
         # XXX: Compare schema as an object instead of json to avoid key ordering issues
-        record.call_args.kwargs["schema"] = json.loads(record.call_args.kwargs["schema"])
+        record.call_args.kwargs["schema"] = orjson.loads(record.call_args.kwargs["schema"])
 
         record.assert_called_with(
             "sentry_app.schema_validation_error",
@@ -554,8 +605,8 @@ class PostSentryAppsTest(SentryAppsTest):
     @with_feature("organizations:integrations-event-hooks")
     def test_can_create_with_error_created_hook_with_flag(self):
         expected = {**EXPECTED, "events": ["error"]}
-        response = self.get_success_response(**self.get_data(events=("error",)))
-        content = json.loads(response.content)
+        response = self.get_success_response(**self.get_data(events=("error",)), status_code=201)
+        content = orjson.loads(response.content)
         for key, value in expected.items():
             assert key in content
             if isinstance(value, list):
@@ -573,7 +624,7 @@ class PostSentryAppsTest(SentryAppsTest):
             }
 
     def test_allows_empty_schema(self):
-        self.get_success_response(**self.get_data(shema={}))
+        self.get_success_response(**self.get_data(shema={}), status_code=201)
 
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(**self.get_data(name="1234"), status_code=201)
@@ -598,13 +649,13 @@ class PostSentryAppsTest(SentryAppsTest):
         assert "webhookUrl" in response.data
 
     def test_allows_empty_permissions(self):
-        response = self.get_success_response(**self.get_data(scopes=None))
+        response = self.get_success_response(**self.get_data(scopes=None), status_code=201)
         assert response.data["scopes"] == []
 
     def test_creates_internal_integration(self):
         self.create_project(organization=self.organization)
 
-        response = self.get_success_response(**self.get_data(isInternal=True))
+        response = self.get_success_response(**self.get_data(isInternal=True), status_code=201)
         assert re.match(r"myapp\-[0-9a-zA-Z]+", response.data["slug"])
         assert response.data["status"] == SentryAppStatus.as_str(SentryAppStatus.INTERNAL)
         assert not response.data["verifyInstall"]
@@ -623,11 +674,11 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_no_author_internal_integration(self):
         self.create_project(organization=self.organization)
 
-        self.get_success_response(**self.get_data(isInternal=True, author=None))
+        self.get_success_response(**self.get_data(isInternal=True, author=None), status_code=201)
 
     def test_create_integration_with_allowed_origins(self):
         response = self.get_success_response(
-            **self.get_data(allowedOrigins=("google.com", "example.com"))
+            **self.get_data(allowedOrigins=("google.com", "example.com")), status_code=201
         )
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.application.get_allowed_origins() == ["google.com", "example.com"]
@@ -640,7 +691,7 @@ class PostSentryAppsTest(SentryAppsTest):
             allowedOrigins=("example.com",),
             scopes=("project:read", "event:read", "org:read"),
         )
-        response = self.get_success_response(**data)
+        response = self.get_success_response(**data, status_code=201)
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.application.get_allowed_origins() == ["example.com"]
 
@@ -650,7 +701,7 @@ class PostSentryAppsTest(SentryAppsTest):
         self.create_project(organization=self.organization)
 
         data = self.get_data(isInternal=True, scopes=("project:read", "event:read", "org:read"))
-        response = self.get_success_response(**data)
+        response = self.get_success_response(**data, status_code=201)
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.application.get_allowed_origins() == []
 
@@ -697,7 +748,8 @@ class PostSentryAppsTest(SentryAppsTest):
         )
 
         self.get_success_response(
-            **self.get_data(name=other_organization_integration.name, isInternal=True)
+            **self.get_data(name=other_organization_integration.name, isInternal=True),
+            status_code=201,
         )
 
         other_organization = self.create_organization()
@@ -707,5 +759,6 @@ class PostSentryAppsTest(SentryAppsTest):
         )
 
         self.get_success_response(
-            **self.get_data(name=other_organization_internal_integration.name, isInternal=True)
+            **self.get_data(name=other_organization_internal_integration.name, isInternal=True),
+            status_code=201,
         )

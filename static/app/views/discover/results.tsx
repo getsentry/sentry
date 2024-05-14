@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -36,6 +35,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -299,14 +299,8 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const isReplayEnabled = organization.features.includes('session-replay');
-    const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
-      fields: isReplayEnabled
-        ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])
-        : DEFAULT_EVENT_VIEW.fields,
-    });
 
-    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -585,6 +579,7 @@ export class Results extends Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
+
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);

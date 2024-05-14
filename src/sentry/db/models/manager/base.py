@@ -18,7 +18,7 @@ from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
-from sentry.silo import SiloLimit
+from sentry.silo.base import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -43,7 +43,7 @@ class ModelManagerTriggerCondition(IntEnum):
 ModelManagerTriggerAction = Callable[[type[Model]], None]
 
 
-class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
+class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore[misc]
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
@@ -122,7 +122,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
     def __setstate__(self, state: Mapping[str, Any]) -> None:
         self.__dict__.update(state)
         # TODO(typing): Basically everywhere else we set this to `threading.local()`.
-        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore
+        self.__local_cache = weakref.WeakKeyDictionary()  # type: ignore[assignment]
 
     def __class_prepared(self, sender: Any, **kwargs: Any) -> None:
         """

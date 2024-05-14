@@ -22,7 +22,7 @@ from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
@@ -31,10 +31,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 
-@region_silo_test
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -73,13 +72,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_default_owner_id_no_owner(self):
         org = self.create_organization()
         assert org.default_owner_id is None
-
-    def test_default_owner_id_only_owner_through_team(self):
-        user = self.create_user("foo@example.com")
-        org = self.create_organization()
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=user, teams=[owner_team])
-        assert org.default_owner_id == user.id
 
     @mock.patch.object(
         Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
@@ -182,7 +174,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         self.assertFalse(has_changed(inst, "name"))
 
 
-@region_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
@@ -427,8 +418,21 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
+    def test_get_bulk_owner_profiles(self):
+        u1, u2, u3 = (self.create_user() for _ in range(3))
+        o1, o2, o3 = (self.create_organization(owner=u) for u in (u1, u2, u3))
+        o2.get_default_owner()  # populate _default_owner
+        with assume_test_silo_mode_of(User):
+            u3.delete()
 
-@region_silo_test
+        bulk_owner_profiles = Organization.get_bulk_owner_profiles([o1, o2, o3])
+        assert set(bulk_owner_profiles.keys()) == {o1.id, o2.id}
+        assert bulk_owner_profiles[o1.id].id == u1.id
+        assert bulk_owner_profiles[o2.id].id == u2.id
+        assert bulk_owner_profiles[o2.id].name == u2.name
+        assert bulk_owner_profiles[o2.id].email == u2.email
+
+
 class OrganizationDeletionTest(TestCase):
     def add_org_notification_settings(self, org: Organization, user: User):
         with assume_test_silo_mode(SiloMode.CONTROL):

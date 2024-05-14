@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -7,6 +6,7 @@ import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -28,10 +28,7 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {
-  getTransactionMEPParamsIfApplicable,
-  getUnfilteredTotalsEventView,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -143,28 +140,12 @@ function OverviewContentWrapper(props: ChildProps) {
     referrer: 'api.performance.transaction-summary',
   });
 
-  // Unfiltered count has to be total indexed events count because it's only used
-  // in indexed events contexts
-  const additionalQueryData = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location, ['count']),
-    orgSlug: organization.slug,
-    location,
-    transactionThreshold,
-    transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
-  });
-
   useEffect(() => {
     const isMetricsData = getIsMetricsDataFromResults(queryData.data);
     mepContext.setIsMetricsData(isMetricsData);
   }, [mepContext, queryData.data]);
 
   const {data: tableData, isLoading, error} = queryData;
-  const {
-    data: unfilteredTableData,
-    isLoading: isAdditionalQueryLoading,
-    error: additionalQueryError,
-  } = additionalQueryData;
   const {
     data: totalCountTableData,
     isLoading: isTotalCountQueryLoading,
@@ -205,9 +186,6 @@ function OverviewContentWrapper(props: ChildProps) {
   // while other fields could be either metrics or index based
   totals = {...totals, ...totalCountData};
 
-  const unfilteredTotals: TotalValues | null =
-    (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null;
-
   return (
     <SummaryContent
       location={location}
@@ -215,12 +193,11 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading || isAdditionalQueryLoading || isTotalCountQueryLoading}
-      error={error || additionalQueryError || totalCountQueryError}
+      isLoading={isLoading || isTotalCountQueryLoading}
+      error={error || totalCountQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}
       spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-      unfilteredTotalValues={unfilteredTotals}
     />
   );
 }

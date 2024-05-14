@@ -6,10 +6,11 @@ import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -107,7 +108,7 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
-        ...(hasDDMFeature(organization)
+        ...(hasCustomMetrics(organization)
           ? [
               {
                 label: AlertWizardAlertNames.custom_transactions,
@@ -118,9 +119,9 @@ export default function WizardField({
       ],
     },
     {
-      label: hasDDMFeature(organization) ? t('METRICS') : t('CUSTOM'),
+      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
-        hasDDMFeature(organization)
+        hasCustomMetrics(organization)
           ? {
               label: AlertWizardAlertNames.custom_metrics,
               value: 'custom_metrics',
@@ -181,7 +182,7 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+            {hasCustomMetrics(organization) && alertType === 'custom_metrics' ? (
               <MriField
                 project={project}
                 aggregate={aggregate}

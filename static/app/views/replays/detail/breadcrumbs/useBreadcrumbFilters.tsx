@@ -1,5 +1,6 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -31,7 +32,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   start: 'Replay Start',
   feedback: 'User Feedback',
   replay: 'Replay',
-  issue: 'Issue',
+  issue: 'Error',
   console: 'Console',
   nav: 'Navigation',
   pageLoad: 'Page Load',
@@ -43,16 +44,19 @@ const TYPE_TO_LABEL: Record<string, string> = {
   action: 'User Action',
   rageOrMulti: 'Rage & Multi Click',
   rageOrDead: 'Rage & Dead Click',
+  hydrateError: 'Hydration Error',
   lcp: 'LCP',
   click: 'User Click',
   keydown: 'KeyDown',
   input: 'Input',
+  tap: 'User Tap',
+  device: 'Device',
+  app: 'App',
 };
 
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'replay.init': 'start',
   'replay.mutations': 'replay',
-  'sentry.feedback': 'feedback',
   issue: 'issue',
   console: 'console',
   navigation: 'nav',
@@ -66,14 +70,26 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'ui.focus': 'action',
   'ui.multiClick': 'rageOrMulti',
   'ui.slowClickDetected': 'rageOrDead',
+  'replay.hydrate-error': 'hydrateError',
   'largest-contentful-paint': 'lcp',
   'ui.click': 'click',
+  'ui.tap': 'tap',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
+  feedback: 'feedback',
+  'device.battery': 'device',
+  'device.connectivity': 'device',
+  'device.orientation': 'device',
+  'app.foreground': 'app',
+  'app.background': 'app',
 };
 
 function typeToLabel(val: string): string {
-  return TYPE_TO_LABEL[val] ?? 'Unknown';
+  if (TYPE_TO_LABEL[val]) {
+    return TYPE_TO_LABEL[val];
+  }
+  Sentry.captureException('Unknown breadcrumb filter type');
+  return 'Unknown';
 }
 
 const FILTERS = {
@@ -102,7 +118,9 @@ function useBreadcrumbFilters({frames}: Options): Return {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
     const TYPE_TO_OPORCATEGORY = Object.entries(OPORCATEGORY_TO_TYPE).reduce(
       (dict, [key, value]) =>
-        dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
+        dict[value]
+          ? {...dict, [value]: [dict[value], key].flat()}
+          : {...dict, [value]: key},
       {}
     );
     const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);

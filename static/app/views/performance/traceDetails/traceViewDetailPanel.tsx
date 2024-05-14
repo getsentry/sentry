@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -52,7 +52,7 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -63,7 +63,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -400,7 +400,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
             enableHiding
             location={location}
             organization={organization}
-            transaction={detail.traceFullDetailedEvent}
+            tags={detail.traceFullDetailedEvent.tags ?? []}
+            event={detail.traceFullDetailedEvent}
           />
 
           {measurementNames.length > 0 && (
@@ -465,6 +466,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
       {detail.event._metrics_summary ? (
         <CustomMetricsEventData
+          projectId={detail.event.projectID}
           metricsSummary={detail.event._metrics_summary}
           startTimestamp={detail.event.startTimestamp}
         />
@@ -506,7 +508,7 @@ function SpanDetailsBody({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
         </div>
       </Title>
       {detail.event.projectSlug && (

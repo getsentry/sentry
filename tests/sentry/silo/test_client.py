@@ -1,5 +1,5 @@
 import ipaddress
-from hashlib import sha1
+from hashlib import sha256
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -9,7 +9,7 @@ from pytest import raises
 
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.silo.client import (
     CACHE_TIMEOUT,
     REQUEST_ATTEMPTS_LIMIT,
@@ -123,7 +123,7 @@ class SiloClientTest(TestCase):
             )
 
             prefix_hash = "123"
-            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 
@@ -184,7 +184,7 @@ class SiloClientTest(TestCase):
             )
 
             prefix_hash = "123"
-            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 

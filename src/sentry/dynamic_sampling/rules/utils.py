@@ -1,10 +1,12 @@
 from enum import Enum
-from typing import Any, Literal, NotRequired, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union
 
+import orjson
 from django.conf import settings
+from rediscluster import RedisCluster
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
-from sentry.utils import json, redis
+from sentry.utils import redis
 
 BOOSTED_RELEASES_LIMIT = 10
 
@@ -98,6 +100,26 @@ class EqCondition(TypedDict):
     options: EqConditionOptions
 
 
+class GteCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class GtCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class LteCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
+class LtCondition(TypedDict):
+    name: str
+    value: list[str] | None
+
+
 class GlobCondition(TypedDict):
     op: Literal["glob"]
     name: str
@@ -106,13 +128,29 @@ class GlobCondition(TypedDict):
 
 class Condition(TypedDict):
     op: Literal["and", "or", "not"]
-    inner: EqCondition | GlobCondition | list[EqCondition | GlobCondition]
+    inner: (
+        EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+        | list[EqCondition | GlobCondition]
+    )
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition | GlobCondition | EqCondition
+    condition: (
+        Condition
+        | EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+    )
     id: int
 
 
@@ -155,15 +193,18 @@ def get_rule_type(rule: Rule) -> RuleType | None:
 def get_rule_hash(rule: PolymorphicRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
-    return json.dumps(
-        _deep_sorted(
+    return (
+        orjson.dumps(
             {
                 "id": rule["id"],
                 "type": rule["type"],
                 "condition": rule["condition"],
-            }
+            },
+            option=orjson.OPT_SORT_KEYS,
         )
-    ).__hash__()
+        .decode()
+        .__hash__()
+    )
 
 
 def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
@@ -174,13 +215,6 @@ def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
         return sampling["type"], float(sampling["value"])
     else:
         return None
-
-
-def _deep_sorted(value: Any | dict[Any, Any]) -> Any | dict[Any, Any]:
-    if isinstance(value, dict):
-        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
-    else:
-        return value
 
 
 def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:
@@ -226,6 +260,6 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     return float(x / x**base_sample_rate)
 
 
-def get_redis_client_for_ds() -> Any:
+def get_redis_client_for_ds() -> RedisCluster:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

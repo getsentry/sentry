@@ -40,7 +40,6 @@ describe('ProjectUserFeedback', function () {
       method: 'PUT',
     });
 
-    // Click Regenerate Token
     await userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
 
     expect(mock).toHaveBeenCalledWith(

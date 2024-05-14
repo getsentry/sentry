@@ -13,7 +13,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
 class DiscordSetupTestCase(IntegrationTestCase):
@@ -236,7 +236,6 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
         assert integrations[1].name == "Cool server"
 
 
-@region_silo_test
 class DiscordIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_get_guild_name(self):

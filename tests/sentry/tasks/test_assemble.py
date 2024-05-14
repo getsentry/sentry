@@ -1,6 +1,7 @@
 import io
 import os
-from datetime import datetime, timedelta, timezone
+import uuid
+from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from unittest import mock
 from unittest.mock import patch
@@ -9,7 +10,6 @@ from django.core.files.base import ContentFile
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
-    ArtifactBundleFlatFileIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
@@ -29,10 +29,13 @@ from sentry.tasks.assemble import (
     assemble_artifacts,
     assemble_dif,
     assemble_file,
+    delete_assemble_status,
     get_assemble_status,
+    set_assemble_status,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 class BaseAssembleTest(TestCase):
@@ -397,9 +400,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         # Since we are uploading the same bundle 3 times, we expect that all of them will result with the same
         # `date_added` or the last upload.
-        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00").replace(
-            tzinfo=timezone.utc
-        )
+        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00+00:00")
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
@@ -693,32 +694,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             artifact_bundles=[(bundles[2], mock.ANY)],
         )
 
-    def test_bundle_flat_file_indexing(self):
-        release = "1.0"
-        dist = "android"
-
-        bundle_file_1 = self.create_artifact_bundle_zip(
-            fixture_path="artifact_bundle_debug_ids", project=self.project.id
-        )
-        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
-        total_checksum_1 = sha1(bundle_file_1).hexdigest()
-
-        with self.feature("organizations:sourcemaps-bundle-flat-file-indexing"):
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_1,
-                chunks=[blob1_1.checksum],
-                upload_as_artifact_bundle=True,
-            )
-
-        flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
-            project_id=self.project.id, release_name=release, dist_name=dist
-        )
-        assert flat_file_index.load_flat_file_index() is not None
-
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
@@ -927,7 +902,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -957,7 +932,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -965,7 +940,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0c",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         artifact_bundle_3 = self._create_bundle_and_bind_to_release(
@@ -973,7 +948,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -1004,7 +979,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1012,7 +987,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
             indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -1038,7 +1013,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1046,7 +1021,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1056,7 +1031,7 @@ class ArtifactBundleIndexingTest(TestCase):
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
             # We simulate that this bundle is into the database but was created after the assembling of bundle 1 started
             # its progress but did not finish.
-            date=datetime.now() + timedelta(hours=1),
+            date=datetime.now(UTC) + timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -1076,3 +1051,24 @@ class ArtifactBundleIndexingTest(TestCase):
             organization_id=self.organization.id,
             artifact_bundles=[(artifact_bundle_1, mock.ANY)],
         )
+
+
+@use_redis_cluster()
+def test_redis_assemble_status():
+    task = AssembleTask.DIF
+    project_id = uuid.uuid4().hex
+    checksum = uuid.uuid4().hex
+
+    # If it doesn't exist, it should return correct values.
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)
+
+    # Test setter
+    set_assemble_status(task, project_id, checksum, ChunkFileState.CREATED, detail="cylons")
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (
+        "created",
+        "cylons",
+    )
+
+    # Deleting should actually delete it.
+    delete_assemble_status(task, project_id, checksum=checksum)
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)

@@ -4,11 +4,12 @@ from enum import Enum
 
 __all__ = [
     "Feature",
+    "FeatureHandlerStrategy",
     "OrganizationFeature",
     "ProjectFeature",
     "ProjectPluginFeature",
+    "SystemFeature",
     "UserFeature",
-    "FeatureHandlerStrategy",
 ]
 
 import abc
@@ -94,3 +95,7 @@ class FeatureHandlerStrategy(Enum):
     """Handle the feature using a constant or logic within python"""
     REMOTE = 2
     """Handle the feature using a remote flag management service"""
+    OPTIONS = 3
+    """Handle the feature using options. see https://develop.sentry.dev/feature-flags/#building-your-options-based-feature
+    for more information.
+    """

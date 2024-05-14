@@ -11,13 +11,13 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -43,8 +43,8 @@ enum SortBy {
 }
 
 enum SourceMapsBundleType {
-  RELEASE,
-  DEBUG_ID,
+  RELEASE = 0,
+  DEBUG_ID = 1,
 }
 
 function SourceMapsTableRow({

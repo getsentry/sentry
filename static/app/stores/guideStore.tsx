@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {createStore} from 'reflux';
 
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
@@ -10,8 +9,9 @@ import type {
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import type {CommonStoreDefinition} from './types';
 
@@ -81,6 +81,10 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
+function isForceEnabled() {
+  return window.location.hash === '#assistant';
+}
+
 interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
   closeGuide(dismissed?: boolean): void;
@@ -111,6 +115,7 @@ const storeConfig: GuideStoreDefinition = {
 
     this.state = defaultState;
 
+    this.state.forceShow = isForceEnabled();
     window.addEventListener('load', this.onURLChange, false);
     this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
 
@@ -143,7 +148,7 @@ const storeConfig: GuideStoreDefinition = {
   },
 
   onURLChange() {
-    this.state.forceShow = window.location.hash === '#assistant';
+    this.state.forceShow = isForceEnabled();
     this.updateCurrentGuide();
   },
 

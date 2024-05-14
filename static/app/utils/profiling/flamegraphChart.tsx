@@ -39,6 +39,7 @@ export class FlamegraphChart {
   tooltipFormatter: ReturnType<typeof makeFormatter>;
   timelineFormatter: (value: number) => string;
   series: Series[];
+  status: 'no metrics' | 'empty metrics' | 'insufficient data' | 'ok' = 'no metrics';
   domains: {
     x: [number, number];
     y: [number, number];
@@ -47,7 +48,7 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
-  static MIN_RENDERABLE_POINTS = 3;
+  static MIN_RENDERABLE_POINTS = 2;
   static Empty = new FlamegraphChart(Rect.Empty(), [], [[0, 0, 0, 0]]);
 
   constructor(
@@ -63,13 +64,22 @@ export class FlamegraphChart {
       this.formatter = makeFormatter('percent');
       this.tooltipFormatter = makeFormatter('percent');
       this.configSpace = configSpace.clone();
+      this.status = !measurements ? 'no metrics' : 'empty metrics';
       return;
     }
 
+    this.status = 'insufficient data';
     const type = options.type ? options.type : measurements.length > 1 ? 'line' : 'area';
 
     for (let j = 0; j < measurements.length; j++) {
       const measurement = measurements[j];
+
+      if (!colors[j]) {
+        throw new Error(
+          `No color provided for measurement, got ${colors.length} colors for ${measurements.length} measurements.`
+        );
+      }
+
       this.series[j] = {
         type,
         name: measurement.name,
@@ -85,6 +95,7 @@ export class FlamegraphChart {
         continue;
       }
 
+      this.status = 'ok';
       for (let i = 0; i < measurement.values.length; i++) {
         const m = measurement.values[i];
 

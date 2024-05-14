@@ -20,6 +20,8 @@ PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_DOT_ID_ALIAS = "project.id"
 PROJECT_ID_ALIAS = "project_id"
+PRECISE_START_TS = "precise.start_ts"
+PRECISE_FINISH_TS = "precise.finish_ts"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
@@ -47,6 +49,9 @@ SPAN_DOMAIN_ALIAS = "span.domain"
 SPAN_DOMAIN_SEPARATOR = ","
 UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
 SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
+SPAN_OP = "span.op"
+SPAN_DESCRIPTION = "span.description"
+SPAN_STATUS = "span.status"
 
 
 class ThresholdDict(TypedDict):
@@ -187,6 +192,8 @@ HTTP_SERVER_ERROR_STATUS = {
     "511",
 }
 
+CACHE_HIT_STATUS = {"true", "false"}
+
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
@@ -280,6 +287,9 @@ METRICS_MAP = {
     "measurements.score.weight.cls": "d:transactions/measurements.score.weight.cls@ratio",
     "measurements.score.weight.fcp": "d:transactions/measurements.score.weight.fcp@ratio",
     "measurements.score.weight.ttfb": "d:transactions/measurements.score.weight.ttfb@ratio",
+    "measurements.inp": "d:spans/webvital.inp@millisecond",
+    "measurements.score.inp": "d:spans/webvital.score.inp@ratio",
+    "measurements.score.weight.inp": "d:spans/webvital.score.weight.inp@ratio",
     "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
@@ -304,6 +314,7 @@ DEFAULT_METRIC_TAGS = {
     "query_hash",
     "release",
     "resource.render_blocking_status",
+    "cache.hit",
     "satisfaction",
     "sdk",
     "session.status",
@@ -311,6 +322,9 @@ DEFAULT_METRIC_TAGS = {
     "transaction.method",
     "transaction.op",
     "transaction.status",
+    "span.op",
+    "trace.status",
+    "messaging.destination.name",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
@@ -319,6 +333,12 @@ SPAN_METRICS_MAP = {
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
+    "cache.item_size": "d:spans/cache.item_size@byte",
+    "mobile.slow_frames": "g:spans/mobile.slow_frames@none",
+    "mobile.frozen_frames": "g:spans/mobile.frozen_frames@none",
+    "mobile.total_frames": "g:spans/mobile.total_frames@none",
+    "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
+    "messaging.message.receive.latency": "g:spans/messaging.message.receive.latency@millisecond",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
@@ -340,7 +360,12 @@ METRIC_DURATION_COLUMNS = {
 SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
-    if value.endswith("@millisecond") and value.startswith("d:")
+    if value.endswith("@millisecond") or value.endswith("@second")
+}
+SPAN_METRIC_COUNT_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@none") and value.startswith("g:")
 }
 SPAN_METRIC_BYTES_COLUMNS = {
     key

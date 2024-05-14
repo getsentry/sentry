@@ -6,7 +6,7 @@ import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
@@ -16,7 +16,7 @@ interface Props {
   createdBy?: User;
   dateStatus?: React.ReactNode;
   onEventClick?: () => void;
-  renderContextMenu?: () => void;
+  renderContextMenu?: () => React.ReactNode;
 }
 
 function DashboardCard({

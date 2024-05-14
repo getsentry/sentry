@@ -6,7 +6,7 @@ from uuid import uuid4
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, region_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, region_silo_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.uuid import UUIDField
@@ -16,7 +16,7 @@ def default_guid():
     return uuid4().hex
 
 
-@region_silo_only_model
+@region_silo_model
 class Relocation(DefaultFieldsModel):
     """
     Represents a single relocation instance. The relocation may be attempted multiple times, but we
@@ -96,10 +96,10 @@ class Relocation(DefaultFieldsModel):
     # directory named after this UUID.
     uuid = UUIDField(db_index=True, unique=True, default=default_guid)
 
-    # Possible values are in the the Stage enum.
+    # Possible values are in the Stage enum.
     step = models.SmallIntegerField(choices=Step.get_choices(), default=None)
 
-    # Possible values are in the the Status enum.
+    # Possible values are in the Status enum.
     status = models.SmallIntegerField(
         choices=Status.get_choices(), default=Status.IN_PROGRESS.value
     )
@@ -165,7 +165,7 @@ class Relocation(DefaultFieldsModel):
         ]
 
 
-@region_silo_only_model
+@region_silo_model
 class RelocationFile(DefaultFieldsModel):
     """
     A `RelocationFile` is an association between a `Relocation` and a `File`.
@@ -258,7 +258,7 @@ class ValidationStatus(Enum):
         return [(key.value, key.name) for key in cls]
 
 
-@region_silo_only_model
+@region_silo_model
 class RelocationValidation(DefaultFieldsModel):
     """
     Stores general information about whether or not the associated `Relocation` passed its
@@ -272,7 +272,7 @@ class RelocationValidation(DefaultFieldsModel):
 
     relocation = FlexibleForeignKey("sentry.Relocation")
 
-    # Possible values are in the the `ValidationStatus` enum. Shows the best result from all of the
+    # Possible values are in the `ValidationStatus` enum. Shows the best result from all of the
     # `RelocationValidationAttempt`s associated with this model.
     status = status = models.SmallIntegerField(
         choices=ValidationStatus.get_choices(), default=ValidationStatus.IN_PROGRESS.value
@@ -286,7 +286,7 @@ class RelocationValidation(DefaultFieldsModel):
         db_table = "sentry_relocationvalidation"
 
 
-@region_silo_only_model
+@region_silo_model
 class RelocationValidationAttempt(DefaultFieldsModel):
     """
     Represents a single Google CloudBuild validation run invocation, and tracks it over its
@@ -298,7 +298,7 @@ class RelocationValidationAttempt(DefaultFieldsModel):
     relocation = FlexibleForeignKey("sentry.Relocation")
     relocation_validation = FlexibleForeignKey("sentry.RelocationValidation")
 
-    # Possible values are in the the `ValidationStatus` enum.
+    # Possible values are in the `ValidationStatus` enum.
     status = status = models.SmallIntegerField(
         choices=ValidationStatus.get_choices(), default=ValidationStatus.IN_PROGRESS.value
     )

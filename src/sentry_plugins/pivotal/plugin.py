@@ -90,8 +90,9 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         query = request.GET.get("autocomplete_query")
         if field != "issue_id" or not query:
             return Response({"issue_id": []})
-        query = query.encode("utf-8")
-        _url = "{}?{}".format(self.build_api_url(group, "search"), urlencode({"query": query}))
+        _url = "{}?{}".format(
+            self.build_api_url(group, "search"), urlencode({"query": query.encode()})
+        )
         try:
             req = self.make_api_request(group.project, _url)
             body = safe_urlread(req)

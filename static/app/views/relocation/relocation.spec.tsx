@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   fireEvent,
@@ -11,33 +9,58 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');
-const fakePublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw5Or1zsGE1XJTL4q+1c4
-Ztu8+7SC/exrnEYlWH+LVLI8TVyuGwDTAXrgKHGwaMM5ZnjijP5i8+ph8lfLrybT
-l+2D81qPIqagEtNMDaHqUDm5Tq7I2qvxkJ5YuDLawRUPccKMwWlIDR2Gvfe3efce
-870EicPsExz4uPOkNXGHJZ/FwCQrLo87MXFeqrqj+0Cf+qwCQSCW9qFWe5cj+zqt
-eeJa0qflcHHQzxK4/EKKpl/hkt4zi0aE/PuJgvJz2KB+X3+LzekTy90LzW3VhR4y
-IAxCAaGQJVsg9dhKOORjAf4XK9aXHvy/jUSyT43opj6AgNqXlKEQjb1NBA8qbJJS
-8wIDAQAB
------END PUBLIC KEY-----`;
-const fakeRegionName = 'Narnia';
-const fakeRegionUrl = 'https://example.com';
+
+const fakeOrgSlug = 'test-org';
+const fakePromoCode = 'free-hugs';
+const fakePublicKey = `FAKE-PK-ANY`;
+
+type FakeRegion = {
+  name: string;
+  publicKey: string;
+  url: string;
+};
+
+const fakeRegions: {[key: string]: FakeRegion} = {
+  Earth: {
+    name: 'earth',
+    url: 'https://earth.example.com',
+    publicKey: 'FAKE-PK-EARTH',
+  },
+  Moon: {
+    name: 'moon',
+    url: 'https://moon.example.com',
+    publicKey: 'FAKE-PK-MOON',
+  },
+};
 
 describe('Relocation', function () {
-  let fetchExistingRelocation: jest.Mock;
-  let fetchPublicKey: jest.Mock;
+  let fetchExistingRelocations: jest.Mock;
+  let fetchPublicKeys: jest.Mock;
 
   beforeEach(function () {
-    MockApiClient.asyncDelay = undefined;
     MockApiClient.clearMockResponses();
-    fetchExistingRelocation = MockApiClient.addMockResponse({
+    MockApiClient.asyncDelay = undefined;
+    sessionStorage.clear();
+
+    ConfigStore.set('regions', [
+      {name: fakeRegions.Earth.name, url: fakeRegions.Earth.url},
+      {name: fakeRegions.Moon.name, url: fakeRegions.Moon.url},
+    ]);
+    ConfigStore.set('relocationConfig', {
+      selectableRegions: [fakeRegions.Earth.name, fakeRegions.Moon.name],
+    });
+
+    // For tests that don't care about the difference between our "earth" and "moon" regions, we can
+    // re-use the same mock responses, with the same generic public key for both.
+    fetchExistingRelocations = MockApiClient.addMockResponse({
       url: '/relocations/',
       body: [],
     });
-    fetchPublicKey = MockApiClient.addMockResponse({
+    fetchPublicKeys = MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
       body: {
         public_key: fakePublicKey,
@@ -55,6 +78,7 @@ describe('Relocation', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.asyncDelay = undefined;
+    sessionStorage.clear();
   });
 
   function renderPage(step) {
@@ -87,7 +111,7 @@ describe('Relocation', function () {
   describe('Get Started', function () {
     it('renders', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(
         await screen.findByText('Basic information needed to get started')
@@ -100,7 +124,7 @@ describe('Relocation', function () {
 
     it('redirects to `in-progress` page if user already has active relocation', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [
           {
@@ -109,7 +133,7 @@ describe('Relocation', function () {
           },
         ],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -117,65 +141,77 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(browserHistory.push).toHaveBeenCalledWith('/relocation/in-progress/');
     });
 
     it('should prevent user from going to the next step if no org slugs or region are entered', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(await screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
     });
 
     it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
-      fetchPublicKey = MockApiClient.addMockResponse({
-        url: '/promocodes-external/free-hugs',
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+      const fetchPromoCode = MockApiClient.addMockResponse({
+        url: `/promocodes-external/${fakePromoCode}`,
         method: 'GET',
         statusCode: 200,
       });
 
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
-      const orgSlugsInput = await screen.getByLabelText('org-slugs');
-      const continueButton = await screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(await screen.getByLabelText('region'), 'Narnia');
-      await userEvent.click(await screen.getByRole('menuitemradio'));
-      expect(continueButton).toBeEnabled();
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.click(screen.getByRole('menuitemradio'));
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
       await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
-      const promoCodeInput = await screen.getByLabelText('promocode');
-      await userEvent.type(promoCodeInput, 'free-hugs');
-      await userEvent.click(continueButton);
-      expect(addErrorMessage).not.toHaveBeenCalledWith();
-      sessionStorage.clear();
+      await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+      await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
+      expect(addErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it('should persist form data across reloads', async function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+
+      await waitForRenderSuccess('get-started');
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(screen.getByLabelText('org-slugs')).toHaveValue(fakeOrgSlug);
+      expect(screen.getByLabelText('promocode')).toHaveValue(fakePromoCode);
     });
 
     it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async function () {
       await waitForRenderSuccess('get-started');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
-      fetchPublicKey = MockApiClient.addMockResponse({
-        url: '/promocodes-external/free-hugs',
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+      const fetchPromoCode = MockApiClient.addMockResponse({
+        url: `/promocodes-external/${fakePromoCode}`,
         method: 'GET',
         statusCode: 403,
       });
 
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
-      const orgSlugsInput = await screen.getByLabelText('org-slugs');
-      const continueButton = await screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(await screen.getByLabelText('region'), 'Narnia');
-      await userEvent.click(await screen.getByRole('menuitemradio'));
-      expect(continueButton).toBeEnabled();
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
+      await userEvent.click(screen.getByRole('menuitemradio'));
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
       await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
-      const promoCodeInput = await screen.getByLabelText('promocode');
-      await userEvent.type(promoCodeInput, 'free-hugs');
-      await userEvent.click(continueButton);
+      await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+      await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
       );
@@ -183,11 +219,19 @@ describe('Relocation', function () {
 
     it('should show loading indicator and error message if existing relocation retrieval failed', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
-        url: '/relocations/',
+
+      // Note: only one fails, but that is enough.
+      const failingFetchExistingEarthRelocation = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
+        url: `/relocations/`,
         statusCode: 400,
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      const successfulFetchExistingMoonRelocation = MockApiClient.addMockResponse({
+        host: fakeRegions.Moon.url,
+        url: '/relocations/',
+        body: [],
+      });
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -195,40 +239,60 @@ describe('Relocation', function () {
       });
 
       await waitForRenderError('get-started');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(failingFetchExistingEarthRelocation).toHaveBeenCalledTimes(1)
+      );
+      await waitFor(() =>
+        expect(successfulFetchExistingMoonRelocation).toHaveBeenCalledTimes(1)
+      );
 
-      expect(fetchPublicKey).toHaveBeenCalledTimes(1);
-      expect(
-        await screen.queryByRole('button', {name: 'Continue'})
-      ).not.toBeInTheDocument();
-      expect(await screen.queryByLabelText('org-slugs')).not.toBeInTheDocument();
-      expect(await screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+      expect(fetchPublicKeys).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('org-slugs')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
 
-      MockApiClient.addMockResponse({
+      const successfulFetchExistingEarthRelocation = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
         url: '/relocations/',
         body: [],
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(screen.getByTestId('get-started')).toBeInTheDocument());
 
-      expect(fetchExistingRelocation).toHaveBeenCalledTimes(1);
-      expect(await screen.queryByLabelText('org-slugs')).toBeInTheDocument();
-      expect(await screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      await waitFor(() =>
+        expect(successfulFetchExistingEarthRelocation).toHaveBeenCalledTimes(1)
+      );
+      await waitFor(() =>
+        expect(successfulFetchExistingMoonRelocation).toHaveBeenCalledTimes(2)
+      );
+      expect(screen.queryByLabelText('org-slugs')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
   });
 
   describe('Public Key', function () {
+    beforeEach(function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+    });
+
     it('should show instructions if key retrieval was successful', async function () {
       await waitForRenderSuccess('public-key');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(
         await screen.findByText("Save Sentry's public key to your machine")
       ).toBeInTheDocument();
-      expect(await screen.getByText('key.pub')).toBeInTheDocument();
-      expect(await screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      expect(screen.getByText('key.pub')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
 
     it('should show loading indicator if key retrieval still in progress', function () {
@@ -242,46 +306,73 @@ describe('Relocation', function () {
 
     it('should show loading indicator and error message if key retrieval failed', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
-        url: '/publickeys/relocations/',
+
+      // Note: only one fails, but that is enough.
+      const failingFetchEarthPublicKey = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
+        url: `/publickeys/relocations/`,
         statusCode: 400,
+      });
+      const successfulFetchMoonPublicKey = MockApiClient.addMockResponse({
+        host: fakeRegions.Moon.url,
+        url: '/publickeys/relocations/',
+        body: {
+          public_key: fakeRegions.Moon.publicKey,
+        },
       });
 
       await waitForRenderError('public-key');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(failingFetchEarthPublicKey).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(successfulFetchMoonPublicKey).toHaveBeenCalledTimes(1));
 
-      expect(fetchExistingRelocation).toHaveBeenCalledTimes(1);
-      expect(
-        await screen.queryByRole('button', {name: 'Continue'})
-      ).not.toBeInTheDocument();
-      expect(await screen.queryByText('key.pub')).not.toBeInTheDocument();
-      expect(await screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+      expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+      expect(screen.queryByText('key.pub')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
 
-      MockApiClient.addMockResponse({
+      const successfulFetchEarthPublicKey = MockApiClient.addMockResponse({
+        host: fakeRegions.Earth.url,
         url: '/publickeys/relocations/',
         body: {
-          public_key: fakePublicKey,
+          public_key: fakeRegions.Earth.publicKey,
         },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(successfulFetchEarthPublicKey).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(successfulFetchMoonPublicKey).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(screen.getByTestId('public-key')).toBeInTheDocument());
 
-      expect(fetchExistingRelocation).toHaveBeenCalledTimes(1);
-      expect(await screen.queryByText('key.pub')).toBeInTheDocument();
-      expect(await screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText('key.pub')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+    });
+
+    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          // regionUrl missing
+        })
+      );
+
+      await waitForRenderSuccess('public-key');
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 
   describe('Encrypt Backup', function () {
     it('renders', async function () {
       await waitForRenderSuccess('encrypt-backup');
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(
         await screen.findByText(
@@ -289,9 +380,36 @@ describe('Relocation', function () {
         )
       ).toBeInTheDocument();
     });
+
+    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          // orgSlugs missing
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+
+      await waitForRenderSuccess('encrypt-backup');
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+    });
   });
 
   describe('Upload Backup', function () {
+    beforeEach(function () {
+      sessionStorage.setItem(
+        'relocationOnboarding',
+        JSON.stringify({
+          orgSlugs: fakeOrgSlug,
+          promoCode: fakePromoCode,
+          regionUrl: fakeRegions.Earth.url,
+        })
+      );
+    });
+
     it('renders', async function () {
       await waitForRenderSuccess('upload-backup');
       expect(
@@ -301,27 +419,29 @@ describe('Relocation', function () {
 
     it('accepts a file upload', async function () {
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       expect(await screen.findByText('hello.tar')).toBeInTheDocument();
       expect(await screen.findByText('Start Relocation')).toBeInTheDocument();
     });
 
     it('accepts a file upload through drag and drop', async function () {
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const dropzone = screen.getByLabelText('dropzone');
-      fireEvent.drop(dropzone, {dataTransfer: {files: [relocationFile]}});
+      fireEvent.drop(screen.getByLabelText('dropzone'), {
+        dataTransfer: {files: [new File(['hello'], 'hello.tar', {type: 'file'})]},
+      });
       expect(await screen.findByText('hello.tar')).toBeInTheDocument();
       expect(await screen.findByText('Start Relocation')).toBeInTheDocument();
     });
 
     it('correctly removes file and prompts for file upload', async function () {
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       await userEvent.click(screen.getByText('Remove file'));
       expect(screen.queryByText('hello.tar')).not.toBeInTheDocument();
       expect(
@@ -329,24 +449,8 @@ describe('Relocation', function () {
       ).toBeInTheDocument();
     });
 
-    it('fails to starts relocation job if some form data is missing', async function () {
-      const mockapi = MockApiClient.addMockResponse({
-        url: `/relocations/`,
-        method: 'POST',
-      });
-      await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
-      await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(mockapi).not.toHaveBeenCalled());
-      expect(addErrorMessage).toHaveBeenCalledWith(
-        'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
-      );
-    });
-
     it('starts relocation job if form data is available from previous steps', async function () {
-      const mockapi = MockApiClient.addMockResponse({
+      const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
         responseJSON: [
@@ -358,24 +462,21 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('get-started');
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
-      const orgSlugsInput = await screen.getByLabelText('org-slugs');
-      const continueButton = await screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
-      await userEvent.click(continueButton);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() =>
-        expect(mockapi).toHaveBeenCalledWith(
+        expect(postRelocation).toHaveBeenCalledWith(
           '/relocations/',
-          expect.objectContaining({host: fakeRegionUrl, method: 'POST'})
+          expect.objectContaining({host: fakeRegions.Earth.url, method: 'POST'})
         )
       );
       expect(addSuccessMessage).toHaveBeenCalledWith(
@@ -386,119 +487,118 @@ describe('Relocation', function () {
     });
 
     it('throws error if user already has an in-progress relocation job', async function () {
-      const mockapi = MockApiClient.addMockResponse({
+      const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
         statusCode: 409,
       });
 
       await waitForRenderSuccess('get-started');
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
-      const orgSlugsInput = screen.getByLabelText('org-slugs');
-      const continueButton = screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
-      await userEvent.click(continueButton);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(mockapi).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'You already have an in-progress relocation job.'
       );
     });
 
     it('throws error if daily limit of relocations has been reached', async function () {
-      const mockapi = MockApiClient.addMockResponse({
+      const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
         statusCode: 429,
       });
 
       await waitForRenderSuccess('get-started');
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
-      const orgSlugsInput = screen.getByLabelText('org-slugs');
-      const continueButton = screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
-      await userEvent.click(continueButton);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(mockapi).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
       );
     });
 
     it('throws error if user session has expired', async function () {
-      const mockapi = MockApiClient.addMockResponse({
+      const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
         statusCode: 401,
       });
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
 
       await waitForRenderSuccess('get-started');
-      const orgSlugsInput = screen.getByLabelText('org-slugs');
-      const continueButton = screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
-      await userEvent.click(continueButton);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(mockapi).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith('Your session has expired.');
     });
 
     it('throws error for 500 error', async function () {
-      const mockapi = MockApiClient.addMockResponse({
+      const postRelocation = MockApiClient.addMockResponse({
         url: `/relocations/`,
         method: 'POST',
         statusCode: 500,
       });
-      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
-      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
 
       await waitForRenderSuccess('get-started');
-      const orgSlugsInput = screen.getByLabelText('org-slugs');
-      const continueButton = screen.getByRole('button', {name: 'Continue'});
-      await userEvent.type(orgSlugsInput, 'test-org');
-      await userEvent.type(screen.getByLabelText('region'), 'Narnia');
+      await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
+      await userEvent.type(screen.getByLabelText('region'), fakeRegions.Earth.name);
       await userEvent.click(screen.getByRole('menuitemradio'));
-      await userEvent.click(continueButton);
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
-      const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
-      const input = screen.getByLabelText('file-upload');
-      await userEvent.upload(input, relocationFile);
+      await userEvent.upload(
+        screen.getByLabelText('file-upload'),
+        new File(['hello'], 'hello.tar', {type: 'file'})
+      );
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(mockapi).toHaveBeenCalled());
+      await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledWith(
         'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
       );
+    });
+
+    it('redirects to `get-started` page if expected local storage data is missing', async function () {
+      sessionStorage.setItem('relocationOnboarding', JSON.stringify({}));
+
+      await waitForRenderSuccess('upload-backup');
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
+
+      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 
   describe('In Progress', function () {
     it('renders', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [
           {
@@ -507,7 +607,7 @@ describe('Relocation', function () {
           },
         ],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -522,15 +622,15 @@ describe('Relocation', function () {
 
     it('redirects to `get-started` page if there is no existing relocation', async function () {
       await waitForRenderSuccess('in-progress');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
 
     it('redirects to `get-started` page if there is no active relocation', async function () {
       MockApiClient.clearMockResponses();
-      fetchExistingRelocation = MockApiClient.addMockResponse({
+      fetchExistingRelocations = MockApiClient.addMockResponse({
         url: '/relocations/',
         body: [
           {
@@ -539,7 +639,7 @@ describe('Relocation', function () {
           },
         ],
       });
-      fetchPublicKey = MockApiClient.addMockResponse({
+      fetchPublicKeys = MockApiClient.addMockResponse({
         url: '/publickeys/relocations/',
         body: {
           public_key: fakePublicKey,
@@ -547,8 +647,8 @@ describe('Relocation', function () {
       });
 
       await waitForRenderSuccess('in-progress');
-      await waitFor(() => expect(fetchExistingRelocation).toHaveBeenCalled());
-      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
       expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
     });

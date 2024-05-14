@@ -16,7 +16,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -26,7 +27,7 @@ import type {
   DashboardListItem,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, MAX_WIDGETS} from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
@@ -166,9 +167,15 @@ function AddToDashboardModal({
     }
     const query = widget.queries[0];
 
+    const title =
+      // Metric widgets have their default title derived from the query
+      widget.title === '' && widget.widgetType !== WidgetType.METRICS
+        ? t('All Events')
+        : widget.title;
+
     const newWidget = {
       ...widget,
-      title: widget.title === '' ? t('All Events') : widget.title,
+      title,
       queries: [{...query, orderby}],
     };
 
@@ -252,6 +259,7 @@ function AddToDashboardModal({
                 <WidgetCard
                   organization={organization}
                   isEditingDashboard={false}
+                  showContextMenu={false}
                   widgetLimitReached={false}
                   selection={
                     selectedDashboard

@@ -12,7 +12,7 @@ import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCre
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {Tooltip} from 'sentry/components/tooltip';
-import {replayPlatforms} from 'sentry/data/platformCategories';
+import {mobile, replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -35,10 +35,6 @@ const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
-const OnboardingCTAButton = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta-button',
-  defaultComponent: null,
-});
 
 const OnboardingAlertHook = HookOrDefault({
   hookName: 'component:replay-onboarding-alert',
@@ -51,6 +47,11 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const {canCreateProject} = useProjectCreationAccess({organization});
+  const hasMobileReplays = organization.features.includes('session-replay-mobile-player');
+
+  const supportedPlatforms = hasMobileReplays
+    ? replayPlatforms.concat(mobile)
+    : replayPlatforms;
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -59,11 +60,11 @@ export default function ReplayOnboardingPanel() {
   const hasSelectedProjects = selectedProjects.length > 0;
 
   const allProjectsUnsupported = projects.projects.every(
-    p => !replayPlatforms.includes(p.platform!)
+    p => !supportedPlatforms.includes(p.platform!)
   );
 
   const allSelectedProjectsUnsupported = selectedProjects.every(
-    p => !replayPlatforms.includes(p.platform!)
+    p => !supportedPlatforms.includes(p.platform!)
   );
 
   // if all projects are unsupported we should prompt the user to create a project
@@ -94,10 +95,7 @@ export default function ReplayOnboardingPanel() {
     <Fragment>
       <OnboardingAlertHook>
         {hasSelectedProjects && allSelectedProjectsUnsupported && (
-          <ReplayUnsupportedAlert
-            primaryAction={primaryAction}
-            projectSlug={selectedProjects[0].slug}
-          />
+          <ReplayUnsupportedAlert projectSlug={selectedProjects[0].slug} />
         )}
       </OnboardingAlertHook>
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
@@ -135,12 +133,17 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications. This includes static websites, single-page aplications, and also server-side rendered applications. The only prerequisite is that your application uses Sentry JavaScript SDK (version 7.2.0 or greater) either with NPM/Yarn or with our JS Loader script.'
+              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS and Android. Our native Android and iOS SDKs are currently in alpha. Features are still in progress and may have some bugs. We recognize the irony.'
             )}
           </div>
           <div>
+            {tct('To access Session Replay for mobile, join our [link:waitlist].', {
+              link: <ExternalLink href="https://sentry.io/lp/mobile-replay-beta/" />,
+            })}
+          </div>
+          <div>
             {t(
-              "Replays are integrated with Sentry's tracing data model, enabling you to see replays associated with backend errors as well. You need to have Sentry set up for both your frontend and backend, along with distributed tracing."
+              'For browser-based applications, this includes static websites, single-page applications, and also server-side rendered applications. The only prerequisite is that your application uses Sentry JavaScript SDK (version 7.2.0 or greater) either with NPM/Yarn or with our JS Loader script.'
             )}
           </div>
           <div>
@@ -194,11 +197,6 @@ export function SetupReplaysCTA({
           <div>
             {t(
               'We offer a range of privacy controls to let developers ensure that no sensitive user information leaves the browser. By default, our privacy configuration is very aggressive and masks all text and images, but you can choose to just mask user input text, for example.'
-            )}
-          </div>
-          <div>
-            {t(
-              'Customers can also use server-side scrubbing capabilities to further filter and remove sensitive user data, or our deletion capabilities to delete individual recordings after ingestion.'
             )}
           </div>
           <div>
@@ -270,9 +268,8 @@ export function SetupReplaysCTA({
       </p>
       <ButtonList gap={1}>
         {renderCTA()}
-        <OnboardingCTAButton />
         <Button
-          href="https://docs.sentry.io/platforms/javascript/session-replay/"
+          href="https://docs.sentry.io/product/session-replay/getting-started/"
           external
         >
           {t('Read Docs')}
@@ -286,7 +283,7 @@ export function SetupReplaysCTA({
             isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
-                <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23699186513947-Session-Replay-FAQ" />
               ),
             })}
           />

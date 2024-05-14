@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
@@ -87,8 +87,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     @extend_schema(
         operation_id="List a Team's Projects",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
             CursorQueryParam,
         ],
         request=None,
@@ -142,8 +142,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         tags=["Projects"],
         operation_id="Create a New Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=ProjectPostSerializer,
         responses={
@@ -182,11 +182,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             # XXX: create sample event?
 
             # Turns on some inbound filters by default for new Javascript platform projects
-            if (
-                features.has("organizations:default-inbound-filters", team.organization)
-                and project.platform
-                and project.platform.startswith("javascript")
-            ):
+            if project.platform and project.platform.startswith("javascript"):
                 set_default_inbound_filters(project, team.organization)
 
             self.create_audit_entry(

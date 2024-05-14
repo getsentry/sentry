@@ -12,7 +12,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.integrations import Integration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
 
@@ -23,7 +23,6 @@ REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry is
 CLICK_TO_FINISH = b"Click to Finish Installation"
 
 
-@region_silo_test
 class JiraIssueHookTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -107,7 +106,7 @@ class JiraIssueHookTest(APITestCase):
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200
-        resp_content = str(response.content)
+        resp_content = response.content.decode()
         assert self.group.title in resp_content
         assert self.group.get_absolute_url() in resp_content
         assert self.first_seen.strftime("%b. %d, %Y") in resp_content
@@ -138,7 +137,7 @@ class JiraIssueHookTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        resp_content = str(response.content)
+        resp_content = response.content.decode()
         group_url = self.group.get_absolute_url()
         new_group_url = new_group.get_absolute_url()
 

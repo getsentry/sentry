@@ -23,3 +23,14 @@ export function recordingEndFrame(replayRecord: ReplayRecord): RecordingFrame {
     },
   };
 }
+
+export function clipEndFrame(timestamp: number): RecordingFrame {
+  return {
+    type: EventType.Custom,
+    timestamp,
+    data: {
+      tag: 'replay.clip_end',
+      payload: {},
+    },
+  };
+}

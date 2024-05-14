@@ -17,7 +17,6 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -38,22 +37,6 @@ export function generateIssueEventTarget(
 ): LocationDescriptor {
   const queryParams = referrer ? '?referrer=' + referrer : '';
   return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}/${queryParams}`;
-}
-
-function generatePerformanceEventTarget(
-  event: EventLite,
-  organization: OrganizationSummary,
-  location: Location
-): LocationDescriptor {
-  const eventSlug = generateEventSlug({
-    id: event.event_id,
-    project: event.project_slug,
-  });
-  const query = {
-    ...location.query,
-    project: String(event.project_id),
-  };
-  return getTransactionDetailsUrl(organization.slug, eventSlug, event.transaction, query);
 }
 
 function generateDiscoverEventTarget(
@@ -98,21 +81,6 @@ export function generateSingleErrorTarget(
   }
 }
 
-export function generateSingleTransactionTarget(
-  event: EventLite,
-  organization: OrganizationSummary,
-  location: Location,
-  destination: TransactionDestination
-): LocationDescriptor {
-  switch (destination) {
-    case 'performance':
-      return generatePerformanceEventTarget(event, organization, location);
-    case 'discover':
-    default:
-      return generateDiscoverEventTarget(event, organization, location);
-  }
-}
-
 export function generateMultiTransactionsTarget(
   currentEvent: Event,
   events: EventLite[],
@@ -144,6 +112,26 @@ export function generateMultiTransactionsTarget(
   return traceEventView.getResultsViewUrlTarget(organization.slug);
 }
 
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestamp(event: Event): string | number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (
+      key in event &&
+      (typeof event[key] === 'string' || typeof event[key] === 'number')
+    ) {
+      return event[key];
+    }
+  }
+
+  return undefined;
+}
+
 export function generateTraceTarget(
   event: Event,
   organization: OrganizationSummary
@@ -154,7 +142,13 @@ export function generateTraceTarget(
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl(
+      organization,
+      traceId,
+      dateSelection,
+      getEventTimestamp(event),
+      event.eventID
+    );
   }
 
   const eventView = EventView.fromSavedQuery({

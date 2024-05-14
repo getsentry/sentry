@@ -1,8 +1,10 @@
 import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import type {Config, Organization, Project} from 'sentry/types';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Config} from 'sentry/types/system';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -91,7 +93,8 @@ interface RenderDisabledProps extends FeatureRenderProps {
 export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
 interface ChildRenderProps extends FeatureRenderProps {
-  renderDisabled?: undefined | boolean | RenderDisabledFn;
+  renderDisabled?: boolean | ((props: any) => React.ReactNode);
+  renderInstallButton?: (props: any) => React.ReactNode;
 }
 
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;

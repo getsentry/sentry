@@ -8,6 +8,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import OnboardingStep from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -20,7 +21,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +40,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
 
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const {selection} = useLegacyStore(PageFiltersStore);
 
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
@@ -48,7 +49,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     if (
       currentProject ||
       projects.length === 0 ||
-      !isReady ||
       !isActive ||
       projectsWithoutFirstTransactionEvent.length <= 0
     ) {
@@ -99,7 +99,6 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     selection.projects,
     projects,
     isActive,
-    isReady,
     projectsForOnboarding,
     projectsWithoutFirstTransactionEvent,
     currentProject,
@@ -109,6 +108,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
     !isActive ||
     !hasProjectAccess ||
     currentProject === undefined ||
+    !shouldShowPerformanceTasks(projects) ||
     !projectsLoaded ||
     !projects ||
     projects.length <= 0 ||

@@ -3,8 +3,10 @@ from functools import cached_property
 from typing import cast
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.test import RequestFactory
+from django.utils import timezone
 from pytest import fixture
 
 from sentry.integrations.github import client
@@ -17,9 +19,8 @@ from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNA
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.silo import all_silo_test, region_silo_test
+from sentry.testutils.silo import all_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -30,7 +31,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        ten_days = timezone.now() + datetime.timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -91,7 +92,6 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert label_field["label"] == "Labels"
 
 
-@region_silo_test
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):
@@ -226,7 +226,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
             request = responses.calls[1].request
             assert request.headers["Authorization"] == "Bearer token_1"
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             assert payload == {
                 "body": "This is the description",
                 "assignee": None,
@@ -455,7 +455,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer token_1"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "hello"}
 
     @responses.activate

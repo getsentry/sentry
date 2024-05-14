@@ -5,18 +5,12 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    ArrayField,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import ArrayField, FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH
 
 
-@region_silo_only_model
+@region_silo_model
 class OrgAuthTokenReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -35,6 +29,7 @@ class OrgAuthTokenReplica(Model):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_orgauthtokenreplica"
+        indexes = (models.Index(fields=["token_hashed"]),)
 
     __repr__ = sane_repr("organization_id", "token_hashed")
 

@@ -1,11 +1,17 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppTokenFixture} from 'sentry-fixture/sentryAppToken';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
@@ -221,10 +227,10 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows application data', function () {
+    it('shows application data', async function () {
       renderComponent();
 
-      selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
@@ -425,7 +431,11 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
+      renderGlobalModal();
+
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      // Confirm modal
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
     });
 
@@ -585,6 +595,53 @@ describe('Sentry Application Details', function () {
           "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
         )
       ).toBeInTheDocument();
+    });
+
+    it('handles client secret rotation', async function () {
+      sentryApp = SentryAppFixture();
+      sentryApp.clientSecret = null;
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+      const rotateSecretApiCall = MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/sentry-apps/${sentryApp.slug}/rotate-secret/`,
+        body: {
+          clientSecret: 'newSecret!',
+        },
+      });
+
+      render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          route={router.routes[0]}
+          routeParams={{}}
+          params={{appSlug: sentryApp.slug}}
+        />
+      );
+      renderGlobalModal();
+
+      expect(screen.getByText('hidden')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Rotate client secret'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Rotate client secret'}));
+      // Confirm modal
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      expect(
+        screen.getByText('This will be the only time your client secret is visible!')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Your new Client Secret')).toBeInTheDocument();
+      expect(screen.getByLabelText<HTMLInputElement>('new-client-secret')).toHaveValue(
+        'newSecret!'
+      );
+
+      expect(rotateSecretApiCall).toHaveBeenCalledTimes(1);
     });
   });
 });

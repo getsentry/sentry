@@ -4,6 +4,9 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -11,11 +14,17 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -71,11 +80,20 @@ const onboarding: OnboardingConfig = {
           <List symbol="bullet">
             <ListItem>
               {tct(
-                'Create [clientCode:sentry.client.config.js] and [serverCode:sentry.server.config.js] with the default [sentryInitCode:Sentry.init].',
+                'Create [serverCode:sentry.server.config.js], [clientCode:sentry.client.config.js] and [edgeCode:sentry.edge.config.js] with the default [sentryInitCode:Sentry.init].',
                 {
                   clientCode: <code />,
                   serverCode: <code />,
+                  edgeCode: <code />,
                   sentryInitCode: <code />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {tct(
+                'Create or update the Next.js instrumentation file [instrumentationCode:instrumentation.ts] to initialize the SDK with the configuration files added in the previous step.',
+                {
+                  instrumentationCode: <code />,
                 }
               )}
             </ListItem>
@@ -89,17 +107,14 @@ const onboarding: OnboardingConfig = {
             </ListItem>
             <ListItem>
               {tct(
-                'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+                'Create a [bundlerPluginsEnv:.env.sentry-build-plugin] with an auth token (which is used to upload source maps when building the application).',
                 {
-                  sentryClircCode: <code />,
-                  sentryPropertiesCode: <code />,
+                  bundlerPluginsEnv: <code />,
                 }
               )}
             </ListItem>
             <ListItem>
-              {tct('Add an example page to your app to verify your Sentry setup.', {
-                sentryClircCode: <code />,
-              })}
+              {t('Add an example page to your app to verify your Sentry setup.')}
             </ListItem>
           </List>
           <br />
@@ -171,10 +186,13 @@ const replayOnboarding: OnboardingConfig = {
       ],
       additionalInfo: (
         <Fragment>
-          {tracePropagationMessage}
+          <TracePropagationMessage />
           {tct(
-            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it into [sentryServer:sentry.server.config.js] or [sentryEdge:sentry.edge.config.js] may break your build.',
-            {sentryClient: <code />, sentryServer: <code />, sentryEdge: <code />}
+            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            {
+              sentryClient: <code />,
+              instrumentation: <code />,
+            }
           )}
         </Fragment>
       ),
@@ -184,12 +202,90 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/nextjs]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/configuration/#bring-your-own-button',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/nextjs";`,
+                dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
+              }),
+            },
+          ],
+        },
+      ],
+      additionalInfo: (
+        <Fragment>
+          {tct(
+            'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            {
+              sentryClient: <code />,
+              instrumentation: <code />,
+            }
+          )}
+          {crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
+          })}
+        </Fragment>
+      ),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({
     getInstallConfig: getManualInstallConfig,
   }),
+  crashReportOnboarding,
 };
 
 export default docs;

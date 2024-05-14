@@ -130,7 +130,7 @@ export function getTitle(
 
   switch (type) {
     case EventOrGroupType.ERROR: {
-      if (customTitle) {
+      if (customTitle && customTitle !== '<unlabeled event>') {
         return {
           title: customTitle,
           subtitle: culprit,
@@ -178,7 +178,7 @@ export function getTitle(
       };
     case EventOrGroupType.DEFAULT:
       return {
-        title: customTitle ?? metadata.title ?? '',
+        title: customTitle ?? title,
         subtitle: '',
         treeLabel: undefined,
       };
@@ -280,6 +280,15 @@ export function eventHasSourceContext(event: Event) {
   const frames = getAllFrames(event, false);
 
   return frames.some(frame => defined(frame.context) && !!frame.context.length);
+}
+
+/**
+ * Function to determine if an event has local variables
+ */
+export function eventHasLocalVariables(event: Event) {
+  const frames = getAllFrames(event, false);
+
+  return frames.some(frame => defined(frame.vars));
 }
 
 /**
@@ -441,6 +450,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
+    has_local_variables: event ? eventHasLocalVariables(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,

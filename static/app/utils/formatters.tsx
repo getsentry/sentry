@@ -47,16 +47,6 @@ export const formatVersion = (rawVersion: string, withPackage = false) => {
   }
 };
 
-function roundWithFixed(
-  value: number,
-  fixedDigits: number
-): {label: string; result: number} {
-  const label = value.toFixed(fixedDigits);
-  const result = fixedDigits <= 0 ? Math.round(value) : value;
-
-  return {label, result};
-}
-
 // in milliseconds
 export const MONTH = 2629800000;
 export const WEEK = 604800000;
@@ -64,118 +54,9 @@ export const DAY = 86400000;
 export const HOUR = 3600000;
 export const MINUTE = 60000;
 export const SECOND = 1000;
-
-/**
- * Returns a human redable duration rounded to the largest unit.
- *
- * e.g. 2 days, or 3 months, or 25 seoconds
- *
- * Use `getExactDuration` for exact durations
- */
-
-const DURATION_LABELS = {
-  mo: t('mo'),
-  w: t('w'),
-  wk: t('wk'),
-  week: t('week'),
-  weeks: t('weeks'),
-  d: t('d'),
-  day: t('day'),
-  days: t('days'),
-  h: t('h'),
-  hr: t('hr'),
-  hour: t('hour'),
-  hours: t('hours'),
-  m: t('m'),
-  min: t('min'),
-  minute: t('minute'),
-  minutes: t('minutes'),
-  s: t('s'),
-  sec: t('sec'),
-  secs: t('secs'),
-  second: t('second'),
-  seconds: t('seconds'),
-  ms: t('ms'),
-  millisecond: t('millisecond'),
-  milliseconds: t('milliseconds'),
-};
-export function getDuration(
-  seconds: number,
-  fixedDigits: number = 0,
-  abbreviation: boolean = false,
-  extraShort: boolean = false,
-  absolute: boolean = false
-): string {
-  const absValue = Math.abs(seconds * 1000);
-
-  // value in milliseconds
-  const msValue = absolute ? absValue : seconds * 1000;
-
-  if (absValue >= MONTH && !extraShort) {
-    const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
-    return `${label}${
-      abbreviation ? DURATION_LABELS.mo : ` ${tn('month', 'months', result)}`
-    }`;
-  }
-
-  if (absValue >= WEEK) {
-    const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
-    if (extraShort) {
-      return `${label}${DURATION_LABELS.w}`;
-    }
-    if (abbreviation) {
-      return `${label}${DURATION_LABELS.wk}`;
-    }
-    return `${label} ${tn('week', 'weeks', result)}`;
-  }
-
-  if (absValue >= DAY) {
-    const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
-
-    if (extraShort || abbreviation) {
-      return `${label}${DURATION_LABELS.d}`;
-    }
-    return `${label} ${tn('day', 'days', result)}`;
-  }
-
-  if (absValue >= HOUR) {
-    const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
-    if (extraShort) {
-      return `${label}${DURATION_LABELS.h}`;
-    }
-    if (abbreviation) {
-      return `${label}${DURATION_LABELS.hr}`;
-    }
-    return `${label} ${tn('hour', 'hours', result)}`;
-  }
-
-  if (absValue >= MINUTE) {
-    const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
-    if (extraShort) {
-      return `${label}${DURATION_LABELS.m}`;
-    }
-    if (abbreviation) {
-      return `${label}${DURATION_LABELS.min}`;
-    }
-    return `${label} ${tn('minute', 'minutes', result)}`;
-  }
-
-  if (absValue >= SECOND) {
-    const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
-    if (extraShort || abbreviation) {
-      return `${label}${DURATION_LABELS.s}`;
-    }
-    return `${label} ${tn('second', 'seconds', result)}`;
-  }
-
-  const {label, result} = roundWithFixed(msValue, fixedDigits);
-
-  if (extraShort || abbreviation) {
-    return `${label}${DURATION_LABELS.ms}`;
-  }
-
-  return `${label} ${tn('millisecond', 'milliseconds', result)}`;
-}
+export const MILLISECOND = 1;
+export const MICROSECOND = 0.001;
+export const NANOSECOND = 0.000001;
 
 const SUFFIX_ABBR = {
   years: t('yr'),
@@ -370,10 +251,23 @@ export function formatFloat(number: number, places: number) {
 /**
  * Format a value between 0 and 1 as a percentage
  */
-export function formatPercentage(value: number, places: number = 2) {
+export function formatPercentage(
+  value: number,
+  places: number = 2,
+  options: {
+    minimumValue?: number;
+  } = {}
+) {
   if (value === 0) {
     return '0%';
   }
+
+  const minimumValue = options.minimumValue ?? 0;
+
+  if (Math.abs(value) <= minimumValue) {
+    return `<${minimumValue * 100}%`;
+  }
+
   return (
     round(value * 100, places).toLocaleString(undefined, {
       maximumFractionDigits: places,
@@ -381,67 +275,116 @@ export function formatPercentage(value: number, places: number = 2) {
   );
 }
 
-const numberFormats = [
-  [1000000000, 'b'],
-  [1000000, 'm'],
-  [1000, 'k'],
+const numberFormatSteps = [
+  [1_000_000_000, 'b'],
+  [1_000_000, 'm'],
+  [1_000, 'k'],
 ] as const;
 
 /**
- * Formats a number to a string with a suffix
+ * Formats a number with an abbreviation e.g. 1000 -> 1k.
  *
  * @param number the number to format
- * @param precision the number of significant digits to include
+ * @param maximumSignificantDigits the number of significant digits to include
+ * @param includeDecimals when true, formatted number will always include non trailing zero decimal places
  */
 export function formatAbbreviatedNumber(
   number: number | string,
-  precision?: number
+  maximumSignificantDigits?: number,
+  includeDecimals?: boolean
 ): string {
   number = Number(number);
 
-  let lookup: (typeof numberFormats)[number];
+  const prefix = number < 0 ? '-' : '';
+  const numAbsValue = Math.abs(number);
 
-  // eslint-disable-next-line no-cond-assign
-  for (let i = 0; (lookup = numberFormats[i]); i++) {
-    const [suffixNum, suffix] = lookup;
-    const shortValue = Math.floor(number / suffixNum);
-    const fitsBound = number % suffixNum;
+  for (const step of numberFormatSteps) {
+    const [suffixNum, suffix] = step;
+    const shortValue = Math.floor(numAbsValue / suffixNum);
+    const fitsBound = numAbsValue % suffixNum === 0;
 
     if (shortValue <= 0) {
       continue;
     }
 
-    const formattedNumber =
-      shortValue / 10 > 1 || !fitsBound
-        ? precision === undefined
-          ? shortValue
-          : parseFloat(shortValue.toPrecision(precision)).toString()
-        : formatFloat(number / suffixNum, precision || 1).toLocaleString(undefined, {
-            maximumSignificantDigits: precision,
-          });
+    const useShortValue = !includeDecimals && (shortValue > 10 || fitsBound);
 
-    return `${formattedNumber}${suffix}`;
+    if (useShortValue) {
+      if (maximumSignificantDigits === undefined) {
+        return `${prefix}${shortValue}${suffix}`;
+      }
+      const formattedNumber = parseFloat(
+        shortValue.toPrecision(maximumSignificantDigits)
+      ).toString();
+      return `${prefix}${formattedNumber}${suffix}`;
+    }
+
+    const formattedNumber = formatFloat(
+      numAbsValue / suffixNum,
+      maximumSignificantDigits || 1
+    ).toLocaleString(undefined, {
+      maximumSignificantDigits,
+    });
+
+    return `${prefix}${formattedNumber}${suffix}`;
   }
 
-  return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
+  return number.toLocaleString(undefined, {maximumSignificantDigits});
 }
 
 /**
- * Rounds to 2 decimal digits without forcing trailing zeros
+ * Formats a number with an abbreviation and rounds to 2
+ * decimal digits without forcing trailing zeros.
+ * e. g. 1000 -> 1k, 1234 -> 1.23k
+ */
+export function formatAbbreviatedNumberWithDynamicPrecision(
+  value: number | string
+): string {
+  const number = Number(value);
+
+  if (number === 0) {
+    return '0';
+  }
+
+  const log10 = Math.log10(Math.abs(number));
+  // numbers less than 1 will have a negative log10
+  const numOfDigits = log10 < 0 ? 1 : Math.floor(log10) + 1;
+
+  const maxStep = numberFormatSteps[0][0];
+
+  // if the number is larger than the largest step, we determine the number of digits
+  // by dividing the number by the largest step, otherwise the number of formatted
+  // digits is the number of digits in the number modulo 3 (the number of zeroes between steps)
+  const numOfFormattedDigits =
+    number > maxStep
+      ? Math.floor(Math.log10(number / maxStep))
+      : Math.max(numOfDigits % 3 === 0 ? 3 : numOfDigits % 3, 0);
+
+  const maximumSignificantDigits = numOfFormattedDigits + 2;
+
+  return formatAbbreviatedNumber(value, maximumSignificantDigits, true);
+}
+
+/**
+ * Rounds to specified number of decimal digits (defaults to 2) without forcing trailing zeros
  * Will preserve significant decimals for very small numbers
  * e.g. 0.0001234 -> 0.00012
  * @param value number to format
  */
-export function formatNumberWithDynamicDecimalPoints(value: number): string {
+export function formatNumberWithDynamicDecimalPoints(
+  value: number,
+  maxFractionDigits = 2
+): string {
   if ([0, Infinity, -Infinity, NaN].includes(value)) {
     return value.toLocaleString();
   }
 
   const exponent = Math.floor(Math.log10(Math.abs(value)));
 
-  const maxFractionDigits = exponent >= 0 ? 2 : Math.abs(exponent) + 1;
+  const maximumFractionDigits =
+    exponent >= 0 ? maxFractionDigits : Math.abs(exponent) + 1;
   const numberFormat = {
-    maximumFractionDigits: maxFractionDigits,
+    maximumFractionDigits,
     minimumFractionDigits: 0,
   };
 

@@ -10,7 +10,7 @@ describe('Login', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a loading indicator', function () {
+  it('renders a loading indicator', async function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {},
@@ -19,6 +19,7 @@ describe('Login', function () {
     render(<Login {...routerProps} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
   });
 
   it('renders an error if auth config cannot be loaded', async function () {

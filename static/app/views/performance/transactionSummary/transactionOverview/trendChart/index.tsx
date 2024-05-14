@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -16,6 +15,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
@@ -27,13 +27,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {
-  generateTrendFunctionAsString,
-  modifyTrendView,
-  normalizeTrends,
-} from 'sentry/views/performance/trends/utils';
+import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import type {ViewProps} from 'sentry/views/performance/types';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Content from './content';
 

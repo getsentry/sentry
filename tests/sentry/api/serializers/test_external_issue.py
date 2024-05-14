@@ -1,10 +1,8 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ExternalIssueSerializerTestCase(TestCase):
     def test_external_issue_serializer(self):
         # integrations and external issues for group 1

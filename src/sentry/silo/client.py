@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import socket
 from collections.abc import Iterable, Mapping
-from hashlib import sha1
+from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -13,7 +13,9 @@ from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.utils.encoding import force_str
 from requests import Request
+from requests.adapters import Retry
 
+from sentry import options
 from sentry.http import build_session
 from sentry.net.http import SafeSession
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
@@ -176,7 +178,7 @@ class RegionSiloClient(BaseSiloClient):
     log_path = "sentry.silo.client.region"
     silo_client_name = "region"
 
-    def __init__(self, region: Region) -> None:
+    def __init__(self, region: Region, retry: bool = False) -> None:
         super().__init__()
         if not isinstance(region, Region):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
@@ -184,13 +186,27 @@ class RegionSiloClient(BaseSiloClient):
         # Ensure the region is registered
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
+        self.retry = retry
 
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
         """
-        return build_session(is_ipaddress_permitted=validate_region_ip_address)
+        if not self.retry:
+            return build_session(
+                is_ipaddress_permitted=validate_region_ip_address,
+            )
+
+        return build_session(
+            is_ipaddress_permitted=validate_region_ip_address,
+            max_retries=Retry(
+                total=options.get("hybridcloud.regionsiloclient.retries"),
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+            ),
+        )
 
     def _get_hash_cache_key(self, hash: str) -> str:
         return f"region_silo_client:request_attempts:{hash}"
@@ -238,7 +254,7 @@ class RegionSiloClient(BaseSiloClient):
         """
         hash = None
         if prefix_hash is not None:
-            hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
 
         self.check_request_attempts(hash=hash, method=method, path=path)
         response = super().request(

@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from sentry.models.group import Group
     from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor, CursorResult
@@ -40,7 +42,7 @@ class RuleHistoryBackend(Service):
         group: Group,
         event_id: str | None = None,
         notification_uuid: str | None = None,
-    ) -> None:
+    ) -> Any | None:
         """
         Records an instance of an issue alert being fired for a given group.
         """

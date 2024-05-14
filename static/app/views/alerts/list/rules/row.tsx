@@ -2,16 +2,16 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import AlertBadge from 'sentry/components/badge/alertBadge';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -143,6 +143,7 @@ function RuleListRow({
       ({label}) => label === AlertRuleTriggerType.WARNING
     );
     const resolvedTrigger = rule.resolveThreshold;
+
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
         ? criticalTrigger
@@ -257,9 +258,9 @@ function RuleListRow({
     onOwnerChange(slug, rule, ownerValue);
   }
 
-  const unassignedOption = {
+  const unassignedOption: ItemsBeforeFilter[number] = {
     value: '',
-    label: () => (
+    label: (
       <MenuItemWrapper>
         <PaddedIconUser size="lg" />
         <Label>{t('Unassigned')}</Label>
@@ -275,17 +276,15 @@ function RuleListRow({
     return userTeams.some(team => team.id === projTeam.id);
   });
   const dropdownTeams = filteredProjectTeams
-    .map((team, idx) => ({
+    .map<ItemsBeforeFilter[number]>((team, idx) => ({
       value: team.id,
       searchKey: team.slug,
-      label: ({inputValue}) => (
+      label: (
         <MenuItemWrapper data-test-id="assignee-option" key={idx}>
           <IconContainer>
             <TeamAvatar team={team} size={24} />
           </IconContainer>
-          <Label>
-            <Highlight text={inputValue}>{`#${team.slug}`}</Highlight>
-          </Label>
+          <Label>#{team.slug}</Label>
         </MenuItemWrapper>
       ),
     }))
@@ -317,6 +316,22 @@ function RuleListRow({
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
+        <AlertNameAndStatus>
+          <AlertName>
+            <Link
+              to={
+                isIssueAlert(rule)
+                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
+                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
+              }
+            >
+              {rule.name}
+            </Link>
+          </AlertName>
+          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
+        </AlertNameAndStatus>
+      </AlertNameWrapper>
+      <FlexCenter>
         <FlexCenter>
           <Tooltip
             title={
@@ -336,22 +351,8 @@ function RuleListRow({
             />
           </Tooltip>
         </FlexCenter>
-        <AlertNameAndStatus>
-          <AlertName>
-            <Link
-              to={
-                isIssueAlert(rule)
-                  ? `/organizations/${orgId}/alerts/rules/${rule.projects[0]}/${rule.id}/details/`
-                  : `/organizations/${orgId}/alerts/rules/details/${rule.id}/`
-              }
-            >
-              {rule.name}
-            </Link>
-          </AlertName>
-          <AlertIncidentDate>{renderLastIncidentDate()}</AlertIncidentDate>
-        </AlertNameAndStatus>
-      </AlertNameWrapper>
-      <FlexCenter>{renderAlertRuleStatus()}</FlexCenter>
+        <MarginLeft>{renderAlertRuleStatus()}</MarginLeft>
+      </FlexCenter>
       <FlexCenter>
         <ProjectBadgeContainer>
           <ProjectBadge
@@ -366,12 +367,7 @@ function RuleListRow({
           <ActorAvatar actor={teamActor} size={24} />
         ) : (
           <AssigneeWrapper>
-            {!projectsLoaded && (
-              <LoadingIndicator
-                mini
-                style={{height: '24px', margin: 0, marginRight: 11}}
-              />
-            )}
+            {!projectsLoaded && <StyledLoadingIndicator mini />}
             {projectsLoaded && (
               <DropdownAutoComplete
                 data-test-id="alert-row-assignee"
@@ -422,6 +418,7 @@ function RuleListRow({
   );
 }
 
+// TODO: see static/app/components/profiling/flex.tsx and utilize the FlexContainer styled component
 const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
@@ -505,19 +502,29 @@ const IconContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: ${p => p.theme.iconSizes.lg};
+  height: ${p => p.theme.iconSizes.lg};
   flex-shrink: 0;
 `;
 
 const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: 6px;
+  margin-left: ${space(0.75)};
+`;
+
+const MarginLeft = styled('div')`
+  margin-left: ${space(1)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  height: 24px;
+  margin: 0;
+  margin-right: ${space(1.5)};
 `;
 
 export default RuleListRow;

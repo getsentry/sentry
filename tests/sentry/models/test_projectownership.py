@@ -1,20 +1,17 @@
 from unittest.mock import patch
 
-from sentry.models.actor import ActorTuple
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.cache import cache
+from sentry.types.actor import Actor, ActorType
 
 pytestmark = requires_snuba
 
@@ -23,9 +20,9 @@ def actor_key(actor):
     return actor.id
 
 
-@region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.organization.member_set.create(user_id=self.user2.id)
         self.team = self.create_team(
@@ -41,11 +38,6 @@ class ProjectOwnershipTestCase(TestCase):
         self.project2 = self.create_project(
             organization=self.organization, teams=[self.team, self.team2]
         )
-
-    def tearDown(self):
-        cache.delete(ProjectOwnership.get_cache_key(self.project.id))
-
-        super().tearDown()
 
     def python_event_data(self):
         return {
@@ -106,7 +98,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "foo.py"}]}}
             ),
-            ([ActorTuple(self.team.id, Team)], [rule_a]),
+            ([Actor(id=self.team.id, actor_type=ActorType.TEAM)], [rule_a]),
         )
 
         # Match only rule_b
@@ -114,7 +106,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/thing.txt"}]}}
             ),
-            ([ActorTuple(self.user.id, User)], [rule_b]),
+            ([Actor(id=self.user.id, actor_type=ActorType.USER)], [rule_b]),
         )
 
         # Matches both rule_a and rule_b
@@ -122,7 +114,13 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
+            (
+                [
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.user.id, actor_type=ActorType.USER),
+                ],
+                [rule_a, rule_b],
+            ),
         )
 
         # We should be ignoring the fallthrough flag
@@ -138,7 +136,13 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
+            (
+                [
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.user.id, actor_type=ActorType.USER),
+                ],
+                [rule_a, rule_b],
+            ),
         )
 
     def test_get_owners_when_codeowners_exists_and_no_issueowners(self):
@@ -159,7 +163,7 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}}
             ),
             (
-                [ActorTuple(self.team.id, Team)],
+                [Actor(id=self.team.id, actor_type=ActorType.TEAM)],
                 [rule_a],
             ),
         )
@@ -184,7 +188,10 @@ class ProjectOwnershipTestCase(TestCase):
                 self.project2.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
             ),
             (
-                [ActorTuple(self.team.id, Team), ActorTuple(self.team2.id, Team)],
+                [
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.team2.id, actor_type=ActorType.TEAM),
+                ],
                 [rule_a, rule_c],
             ),
         )
@@ -279,7 +286,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_issue_owners(
             self.project2.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == [
-            (rule_b, [user_service.get_user(self.user.id)], OwnerRuleType.OWNERSHIP_RULE.value),
+            (rule_b, [self.rpc_user], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
 
@@ -492,6 +499,15 @@ class ProjectOwnershipTestCase(TestCase):
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
+    def test_no_group_owner(self):
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
+
     def test_handle_auto_assignment_when_suspect_committer_and_codeowners_and_issueowners_exists(
         self,
     ):
@@ -587,10 +603,9 @@ class ProjectOwnershipTestCase(TestCase):
         )
         assert ProjectOwnership.get_owners(
             self.project.id, {"stacktrace": {"frames": [frame]}}
-        ) == ([ActorTuple(self.team.id, Team)], [rule])
+        ) == ([Actor(id=self.team.id, actor_type=ActorType.TEAM)], [rule])
 
     def test_saves_without_either_auto_assignment_option(self):
-        # Project has group for autoassigned_owner_cache
         self.group = self.create_group(project=self.project)
         # Turn off all autoassignment
         ProjectOwnership.objects.create(
@@ -642,13 +657,47 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.user_id == self.user.id
 
         # Run force auto-assignment
-        ProjectOwnership.handle_auto_assignment(self.project.id, group=self.event.group)
+        ProjectOwnership.handle_auto_assignment(
+            self.project.id,
+            group=self.event.group,
+            force_autoassign=True,
+        )
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+    def test_force_handle_auto_assignment_cache_check(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
 
-@region_silo_test
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self):
         assert resolve_actors([], self.project.id) == {}
@@ -656,14 +705,14 @@ class ResolveActorsTestCase(TestCase):
     def test_basic(self):
         owners = [Owner("user", self.user.email), Owner("team", self.team.slug)]
         assert resolve_actors(owners, self.project.id) == {
-            owners[0]: ActorTuple(self.user.id, User),
-            owners[1]: ActorTuple(self.team.id, Team),
+            owners[0]: Actor(id=self.user.id, actor_type=ActorType.USER),
+            owners[1]: Actor(id=self.team.id, actor_type=ActorType.TEAM),
         }
 
     def test_teams(self):
         # Normal team
         owner1 = Owner("team", self.team.slug)
-        actor1 = ActorTuple(self.team.id, Team)
+        actor1 = Actor(id=self.team.id, actor_type=ActorType.TEAM)
 
         # Team that doesn't exist
         owner2 = Owner("team", "nope")
@@ -684,7 +733,7 @@ class ResolveActorsTestCase(TestCase):
     def test_users(self):
         # Normal user
         owner1 = Owner("user", self.user.email)
-        actor1 = ActorTuple(self.user.id, User)
+        actor1 = Actor(id=self.user.id, actor_type=ActorType.USER)
 
         # An extra secondary email
         email1 = self.create_useremail(self.user, None, is_verified=True).email

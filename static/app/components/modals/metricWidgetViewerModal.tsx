@@ -1,43 +1,38 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Input from 'sentry/components/deprecatedforms/input';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {
+  MetricWidgetTitle,
+  type MetricWidgetTitleState,
+} from 'sentry/components/modals/metricWidgetViewerModal/header';
+import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries';
+import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
-import {
-  IconCheckmark,
-  IconEdit,
-  IconEllipsis,
-  IconSettings,
-  IconSiren,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
-import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
-import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
+import {getMetricsUrl} from 'sentry/utils/metrics';
+import {toDisplayType} from 'sentry/utils/metrics/dashboard';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
-import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
-import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
-import {Query} from 'sentry/views/ddm/queries';
-import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
+import type {
+  DashboardMetricsEquation,
+  DashboardMetricsQuery,
+  Order,
+} from 'sentry/views/dashboards/metrics/types';
 import {
-  convertToDashboardWidget,
-  convertToMetricWidget,
-  toMetricDisplayType,
-} from '../../utils/metrics/dashboard';
-import {MetricWidget} from '../../views/ddm/widget';
-import {Tooltip} from '../tooltip';
+  expressionsToWidget,
+  filterEquationsByDisplayType,
+  filterQueriesByDisplayType,
+  getMetricEquations,
+  getMetricQueries,
+  getMetricWidgetTitle,
+  useGenerateExpressionId,
+} from 'sentry/views/dashboards/metrics/utils';
+import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   organization: Organization;
@@ -50,153 +45,231 @@ function MetricWidgetViewerModal({
   Body,
   Header,
   closeModal,
+  CloseButton,
   onMetricWidgetEdit,
+  dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
-  const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
-    useState<MetricWidgetQueryParams>(convertToMetricWidget(widget));
-
-  const defaultTitle = useMemo(
-    () => stringifyMetricWidget(metricWidgetQueryParams),
-    [metricWidgetQueryParams]
+  const [displayType, setDisplayType] = useState(widget.displayType);
+  const [interval, setInterval] = useState<string>(widget.interval);
+  const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
+    getMetricQueries(widget, dashboardFilters)
+  );
+  const [metricEquations, setMetricEquations] = useState<DashboardMetricsEquation[]>(() =>
+    getMetricEquations(widget)
   );
 
-  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const filteredQueries = useMemo(
+    () => filterQueriesByDisplayType(metricQueries, displayType),
+    [metricQueries, displayType]
+  );
 
-  const handleChange = useCallback(
-    (data: Partial<MetricWidgetQueryParams>) => {
-      setMetricWidgetQueryParams(curr => ({
-        ...curr,
-        ...data,
-      }));
+  const filteredEquations = useMemo(
+    () =>
+      filterEquationsByDisplayType(metricEquations, displayType).filter(
+        equation => equation.formula !== ''
+      ),
+    [metricEquations, displayType]
+  );
+
+  const expressions = useMemo(
+    () => [...filteredQueries, ...filteredEquations],
+    [filteredQueries, filteredEquations]
+  );
+
+  const generateQueryId = useGenerateExpressionId(metricQueries);
+  const generateEquationId = useGenerateExpressionId(metricEquations);
+
+  const widgetMQL = useMemo(() => getMetricWidgetTitle(expressions), [expressions]);
+
+  const [title, setTitle] = useState<MetricWidgetTitleState>({
+    stored: widget.title,
+    edited: widget.title,
+    isEditing: false,
+  });
+
+  const handleTitleChange = useCallback(
+    (patch: Partial<MetricWidgetTitleState>) => {
+      setTitle(curr => ({...curr, ...patch}));
     },
-    [setMetricWidgetQueryParams]
+    [setTitle]
+  );
+
+  const handleQueryChange = useCallback(
+    (data: Partial<DashboardMetricsQuery>, index: number) => {
+      setMetricQueries(curr => {
+        const updated = [...curr];
+        updated[index] = {...updated[index], ...data} as DashboardMetricsQuery;
+        return updated;
+      });
+    },
+    [setMetricQueries]
+  );
+
+  const handleEquationChange = useCallback(
+    (data: Partial<DashboardMetricsEquation>, index: number) => {
+      setMetricEquations(curr => {
+        const updated = [...curr];
+        updated[index] = {...updated[index], ...data} as DashboardMetricsEquation;
+        return updated;
+      });
+    },
+    [setMetricEquations]
+  );
+
+  const handleOrderChange = useCallback(
+    ({id, order}: {id: number; order: Order}) => {
+      const queryIdx = filteredQueries.findIndex(query => query.id === id);
+      if (queryIdx > -1) {
+        setMetricQueries(curr => {
+          return curr.map((query, i) => {
+            const orderBy = i === queryIdx ? order : undefined;
+            return {...query, orderBy};
+          });
+        });
+        return;
+      }
+
+      const equationIdx = filteredEquations.findIndex(equation => equation.id === id);
+      if (equationIdx > -1) {
+        setMetricEquations(curr => {
+          return curr.map((equation, i) => {
+            const orderBy = i === equationIdx ? order : undefined;
+            return {...equation, orderBy};
+          });
+        });
+      }
+    },
+    [filteredEquations, filteredQueries]
+  );
+
+  const addQuery = useCallback(
+    (queryIndex?: number) => {
+      setMetricQueries(curr => {
+        const query = metricQueries[queryIndex ?? metricQueries.length - 1];
+        return [
+          ...curr,
+          {
+            ...query,
+            id: generateQueryId(),
+          },
+        ];
+      });
+    },
+    [generateQueryId, metricQueries]
+  );
+
+  const addEquation = useCallback(() => {
+    setMetricEquations(curr => {
+      return [
+        ...curr,
+        {
+          formula: '',
+          name: '',
+          id: generateEquationId(),
+          type: MetricExpressionType.EQUATION,
+          isHidden: false,
+        },
+      ];
+    });
+  }, [generateEquationId]);
+
+  const removeEquation = useCallback(
+    (index: number) => {
+      setMetricEquations(curr => {
+        const updated = [...curr];
+        updated.splice(index, 1);
+        return updated;
+      });
+    },
+    [setMetricEquations]
+  );
+
+  const removeQuery = useCallback(
+    (index: number) => {
+      setMetricQueries(curr => {
+        const updated = [...curr];
+        updated.splice(index, 1);
+        return updated;
+      });
+    },
+    [setMetricQueries]
   );
 
   const handleSubmit = useCallback(() => {
-    const convertedWidget = convertToDashboardWidget(
-      {...selection, ...metricWidgetQueryParams},
-      toMetricDisplayType(metricWidgetQueryParams.displayType)
+    const convertedWidget = expressionsToWidget(
+      [...filteredQueries, ...filteredEquations],
+      title.edited,
+      toDisplayType(displayType),
+      // TODO(metrics): for now we do not persist the interval by default
+      // as we need to find a way to handle per widget interval perferences
+      // with the dashboard interval preferences
+      widget.interval ?? interval
     );
 
-    const isCustomTitle = title !== '' && title !== defaultTitle;
-
-    const updatedWidget = {
-      ...widget,
-      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
-      title: isCustomTitle ? title : defaultTitle,
-      queries: convertedWidget.queries,
-      displayType: convertedWidget.displayType,
-    };
-
-    onMetricWidgetEdit?.(updatedWidget);
+    onMetricWidgetEdit?.(convertedWidget);
 
     closeModal();
   }, [
-    title,
-    defaultTitle,
-    metricWidgetQueryParams,
+    filteredQueries,
+    filteredEquations,
+    title.edited,
+    displayType,
     onMetricWidgetEdit,
     closeModal,
-    widget,
-    selection,
+    interval,
+    widget.interval,
   ]);
 
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
-        <Header closeButton>
-          <WidgetHeader>
-            {/* { TODO: extract to a separate component in a followup } */}
-            <WidgetTitleRow>
-              {isEditingTitle ? (
-                <Input
-                  value={title}
-                  placeholder={stringifyMetricWidget(metricWidgetQueryParams)}
-                  onChange={e => {
-                    setTitle?.(e.target.value ?? defaultTitle);
-                  }}
-                />
-              ) : (
-                <h3>{title}</h3>
-              )}
-              <Button
-                aria-label="Edit Title"
-                size="sm"
-                borderless
-                icon={
-                  isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />
-                }
-                priority={isEditingTitle ? 'primary' : 'default'}
-                onClick={() => {
-                  setIsEditingTitle(curr => !curr);
-                }}
-              />
-            </WidgetTitleRow>
-            {widget.description && (
-              <Tooltip
-                title={widget.description}
-                containerDisplayMode="grid"
-                showOnlyOnOverflow
-                isHoverable
-                position="bottom"
-              >
-                <WidgetDescription>{widget.description}</WidgetDescription>
-              </Tooltip>
-            )}
-          </WidgetHeader>
+        <Header>
+          <MetricWidgetTitle
+            title={title}
+            onTitleChange={handleTitleChange}
+            placeholder={widgetMQL}
+            description={widget.description}
+          />
+          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
+          <div onClick={handleSubmit}>
+            <CloseButton />
+          </div>
         </Header>
         <Body>
-          <Query
-            widget={metricWidgetQueryParams}
-            projects={selection.projects}
-            onChange={handleChange}
-            contextMenu={
-              <ContextMenu
-                metricsQuery={{
-                  mri: metricWidgetQueryParams.mri,
-                  query: metricWidgetQueryParams.query,
-                  op: metricWidgetQueryParams.op,
-                  groupBy: metricWidgetQueryParams.groupBy,
-                  projects: selection.projects,
-                  datetime: selection.datetime,
-                  environments: selection.environments,
-                }}
-              />
-            }
+          <Queries
+            displayType={displayType}
+            metricQueries={metricQueries}
+            metricEquations={metricEquations}
+            onQueryChange={handleQueryChange}
+            onEquationChange={handleEquationChange}
+            addEquation={addEquation}
+            addQuery={addQuery}
+            removeEquation={removeEquation}
+            removeQuery={removeQuery}
           />
-          <MetricWidget
-            queries={[
-              {
-                mri: metricWidgetQueryParams.mri,
-                query: metricWidgetQueryParams.query,
-                op: metricWidgetQueryParams.op,
-                groupBy: metricWidgetQueryParams.groupBy,
-              },
-            ]}
-            focusedSeries={metricWidgetQueryParams.focusedSeries}
-            displayType={metricWidgetQueryParams.displayType}
-            filters={selection}
-            onChange={(_, data) => {
-              handleChange(data);
-            }}
+          <MetricVisualization
+            expressions={expressions}
+            displayType={displayType}
+            onDisplayTypeChange={setDisplayType}
+            onOrderChange={handleOrderChange}
+            onIntervalChange={setInterval}
+            interval={interval}
           />
-          <MetricDetails widget={metricWidgetQueryParams} />
+          <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
             <LinkButton
-              to={getDdmUrl(organization.slug, {
-                widgets: [metricWidgetQueryParams],
-                project: selection.projects,
+              to={getMetricsUrl(organization.slug, {
+                widgets: [...metricQueries, ...metricEquations],
                 ...selection.datetime,
+                project: selection.projects,
                 environment: selection.environments,
               })}
             >
               {t('Open in Metrics')}
             </LinkButton>
-            <Button onClick={closeModal}>{t('Close')}</Button>
             <Button priority="primary" onClick={handleSubmit}>
               {t('Save changes')}
             </Button>
@@ -207,74 +280,7 @@ function MetricWidgetViewerModal({
   );
 }
 
-export function ContextMenu({
-  metricsQuery,
-}: {
-  metricsQuery: MetricsQuery;
-}) {
-  const organization = useOrganization();
-  const router = useRouter();
-
-  const createAlert = useMemo(
-    () => getCreateAlert(organization, metricsQuery),
-    [metricsQuery, organization]
-  );
-
-  const items = useMemo<MenuItemProps[]>(() => {
-    const customMetric = !isCustomMetric({mri: metricsQuery.mri});
-    const addAlertItem = {
-      leadingItems: [<IconSiren key="icon" />],
-      key: 'add-alert',
-      label: t('Create Alert'),
-      disabled: !createAlert,
-      onAction: () => {
-        createAlert?.();
-      },
-    };
-    const settingsItem = {
-      leadingItems: [<IconSettings key="icon" />],
-      key: 'settings',
-      label: t('Metric Settings'),
-      disabled: !customMetric,
-      onAction: () => {
-        navigateTo(
-          `/settings/projects/:projectId/metrics/${encodeURIComponent(metricsQuery.mri)}`,
-          router
-        );
-      },
-    };
-
-    return customMetric ? [addAlertItem, settingsItem] : [addAlertItem];
-  }, [createAlert, metricsQuery.mri, router]);
-
-  return (
-    <DropdownMenu
-      items={items}
-      triggerProps={{
-        'aria-label': t('Widget actions'),
-        size: 'md',
-        showChevron: false,
-        icon: <IconEllipsis direction="down" size="sm" />,
-      }}
-      position="bottom-end"
-    />
-  );
-}
-
 export default MetricWidgetViewerModal;
-
-const WidgetHeader = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const WidgetTitleRow = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 export const modalCss = css`
   width: 100%;

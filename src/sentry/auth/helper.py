@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
@@ -51,7 +52,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links_control
-from sentry.utils import auth, json, metrics
+from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -134,7 +135,7 @@ class AuthIdentityHandler:
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
         with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
+            scope.set_level("warning")
             scope.set_tag("email", email)
             scope.set_extra("user_ids", [user.id for user in users])
             scope.set_extra("chosen_user", chosen_user.id)
@@ -433,7 +434,9 @@ class AuthIdentityHandler:
             # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
-                "frontend_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
+                "frontend_events": orjson.dumps(
+                    {"event_name": "Sign Up", "event_label": provider}
+                ).decode()
             }
             url = add_params_to_url(url, params)
         response = HttpResponseRedirect(url)
@@ -718,7 +721,7 @@ class AuthHelper(Pipeline):
         # provider_key to get_provider, and our get_provider override accepts a null
         # provider_key. But it technically violates the type contract and we'll need
         # to change the superclass to accommodate this one.
-        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
+        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore[arg-type]
 
         # Override superclass's type hints to be narrower
         self.organization: RpcOrganization = self.organization

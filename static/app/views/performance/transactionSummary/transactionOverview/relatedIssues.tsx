@@ -30,15 +30,15 @@ type Props = {
 };
 
 class RelatedIssues extends Component<Props> {
-  getIssuesEndpoint() {
-    const {transaction, organization, start, end, statsPeriod, location} = this.props;
+  getIssuesEndpointQueryParams() {
+    const {transaction, start, end, statsPeriod, location} = this.props;
 
     const queryParams = {
       start,
       end,
       statsPeriod,
       limit: 5,
-      sort: 'new',
+      sort: 'trends',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
@@ -48,7 +48,6 @@ class RelatedIssues extends Component<Props> {
       .setFilterValues('transaction', [transaction]);
 
     return {
-      path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
         query: currentFilter.formatString(),
@@ -88,7 +87,7 @@ class RelatedIssues extends Component<Props> {
 
   render() {
     const {organization} = this.props;
-    const {path, queryParams} = this.getIssuesEndpoint();
+    const {queryParams} = this.getIssuesEndpointQueryParams();
     const issueSearch = {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {referrer: 'performance-related-issues', ...queryParams},
@@ -111,9 +110,7 @@ class RelatedIssues extends Component<Props> {
         <TableWrapper>
           <GroupList
             orgSlug={organization.slug}
-            endpointPath={path}
             queryParams={queryParams}
-            query=""
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
             withChart={false}

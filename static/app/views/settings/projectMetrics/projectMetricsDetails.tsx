@@ -9,7 +9,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -22,7 +22,7 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {getDdmUrl} from 'sentry/utils/metrics';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -30,7 +30,7 @@ import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {CodeLocations} from 'sentry/views/ddm/codeLocations';
+import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
@@ -76,7 +76,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
   const {data: metricsData, isLoading} = useMetricsQuery(
-    [{mri, op: operation}],
+    [{mri, op: operation, name: 'query'}],
     {
       datetime: {
         period: '30d',
@@ -135,10 +135,10 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               disabled={blockMetricMutation.isLoading}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
-              aria-label={t('Block Metric')}
+              blockTarget="metric"
             />
             <LinkButton
-              to={getDdmUrl(organization.slug, {
+              to={getMetricsUrl(organization.slug, {
                 statsPeriod: '30d',
                 project: [project.id],
                 widgets: [
@@ -235,14 +235,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                   disabled={blockMetricMutation.isLoading || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}
-                  aria-label={t('Block tag')}
-                  message={
-                    isBlockedTag
-                      ? t('Are you sure you want to unblock this tag?')
-                      : t(
-                          'Are you sure you want to block this tag? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
-                        )
-                  }
+                  blockTarget="tag"
                 />
               </TextAlignRight>
             </Fragment>

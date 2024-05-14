@@ -1,9 +1,12 @@
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
 import type {MetricsOperation} from 'sentry/types';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
-  getDDMInterval,
-  stringifyMetricWidget,
+  getFormattedMQL,
+  getMetricsInterval,
+  isFormattedMQL,
 } from 'sentry/utils/metrics';
 
 describe('getDDMInterval', () => {
@@ -11,7 +14,7 @@ describe('getDDMInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-31'};
     const useCase = 'sessions';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('2h');
   });
@@ -23,7 +26,7 @@ describe('getDDMInterval', () => {
     };
     const useCase = 'custom';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('10s');
   });
@@ -32,7 +35,7 @@ describe('getDDMInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T01:05:00.000Z'};
     const useCase = 'sessions';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('1m');
   });
@@ -58,9 +61,9 @@ describe('getDateTimeParams', () => {
   });
 });
 
-describe('stringifyMetricWidget', () => {
+describe('getFormattedMQL', () => {
   it('should format metric widget object into a string', () => {
-    const result = stringifyMetricWidget({
+    const result = getFormattedMQL({
       op: 'avg',
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: ['result'],
@@ -73,7 +76,7 @@ describe('stringifyMetricWidget', () => {
   });
 
   it('defaults to an empty string', () => {
-    const result = stringifyMetricWidget({
+    const result = getFormattedMQL({
       op: '' as MetricsOperation,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
@@ -84,10 +87,47 @@ describe('stringifyMetricWidget', () => {
   });
 });
 
+describe('isFormattedMQL', () => {
+  it('should return true for a valid MQL string - simple', () => {
+    const result = isFormattedMQL('avg(sentry.process_profile.symbolicate.process)');
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - filter', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process){result:success}'
+    );
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - groupy by', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process) by result'
+    );
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - filter and group by', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process){result:success} by result'
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('should return false for an invalid MQL string', () => {
+    const result = isFormattedMQL('not MQL string');
+
+    expect(result).toBe(false);
+  });
+});
+
 describe('getAbsoluteDateTimeRange', () => {
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+  beforeEach(() => {
+    setMockDate(new Date('2024-01-01T00:00:00Z'));
+  });
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('should return the correct object with "start" and "end" when period is not provided', () => {
@@ -113,9 +153,5 @@ describe('getAbsoluteDateTimeRange', () => {
       start: '2023-12-25T00:00:00.000Z',
       end: '2024-01-01T00:00:00.000Z',
     });
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
   });
 });

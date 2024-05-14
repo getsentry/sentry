@@ -408,17 +408,14 @@ function Menu({
                       {!busy && (
                         <List
                           items={autoCompleteResults}
-                          {...{
-                            maxHeight,
-                            highlightedIndex,
-                            inputValue,
-                            onScroll,
-                            getItemProps,
-                            registerVisibleItem,
-                            virtualizedLabelHeight,
-                            virtualizedHeight,
-                            itemSize,
-                          }}
+                          maxHeight={maxHeight}
+                          highlightedIndex={highlightedIndex}
+                          onScroll={onScroll}
+                          getItemProps={getItemProps}
+                          registerVisibleItem={registerVisibleItem}
+                          virtualizedLabelHeight={virtualizedLabelHeight}
+                          virtualizedHeight={virtualizedHeight}
+                          itemSize={itemSize}
                         />
                       )}
                     </ItemList>

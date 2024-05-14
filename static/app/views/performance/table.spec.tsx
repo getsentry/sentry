@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -245,7 +245,7 @@ describe('Performance > Table', function () {
       });
     });
 
-    it('hides cell actions when withStaticFilters is true', function () {
+    it('hides cell actions when withStaticFilters is true', async function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -261,6 +261,7 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const cellActionContainers = screen.queryByTestId('cell-action-container');
       expect(cellActionContainers).not.toBeInTheDocument();
     });
@@ -319,12 +320,12 @@ describe('Performance > Table', function () {
         />
       );
 
-      await screen.findByTestId('grid-editable');
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const indicatorContainer = screen.queryByTestId('unparameterized-indicator');
       expect(indicatorContainer).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', function () {
+    it('sends MEP param when setting enabled', async function () {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -343,6 +344,7 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenNthCalledWith(
         1,

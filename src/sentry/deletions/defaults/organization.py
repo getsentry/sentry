@@ -19,7 +19,8 @@ class OrganizationDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.deletions.defaults.discoversavedquery import DiscoverSavedQueryDeletionTask
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
-        from sentry.incidents.models import AlertRule, Incident
+        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.incidents.models.incident import Incident
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard

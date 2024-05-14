@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +39,9 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should use Breadcrumbs as a default', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
 
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
@@ -47,13 +49,17 @@ describe('useActiveReplayTab', () => {
   it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
 
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
   it('should allow case-insensitive tab names', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('nEtWoRk');
@@ -64,42 +70,15 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should set the default tab if the name is invalid', () => {
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
+    const {result} = renderHook(useActiveReplayTab, {
+      initialProps: {},
+    });
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('foo bar');
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
       query: {t_main: TabKey.BREADCRUMBS},
-    });
-  });
-
-  it('should disallow PERF by default', () => {
-    mockOrganizationFixture({
-      features: [],
-    });
-
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab(TabKey.PERF);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.BREADCRUMBS},
-    });
-  });
-
-  it('should allow PERF when the feature is enabled', () => {
-    mockOrganizationFixture({
-      features: ['session-replay-trace-table'],
-    });
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
-
-    result.current.setActiveTab(TabKey.PERF);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.PERF},
     });
   });
 });

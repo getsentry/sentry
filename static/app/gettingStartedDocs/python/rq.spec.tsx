@@ -20,7 +20,7 @@ describe('rq onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[rq\]/))
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[rq\]'/))
     ).toBeInTheDocument();
   });
 

@@ -6,13 +6,16 @@ import keyBy from 'lodash/keyBy';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import type {GroupTagResponseItem} from 'sentry/actionCreators/group';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -242,7 +245,9 @@ function WrapperWithTitle({children}: {children: ReactNode}) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>
-        {t('All Tags')}
+        <GuideAnchor target="issue_sidebar_tags" position="left">
+          {t('All Tags')}
+        </GuideAnchor>
         <QuestionTooltip
           size="xs"
           position="top"

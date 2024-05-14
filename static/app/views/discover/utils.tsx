@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
@@ -16,6 +15,7 @@ import type {
   SelectValue,
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -294,7 +294,7 @@ export function getExpandedResults(
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 
-  // update the columns according the the expansion above
+  // update the columns according the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
       column === null

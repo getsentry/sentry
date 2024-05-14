@@ -15,10 +15,8 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class WebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github-enterprise/webhook/"
@@ -91,7 +89,6 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
 
-@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github-enterprise/webhook/"
@@ -120,7 +117,7 @@ class PushEventWebhookTest(APITestCase):
             status=204,
         )
 
-        mock_get_jwt.return_value = b""
+        mock_get_jwt.return_value = ""
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(
@@ -243,7 +240,7 @@ class PushEventWebhookTest(APITestCase):
             status=204,
         )
 
-        mock_get_jwt.return_value = b""
+        mock_get_jwt.return_value = ""
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(
@@ -310,7 +307,6 @@ class PushEventWebhookTest(APITestCase):
         assert len(commit_list) == 0
 
 
-@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github-enterprise/webhook/"
