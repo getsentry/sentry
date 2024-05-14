@@ -98,8 +98,8 @@ def ai_model_costs_config() -> AIModelCosts:
                     ("text-davinci-003", False, 0.02),
                     ("text-davinci-002", True, 0.02),
                     ("text-davinci-002", False, 0.02),
-                    ("code-davinci-0`02", True, 0.02),
-                    ("code-davinci-0`02", False, 0.02),
+                    ("code-davinci-002", True, 0.02),
+                    ("code-davinci-002", False, 0.02),
                     # Fine-tuned OpenAI input
                     ("ft:babbage-002", False, 0.0016),
                     ("ft:davinci-002", False, 0.012),
