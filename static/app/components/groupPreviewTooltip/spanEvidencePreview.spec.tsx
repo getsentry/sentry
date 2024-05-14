@@ -5,8 +5,6 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as useApi from 'sentry/utils/useApi';
-
 import {SpanEvidencePreview} from './spanEvidencePreview';
 
 describe('SpanEvidencePreview', () => {
@@ -21,21 +19,25 @@ describe('SpanEvidencePreview', () => {
   });
 
   it('does not fetch before hover', () => {
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    const spy = jest.spyOn(api, 'requestPromise');
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
+      body: event,
+      statusCode: 500,
+    });
 
     render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
     jest.runAllTimers();
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(mock).not.toHaveBeenCalled();
   });
 
   it('shows error when request fails', async () => {
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    jest.spyOn(api, 'requestPromise').mockRejectedValue(new Error());
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
+      body: event,
+      statusCode: 500,
+    });
 
     render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
@@ -107,7 +109,7 @@ describe('SpanEvidencePreview', () => {
 
     await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
-    await screen.findByTestId('span-evidence-preview-body', undefined, {timeout: 4000});
+    await screen.findByTestId('span-evidence-preview-body');
 
     expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: event.title})).toBeInTheDocument();
