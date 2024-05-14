@@ -81,7 +81,7 @@ export enum DataCategory {
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
   SPANS = 'spans',
-  METRIC_SECOND = 'metricSecond',
+  METRIC_SECOND = 'metricSeconds',
 }
 
 /**
