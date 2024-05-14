@@ -304,7 +304,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
-/src/sentry/api/serializers/models/alert_rule.py                     @getsentry/alerts-notifications
 
 /static/app/views/organizationIntegrations                           @getsentry/product-owners-settings-integrations
 
