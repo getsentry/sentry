@@ -275,16 +275,8 @@ def sync(ctx: click.Context) -> None:
                                 raise
                         presenter_delegator.unset(opt.name)
                     else:
-                        if (
-                            options.can_update(
-                                opt.name, options.get(opt.name), options.UpdateChannel.AUTOMATOR
-                            )
-                            == options.NotWritableReason.OPTION_ON_DISK
-                        ):
-                            continue
-                        else:
-                            presenter_delegator.drift(opt.name, options.get(opt.name))
-                            drift_found = True
+                        presenter_delegator.drift(opt.name, options.get(opt.name))
+                        drift_found = True
 
     if invalid_options:
         status = "update_failed"

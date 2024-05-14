@@ -2,15 +2,9 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
-from django.conf import settings
 
 from sentry import options
-from sentry.options.manager import (
-    FLAG_AUTOMATOR_MODIFIABLE,
-    FLAG_IMMUTABLE,
-    FLAG_PRIORITIZE_DISK,
-    UpdateChannel,
-)
+from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
 from sentry.runner.commands.configoptions import configoptions
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.testutils.cases import CliTestCase
@@ -30,12 +24,6 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
-        options.register(
-            "set_on_disk_option",
-            default="",
-            flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-        )
-        settings.SENTRY_OPTIONS["set_on_disk_option"] = "test"
 
         yield
 
@@ -48,8 +36,6 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
         options.unregister("invalid_type")
-        options.unregister("set_on_disk_option")
-        del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
@@ -197,16 +183,6 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("drifted_option") == [1, 2, 3]
 
         assert not options.isset("to_unset_option")
-
-    def test_bad_sync(self):
-        rv = self.invoke(
-            "-f",
-            "tests/sentry/runner/commands/badsync.yaml",
-            "sync",
-        )
-        assert rv.exit_code == 2, rv.output
-
-        assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
 
     def test_bad_patch(self):
         rv = self.invoke(
