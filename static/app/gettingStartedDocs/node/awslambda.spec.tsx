@@ -17,11 +17,12 @@ describe('awslambda onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/const Sentry = require\("@sentry\/serverless"\);/)
-      )
-    ).toBeInTheDocument();
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(/const Sentry = require\("@sentry\/aws-serverless"\);/)
+    );
+    allMatches.forEach(match => {
+      expect(match).toBeInTheDocument();
+    });
   });
 
   it('displays sample rates by default', () => {

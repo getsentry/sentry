@@ -17,9 +17,12 @@ describe('koa onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
-    expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/))
-    ).toBeInTheDocument();
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/)
+    );
+    allMatches.forEach(match => {
+      expect(match).toBeInTheDocument();
+    });
   });
 
   it('displays sample rates by default', () => {

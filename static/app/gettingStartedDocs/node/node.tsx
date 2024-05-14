@@ -11,51 +11,26 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
-  getDefaultNodeImports,
+  getImportInstrumentSnippet,
   getInstallConfig,
+  getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const productSelection = (params: Params): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
+const getSdkSetupSnippet = () => `
+${getImportInstrumentSnippet()}
 
-const getSdkSetupSnippet = (params: Params) => `
-${getDefaultNodeImports({productSelection: productSelection(params)}).join('\n')}
+const { createServer } = require('node:http');
 
-Sentry.init({
-  dsn: "${params.dsn}",
-  ${
-    params.isProfilingSelected
-      ? `integrations: [
-    nodeProfilingIntegration(),
-  ],`
-      : ''
-  }${
-    params.isPerformanceSelected
-      ? `
-      // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-      : ''
-  }
+const server = createServer((req, res) => {
+  // server code
 });
+
+server.listen(3000, '127.0.0.1');
 `;
 
 const onboarding: OnboardingConfig = {
@@ -69,18 +44,36 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, for example in your [code:index.ts/js] entry point:",
-        {code: <code />}
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
       ),
       configurations: [
         {
+          description: tct(
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            {code: <code />}
+          ),
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              filename: 'instrument.(js|mjs)',
+              code: getSdkInitSnippet(params, 'node'),
+            },
+          ],
+        },
+        {
+          description: tct(
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)].",
+            {code1: <code />, code2: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(),
             },
           ],
         },
@@ -90,7 +83,7 @@ const onboarding: OnboardingConfig = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/node/sourcemaps/',
     }),
   ],
-  verify: () => [
+  verify: ({isPerformanceSelected}) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -99,22 +92,26 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: `
-  const transaction = Sentry.startTransaction({
-    op: "test",
-    name: "My First Test Transaction",
-  });
-
-  setTimeout(() => {
-    try {
-      foo();
-    } catch (e) {
-      Sentry.captureException(e);
-    } finally {
-      transaction.finish();
-    }
-  }, 99);
-          `,
+          code: isPerformanceSelected
+            ? `
+Sentry.startSpan({
+  op: "test",
+  name: "My First Test Span",
+}, () => {
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+});`
+            : `
+setTimeout(() => {
+  try {
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+}, 99);`,
         },
       ],
     },
