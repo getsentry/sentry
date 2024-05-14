@@ -10,7 +10,7 @@ from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VE
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -210,7 +210,11 @@ def get_similarity_data_from_seer(
                     similar_issues_request["project_id"], raw_similar_issue_data
                 )
             )
-        except (IncompleteSeerDataError, SimilarGroupNotFoundError) as err:
+            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "found"})
+        except IncompleteSeerDataError as err:
+            metrics.incr(
+                "seer.similar_issue_request.parent_issue", tags={"outcome": "incomplete_data"}
+            )
             logger.exception(
                 str(err),
                 extra={
@@ -218,5 +222,7 @@ def get_similarity_data_from_seer(
                     "raw_similar_issue_data": raw_similar_issue_data,
                 },
             )
+        except SimilarGroupNotFoundError:
+            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"})
 
     return normalized

@@ -695,9 +695,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     # TODO: Remove once switch is complete
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple_only_group_id_returned(self, mock_logger, mock_seer_request):
+    def test_simple_only_group_id_returned(self, mock_logger, mock_seer_request, mock_metrics):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -740,11 +741,15 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_logger.info.assert_called_with(
             "Similar issues embeddings parameters", extra=expected_seer_request_params
         )
+        mock_metrics.incr.assert_any_call(
+            "seer.similar_issue_request.parent_issue", tags={"outcome": "found"}
+        )
 
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple_only_hash_returned(self, mock_logger, mock_seer_request):
+    def test_simple_only_hash_returned(self, mock_logger, mock_seer_request, mock_metrics):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -786,13 +791,17 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
         mock_logger.info.assert_called_with(
             "Similar issues embeddings parameters", extra=expected_seer_request_params
+        )
+        mock_metrics.incr.assert_any_call(
+            "seer.similar_issue_request.parent_issue", tags={"outcome": "found"}
         )
 
     # TODO: Remove once switch is complete
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple_group_id_and_hash_returned(self, mock_logger, mock_seer_request):
+    def test_simple_group_id_and_hash_returned(self, mock_logger, mock_seer_request, mock_metrics):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -835,6 +844,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
         mock_logger.info.assert_called_with(
             "Similar issues embeddings parameters", extra=expected_seer_request_params
+        )
+        mock_metrics.incr.assert_any_call(
+            "seer.similar_issue_request.parent_issue", tags={"outcome": "found"}
         )
 
     @with_feature("projects:similarity-embeddings")
@@ -898,9 +910,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.logger")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_incomplete_return_data(self, mock_seer_request, mock_logger):
+    def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics):
         # Two suggested groups, one with valid data, one missing both parent group id and parent hash.
         # We should log the second and return the first.
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -940,14 +953,21 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             },
         )
+        mock_metrics.incr.assert_any_call(
+            "seer.similar_issue_request.parent_issue", tags={"outcome": "found"}
+        )
+        mock_metrics.incr.assert_any_call(
+            "seer.similar_issue_request.parent_issue", tags={"outcome": "incomplete_data"}
+        )
+
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.logger")
+    @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_nonexistent_group(self, mock_seer_request, mock_logger):
+    def test_nonexistent_group(self, mock_seer_request, mock_metrics):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
         Test that these groups are not returned.
@@ -975,24 +995,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
         response = self.client.get(self.path)
 
-        mock_logger.exception.assert_called_with(
-            "Similar group suggested by Seer does not exist",
-            extra={
-                "request_params": {
-                    "group_id": NonNone(self.event.group_id),
-                    "hash": NonNone(self.event.get_primary_hash()),
-                    "project_id": self.project.id,
-                    "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
-                },
-                "raw_similar_issue_data": {
-                    "message_distance": 0.05,
-                    "parent_group_id": 1121201212312012,
-                    "parent_hash": "not a real hash",
-                    "should_group": True,
-                    "stacktrace_distance": 0.01,
-                },
-            },
+        mock_metrics.incr.assert_any_call(
+            "seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"}
         )
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
