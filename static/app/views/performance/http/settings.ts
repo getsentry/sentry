@@ -2,6 +2,7 @@ import type {BadgeType} from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Requests');
+export const BASE_URL = 'http';
 
 export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
