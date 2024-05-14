@@ -88,14 +88,6 @@ def queue_comment_task_if_needed(
             "github_pr_comment.queue_comment_check.open_pr",
             sample_rate=1.0,
         )
-        logger.info(
-            "github.pr_comment.queue_comment_check.open_pr",
-            extra={
-                "organization_id": commit.organization_id,
-                "repository_id": repo.id,
-                "commit_sha": commit.key,
-            },
-        )
         return
 
     merge_commit_sha = response[0]["merge_commit_sha"]
