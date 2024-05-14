@@ -164,7 +164,7 @@ function DestinationSummaryPage() {
   );
 }
 
-function DestinationSummaryPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -175,7 +175,7 @@ function DestinationSummaryPageWithProviders() {
     </ModulePageProviders>
   );
 }
-export default DestinationSummaryPageWithProviders;
+export default PageWithProviders;
 
 const Flex = styled('div')`
   display: flex;

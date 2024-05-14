@@ -87,7 +87,7 @@ describe('EditHighlightsModal', function () {
     renderModal({highlightContext: {}, highlightTags: []});
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-preview-section')).toBeInTheDocument();
-    expect(screen.getByTestId('highlights-empty-message')).toBeInTheDocument();
+    expect(screen.getByTestId('highlights-empty-preview')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-save-info')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-tag-section')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-context-section')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('EditHighlightsModal', function () {
       'highlights.edit_modal.use_default_clicked',
       expect.anything()
     );
-    expect(screen.queryByTestId('highlights-empty-message')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
 
     const updateProjectMock = MockApiClient.addMockResponse({
       url,
@@ -137,7 +137,7 @@ describe('EditHighlightsModal', function () {
 
     // Existing Tags and Context Keys should be highlighted
     const previewSection = screen.getByTestId('highlights-preview-section');
-    expect(screen.queryByTestId('highlights-empty-message')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
     highlightTags.forEach(tag => {
       const tagItem = within(previewSection).getByText(tag, {selector: 'div'});
       expect(tagItem).toBeInTheDocument();
@@ -350,6 +350,10 @@ describe('EditHighlightsModal', function () {
     await userEvent.type(tagInput, 'le');
     expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(3); // handled, level, release
     await userEvent.clear(tagInput);
+    await userEvent.type(tagInput, 'gibberish');
+    expect(screen.queryAllByTestId('highlight-tag-option')).toHaveLength(0);
+    expect(screen.getByTestId('highlights-empty-tags')).toBeInTheDocument();
+    await userEvent.clear(tagInput);
     expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
 
     const ctxCount = Object.values(TEST_EVENT_CONTEXTS)
@@ -359,6 +363,10 @@ describe('EditHighlightsModal', function () {
     const contextInput = screen.getByTestId('highlights-context-search');
     await userEvent.type(contextInput, 'name'); // client_os.name, runtime.name
     expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(2);
+    await userEvent.clear(contextInput);
+    await userEvent.type(contextInput, 'gibberish');
+    expect(screen.queryAllByTestId('highlight-context-option')).toHaveLength(0);
+    expect(screen.getByTestId('highlights-empty-context')).toBeInTheDocument();
     await userEvent.clear(contextInput);
     expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(ctxCount);
   });

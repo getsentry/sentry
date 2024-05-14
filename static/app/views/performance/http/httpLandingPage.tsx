@@ -23,7 +23,11 @@ import {DurationChart} from 'sentry/views/performance/http/charts/durationChart'
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/http/referrers';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  BASE_FILTERS,
+  MODULE_TITLE,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
   isAValidSort,
@@ -34,7 +38,6 @@ import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export function HTTPLandingPage() {
@@ -54,11 +57,11 @@ export function HTTPLandingPage() {
   });
 
   const chartFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
   };
 
   const tableFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
@@ -247,7 +250,7 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -259,4 +262,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

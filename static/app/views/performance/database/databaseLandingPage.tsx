@@ -265,7 +265,7 @@ const SelectorContainer = styled('div')`
 
 const LIMIT: number = 25;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database')].join(' — ')}
@@ -277,4 +277,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

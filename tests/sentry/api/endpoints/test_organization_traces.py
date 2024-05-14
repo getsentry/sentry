@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import timedelta
 from uuid import uuid4
 
@@ -24,7 +25,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
                 query,
                 format="json",
                 **kwargs,
@@ -76,7 +77,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         project_2 = self.create_project()
 
         # Hack: ensure that no span ids with leading 0s are generated for the test
-        span_ids = ["1" + uuid4().hex[:15] for _ in range(12)]
+        span_ids = ["1" + uuid4().hex[:15] for _ in range(13)]
         tags = ["", "bar", "bar", "baz", "", "bar", "baz"]
         timestamps = []
 
@@ -245,13 +246,28 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
 
+        timestamps.append(before_now(days=0, minutes=21, seconds=0).replace(microsecond=0))
+        self.store_indexed_span(
+            project_id=project_1.id,
+            trace_id=trace_id_2,
+            transaction_id=None,  # mock an INP span
+            span_id=span_ids[12],
+            parent_span_id=span_ids[4],
+            timestamp=timestamps[-1],
+            transaction="",
+            duration=1_000,
+            exclusive_time=1_000,
+            op="ui.navigation.click",
+            category="ui",
+        )
+
         return (
             project_1,
             project_2,
             trace_id_1,
             trace_id_2,
             trace_id_3,
-            timestamps,
+            [int(ts.timestamp() * 1000) for ts in timestamps],
             span_ids,
         )
 
@@ -451,16 +467,19 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": project_1.slug,
                         "name": "foo",
                         "duration": 60_100,
-                        "start": int(timestamps[0].timestamp() * 1000),
-                        "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                        "start": timestamps[0],
+                        "end": timestamps[0] + 60_100,
+                        "breakdownSlice": 1,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[0].timestamp() * 1000),
-                                "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                                "start": timestamps[0],
+                                "end": timestamps[0] + 60_100,
+                                "startSlice": 0,
+                                "endSlice": 60_100,
                                 "kind": "project",
                                 "duration": 60_100,
                             },
@@ -469,10 +488,12 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[1].timestamp() * 1000),
-                                "end": int(timestamps[3].timestamp() * 1000) + 30_003,
+                                "start": timestamps[1],
+                                "end": timestamps[3] + 30_003,
+                                "startSlice": timestamps[1] - timestamps[0],
+                                "endSlice": timestamps[3] - timestamps[0] + 30_003,
                                 "kind": "project",
-                                "duration": 32_003,
+                                "duration": timestamps[3] - timestamps[1] + 30_003,
                             },
                         ],
                         "spans": [
@@ -508,16 +529,19 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": project_1.slug,
                         "name": "bar",
                         "duration": 90_123,
-                        "start": int(timestamps[4].timestamp() * 1000),
-                        "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
+                        "breakdownSlice": 1,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[4].timestamp() * 1000),
-                                "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                                "start": timestamps[4],
+                                "end": timestamps[4] + 90_123,
+                                "startSlice": 0,
+                                "endSlice": 90_123,
                                 "kind": "project",
                                 "duration": 90_123,
                             },
@@ -526,10 +550,12 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[5].timestamp() * 1000),
-                                "end": int(timestamps[6].timestamp() * 1000) + 20_006,
+                                "start": timestamps[5],
+                                "end": timestamps[6] + 20_006,
+                                "startSlice": timestamps[5] - timestamps[4],
+                                "endSlice": timestamps[6] - timestamps[4] + 20_006,
                                 "kind": "project",
-                                "duration": 21_006,
+                                "duration": timestamps[6] - timestamps[5] + 20_006,
                             },
                         ],
                         "spans": [
@@ -608,16 +634,19 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "project": project_1.slug,
                 "name": "bar",
                 "duration": 90_123,
-                "start": int(timestamps[4].timestamp() * 1000),
-                "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                "start": timestamps[4],
+                "end": timestamps[4] + 90_123,
+                "breakdownSlice": 1,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "isRoot": False,
-                        "start": int(timestamps[4].timestamp() * 1000),
-                        "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
+                        "startSlice": 0,
+                        "endSlice": 90_123,
                         "kind": "project",
                         "duration": 90_123,
                     },
@@ -626,8 +655,10 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": "http",
                         "sdkName": "",
                         "isRoot": False,
-                        "start": int(timestamps[7].timestamp() * 1000),
-                        "end": int(timestamps[7].timestamp() * 1000) + 1_000,
+                        "start": timestamps[7],
+                        "end": timestamps[7] + 1_000,
+                        "startSlice": timestamps[7] - timestamps[4],
+                        "endSlice": timestamps[7] - timestamps[4] + 1_000,
                         "kind": "project",
                         "duration": 1_000,
                     },
@@ -636,18 +667,22 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "isRoot": False,
-                        "start": int(timestamps[5].timestamp() * 1000),
-                        "end": int(timestamps[6].timestamp() * 1000) + 20_006,
+                        "start": timestamps[5],
+                        "end": timestamps[6] + 20_006,
+                        "startSlice": timestamps[5] - timestamps[4],
+                        "endSlice": timestamps[6] - timestamps[4] + 20_006,
                         "kind": "project",
-                        "duration": 21_006,
+                        "duration": timestamps[6] - timestamps[5] + 20_006,
                     },
                     {
                         "project": project_1.slug,
                         "opCategory": "db",
                         "sdkName": "",
                         "isRoot": False,
-                        "start": int(timestamps[8].timestamp() * 1000),
-                        "end": int(timestamps[8].timestamp() * 1000) + 3_000,
+                        "start": timestamps[8],
+                        "end": timestamps[8] + 3_000,
+                        "startSlice": timestamps[8] - timestamps[4],
+                        "endSlice": timestamps[8] - timestamps[4] + 3_000,
                         "kind": "project",
                         "duration": 3_000,
                     },
@@ -724,16 +759,19 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": project_1.slug,
                         "name": "qux",
                         "duration": 40_000,
-                        "start": int(timestamps[10].timestamp() * 1000),
-                        "end": int(timestamps[10].timestamp() * 1000) + 40_000,
+                        "start": timestamps[10],
+                        "end": timestamps[10] + 40_000,
+                        "breakdownSlice": 1,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.remix",
                                 "isRoot": False,
-                                "start": int(timestamps[10].timestamp() * 1000),
-                                "end": int(timestamps[10].timestamp() * 1000) + 40_000,
+                                "start": timestamps[10],
+                                "end": timestamps[10] + 40_000,
+                                "startSlice": 0,
+                                "endSlice": 40_000,
                                 "kind": "project",
                                 "duration": 40_000,
                             },
@@ -742,8 +780,10 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[11].timestamp() * 1000),
-                                "end": int(timestamps[11].timestamp() * 1000) + 10_000,
+                                "start": timestamps[11],
+                                "end": timestamps[11] + 10_000,
+                                "startSlice": timestamps[11] - timestamps[10],
+                                "endSlice": timestamps[11] - timestamps[10] + 10_000,
                                 "kind": "project",
                                 "duration": 10_000,
                             },
@@ -824,7 +864,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -834,6 +874,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -863,7 +905,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -873,6 +915,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -883,6 +927,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 25,
                         "end": 75,
+                        "startSlice": 25,
+                        "endSlice": 75,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -921,7 +967,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -931,6 +977,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 50,
+                        "startSlice": 0,
+                        "endSlice": 50,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -941,6 +989,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 25,
                         "end": 75,
+                        "startSlice": 25,
+                        "endSlice": 75,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -951,6 +1001,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 50,
                         "end": 100,
+                        "startSlice": 50,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -980,7 +1032,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 75, 0)},
+            {"a" * 32: (0, 75, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -990,6 +1042,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 25,
+                        "startSlice": 0,
+                        "endSlice": 25,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1000,6 +1054,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": None,
                         "start": 25,
                         "end": 50,
+                        "startSlice": 25,
+                        "endSlice": 50,
                         "kind": "missing",
                         "duration": 25,
                         "isRoot": False,
@@ -1010,6 +1066,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 50,
                         "end": 75,
+                        "startSlice": 50,
+                        "endSlice": 75,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1039,7 +1097,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1049,6 +1107,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -1078,7 +1138,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1088,6 +1148,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -1117,7 +1179,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 75, 0)},
+            {"a" * 32: (0, 75, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1127,6 +1189,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 25,
+                        "startSlice": 0,
+                        "endSlice": 25,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1137,6 +1201,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": None,
                         "start": 25,
                         "end": 50,
+                        "startSlice": 25,
+                        "endSlice": 50,
                         "kind": "missing",
                         "duration": 25,
                         "isRoot": False,
@@ -1147,6 +1213,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 50,
                         "end": 75,
+                        "startSlice": 50,
+                        "endSlice": 75,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1185,7 +1253,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.06,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1195,6 +1263,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -1205,6 +1275,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 20,
                         "end": 80,
+                        "startSlice": 20,
+                        "endSlice": 80,
                         "kind": "project",
                         "duration": 60,
                         "isRoot": False,
@@ -1215,6 +1287,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 40,
                         "end": 60,
+                        "startSlice": 40,
+                        "endSlice": 60,
                         "kind": "project",
                         "duration": 20,
                         "isRoot": False,
@@ -1253,7 +1327,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 100, 0)},
+            {"a" * 32: (0, 100, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1263,6 +1337,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 100,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -1273,6 +1349,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 25,
                         "end": 50,
+                        "startSlice": 25,
+                        "endSlice": 50,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1283,6 +1361,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 50,
                         "end": 75,
+                        "startSlice": 50,
+                        "endSlice": 75,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1321,7 +1401,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.075,
                 },
             ],
-            {"a" * 32: (0, 75, 0)},
+            {"a" * 32: (0, 75, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1331,6 +1411,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 50,
+                        "startSlice": 0,
+                        "endSlice": 50,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -1341,6 +1423,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 20,
                         "end": 30,
+                        "startSlice": 20,
+                        "endSlice": 30,
                         "kind": "project",
                         "duration": 10,
                         "isRoot": False,
@@ -1351,6 +1435,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 50,
                         "end": 75,
+                        "startSlice": 50,
+                        "endSlice": 75,
                         "kind": "project",
                         "duration": 25,
                         "isRoot": False,
@@ -1389,7 +1475,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.06,
                 },
             ],
-            {"a" * 32: (0, 60, 0)},
+            {"a" * 32: (0, 60, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1399,6 +1485,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 50,
+                        "startSlice": 0,
+                        "endSlice": 50,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -1409,6 +1497,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 20,
                         "end": 30,
+                        "startSlice": 20,
+                        "endSlice": 30,
                         "kind": "project",
                         "duration": 10,
                         "isRoot": False,
@@ -1419,6 +1509,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 40,
                         "end": 60,
+                        "startSlice": 40,
+                        "endSlice": 60,
                         "kind": "project",
                         "duration": 20,
                         "isRoot": False,
@@ -1457,7 +1549,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.04,
                 },
             ],
-            {"a" * 32: (0, 50, 0)},
+            {"a" * 32: (0, 50, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1467,6 +1559,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 50,
+                        "startSlice": 0,
+                        "endSlice": 50,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -1477,6 +1571,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 10,
                         "end": 20,
+                        "startSlice": 10,
+                        "endSlice": 20,
                         "kind": "project",
                         "duration": 10,
                         "isRoot": False,
@@ -1497,7 +1593,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 50, 0)},
+            {"a" * 32: (0, 50, 0, 0)},
             {
                 "a"
                 * 32: [
@@ -1507,6 +1603,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 50,
+                        "startSlice": 0,
+                        "endSlice": 50,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -1527,7 +1625,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.05,
                 },
             ],
-            {"a" * 32: (0, 100, 20)},
+            {"a" * 32: (0, 100, 5, 20)},
             {
                 "a"
                 * 32: [
@@ -1537,6 +1635,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 40,
+                        "startSlice": 0,
+                        "endSlice": 2,
                         "kind": "project",
                         "duration": 50,
                         "isRoot": False,
@@ -1547,6 +1647,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": None,
                         "start": 40,
                         "end": 100,
+                        "startSlice": 2,
+                        "endSlice": 5,
                         "kind": "other",
                         "duration": 50,
                         "isRoot": False,
@@ -1585,7 +1687,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.040,
                 },
             ],
-            {"a" * 32: (0, 40, 10)},
+            {"a" * 32: (0, 40, 4, 10)},
             {
                 "a"
                 * 32: [
@@ -1595,6 +1697,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 20,
+                        "startSlice": 0,
+                        "endSlice": 2,
                         "kind": "project",
                         "duration": 23,
                         "isRoot": False,
@@ -1605,6 +1709,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": None,
                         "start": 20,
                         "end": 30,
+                        "startSlice": 2,
+                        "endSlice": 3,
                         "kind": "missing",
                         "duration": 8,
                         "isRoot": False,
@@ -1615,6 +1721,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 30,
                         "end": 40,
+                        "startSlice": 3,
+                        "endSlice": 4,
                         "kind": "project",
                         "duration": 8,
                         "isRoot": False,
@@ -1653,7 +1761,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100, 20)},
+            {"a" * 32: (0, 100, 5, 20)},
             {
                 "a"
                 * 32: [
@@ -1663,6 +1771,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 5,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": False,
@@ -1673,6 +1783,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 40,
+                        "startSlice": 0,
+                        "endSlice": 2,
                         "kind": "project",
                         "duration": 42,
                         "isRoot": False,
@@ -1702,7 +1814,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.1,
                 },
             ],
-            {"a" * 32: (0, 100, 20)},
+            {"a" * 32: (0, 100, 5, 20)},
             {
                 "a"
                 * 32: [
@@ -1712,6 +1824,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 5,
                         "kind": "project",
                         "duration": 82,
                         "isRoot": False,
@@ -1767,7 +1881,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.07,
                 },
             ],
-            {"a" * 32: (0, 100, 10)},
+            {"a" * 32: (0, 100, 10, 10)},
             {
                 "a"
                 * 32: [
@@ -1777,6 +1891,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.remix",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 10,
                         "kind": "project",
                         "duration": 100,
                         "isRoot": True,
@@ -1787,6 +1903,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 20,
                         "end": 80,
+                        "startSlice": 2,
+                        "endSlice": 8,
                         "kind": "project",
                         "duration": 60,
                         "isRoot": False,
@@ -1797,6 +1915,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.remix",
                         "start": 30,
                         "end": 70,
+                        "startSlice": 3,
+                        "endSlice": 7,
                         "kind": "project",
                         "duration": 40,
                         "isRoot": False,
@@ -1826,7 +1946,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "precise.finish_ts": 0.098,
                 },
             ],
-            {"a" * 32: (0, 100, 10)},
+            {"a" * 32: (0, 100, 10, 10)},
             {
                 "a"
                 * 32: [
@@ -1836,6 +1956,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.remix",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 10,
                         "kind": "project",
                         "duration": 96,
                         "isRoot": False,
@@ -1846,6 +1968,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "sdkName": "sentry.javascript.node",
                         "start": 0,
                         "end": 100,
+                        "startSlice": 0,
+                        "endSlice": 10,
                         "kind": "project",
                         "duration": 94,
                         "isRoot": False,
@@ -1861,9 +1985,10 @@ def test_process_breakdowns(data, traces_range, expected):
         trace: {
             "start": trace_start,
             "end": trace_end,
-            "min": trace_min,
+            "slices": slices,
+            "slice_size": slice_size,
         }
-        for trace, (trace_start, trace_end, trace_min) in traces_range.items()
+        for trace, (trace_start, trace_end, slices, slice_size) in traces_range.items()
     }
-    result = process_breakdowns(data, traces_range)
+    result = process_breakdowns(deepcopy(data), traces_range)
     assert result == expected

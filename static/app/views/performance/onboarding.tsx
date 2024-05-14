@@ -194,17 +194,12 @@ function Onboarding({organization, project}: Props) {
               browserHistory.push(
                 generateLinkToEventInTraceView({
                   eventId: eventData.eventID,
+                  location,
                   projectSlug: project.slug,
                   organization,
-                  location: {
-                    ...location,
-                    query: {
-                      ...location.query,
-                      demo: `${project.slug}:${eventData.eventID}`,
-                    },
-                  },
                   timestamp: eventData.endTimestamp,
                   traceSlug,
+                  demo: `${project.slug}:${eventData.eventID}`,
                 })
               );
               clearIndicators();

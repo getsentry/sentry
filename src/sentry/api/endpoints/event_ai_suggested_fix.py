@@ -191,7 +191,7 @@ def describe_event_for_ai(event, model):
     detailed = model.startswith("gpt-4")
     data = {}
 
-    msg = event.get("message")
+    msg = event.get("logentry")
     if msg:
         data["message"] = msg
 

@@ -22,7 +22,8 @@ export function getTraceDetailsUrl(
   dateSelection,
   timestamp?: string | number,
   eventId?: string,
-  spanId?: string
+  spanId?: string,
+  demo?: string
 ): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
@@ -44,6 +45,7 @@ export function getTraceDetailsUrl(
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
+        demo,
       },
     };
   }
