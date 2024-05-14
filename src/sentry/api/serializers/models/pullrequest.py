@@ -30,7 +30,7 @@ class PullRequestSerializer(Serializer):
             repository_id = str(item.repository_id)
             external_url = ""
             if item.repository_id in repository_map:
-                external_url = self._external_url(repository_map[item.repository_id], item)
+                external_url = item.get_external_url()
             result[item] = {
                 "repository": serialized_repos.get(repository_id, {}),
                 "external_url": external_url,
@@ -38,16 +38,6 @@ class PullRequestSerializer(Serializer):
             }
 
         return result
-
-    def _external_url(self, repository, pull):
-        from sentry.plugins.base import bindings
-
-        provider_id = repository.provider
-        if not provider_id or not provider_id.startswith("integrations:"):
-            return None
-        provider_cls = bindings.get("integration-repository.provider").get(provider_id)
-        provider = provider_cls(provider_id)
-        return provider.pull_request_url(repository, pull)
 
     def serialize(self, obj, attrs, user):
         return {
