@@ -5650,35 +5650,6 @@
       ]
     ]
   },
-  "sentry.sentryfunction": {
-    "dangling": false,
-    "foreign_keys": {
-      "organization": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.organization",
-        "nullable": false
-      }
-    },
-    "model": "sentry.sentryfunction",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_sentryfunction",
-    "uniques": [
-      [
-        "external_id"
-      ],
-      [
-        "organization",
-        "slug"
-      ],
-      [
-        "slug"
-      ]
-    ]
-  },
   "sentry.sentryshot": {
     "dangling": false,
     "foreign_keys": {

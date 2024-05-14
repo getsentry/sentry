@@ -779,9 +779,6 @@
     "sentry.apitoken",
     "sentry.sentryappinstallation"
   ],
-  "sentry.sentryfunction": [
-    "sentry.organization"
-  ],
   "sentry.sentryshot": [
     "sentry.organization"
   ],

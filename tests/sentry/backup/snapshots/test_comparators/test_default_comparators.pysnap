@@ -1420,11 +1420,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - organization
-  model_name: sentry.sentryfunction
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - organization_id
   model_name: sentry.sentryshot
 - comparators:
