@@ -214,6 +214,11 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+        if len(metric_names) > 1:
+            raise ParseError(
+                "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
+            )
+
         if not projects:
             raise InvalidParams("You must supply at least one project to see the tag names")
 
@@ -225,10 +230,16 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
                 use_case_ids=[get_use_case_id(request)],
                 mris=mris,
             )
-        except (InvalidParams, DerivedMetricParseException) as exc:
+        except InvalidParams:
+            raise NotFound(self._generate_not_found_message(metric_names))
+        except DerivedMetricParseException as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
+
+    def _generate_not_found_message(self, metric_names: list[str]) -> str:
+        if len(metric_names) > 0:
+            return f"No data found for metric: {metric_names[0]}"
 
 
 @region_silo_endpoint

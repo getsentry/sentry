@@ -5,16 +5,10 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import get_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from tests.sentry.api.endpoints.test_organization_metrics import (
-    MOCKED_DERIVED_METRICS,
-    mocked_mri_resolver,
-)
+from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -30,150 +24,35 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
-    )
-    def test_metric_tags(self):
-        response = self.get_success_response(
-            self.organization.slug,
-        )
-        assert response.data == [
-            {"key": "tag1"},
-            {"key": "tag2"},
-            {"key": "tag3"},
-            {"key": "tag4"},
-            {"key": "project"},
-        ]
-
-        # When metric names are supplied, get intersection of tag names:
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=["metric1", "metric2"],
-        )
-        assert response.data == [{"key": "tag1"}, {"key": "tag2"}, {"key": "project"}]
-
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=["metric1", "metric2", "metric3"],
-        )
-        assert response.data == [{"key": "project"}]
-
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(
-            ["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"], get_mri
-        ),
-    )
-    def test_mri_metric_tags(self):
-        response = self.get_success_response(
-            self.organization.slug,
-        )
-        assert response.data == [
-            {"key": "tag1"},
-            {"key": "tag2"},
-            {"key": "tag3"},
-            {"key": "tag4"},
-            {"key": "project"},
-        ]
-
-        response = self.get_success_response(
+    def test_multiple_mris(self):
+        response = self.get_response(
             self.organization.slug,
             metric=["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"],
             useCase="transactions",
         )
-        assert response.data == []
-
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(
-            ["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"], get_mri
-        ),
-    )
-    def test_mixed_metric_identifiers(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=["d:transactions/duration@millisecond", "not_mri"],
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
         )
-
-        assert response.data == []
-
-    @patch(
-        "sentry.snuba.metrics.datasource.bulk_reverse_resolve",
-        mocked_bulk_reverse_resolve,
-    )
-    def test_unknown_tag(self):
-        response = self.get_success_response(
-            self.organization.slug,
-        )
-        assert response.data == [{"key": "project"}]
-
-    def test_staff_session_metric_tags(self):
-        staff_user = self.create_user(is_staff=True)
-        self.login_as(user=staff_user, staff=True)
-
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                started=(time.time() // 60) * 60,
-                status="ok",
-                release="foobar@2.0",
-            )
-        )
-        response = self.get_success_response(
-            self.organization.slug,
-        )
-        assert response.data == [
-            {"key": "environment"},
-            {"key": "release"},
-            {"key": "tag1"},
-            {"key": "tag2"},
-            {"key": "tag3"},
-            {"key": "tag4"},
-            {"key": "project"},
-        ]
-
-    def test_session_metric_tags(self):
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                started=(time.time() // 60) * 60,
-                status="ok",
-                release="foobar@2.0",
-            )
-        )
-        response = self.get_success_response(
-            self.organization.slug,
-        )
-        assert response.data == [
-            {"key": "environment"},
-            {"key": "release"},
-            {"key": "tag1"},
-            {"key": "tag2"},
-            {"key": "tag3"},
-            {"key": "tag4"},
-            {"key": "project"},
-        ]
 
     def test_metric_tags_metric_does_not_exist_in_naming_layer(self):
         response = self.get_response(
             self.organization.slug,
             metric=["foo.bar"],
         )
-        assert response.data == []
+        assert response.status_code == 404
+        assert response.json()["detail"] == "No data found for metric: foo.bar"
 
     def test_metric_tags_metric_does_not_have_data(self):
-        indexer.record(
-            use_case_id=UseCaseID.SESSIONS,
-            org_id=self.organization.id,
-            string=SessionMRI.RAW_SESSION.value,
+        response = self.get_response(
+            self.organization.slug,
+            metric=[SessionMetricKey.CRASH_FREE_RATE.value],
         )
+        assert response.status_code == 404
         assert (
-            self.get_response(
-                self.organization.slug,
-                metric=[SessionMetricKey.CRASH_FREE_RATE.value],
-            ).data
-            == []
+            response.json()["detail"]
+            == f"No data found for metric: {SessionMetricKey.CRASH_FREE_RATE.value}"
         )
 
     def test_derived_metric_tags(self):
