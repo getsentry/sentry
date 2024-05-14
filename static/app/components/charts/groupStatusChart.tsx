@@ -51,12 +51,12 @@ function GroupStatusChart({
     if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
       const series: Series[] = [
         {
-          seriesName: t('Matching Events'),
-          data: stats.map(asChartPoint),
-        },
-        {
           seriesName: t('Total Events'),
           data: secondaryStats.map(asChartPoint),
+        },
+        {
+          seriesName: t('Matching Events'),
+          data: stats.map(asChartPoint),
         },
       ];
 
