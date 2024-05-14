@@ -78,8 +78,8 @@ RUN set -x \
 
 COPY /dist/*.whl /tmp/dist/
 RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
-RUN set -o pipefail \
-    && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
+RUN set -e \
+    && sentry helpp | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
 COPY ./self-hosted/docker-entrypoint.sh /
