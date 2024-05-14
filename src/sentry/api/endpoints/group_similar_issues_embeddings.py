@@ -131,21 +131,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             )
         }
 
-        result = []
-        for group_id in group_data:
-            try:
-                result.append((serialized_groups[group_id], group_data[group_id]))
-            except KeyError:
-                # KeyErrors may occur if seer API returns a deleted/merged group, which means it
-                # will be missing from `serialized_groups`
-                #
-                # TODO: This shouldn't be an issue for merged groups once we only use hashes (since
-                # merging leaves the hashes intact), but it will still be an error for deleted
-                # groups/hashes.
-                #
-                # TODO: Report back to seer that the hash has been deleted.
-                continue
-        return result
+        return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
     def get(self, request: Request, group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
