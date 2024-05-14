@@ -31,6 +31,7 @@ import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples'
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
 import {Referrer} from 'sentry/views/performance/http/referrers';
+import {BASE_FILTERS} from 'sentry/views/performance/http/settings';
 import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -43,7 +44,6 @@ import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSer
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
-  ModuleName,
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
@@ -109,7 +109,7 @@ export function HTTPSamplesPanel() {
 
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
   const ribbonFilters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
@@ -117,7 +117,7 @@ export function HTTPSamplesPanel() {
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
