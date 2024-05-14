@@ -1,9 +1,5 @@
 from .activity import *  # noqa: F401,F403
 from .actor import *  # noqa: F401,F403
-from .alert_rule import *  # noqa: F401,F403
-from .alert_rule_activations import *  # noqa: F401,F403
-from .alert_rule_trigger import *  # noqa: F401,F403
-from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
 from .apiauthorization import *  # noqa: F401,F403
 from .apikey import *  # noqa: F401,F403
@@ -33,7 +29,6 @@ from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
 from .identity import *  # noqa: F401,F403
 from .identityprovider import *  # noqa: F401,F403
-from .incident import *  # noqa: F401,F403
 from .incidentactivity import *  # noqa: F401,F403
 from .incidentseen import *  # noqa: F401,F403
 from .integration import *  # noqa: F401,F403

@@ -13,8 +13,8 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
+from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,

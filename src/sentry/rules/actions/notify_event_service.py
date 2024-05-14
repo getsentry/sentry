@@ -8,8 +8,8 @@ from django import forms
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
-from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.eventstore.models import GroupEvent
+from sentry.incidents.endpoints.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info

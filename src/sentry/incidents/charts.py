@@ -9,11 +9,11 @@ from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
+from sentry.incidents.endpoints.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident

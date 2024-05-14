@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,

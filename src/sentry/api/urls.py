@@ -189,6 +189,10 @@ from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, Organiz
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
+from ..incidents.endpoints.team_alerts_triggered import (
+    TeamAlertsTriggeredIndexEndpoint,
+    TeamAlertsTriggeredTotalsEndpoint,
+)
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
@@ -604,10 +608,6 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_alerts_triggered import (
-    TeamAlertsTriggeredIndexEndpoint,
-    TeamAlertsTriggeredTotalsEndpoint,
-)
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
