@@ -1684,7 +1684,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 fn = lookup[0] if lookup else None
                 clause = lookup[1] if lookup else Clauses.WHERE
 
-                # skip these
+                # issue.category and issue.type are handled specially
+                # we handle the date filter with calculate_start_end
                 if search_filter.key.name in ["issue.category", "issue.type", "date"]:
                     pass
                 elif fn:
