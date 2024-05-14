@@ -58,7 +58,7 @@ function QueuesLandingPage() {
       query: {
         ...location.query,
         destination: newDestination === '' ? undefined : newDestination,
-        [QueryParameterNames.SPANS_CURSOR]: undefined,
+        [QueryParameterNames.DESTINATIONS_CURSOR]: undefined,
       },
     });
   };
