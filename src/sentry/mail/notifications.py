@@ -4,6 +4,7 @@ import logging
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import TYPE_CHECKING, Any
 
+import orjson
 import sentry_sdk
 from django.utils.encoding import force_str
 
@@ -16,7 +17,6 @@ from sentry.notifications.notify import register_notification_provider
 from sentry.notifications.types import UnsubscribeContext
 from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_unsubscribe_link
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
-    headers = {"X-SMTPAPI": json.dumps({"category": notification.metrics_key})}
+    headers = {"X-SMTPAPI": orjson.dumps({"category": notification.metrics_key}).decode()}
     if isinstance(notification, ProjectNotification) and notification.project.slug:
         headers["X-Sentry-Project"] = notification.project.slug
 
