@@ -119,6 +119,19 @@ export default function WizardField({
       ],
     },
     {
+      label: t('LLM'),
+      options: [
+        {
+          label: AlertWizardAlertNames.llm_tokens,
+          value: 'llm_tokens',
+        },
+        {
+          label: AlertWizardAlertNames.llm_cost,
+          value: 'llm_cost',
+        },
+      ],
+    },
+    {
       label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
         hasCustomMetrics(organization)

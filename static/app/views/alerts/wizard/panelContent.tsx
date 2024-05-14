@@ -160,4 +160,22 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCrashFreeUsers,
   },
+  llm_cost: {
+    description: t(
+      'LLM cost is the total cost in US dollars for LLMs run within the project.'
+    ),
+    examples: [
+      t('When total cost in the past 30 days is above $200, send an email to the team.'),
+    ],
+    illustration: diagramCustomMetrics,
+  },
+  llm_tokens: {
+    description: t(
+      'LLM tokens is the total token used by LLMs in the project. Tokens are usually a measure of how much data is being sent and received from LLMs.'
+    ),
+    examples: [
+      t('When LLM tokens per hour reaches 1,000, send a Slack message to the team.'),
+    ],
+    illustration: diagramCustomMetrics,
+  },
 };

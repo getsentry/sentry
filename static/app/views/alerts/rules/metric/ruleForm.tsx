@@ -159,7 +159,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      alertType !== 'custom_metrics'
+      alertType !== 'custom_metrics' &&
+      alertType !== 'llm_cost' &&
+      alertType !== 'llm_tokens'
         ? query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter

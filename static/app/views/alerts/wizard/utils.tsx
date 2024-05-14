@@ -18,6 +18,10 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<MetricAlertType, stri
     fid: 'measurements.fid',
     cls: 'measurements.cls',
   },
+  [Dataset.SPANS_METRICS]: {
+    llm_tokens: 'ai_total_tokens_used()',
+    llm_cost: 'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+  },
   [Dataset.GENERIC_METRICS]: {
     throughput: 'count()',
     trans_duration: 'transaction.duration',

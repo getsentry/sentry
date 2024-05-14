@@ -35,6 +35,8 @@ export type AlertType =
   | 'cls'
   | 'crash_free_sessions'
   | 'crash_free_users'
+  | 'llm_tokens'
+  | 'llm_cost'
   | 'custom_transactions'
   | 'custom_metrics';
 
@@ -56,6 +58,7 @@ export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
+  [Dataset.SPANS_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
   [Dataset.SESSIONS]: MEPAlertsQueryType.CRASH_RATE,
 };
@@ -75,6 +78,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
+  llm_tokens: t('LLM token usage'),
+  llm_cost: t('LLM cost'),
 };
 
 type AlertWizardCategory = {
@@ -91,6 +96,14 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
         {
           categoryHeading: t('Sessions'),
           options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
+        },
+      ]
+    : []),
+  ...(org.features.includes('ai-analytics')
+    ? [
+        {
+          categoryHeading: t('LLM Monitoring'),
+          options: ['llm_cost', 'llm_tokens'] satisfies AlertType[],
         },
       ]
     : []),
@@ -116,7 +129,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
 export type WizardRuleTemplate = {
   aggregate: string;
   dataset: Dataset;
-  eventTypes: EventTypes;
+  eventTypes?: EventTypes;
   query?: string;
 };
 
@@ -169,6 +182,14 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  llm_cost: {
+    aggregate: 'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+    dataset: Dataset.SPANS_METRICS,
+  },
+  llm_tokens: {
+    aggregate: 'ai_total_tokens_used()',
+    dataset: Dataset.SPANS_METRICS,
+  },
   custom_transactions: {
     aggregate: 'p95(measurements.fp)',
     dataset: Dataset.GENERIC_METRICS,
@@ -203,6 +224,8 @@ export const hidePrimarySelectorSet = new Set<AlertType>([
   'failure_rate',
   'crash_free_sessions',
   'crash_free_users',
+  'llm_tokens',
+  'llm_cost',
 ]);
 
 export const hideParameterSelectorSet = new Set<AlertType>([

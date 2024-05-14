@@ -55,7 +55,7 @@ class Create extends Component<Props, State> {
     // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
     if (
       alertType === AlertRuleType.METRIC &&
-      !(aggregate && dataset && eventTypes) &&
+      !(aggregate && dataset && (dataset === 'spansMetrics' || eventTypes)) &&
       !createFromDuplicate
     ) {
       router.replace(

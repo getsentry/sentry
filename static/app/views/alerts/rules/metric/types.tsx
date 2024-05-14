@@ -34,6 +34,7 @@ export enum Dataset {
   TRANSACTIONS = 'transactions',
   /** Also used for performance alerts **/
   GENERIC_METRICS = 'generic_metrics',
+  SPANS_METRICS = 'spansMetrics',
   SESSIONS = 'sessions',
   /** Also used for crash free alerts */
   METRICS = 'metrics',

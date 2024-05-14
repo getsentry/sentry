@@ -33,6 +33,7 @@ export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
   [Dataset.GENERIC_METRICS]: 'event.type:transaction',
+  [Dataset.SPANS_METRICS]: null,
 } as const;
 
 export const DATASOURCE_EVENT_TYPE_FILTERS = {

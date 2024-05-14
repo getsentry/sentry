@@ -35,5 +35,9 @@ export function getMetricDatasetQueryExtras({
     queryExtras.useOnDemandMetrics = 'true';
   }
 
+  if (dataset === 'spansMetrics') {
+    queryExtras.dataset = 'spansMetrics';
+  }
+
   return queryExtras;
 }
