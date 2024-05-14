@@ -72,9 +72,9 @@ _default_logger = logging.getLogger(__name__)
 
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
-    _FLAGS_KEY: str = "TOGGLEABLE_FLAGS"
-    _ISSUE_ALERTS_THREAD_FLAG: str = "ISSUE_ALERTS_THREAD_FLAG"
-    _METRIC_ALERTS_THREAD_FLAG: str = "METRIC_ALERTS_THREAD_FLAG"
+    _FLAGS_KEY: str = "toggleableFlags"
+    _ISSUE_ALERTS_THREAD_FLAG: str = "issueAlertsThreadFlag"
+    _METRIC_ALERTS_THREAD_FLAG: str = "metricAlertsThreadFlag"
     _SUPPORTED_FLAGS_WITH_DEFAULTS: dict[str, bool] = {
         _ISSUE_ALERTS_THREAD_FLAG: True,
         _METRIC_ALERTS_THREAD_FLAG: True,
