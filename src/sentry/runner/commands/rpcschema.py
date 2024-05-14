@@ -6,8 +6,6 @@ from typing import Any
 
 import click
 from django.urls import reverse
-from openapi_pydantic import OpenAPI
-from openapi_pydantic.util import PydanticSchema, construct_open_api_with_schema_class
 
 from sentry.runner.decorators import configuration
 from sentry.utils import json
@@ -28,6 +26,16 @@ from sentry.utils import json
 )
 @configuration
 def rpcschema(diagnose: bool, partial: bool) -> None:
+    # Defered imports because openapi_pydantic is only installed as a dev dependency
+    try:
+        from openapi_pydantic import OpenAPI
+        from openapi_pydantic.util import PydanticSchema, construct_open_api_with_schema_class
+    except ImportError:
+        click.echo(
+            "Could not import openapi_pydantic. You must install requirements-dev to run this command"
+        )
+        return
+
     from sentry.services.hybrid_cloud.rpc import (
         RpcMethodSignature,
         list_all_service_method_signatures,
@@ -108,9 +116,9 @@ def rpcschema(diagnose: bool, partial: bool) -> None:
     if diagnose or partial:
         spec, error_reports = create_partial_spec(all_signatures)
         if diagnose:
-            print(f"Error count: {len(error_reports)}")  # noqa
+            click.echo(f"Error count: {len(error_reports)}")  # noqa
             for bad_sig in error_reports:
-                print("- " + bad_sig)  # noqa
+                click.echo("- " + bad_sig)  # noqa
     else:
         spec = create_spec(all_signatures)
 
