@@ -49,6 +49,10 @@ class DatadogMetricsBackendTest(TestCase):
         mock_event.assert_called_once_with(
             title="foo",
             message="bar",
+            alert_type=None,
+            aggregation_key=None,
+            source_type_name=None,
+            priority=None,
             tags=["instance:baz"],
             hostname=get_hostname(hostname_from_config=True),
         )
