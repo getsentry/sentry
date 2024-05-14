@@ -994,6 +994,10 @@ def process_rules(job: PostProcessJob) -> None:
     from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
 
     if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
+        logger.info(
+            "post_process.process_rules.adding_bufferhookevent",
+            extra={"key_name": BufferHookEvent.FLUSH.value},
+        )
         redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
 
     if job["is_reprocessed"]:
