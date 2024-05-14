@@ -20,7 +20,7 @@ def organization_integration_has_feature_enabled(
     }
     installation = integration.get_installation(organization_id=organization_id)
     if installation is None:
-        _default_logger.info(
+        _default_logger.info(  # type: ignore[unreachable]
             "no installation found for integration",
             extra=base_logs,
         )
