@@ -9,6 +9,7 @@ from urllib3 import Retry
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.conf.server import (
+    SEER_GROUPING_RECORDS_DELETE_URL,
     SEER_GROUPING_RECORDS_URL,
     SEER_MAX_GROUPING_DISTANCE,
     SEER_SIMILAR_ISSUES_URL,
@@ -312,3 +313,29 @@ def post_bulk_grouping_records(
         extra.update({"reason": response.reason})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
         return {"success": False}
+
+
+def delete_grouping_records(
+    project_id: int,
+) -> bool:
+    try:
+        response = seer_grouping_connection_pool.urlopen(
+            "GET",
+            f"{SEER_GROUPING_RECORDS_DELETE_URL}/{project_id}",
+            headers={"Content-Type": "application/json;charset=utf-8"},
+            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        )
+    except ReadTimeoutError:
+        logger.exception(
+            "seer.delete_grouping_records.timeout",
+            extra={"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT},
+        )
+        return False
+
+    if response.status >= 200 and response.status < 300:
+        return True
+    else:
+        logger.error(
+            "seer.delete_grouping_records.failure",
+        )
+        return False

@@ -617,3 +617,27 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
 
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("embeddings_info")
+
+    @django_db_all
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    @patch("sentry.tasks.backfill_seer_grouping_records.delete_grouping_records")
+    def test_backfill_seer_grouping_records_dry_run(
+        self, mock_delete_grouping_records, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that the metadata is set for all groups showing that the record has been created.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True}
+        mock_delete_grouping_records.return_value = True
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, 0, dry_run=True)
+
+        for group in Group.objects.filter(project_id=self.project.id):
+            assert not group.data["metadata"].get("embeddings_info") == {
+                "nn_model_version": 0,
+                "group_hash": json.dumps([self.group_hashes[group.id]]),
+            }
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        assert last_processed_id != 0
