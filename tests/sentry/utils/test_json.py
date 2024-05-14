@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.utils import json
 
 
-class JSONTest(TestCase):
+class JSONSerializationTest(TestCase):
     def test_uuid(self):
         res = uuid.uuid4()
         self.assertEqual(json.dumps(res), '"%s"' % res.hex)
@@ -48,3 +48,44 @@ class JSONTest(TestCase):
 
     def test_translation(self):
         self.assertEqual(json.dumps(_("word")), '"word"')
+
+
+class JSONHelpersTest(TestCase):
+    def test_prune_empty_keys_simple(self):
+        assert json.prune_empty_keys(
+            {
+                "dogs_are_great": True,
+                "good_dogs": "all",
+                "bad_dogs": None,
+            }
+        ) == {
+            "dogs_are_great": True,
+            "good_dogs": "all",
+        }
+
+    def test_prune_empty_keys_keeps_falsy_values(self):
+        assert json.prune_empty_keys(
+            {
+                "empty_string": "",
+                "empty_list": [],
+                "empty_dict": {},
+                "empty_set": set(),
+                "empty_tuple": tuple(),
+                "false": False,
+                "zero": 0,
+                "zero_point_zero": 0.0,
+                "none": None,
+            }
+        ) == {
+            "empty_string": "",
+            "empty_list": [],
+            "empty_dict": {},
+            "empty_set": set(),
+            "empty_tuple": tuple(),
+            "false": False,
+            "zero": 0,
+            "zero_point_zero": 0.0,
+        }
+
+    def test_prune_empty_keys_none_input(self):
+        assert json.prune_empty_keys(None) is None
