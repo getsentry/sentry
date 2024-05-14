@@ -1,5 +1,6 @@
 import type {BadgeType} from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLE = t('Requests');
 
@@ -16,3 +17,7 @@ export const releaseLevelAsBadgeProps = {
 
 export const CHART_HEIGHT = 160;
 export const SPAN_ID_DISPLAY_LENGTH = 16;
+
+export const BASE_FILTERS = {
+  'span.module': ModuleName.HTTP,
+};
