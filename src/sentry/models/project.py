@@ -122,7 +122,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-hapi",
     "node-koa",
     "node-nestjs",
-    "node-serverlesscloud",
     "php",
     "php-laravel",
     "php-symfony",
