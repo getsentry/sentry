@@ -94,7 +94,10 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type MetricsPlanUpgradeProps = {
-  children: (props: {label: string; to: string} | null) => React.ReactNode;
+  children: (
+    props: {billingStartDate: Date; label: string; to: string} | null
+  ) => React.ReactNode;
+
   organization: Organization;
 };
 

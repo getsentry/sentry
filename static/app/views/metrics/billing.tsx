@@ -2,7 +2,8 @@ import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {getFormattedDate} from 'sentry/utils/dates';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -17,17 +18,22 @@ export function TopBanner() {
   return (
     <MetricsPlanUpgrade organization={organization}>
       {upgradeProps => {
-        if (upgradeProps && hasCustomMetrics(organization)) {
-          return (
-            <Alert system type="info">
-              {t(
-                'In order to continue using metrics after TBD you will need to update your plan. '
-              )}
-              <Link to={upgradeProps.to}>{upgradeProps.label}</Link>
-            </Alert>
-          );
-        }
         if (upgradeProps) {
+          const formattedDate = getFormattedDate(
+            upgradeProps.billingStartDate,
+            'MMM D, YYYY'
+          );
+          if (hasCustomMetrics(organization)) {
+            return (
+              <Alert system type="info">
+                {tct(
+                  'In order to continue using metrics after [billingStartDate] you will need to update your plan. ',
+                  {billingStartDate: formattedDate}
+                )}
+                <Link to={upgradeProps.to}>{upgradeProps.label}</Link>
+              </Alert>
+            );
+          }
           return (
             <Alert system type="info">
               {t('In order to use metrics, you need to update your plan. ')}
@@ -37,7 +43,7 @@ export function TopBanner() {
         }
         return (
           <Alert type="info">
-            {t('Starting on TBD, sentry will start charging for metrics.')}
+            {t('Starting on June 5th 2024, Sentry will start charging for metrics.')}
           </Alert>
         );
       }}
