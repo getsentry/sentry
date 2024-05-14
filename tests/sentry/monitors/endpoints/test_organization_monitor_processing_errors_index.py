@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.monitors.processing_errors.errors import ProcessingError, ProcessingErrorType
+from sentry.monitors.processing_errors.errors import ProcessingErrorType
 from sentry.monitors.processing_errors.manager import store_error
 from sentry.monitors.testutils import build_checkin_processing_error
 from sentry.testutils.cases import APITestCase, MonitorTestCase
@@ -22,22 +22,21 @@ class OrganizationMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APIT
         project_2 = self.create_project()
 
         monitor_error = build_checkin_processing_error(
-            [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
             message_overrides={"project_id": self.project.id},
             payload_overrides={"monitor_slug": monitor.slug},
         )
 
         project_errors = [
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)],
+                [{"type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED}],
                 message_overrides={"project_id": self.project.id},
             ),
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED, {"some": "data"})],
+                [{"type": ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT, "reason": "bad env"}],
                 message_overrides={"project_id": self.project.id},
             ),
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED, {"some": "data"})],
+                [{"type": ProcessingErrorType.MONITOR_DISABLED}],
                 message_overrides={"project_id": project_2.id},
             ),
         ]

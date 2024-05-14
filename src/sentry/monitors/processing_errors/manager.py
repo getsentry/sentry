@@ -16,7 +16,7 @@ from sentry.monitors.models import Monitor
 from sentry.monitors.types import CheckinItem
 from sentry.utils import json, metrics, redis
 
-from .errors import CheckinProcessingError, CheckinValidationError
+from .errors import CheckinProcessingError, ProcessingErrorsException
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ def get_errors_for_projects(projects: list[Project]) -> list[CheckinProcessingEr
     return _get_for_entities([build_project_identifier(project.id) for project in projects])
 
 
-def handle_processing_errors(item: CheckinItem, error: CheckinValidationError):
+def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException):
     try:
         project = Project.objects.get_from_cache(id=item.message["project_id"])
         organization = Organization.objects.get_from_cache(id=project.organization_id)

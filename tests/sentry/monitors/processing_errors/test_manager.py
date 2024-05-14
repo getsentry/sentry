@@ -2,8 +2,7 @@ from unittest import mock
 
 from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
-    CheckinValidationError,
-    ProcessingError,
+    ProcessingErrorsException,
     ProcessingErrorType,
 )
 from sentry.monitors.processing_errors.manager import (
@@ -62,17 +61,17 @@ class CheckinProcessErrorsManagerTest(TestCase):
         monitor = self.create_monitor()
         processing_errors = [
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+                [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED, {"some": "data"})],
+                [{"type": ProcessingErrorType.MONITOR_DISABLED}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)],
+                [{"type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
@@ -99,12 +98,12 @@ class CheckinProcessErrorsManagerTest(TestCase):
         monitor = self.create_monitor()
         processing_errors = [
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+                [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
             build_checkin_processing_error(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED, {"some": "data"})],
+                [{"type": ProcessingErrorType.MONITOR_DISABLED}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
@@ -141,8 +140,8 @@ class CheckinProcessErrorsManagerTest(TestCase):
 class HandleProcessingErrorsTest(TestCase):
     def test(self):
         monitor = self.create_monitor()
-        exception = CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID, {"guid": "bad"})],
+        exception = ProcessingErrorsException(
+            [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
             monitor=monitor,
         )
         handle_processing_errors(
