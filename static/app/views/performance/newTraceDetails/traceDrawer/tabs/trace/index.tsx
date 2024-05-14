@@ -54,8 +54,6 @@ export function TraceDetails(props: TraceDetailsProps) {
     throw new Error('Expected a trace node');
   }
 
-  const {data: rootEvent} = props.rootEventResults;
-
   return (
     <Fragment>
       {props.tree.type === 'trace' ? <TraceWarnings type={props.traceType} /> : null}
@@ -69,15 +67,13 @@ export function TraceDetails(props: TraceDetailsProps) {
           rootEventResults={props.rootEventResults}
           metaResults={props.metaResults}
         />
-        {rootEvent ? (
-          <TagsSummary
-            tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}
-            organization={organization}
-            location={location}
-            eventView={props.traceEventView}
-            totalValues={props.tree.eventsCount}
-          />
-        ) : null}
+        <TagsSummary
+          tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}
+          organization={organization}
+          location={location}
+          eventView={props.traceEventView}
+          totalValues={props.tree.eventsCount}
+        />
       </TraceDrawerComponents.SectionCardGroup>
     </Fragment>
   );
