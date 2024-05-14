@@ -6,7 +6,11 @@ import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
-from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
+from sentry.conf.server import (
+    SEER_MAX_GROUPING_DISTANCE,
+    SEER_SIMILAR_ISSUES_URL,
+    SEER_SIMILARITY_MODEL_VERSION,
+)
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
@@ -181,7 +185,7 @@ def get_similarity_data_from_seer(
     response = seer_grouping_connection_pool.urlopen(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
-        body=json.dumps(similar_issues_request),
+        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 

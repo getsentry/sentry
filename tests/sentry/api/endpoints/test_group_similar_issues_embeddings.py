@@ -713,7 +713,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         response = self.client.get(
             self.path,
-            data={"k": "1", "threshold": "0.98"},
+            data={"k": "1", "threshold": "0.01"},
         )
 
         assert response.data == self.get_expected_response(
@@ -721,13 +721,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         expected_seer_request_params = {
+            "threshold": 0.01,
             "group_id": self.group.id,
             "hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
             "k": 1,
-            "threshold": 0.98,
         }
 
         mock_seer_request.assert_called_with(
@@ -764,7 +764,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         response = self.client.get(
             self.path,
-            data={"k": "1", "threshold": "0.98"},
+            data={"k": "1", "threshold": "0.01"},
         )
 
         assert response.data == self.get_expected_response(
@@ -772,13 +772,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         expected_seer_request_params = {
+            "threshold": 0.01,
             "group_id": self.group.id,
             "hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
             "k": 1,
-            "threshold": 0.98,
         }
 
         mock_seer_request.assert_called_with(
@@ -817,7 +817,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         response = self.client.get(
             self.path,
-            data={"k": "1", "threshold": "0.98"},
+            data={"k": "1", "threshold": "0.01"},
         )
 
         assert response.data == self.get_expected_response(
@@ -825,13 +825,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         expected_seer_request_params = {
+            "threshold": 0.01,
             "group_id": self.group.id,
             "hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
             "k": 1,
-            "threshold": 0.98,
         }
 
         mock_seer_request.assert_called_with(
@@ -1104,6 +1104,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
+                    "threshold": 0.01,
                     "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
@@ -1128,6 +1129,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
+                    "threshold": 0.01,
                     "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
@@ -1142,7 +1144,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         # Include threshold
         response = self.client.get(
             self.path,
-            data={"threshold": "0.98"},
+            data={"threshold": "0.01"},
         )
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
@@ -1153,12 +1155,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(
                 {
+                    "threshold": 0.01,
                     "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
-                    "threshold": 0.98,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
