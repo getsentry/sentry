@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Literal, Mapping, Sequence, TypedDict, Union
+from typing import Literal, TypedDict, Union
 
 from sentry.monitors.models import Monitor
 from sentry.monitors.types import CheckinItem, CheckinItemData

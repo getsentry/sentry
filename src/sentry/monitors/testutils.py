@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence
 
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
