@@ -1371,13 +1371,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-  const releaseThresholdRoutes = (
-    <Route path="/release-thresholds/" withOrgPath>
-      <IndexRoute
-        component={make(() => import('sentry/views/releases/thresholdsList'))}
-      />
-    </Route>
-  );
 
   const activityRoutes = (
     <Route
@@ -2070,7 +2063,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {releaseThresholdRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
