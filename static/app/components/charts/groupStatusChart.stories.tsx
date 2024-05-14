@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import storyBook from 'sentry/stories/storyBook';
 import type {Group, TimeseriesValue} from 'sentry/types';
@@ -38,14 +40,20 @@ const fakeGroup = {
 export default storyBook(GroupStatusChart, story => {
   story('Default', () => {
     return (
-      <div style={{display: 'flex', justifyContent: 'center', marginBottom: '20px'}}>
+      <GraphContainer>
         <GroupStatusChart
           showMarkLine
           data={fakeGroup}
           groupStatus="Escalating"
           statsPeriod="24h"
         />
-      </div>
+      </GraphContainer>
     );
   });
 });
+
+const GraphContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+`;
