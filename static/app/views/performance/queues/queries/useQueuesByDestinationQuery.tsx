@@ -27,6 +27,7 @@ export function useQueuesByDestinationQuery({enabled}: Props) {
         'avg_if(span.duration,span.op,queue.publish)',
         'avg_if(span.duration,span.op,queue.process)',
         'avg(messaging.message.receive.latency)',
+        'trace_status_rate(ok)',
       ],
       enabled,
       sorts: [],

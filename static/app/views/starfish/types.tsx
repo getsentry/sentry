@@ -95,7 +95,7 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
-export type ConditionalAggregate = `avg_if` | `count_op`;
+export type ConditionalAggregate = `avg_if` | `count_op` | 'trace_status_rate';
 
 export const SPAN_FUNCTIONS = [
   'sps',
@@ -256,6 +256,7 @@ export enum SpanFunction {
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
   COUNT_OP = 'count_op',
+  TRACE_STATUS_RATE = 'trace_status_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -312,6 +313,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.COUNT_OP]: {
     desc: t('Count of spans with matching operation'),
     defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.TRACE_STATUS_RATE]: {
+    desc: t('Percentage of spans with matching trace status'),
+    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

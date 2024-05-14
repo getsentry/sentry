@@ -34,6 +34,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 0,
             'avg_if(span.duration,span.op,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
+            'trace_status_rate(ok)': 0.8,
           },
         ],
         meta: {
@@ -46,6 +47,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 'duration',
             'avg_if(span.duration,span.op,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
+            'trace_status_rate(ok)': 'percentage',
           },
         },
       },
@@ -79,6 +81,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
+            'trace_status_rate(ok)',
           ],
           dataset: 'spansMetrics',
         }),
@@ -89,6 +92,7 @@ describe('queuesTable', () => {
     expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20%'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
 });

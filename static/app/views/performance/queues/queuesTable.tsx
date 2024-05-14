@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -52,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate()',
+    key: 'trace_status_rate(ok)',
     name: t('Error Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -142,13 +142,19 @@ function renderBodyCell(
     return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
   }
 
-  if (key === 'failure_rate()') {
-    return <AlignRight>{formatPercentage(row[key])}</AlignRight>;
-  }
-
   if (key.startsWith('avg')) {
     const renderer = FIELD_FORMATTERS.duration.renderFunc;
     return renderer(key, row);
+  }
+
+  // Need to invert trace_status_rate(ok) to show error rate
+  if (key === 'trace_status_rate(ok)') {
+    const formatter = FIELD_FORMATTERS.percentage.renderFunc;
+    return (
+      <AlignRight>
+        {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
+      </AlignRight>
+    );
   }
 
   if (!meta?.fields) {
