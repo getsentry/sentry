@@ -2757,8 +2757,8 @@ SENTRY_USE_SPOTLIGHT = False
 
 # This flags enables the `peanutbutter` realtime metrics backend.
 # See https://github.com/getsentry/peanutbutter.
-# TODO: we do not want/need this in normal devservices, but we need it for certain tests
-SENTRY_USE_PEANUTBUTTER = True
+# We do not want/need this in normal devservices, but we need it for certain tests.
+SENTRY_USE_PEANUTBUTTER = False
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
