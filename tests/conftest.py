@@ -5,7 +5,7 @@ import pytest
 import responses
 from django.db import connections
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
 
 pytest_plugins = ["sentry.testutils.pytest"]

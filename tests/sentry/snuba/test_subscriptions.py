@@ -13,9 +13,9 @@ from sentry.snuba.subscriptions import (
     update_snuba_subscription,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_kafka, requires_snuba
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci

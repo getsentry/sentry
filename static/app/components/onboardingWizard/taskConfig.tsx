@@ -4,6 +4,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {Client} from 'sentry/api';
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
@@ -242,7 +243,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
-      action: ({router}) => {
+      action: router => {
         // Use `features?.` because getsentry has a different `Organization` type/payload
         if (!organization.features?.includes('performance-onboarding-checklist')) {
           window.open(
@@ -445,11 +446,12 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
       }) as OnboardingTask
   );
 
+  const supportedTasks = filterSupportedTasks(projects, allTasks);
   // Map incomplete requisiteTasks as full task objects
-  return allTasks.map(task => ({
+  return supportedTasks.map(task => ({
     ...task,
     requisiteTasks: task.requisites
-      .map(key => allTasks.find(task2 => task2.task === key)!)
+      .map(key => supportedTasks.find(task2 => task2.task === key)!)
       .filter(reqTask => reqTask.status !== 'complete'),
   }));
 }

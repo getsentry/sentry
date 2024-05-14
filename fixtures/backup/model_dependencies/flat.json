@@ -44,12 +44,7 @@
     "sentry.project",
     "sentry.user"
   ],
-  "sentry.actor": [
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.alertrule": [
-    "sentry.actor",
     "sentry.organization",
     "sentry.snubaquery",
     "sentry.team",
@@ -240,8 +235,7 @@
   "sentry.docintegration": [],
   "sentry.docintegrationavatar": [
     "sentry.controlfile",
-    "sentry.docintegration",
-    "sentry.file"
+    "sentry.docintegration"
   ],
   "sentry.email": [],
   "sentry.environment": [
@@ -327,11 +321,12 @@
     "sentry.project"
   ],
   "sentry.grouphistory": [
-    "sentry.actor",
     "sentry.group",
     "sentry.organization",
     "sentry.project",
-    "sentry.release"
+    "sentry.release",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.groupinbox": [
     "sentry.group",
@@ -399,6 +394,7 @@
   "sentry.identityprovider": [],
   "sentry.incident": [
     "sentry.alertrule",
+    "sentry.alertruleactivations",
     "sentry.organization"
   ],
   "sentry.incidentactivity": [
@@ -733,9 +729,10 @@
     "sentry.project"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
-    "sentry.project"
+    "sentry.project",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.ruleactivity": [
     "sentry.rule",
@@ -763,7 +760,6 @@
   ],
   "sentry.sentryappavatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.sentryapp"
   ],
   "sentry.sentryappcomponent": [
@@ -782,9 +778,6 @@
   "sentry.sentryappinstallationtoken": [
     "sentry.apitoken",
     "sentry.sentryappinstallation"
-  ],
-  "sentry.sentryfunction": [
-    "sentry.organization"
   ],
   "sentry.sentryshot": [
     "sentry.organization"
@@ -823,7 +816,6 @@
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.user"
   ],
   "sentry.useremail": [

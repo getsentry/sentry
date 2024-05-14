@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 
@@ -12,15 +12,16 @@ import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/
 export function useSampleScatterPlotSeries(
   spans: Partial<IndexedResponse>[],
   average?: number,
-  highlightedSpanId?: string
+  highlightedSpanId?: string,
+  key: string = 'span.self_time'
 ): Series[] {
   const theme = useTheme();
 
   return spans.map(span => {
     let symbol, color;
 
-    if (span['span.self_time'] && defined(average)) {
-      ({symbol, color} = getSampleChartSymbol(span['span.self_time'], average, theme));
+    if (span[key] && defined(average)) {
+      ({symbol, color} = getSampleChartSymbol(span[key], average, theme));
     } else {
       symbol = 'circle';
       color = AVG_COLOR;
@@ -30,7 +31,7 @@ export function useSampleScatterPlotSeries(
       data: [
         {
           name: span?.timestamp ?? span.span_id ?? t('Span'),
-          value: span?.['span.self_time'] ?? 0,
+          value: span?.[key] ?? 0,
         },
       ],
       symbol,

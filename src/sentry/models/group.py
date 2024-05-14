@@ -33,7 +33,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
@@ -45,9 +45,10 @@ from sentry.issues.priority import (
 )
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
@@ -66,8 +67,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
-
+_short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
@@ -212,7 +212,7 @@ class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
     MOST_HELPFUL = [
-        "-replayId",
+        "-replay.id",
         "-profile.id",
         "num_processing_errors",
         "-trace.sampled",
@@ -509,7 +509,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_only_model
+@region_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -839,8 +839,15 @@ class Group(Model):
 
     @property
     def title(self) -> str:
-        et = eventtypes.get(self.get_event_type())()
-        return et.get_title(self.get_event_metadata())
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return event_type_instance.get_title(self.get_event_metadata())
 
     def location(self):
         et = eventtypes.get(self.get_event_type())()
@@ -872,13 +879,14 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self):
+    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
+            referrer=referrer,
         )[self.id]
 
     @classmethod
@@ -893,7 +901,7 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor: RpcActor = group_assignee.assigned_actor()
+        assigned_actor: Actor = group_assignee.assigned_actor()
 
         return assigned_actor.resolve()
 

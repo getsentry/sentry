@@ -10,22 +10,30 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
+logger = logging.getLogger("sentry.rules")
+
 SLOW_CONDITION_MATCHES = ["event_frequency"]
+PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
 def get_match_function(match_name: str) -> Callable[..., bool] | None:
@@ -38,16 +46,144 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
     return None
 
 
-def is_condition_slow(condition: Mapping[str, str]) -> bool:
+def is_condition_slow(
+    condition: Mapping[str, Any],
+) -> bool:
+    """
+    Returns whether a condition is considered slow. Note that the slow condition
+    mapping take the form on EventFrequencyConditionData.
+    """
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:
             return True
     return False
 
 
-class RuleProcessor:
-    logger = logging.getLogger("sentry.rules")
+def get_rule_type(condition: Mapping[str, Any]) -> str | None:
+    rule_cls = rules.get(condition["id"])
+    if rule_cls is None:
+        logger.warning("Unregistered condition or filter %r", condition["id"])
+        return None
 
+    rule_type: str = rule_cls.rule_type
+    return rule_type
+
+
+def split_conditions_and_filters(
+    rule_condition_list,
+) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
+    condition_list = []
+    filter_list = []
+    for rule_cond in rule_condition_list:
+        if get_rule_type(rule_cond) == "condition/event":
+            condition_list.append(rule_cond)
+        else:
+            filter_list.append(rule_cond)
+
+    return condition_list, filter_list
+
+
+def build_rule_status_cache_key(rule_id: int, group_id: int) -> str:
+    return "grouprulestatus:1:%s" % hash_values([group_id, rule_id])
+
+
+def bulk_get_rule_status(
+    rules: Sequence[Rule], group: Group, project: Project
+) -> Mapping[int, GroupRuleStatus]:
+    keys = [build_rule_status_cache_key(rule.id, group.id) for rule in rules]
+    cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
+    missing_rule_ids: set[int] = set()
+    rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
+    for key, rule in zip(keys, rules):
+        rule_status = cache_results.get(key)
+        if not rule_status:
+            missing_rule_ids.add(rule.id)
+        else:
+            rule_statuses[rule.id] = rule_status
+
+    if missing_rule_ids:
+        # If not cached, attempt to fetch status from the database
+        statuses = GroupRuleStatus.objects.filter(group=group, rule_id__in=missing_rule_ids)
+        to_cache: list[GroupRuleStatus] = list()
+        for status in statuses:
+            rule_statuses[status.rule_id] = status
+            missing_rule_ids.remove(status.rule_id)
+            to_cache.append(status)
+
+        # We might need to create some statuses if they don't already exist
+        if missing_rule_ids:
+            # We use `ignore_conflicts=True` here to avoid race conditions where the statuses
+            # might be created between when we queried above and attempt to create the rows now.
+            GroupRuleStatus.objects.bulk_create(
+                [
+                    GroupRuleStatus(rule_id=rule_id, group=group, project=project)
+                    for rule_id in missing_rule_ids
+                ],
+                ignore_conflicts=True,
+            )
+            # Using `ignore_conflicts=True` prevents the pk from being set on the model
+            # instances. Re-query the database to fetch the rows, they should all exist at this
+            # point.
+            statuses = GroupRuleStatus.objects.filter(group=group, rule_id__in=missing_rule_ids)
+            for status in statuses:
+                rule_statuses[status.rule_id] = status
+                missing_rule_ids.remove(status.rule_id)
+                to_cache.append(status)
+
+            if missing_rule_ids:
+                # Shouldn't happen, but log just in case
+                logger.error(
+                    "Failed to fetch some GroupRuleStatuses in RuleProcessor",
+                    extra={"missing_rule_ids": missing_rule_ids, "group_id": group.id},
+                )
+        if to_cache:
+            cache.set_many(
+                {build_rule_status_cache_key(item.rule_id, group.id): item for item in to_cache}
+            )
+
+    return rule_statuses
+
+
+def activate_downstream_actions(
+    rule: Rule,
+    event: GroupEvent,
+    notification_uuid: str | None = None,
+    rule_fire_history: RuleFireHistory | None = None,
+) -> MutableMapping[
+    str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+]:
+    grouped_futures: MutableMapping[
+        str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+    ] = {}
+
+    for action in rule.data.get("actions", ()):
+        action_inst = instantiate_action(rule, action, rule_fire_history)
+        if not action_inst:
+            continue
+
+        results = safe_execute(
+            action_inst.after,
+            event=event,
+            _with_transaction=False,
+            notification_uuid=notification_uuid,
+        )
+        if results is None:
+            logger.warning("Action %s did not return any futures", action["id"])
+            continue
+
+        for future in results:
+            key = future.key if future.key is not None else future.callback
+            rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
+
+            if key not in grouped_futures:
+                grouped_futures[key] = (future.callback, [rule_future])
+            else:
+                grouped_futures[key][1].append(rule_future)
+
+    return grouped_futures
+
+
+class RuleProcessor:
     def __init__(
         self,
         event: GroupEvent,
@@ -76,78 +212,20 @@ class RuleProcessor:
         rules_: Sequence[Rule] = Rule.get_for_project(self.project.id)
         return rules_
 
-    def _build_rule_status_cache_key(self, rule_id: int) -> str:
-        return "grouprulestatus:1:%s" % hash_values([self.group.id, rule_id])
-
-    def bulk_get_rule_status(self, rules: Sequence[Rule]) -> Mapping[int, GroupRuleStatus]:
-        keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
-        cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
-        missing_rule_ids: set[int] = set()
-        rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
-        for key, rule in zip(keys, rules):
-            rule_status = cache_results.get(key)
-            if not rule_status:
-                missing_rule_ids.add(rule.id)
-            else:
-                rule_statuses[rule.id] = rule_status
-
-        if missing_rule_ids:
-            # If not cached, attempt to fetch status from the database
-            statuses = GroupRuleStatus.objects.filter(
-                group=self.group, rule_id__in=missing_rule_ids
-            )
-            to_cache: list[GroupRuleStatus] = list()
-            for status in statuses:
-                rule_statuses[status.rule_id] = status
-                missing_rule_ids.remove(status.rule_id)
-                to_cache.append(status)
-
-            # We might need to create some statuses if they don't already exist
-            if missing_rule_ids:
-                # We use `ignore_conflicts=True` here to avoid race conditions where the statuses
-                # might be created between when we queried above and attempt to create the rows now.
-                GroupRuleStatus.objects.bulk_create(
-                    [
-                        GroupRuleStatus(rule_id=rule_id, group=self.group, project=self.project)
-                        for rule_id in missing_rule_ids
-                    ],
-                    ignore_conflicts=True,
-                )
-                # Using `ignore_conflicts=True` prevents the pk from being set on the model
-                # instances. Re-query the database to fetch the rows, they should all exist at this
-                # point.
-                statuses = GroupRuleStatus.objects.filter(
-                    group=self.group, rule_id__in=missing_rule_ids
-                )
-                for status in statuses:
-                    rule_statuses[status.rule_id] = status
-                    missing_rule_ids.remove(status.rule_id)
-                    to_cache.append(status)
-
-                if missing_rule_ids:
-                    # Shouldn't happen, but log just in case
-                    self.logger.error(
-                        "Failed to fetch some GroupRuleStatuses in RuleProcessor",
-                        extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},
-                    )
-            if to_cache:
-                cache.set_many(
-                    {self._build_rule_status_cache_key(item.rule_id): item for item in to_cache}
-                )
-
-        return rule_statuses
-
     def condition_matches(
-        self, condition: dict[str, Any], state: EventState, rule: Rule
+        self,
+        condition: MutableMapping[str, Any],
+        state: EventState,
+        rule: Rule,
     ) -> bool | None:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
-            self.logger.warning("Unregistered condition %r", condition["id"])
+            logger.warning("Unregistered condition %r", condition["id"])
             return None
 
-        condition_inst = condition_cls(self.project, data=condition, rule=rule)
+        condition_inst = condition_cls(project=self.project, data=condition, rule=rule)
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
-            self.logger.warning("Unregistered condition %r", condition["id"])
+            logger.warning("Unregistered condition %r", condition["id"])
             return None
         passes: bool = safe_execute(
             condition_inst.passes,
@@ -157,15 +235,6 @@ class RuleProcessor:
         )
         return passes
 
-    def get_rule_type(self, condition: Mapping[str, Any]) -> str | None:
-        rule_cls = rules.get(condition["id"])
-        if rule_cls is None:
-            self.logger.warning("Unregistered condition or filter %r", condition["id"])
-            return None
-
-        rule_type: str = rule_cls.rule_type
-        return rule_type
-
     def get_state(self) -> EventState:
         return EventState(
             is_new=self.is_new,
@@ -174,6 +243,39 @@ class RuleProcessor:
             has_reappeared=self.has_reappeared,
             has_escalated=self.has_escalated,
         )
+
+    def group_conditions_by_speed(
+        self, conditions: list[MutableMapping[str, Any]]
+    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        fast_conditions = []
+        slow_conditions: list[EventFrequencyConditionData] = []
+
+        for condition in conditions:
+            if is_condition_slow(condition):
+                slow_conditions.append(condition)  # type: ignore[arg-type]
+            else:
+                fast_conditions.append(condition)
+
+        return fast_conditions, slow_conditions
+
+    def enqueue_rule(self, rule: Rule) -> None:
+        logger.info(
+            "rule_processor.rule_enqueued",
+            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+        )
+        self.buffer = RedisBuffer()
+        self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+
+        value = json.dumps(
+            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+        )
+        self.buffer.push_to_hash(
+            model=Project,
+            filters={"project_id": rule.project.id},
+            field=f"{rule.id}:{self.group.id}",
+            value=value,
+        )
+        metrics.incr("delayed_rule.group_added")
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
@@ -196,7 +298,6 @@ class RuleProcessor:
 
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
-        rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         try:
             environment = self.event.get_environment()
@@ -212,37 +313,63 @@ class RuleProcessor:
             return
 
         state = self.get_state()
+        condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
+        fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
+        process_slow_conditions_later = features.has(
+            "organizations:process-slow-alerts", self.project.organization
+        )
+        condition_list = fast_conditions
+        if not process_slow_conditions_later:
+            condition_list = fast_conditions + slow_conditions  # type: ignore[operator]
 
-        condition_list = []
-        filter_list = []
-        for rule_cond in rule_condition_list:
-            if self.get_rule_type(rule_cond) == "condition/event":
-                condition_list.append(rule_cond)
-            else:
-                filter_list.append(rule_cond)
-
-        # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(key=lambda condition: is_condition_slow(condition))
-
-        for predicate_list, match, name in (
-            (filter_list, filter_match, "filter"),
-            (condition_list, condition_match, "condition"),
-        ):
-            if not predicate_list:
-                continue
-            predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
-            predicate_func = get_match_function(match)
+        # evaluate all filters and return if they fail, then do the enqueue logic for conditions
+        if filter_list:
+            predicate_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+            predicate_func = get_match_function(filter_match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
                     return
             else:
-                self.logger.error(
-                    f"Unsupported {name}_match {match!r} for rule {rule.id}",
+                log_string = f"Unsupported filter_match {filter_match} for rule {rule.id}"
+                logger.error(
+                    log_string,
                     filter_match,
                     rule.id,
                     extra={**logging_details},
                 )
                 return
+
+        predicate_func = get_match_function(condition_match)
+        if not predicate_func and (slow_conditions or fast_conditions):
+            log_string = f"Unsupported condition_match {condition_match} for rule {rule.id}"
+            logger.error(
+                log_string,
+                filter_match,
+                rule.id,
+                extra={**logging_details},
+            )
+            return
+
+        if slow_conditions or fast_conditions:
+            predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
+            result = False
+            if predicate_func:
+                result = predicate_func(predicate_iter)
+
+            if condition_match == "any":
+                if not result and slow_conditions and process_slow_conditions_later:
+                    self.enqueue_rule(rule)
+                    return
+                elif not result:
+                    return
+
+            elif condition_match == "all":
+                if not result:
+                    return
+
+                if slow_conditions and process_slow_conditions_later:
+                    self.enqueue_rule(rule)
+                    return
 
         updated = (
             GroupRuleStatus.objects.filter(id=status.id)
@@ -261,42 +388,16 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
-
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
-        self.activate_downstream_actions(rule, notification_uuid, rule_fire_history)
+        grouped_futures = activate_downstream_actions(
+            rule, self.event, notification_uuid, rule_fire_history
+        )
 
-    def activate_downstream_actions(
-        self,
-        rule: Rule,
-        notification_uuid: str | None = None,
-        rule_fire_history: RuleFireHistory | None = None,
-    ) -> None:
-        state = self.get_state()
-        for action in rule.data.get("actions", ()):
-            action_inst = instantiate_action(rule, action, rule_fire_history)
-            if not action_inst:
-                continue
-
-            results = safe_execute(
-                action_inst.after,
-                event=self.event,
-                state=state,
-                _with_transaction=False,
-                notification_uuid=notification_uuid,
-            )
-            if results is None:
-                self.logger.warning("Action %s did not return any futures", action["id"])
-                continue
-
-            for future in results:
-                key = future.key if future.key is not None else future.callback
-                rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
-
-                if key not in self.grouped_futures:
-                    self.grouped_futures[key] = (future.callback, [rule_future])
-                else:
-                    self.grouped_futures[key][1].append(rule_future)
+        if not self.grouped_futures:
+            self.grouped_futures = grouped_futures
+        else:
+            self.grouped_futures.update(grouped_futures)
 
     def apply(
         self,
@@ -310,7 +411,7 @@ class RuleProcessor:
         snoozed_rules = RuleSnooze.objects.filter(rule__in=rules, user_id=None).values_list(
             "rule", flat=True
         )
-        rule_statuses = self.bulk_get_rule_status(rules)
+        rule_statuses = bulk_get_rule_status(rules, self.group, self.project)
         for rule in rules:
             if rule.id not in snoozed_rules:
                 self.apply_rule(rule, rule_statuses[rule.id])

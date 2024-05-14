@@ -11,10 +11,11 @@ import ProgressRing, {
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
@@ -46,6 +47,7 @@ export default function OnboardingStatus({
   };
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
+  const {shouldAccordionFloat} = useContext(ExpandedContext);
 
   if (!org.features?.includes('onboarding')) {
     return null;
@@ -98,7 +100,7 @@ export default function OnboardingStatus({
           size={38}
           barWidth={6}
         />
-        {!collapsed && (
+        {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
             <Remaining>

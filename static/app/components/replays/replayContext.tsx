@@ -15,6 +15,7 @@ import type {
   ReplayPrefs,
 } from 'sentry/components/replays/preferences/replayPreferences';
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
+import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -26,7 +27,6 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
-import {VideoReplayer} from './videoReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -289,9 +289,11 @@ function ProviderNonMemo({
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
   };
-  const onFastForwardStart = (e: {speed: number}) => {
-    setFFSpeed(e.speed);
-  };
+  const onFastForwardStart = useCallback((e: {speed: number}) => {
+    if (savedReplayConfigRef.current.isSkippingInactive) {
+      setFFSpeed(e.speed);
+    }
+  }, []);
   const onFastForwardEnd = () => {
     setFFSpeed(0);
   };
@@ -318,10 +320,12 @@ function ProviderNonMemo({
         return;
       }
 
-      const skipInactive = replayer.config;
+      const skipInactive = replayer.config.skipInactive;
+
       if (skipInactive) {
         // If the replayer is set to skip inactive, we should turn it off before
-        // manually scrubbing, so when the player resumes playing its not stuck
+        // manually scrubbing, so when the player resumes playing it's not stuck
+        // fast-forwarding even through sections with activity
         replayer.setConfig({skipInactive: false});
       }
 
@@ -336,9 +340,9 @@ function ProviderNonMemo({
       if (playTimer.current) {
         window.clearTimeout(playTimer.current);
       }
-      if (skipInactive) {
-        replayer.setConfig({skipInactive: true});
-      }
+
+      replayer.setConfig({skipInactive});
+
       if (isPlaying) {
         playTimer.current = window.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
@@ -460,6 +464,7 @@ function ProviderNonMemo({
       theme.purple200,
       startTimeOffsetMs,
       autoStart,
+      onFastForwardStart,
     ]
   );
 
@@ -469,16 +474,19 @@ function ProviderNonMemo({
         return null;
       }
 
-      // check if this is a video replay and if we can use the video replayer
+      // check if this is a video replay and if we can use the video (wrapper) replayer
       if (!isVideoReplay || !videoEvents || !startTimestampMs) {
         return null;
       }
 
-      const inst = new VideoReplayer(videoEvents, {
+      // This is a wrapper class that wraps both the VideoReplayer
+      // and the rrweb Replayer
+      const inst = new VideoReplayerWithInteractions({
+        // video specific
+        videoEvents,
         videoApiPrefix: `/api/0/projects/${
           organization.slug
         }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
-        root,
         start: startTimestampMs,
         onFinished: setReplayFinished,
         onLoaded: event => {
@@ -495,6 +503,12 @@ function ProviderNonMemo({
           setVideoBuffering(buffering);
         },
         clipWindow,
+        durationMs,
+        // rrweb specific
+        theme,
+        events: events ?? [],
+        // common to both
+        root,
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
@@ -514,6 +528,7 @@ function ProviderNonMemo({
       isFetching,
       isVideoReplay,
       videoEvents,
+      events,
       organization.slug,
       projectSlug,
       replay,
@@ -521,6 +536,8 @@ function ProviderNonMemo({
       startTimestampMs,
       startTimeOffsetMs,
       clipWindow,
+      durationMs,
+      theme,
     ]
   );
 

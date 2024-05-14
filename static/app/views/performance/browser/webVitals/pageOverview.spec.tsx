@@ -13,7 +13,7 @@ jest.mock('sentry/utils/useOrganization');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
-    features: ['starfish-browser-webvitals', 'performance-database-view'],
+    features: ['spans-first-ui'],
   });
 
   let eventsMock;
@@ -85,7 +85,7 @@ describe('PageOverview', function () {
 
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['starfish-browser-webvitals', 'performance-database-view'],
+      features: ['spans-first-ui'],
     });
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
@@ -130,7 +130,7 @@ describe('PageOverview', function () {
 
   it('escapes transaction name before querying discover', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['starfish-browser-webvitals', 'performance-database-view'],
+      features: ['spans-first-ui'],
     });
     jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({

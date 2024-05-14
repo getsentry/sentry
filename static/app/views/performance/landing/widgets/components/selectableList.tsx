@@ -103,6 +103,46 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
   );
 }
 
+export function TimeConsumingDomainsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Domains may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
+                {t('Requests module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/caches/">
+                {t('Cache module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
 export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();

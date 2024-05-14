@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from sentry.notifications.utils.avatar import avatar_as_html, get_user_avatar_url
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
@@ -36,7 +36,7 @@ class NoteActivityNotification(GroupActivityNotification):
     ) -> str:
         return self.title
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
         return self.get_context()["text_description"]
 
     def description_as_html(self, description: str, params: Mapping[str, Any]) -> SafeString:

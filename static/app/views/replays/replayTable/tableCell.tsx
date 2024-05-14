@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -26,8 +25,9 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -360,7 +360,7 @@ export function ReplayCell({
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
           {project ? project.slug : null}
-          <Link to={detailsTab} onClick={trackNavigationEvent}>
+          <Link to={detailsTab()} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
           <Row gap={0.5}>
@@ -382,7 +382,7 @@ export function ReplayCell({
               replay.user.display_name || t('Anonymous User')
             ) : (
               <MainLink
-                to={detailsTab}
+                to={detailsTab()}
                 onClick={trackNavigationEvent}
                 data-has-viewed={replay.has_viewed}
               >

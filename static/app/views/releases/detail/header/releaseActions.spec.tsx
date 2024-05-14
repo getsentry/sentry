@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {HealthFixture} from 'sentry-fixture/health';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
@@ -18,7 +17,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types';
-import {ReleaseStatus} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {

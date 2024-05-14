@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from rest_framework import serializers
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -36,7 +36,13 @@ from sentry.sentry_metrics.querying.errors import (
     LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
+from sentry.sentry_metrics.querying.metadata import (
+    MetricCodeLocations,
+    convert_metric_names_to_mris,
+    get_metric_code_locations,
+    get_metrics_meta,
+    get_tag_values,
+)
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import (
@@ -45,14 +51,7 @@ from sentry.sentry_metrics.use_case_id_registry import (
     get_use_case_id_api_access,
 )
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.snuba.metrics import (
-    QueryDefinition,
-    get_all_tags,
-    get_metrics_meta,
-    get_series,
-    get_single_metric_info,
-    get_tag_values,
-)
+from sentry.snuba.metrics import QueryDefinition, get_all_tags, get_series, get_single_metric_info
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
@@ -155,10 +154,8 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
         if not projects:
             raise InvalidParams("You must supply at least one project to see its metrics")
 
-        start, end = get_date_range_from_params(request.GET)
-
         metrics = get_metrics_meta(
-            projects=projects, use_case_ids=get_use_case_ids(request), start=start, end=end
+            organization=organization, projects=projects, use_case_ids=get_use_case_ids(request)
         )
 
         return Response(metrics, status=200)
@@ -246,25 +243,45 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or []
+        if len(metric_names) > 1:
+            raise ParseError(
+                "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
+            )
         projects = self.get_projects(request, organization)
         if not projects:
             raise InvalidParams("You must supply at least one project to see the tag values")
 
-        start, end = get_date_range_from_params(request.GET)
-
         try:
-            tag_values = get_tag_values(
-                projects=projects,
-                tag_name=tag_name,
-                metric_names=metric_names,
-                use_case_id=get_use_case_id(request),
-                start=start,
-                end=end,
-            )
-        except (InvalidParams, DerivedMetricParseException) as exc:
+            mris = convert_metric_names_to_mris(metric_names)
+            tag_values: set[str] = set()
+            for mri in mris:
+                mri_tag_values = get_tag_values(
+                    organization=organization,
+                    projects=projects,
+                    use_case_ids=[get_use_case_id(request)],
+                    mri=mri,
+                    tag_key=tag_name,
+                )
+                tag_values = tag_values.union(mri_tag_values)
+
+        except InvalidParams:
+            raise NotFound(self._generate_not_found_message(metric_names, tag_name))
+
+        except DerivedMetricParseException as exc:
             raise ParseError(str(exc))
 
-        return Response(tag_values, status=200)
+        tag_values_formatted = [{"key": tag_name, "value": tag_value} for tag_value in tag_values]
+
+        if len(tag_values_formatted) > 0:
+            return Response(tag_values_formatted, status=200)
+        else:
+            raise NotFound(self._generate_not_found_message(metric_names, tag_name))
+
+    def _generate_not_found_message(self, metric_names: list[str], tag_name: str) -> str:
+        if len(metric_names) > 0:
+            return f"No data found for metric: {metric_names[0]} and tag: {tag_name}"
+        else:
+            return f"No data found for tag: {tag_name}"
 
 
 @region_silo_endpoint
@@ -281,8 +298,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(200, 5)
+    # 60 req/s to allow for metric dashboard loading
+    default_rate_limit = RateLimit(limit=60, window=1)
 
     rate_limits = {
         "GET": {
@@ -361,7 +378,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     """
 
     # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
-    default_rate_limit = RateLimit(200, 5)
+    default_rate_limit = RateLimit(limit=200, window=5)
 
     rate_limits = {
         "POST": {
@@ -563,23 +580,23 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
                 raise ParseError(f"Unsupported sort: {sort} for MRI")
 
         executor = executor_cls(
-            serialized["mri"],
-            params,
-            snuba_params,
-            serialized["field"],
-            serialized.get("operation"),
-            serialized.get("query", ""),
-            serialized.get("min"),
-            serialized.get("max"),
-            serialized.get("sort"),
-            rollup,
-            Referrer.API_ORGANIZATION_METRICS_SAMPLES,
+            mri=serialized["mri"],
+            params=params,
+            snuba_params=snuba_params,
+            fields=serialized["field"],
+            operation=serialized.get("operation"),
+            query=serialized.get("query", ""),
+            min=serialized.get("min"),
+            max=serialized.get("max"),
+            sort=serialized.get("sort"),
+            rollup=rollup,
+            referrer=Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
 
         with handle_query_errors():
             return self.paginate(
                 request=request,
-                paginator=GenericOffsetPaginator(data_fn=executor.execute),
+                paginator=GenericOffsetPaginator(data_fn=executor.get_matching_spans),
                 on_results=lambda results: self.handle_results_with_meta(
                     request,
                     organization,

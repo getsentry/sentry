@@ -16,7 +16,7 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -50,7 +50,11 @@ def configure_split_db() -> None:
     # silo database is the 'default' elsewhere in application logic.
     settings.DATABASES["default"]["NAME"] = "region"
 
-    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+    # Add a connection for the secondary db
+    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["secondary"]["NAME"] = "secondary"
+
+    settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
@@ -270,7 +274,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
 
-    settings.SENTRY_USE_GROUP_ATTRIBUTES = True
+    # TODO: enable this during tests
+    settings.SENTRY_OPTIONS["issues.group_attributes.send_kafka"] = False
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True

@@ -91,7 +91,7 @@ fetch-release-registry:
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifact/pytest.acceptance.json" --json-report-omit=log
+	python3 -b -m pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log
 	@echo ""
 
 test-cli: create-db
@@ -130,7 +130,7 @@ COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	pytest \
+	python3 -b -m pytest \
 		tests \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
@@ -151,7 +151,7 @@ test-monolith-dbs:
 	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
 	SENTRY_LEGACY_TEST_SUITE=1 \
 	SENTRY_USE_MONOLITH_DBS=1 \
-	pytest \
+	python3 -b -m pytest \
 	  tests/sentry/backup/test_exhaustive.py \
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
@@ -168,16 +168,16 @@ test-monolith-dbs:
 test-tools:
 	@echo "--> Running tools tests"
 	@# bogus configuration to force vanilla pytest
-	python3 -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
+	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `sentry devservices up kafka` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
-	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
-	pytest tests/relay_integration/lang/java/ -vv -m symbolicator
+	python3 -b -m pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	python3 -b -m pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
+	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
 test-acceptance: node-version-check
@@ -188,7 +188,7 @@ test-acceptance: node-version-check
 # XXX: this is called by `getsentry/relay`
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	pytest \
+	python3 -b -m pytest \
 		tests/relay_integration \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml"
@@ -196,7 +196,7 @@ test-relay-integration:
 
 test-api-docs: build-api-docs
 	yarn run validate-api-examples
-	pytest tests/apidocs
+	python3 -b -m pytest tests/apidocs
 	@echo ""
 
 review-python-snapshots:

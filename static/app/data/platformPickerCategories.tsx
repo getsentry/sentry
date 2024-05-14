@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
   'android',
@@ -47,6 +47,7 @@ const browser: Set<PlatformKey> = new Set([
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',

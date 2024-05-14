@@ -1,17 +1,14 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -23,7 +20,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
@@ -71,6 +68,7 @@ type Props = {
   avg: number;
   data: SpanTableRow[];
   isLoading: boolean;
+  moduleName: ModuleName;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
@@ -81,6 +79,7 @@ export function SpanSamplesTable({
   isLoading,
   data,
   avg,
+  moduleName,
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
@@ -110,18 +109,12 @@ export function SpanSamplesTable({
       return (
         <Link
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.transaction?.trace,
+            projectSlug: row.project,
             organization,
             location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
-            },
             spanId: row.span_id,
           })}
         >
@@ -133,19 +126,19 @@ export function SpanSamplesTable({
     if (column.key === 'span_id') {
       return (
         <Link
+          onClick={() =>
+            trackAnalytics('performance_views.sample_spans.span_clicked', {
+              organization,
+              source: moduleName,
+            })
+          }
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.transaction?.trace,
+            projectSlug: row.project,
             organization,
             location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
-            },
             spanId: row.span_id,
           })}
         >

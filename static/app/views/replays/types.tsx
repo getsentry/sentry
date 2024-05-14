@@ -112,7 +112,10 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
-export type ReplayListQueryReferrer = 'issueReplays' | 'transactionReplays';
+export type ReplayListQueryReferrer =
+  | 'replayList'
+  | 'issueReplays'
+  | 'transactionReplays';
 
 // Sync with ReplayListRecord below
 export const REPLAY_LIST_FIELDS = [

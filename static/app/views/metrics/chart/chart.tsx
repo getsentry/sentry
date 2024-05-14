@@ -1,6 +1,7 @@
 import {forwardRef, memo, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
+import type {SeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 import isNil from 'lodash/isNil';
@@ -9,13 +10,13 @@ import omitBy from 'lodash/omitBy';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import {
   defaultFormatAxisLabel,
   getFormatter,
 } from 'sentry/components/charts/components/tooltip';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import ChartZoom from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -26,16 +27,19 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {CombinedMetricChartProps, Series} from 'sentry/views/metrics/chart/types';
 import type {UseFocusAreaResult} from 'sentry/views/metrics/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/metrics/chart/useMetricChartSamples';
+import type {UseMetricReleasesResult} from 'sentry/views/metrics/chart/useMetricReleases';
 
 const MAIN_X_AXIS_ID = 'xAxis';
 
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
+  additionalSeries?: SeriesOption[];
   enableZoom?: boolean;
   focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
+  releases?: UseMetricReleasesResult;
   samples?: UseMetricSamplesResult;
 };
 
@@ -73,7 +77,17 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = memo(
   forwardRef<ReactEchartsRef, ChartProps>(
     (
-      {series, displayType, height, group, samples, focusArea, enableZoom},
+      {
+        series,
+        displayType,
+        height,
+        group,
+        samples,
+        focusArea,
+        enableZoom,
+        releases,
+        additionalSeries,
+      },
       forwardedRef
     ) => {
       const chartRef = useRef<ReactEchartsRef>(null);
@@ -96,7 +110,6 @@ export const MetricChart = memo(
         }
       });
 
-      // TODO(ddm): This assumes that all series have the same bucket size
       const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
       const isSubMinuteBucket = bucketSize < 60_000;
       const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
@@ -154,6 +167,7 @@ export const MetricChart = memo(
           showTimeInTooltip: true,
           addSecondsToTimeFormat: isSubMinuteBucket,
           limit: 10,
+          utc: !!dateTimeOptions.utc,
           filter: (_, seriesParam) => {
             return seriesParam?.axisId === MAIN_X_AXIS_ID;
           },
@@ -177,6 +191,7 @@ export const MetricChart = memo(
             left: 0,
             right: 0,
           },
+          additionalSeries,
           tooltip: {
             formatter: (params, asyncTicket) => {
               // Only show the tooltip if the current chart is hovered
@@ -220,10 +235,10 @@ export const MetricChart = memo(
                   return true;
                 });
 
-                const date = defaultFormatAxisLabel(
+                const formattedDate = defaultFormatAxisLabel(
                   params[0].value[0] as number,
                   timeseriesFormatters.isGroupedByDate,
-                  false,
+                  timeseriesFormatters.utc,
                   timeseriesFormatters.showTimeInTooltip,
                   timeseriesFormatters.addSecondsToTimeFormat,
                   timeseriesFormatters.bucketSize
@@ -234,7 +249,7 @@ export const MetricChart = memo(
                     '<div class="tooltip-series">',
                     `<center>${t('No data available')}</center>`,
                     '</div>',
-                    `<div class="tooltip-footer">${date}</div>`,
+                    `<div class="tooltip-footer">${formattedDate}</div>`,
                   ].join('');
                 }
                 return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
@@ -298,6 +313,11 @@ export const MetricChart = memo(
         if (samples?.applyChartProps) {
           baseChartProps = samples.applyChartProps(baseChartProps);
         }
+
+        if (releases?.applyChartProps) {
+          baseChartProps = releases.applyChartProps(baseChartProps);
+        }
+
         // Apply focus area props as last so it can disable tooltips
         if (focusArea?.applyChartProps) {
           baseChartProps = focusArea.applyChartProps(baseChartProps);
@@ -315,7 +335,9 @@ export const MetricChart = memo(
         uniqueUnits,
         samples,
         focusArea,
+        releases,
         firstUnit,
+        additionalSeries,
       ]);
 
       if (!enableZoom) {
@@ -326,7 +348,6 @@ export const MetricChart = memo(
           </ChartWrapper>
         );
       }
-
       return (
         <ChartWrapper>
           <ChartZoom>
@@ -342,6 +363,7 @@ function CombinedChart({
   displayType,
   series,
   scatterSeries = [],
+  additionalSeries = [],
   ...chartProps
 }: CombinedMetricChartProps) {
   const combinedSeries = useMemo(() => {
@@ -349,6 +371,7 @@ function CombinedChart({
       return [
         ...transformToLineSeries({series}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
+        ...additionalSeries,
       ];
     }
 
@@ -356,6 +379,7 @@ function CombinedChart({
       return [
         ...transformToBarSeries({series, stacked: true, animation: false}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
+        ...additionalSeries,
       ];
     }
 
@@ -363,11 +387,12 @@ function CombinedChart({
       return [
         ...transformToAreaSeries({series, stacked: true, colors: chartProps.colors}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
+        ...additionalSeries,
       ];
     }
 
     return [];
-  }, [displayType, scatterSeries, series, chartProps.colors]);
+  }, [displayType, series, scatterSeries, additionalSeries, chartProps.colors]);
 
   return <BaseChart {...chartProps} series={combinedSeries} />;
 }

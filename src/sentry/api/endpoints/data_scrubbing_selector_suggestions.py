@@ -1,5 +1,6 @@
 from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import pii_selector_suggestions_from_event
@@ -51,7 +52,9 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
 
             data: dict[str, Any]
             for data in filter(None, all_data.values()):
-                for selector in pii_selector_suggestions_from_event(data):
+                for selector in pii_selector_suggestions_from_event(
+                    data, json_loads=orjson.loads, json_dumps=orjson.dumps
+                ):
                     examples_ = suggestions.setdefault(selector["path"], [])
                     if selector["value"]:
                         examples_.append(selector["value"])

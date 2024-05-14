@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import UTC, datetime
 
+from django.conf import settings
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
@@ -15,6 +16,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import ActorField
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.paginator import (
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -70,7 +72,7 @@ class AlertRuleIndexMixin(Endpoint):
         if monitor_type is not None:
             alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
-        return self.paginate(
+        response = self.paginate(
             request,
             queryset=alert_rules,
             order_by="-date_added",
@@ -78,6 +80,10 @@ class AlertRuleIndexMixin(Endpoint):
             on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
         )
+
+        response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
+        return response
 
     def create_metric_alert(self, request, organization, project=None):
         if not features.has("organizations:incidents", organization, actor=request.user):
@@ -170,16 +176,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, project_ids=set(project_ids))
 
         teams = request.GET.getlist("team", [])
-        team_filter_query = None
+        teams_query = None
+        unassigned = None
         if len(teams) > 0:
             try:
                 teams_query, unassigned = parse_team_params(request, organization, teams)
             except InvalidParams as err:
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
-
-            team_filter_query = Q(owner_id__in=teams_query.values_list("actor_id", flat=True))
-            if unassigned:
-                team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
 
@@ -208,9 +211,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             alert_rules = alert_rules.filter(Q(name__icontains=name))
             issue_rules = issue_rules.filter(Q(label__icontains=name))
 
-        if team_filter_query:
-            alert_rules = alert_rules.filter(team_filter_query)
-            issue_rules = issue_rules.filter(team_filter_query)
+        if teams_query is not None:
+            team_ids = teams_query.values_list("id", flat=True)
+            team_rule_condition = Q(owner_team_id__in=team_ids)
+            team_alert_condition = Q(team_id__in=team_ids)
+            if unassigned:
+                team_alert_condition = team_alert_condition | Q(team_id__isnull=True)
+                team_rule_condition = team_rule_condition | Q(owner_team_id__isnull=True)
+            alert_rules = alert_rules.filter(team_alert_condition)
+            issue_rules = issue_rules.filter(team_rule_condition)
 
         expand = request.GET.getlist("expand", [])
         if "latestIncident" in expand:
@@ -275,7 +284,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             case_insensitive=case_insensitive,
         )
         response["X-Sentry-Issue-Rule-Hits"] = issue_rules_count
-        response["X-Sentry-Alert-Rule-Hits"] = alert_rules_count
+        response[ALERT_RULES_COUNT_HEADER] = alert_rules_count
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
 
@@ -412,7 +422,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
 
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -439,7 +449,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
 
     @extend_schema(
         operation_id="Create a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=OrganizationAlertRuleIndexPostSerializer,
         responses={
             201: AlertRuleSerializer,

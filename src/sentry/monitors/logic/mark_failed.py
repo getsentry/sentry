@@ -7,13 +7,8 @@ from datetime import datetime, timezone
 from django.db.models import Q
 
 from sentry import features
-from sentry.issues.grouptype import (
-    MonitorCheckInFailure,
-    MonitorCheckInMissed,
-    MonitorCheckInTimeout,
-)
+from sentry.issues.grouptype import MonitorIncidentType
 from sentry.models.organization import Organization
-from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
@@ -243,10 +238,8 @@ def create_issue_platform_occurrence(
     monitor_env = failed_checkin.monitor_environment
     current_timestamp = datetime.now(timezone.utc)
 
-    occurrence_data = get_occurrence_data(failed_checkin)
-
     # Get last successful check-in to show in evidence display
-    last_successful_checkin_timestamp = "None"
+    last_successful_checkin_timestamp = "Never"
     last_successful_checkin = monitor_env.get_last_successful_checkin()
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
@@ -257,11 +250,11 @@ def create_issue_platform_occurrence(
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
         fingerprint=[incident.grouphash],
-        type=occurrence_data["group_type"],
+        type=MonitorIncidentType,
         issue_title=f"Monitor failure: {monitor_env.monitor.name}",
-        subtitle=occurrence_data["subtitle"],
+        subtitle="Your monitor has reached its failure threshold.",
         evidence_display=[
-            IssueEvidence(name="Failure reason", value=occurrence_data["reason"], important=True),
+            IssueEvidence(name="Failure reason", value="incident", important=True),
             IssueEvidence(
                 name="Environment", value=monitor_env.get_environment().name, important=False
             ),
@@ -272,9 +265,10 @@ def create_issue_platform_occurrence(
             ),
         ],
         evidence_data={},
-        culprit=occurrence_data["reason"],
+        culprit="",
         detection_time=current_timestamp,
-        level=occurrence_data["level"],
+        level="error",
+        assignee=monitor_env.monitor.owner_actor,
     )
 
     if failed_checkin.trace_id:
@@ -322,37 +316,4 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
         "config": monitor_environment.monitor.config,
         "status": monitor_environment.get_status_display(),
         "type": monitor_environment.monitor.get_type_display(),
-    }
-
-
-def get_occurrence_data(checkin: MonitorCheckIn):
-    if checkin.status == CheckInStatus.MISSED:
-        expected_time = (
-            checkin.expected_time.astimezone(checkin.monitor.timezone).strftime(
-                SUBTITLE_DATETIME_FORMAT
-            )
-            if checkin.expected_time
-            else "the expected time"
-        )
-        return {
-            "group_type": MonitorCheckInMissed,
-            "level": "warning",
-            "reason": "missed_checkin",
-            "subtitle": f"No check-in reported on {expected_time}.",
-        }
-
-    if checkin.status == CheckInStatus.TIMEOUT:
-        duration = (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
-        return {
-            "group_type": MonitorCheckInTimeout,
-            "level": "error",
-            "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {duration} minutes.",
-        }
-
-    return {
-        "group_type": MonitorCheckInFailure,
-        "level": "error",
-        "reason": "error",
-        "subtitle": "An error occurred during the latest check-in.",
     }

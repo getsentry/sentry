@@ -14,6 +14,7 @@ interface OffsetOptions {
 }
 
 interface VideoReplayerOptions {
+  durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
@@ -23,7 +24,7 @@ interface VideoReplayerOptions {
   clipWindow?: ClipWindow;
 }
 
-interface VideoReplayerConfig {
+export interface VideoReplayerConfig {
   /**
    * Not supported, only here to maintain compat w/ rrweb player
    */
@@ -56,6 +57,7 @@ export class VideoReplayer {
   private _videos: Map<any, HTMLVideoElement>;
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
+  private _durationMs: number;
   public config: VideoReplayerConfig = {
     skipInactive: false,
     speed: 1.0,
@@ -73,6 +75,7 @@ export class VideoReplayer {
       onFinished,
       onLoaded,
       clipWindow,
+      durationMs,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -86,6 +89,7 @@ export class VideoReplayer {
     };
     this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
+    this._durationMs = durationMs;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -111,7 +115,11 @@ export class VideoReplayer {
         this.stopReplay();
       });
     } else {
-      // Otherwise, if there's no clip window set, we should
+      // Tell the timer to stop at the replay end
+      this._timer.addNotificationAtTime(this._durationMs, () => {
+        this.stopReplay();
+      });
+      // If there's no clip window set, we should
       // load the first segment by default so that users are not staring at a
       // blank replay. This initially caused some issues
       // (https://github.com/getsentry/sentry/pull/67911), but the problem was
@@ -247,13 +255,14 @@ export class VideoReplayer {
     this._isPlaying = true;
     this._timer.start(videoOffsetMs);
 
-    // This is used when a replay clip is restarted
+    // This is used when a replay is restarted
     // Add another stop notification so the timer doesn't run over
-    if (this._clipDuration) {
-      this._timer.addNotificationAtTime(this._clipDuration, () => {
+    this._timer.addNotificationAtTime(
+      this._clipDuration ? this._clipDuration : this._durationMs,
+      () => {
         this.stopReplay();
-      });
-    }
+      }
+    );
   }
 
   /**
@@ -297,8 +306,16 @@ export class VideoReplayer {
 
     // No more segments
     if (nextIndex >= this._attachments.length) {
+      if (this.getCurrentTime() < this._durationMs) {
+        // If we're at the end of a segment, but there's a gap
+        // at the end, force the replay to play until the end duration
+        // rather than stopping right away.
+        this._timer.addNotificationAtTime(this._durationMs, () => {
+          this.stopReplay();
+        });
+        return;
+      }
       this.stopReplay();
-      return;
     }
 
     // Final check in case replay was stopped immediately after a video
@@ -509,6 +526,10 @@ export class VideoReplayer {
   protected async loadSegmentAtTime(
     videoOffsetMs: number = 0
   ): Promise<number | undefined> {
+    if (!this._trackList.length) {
+      return undefined;
+    }
+
     const {segment: segmentIndex, previousSegment: previousSegmentIndex} =
       this.getSegmentIndexForTime(videoOffsetMs);
 
@@ -598,8 +619,13 @@ export class VideoReplayer {
     const loadedSegmentIndex = await this.loadSegmentAtTime(videoOffsetMs);
 
     if (loadedSegmentIndex === undefined) {
-      // TODO: this shouldn't happen, loadSegment should load the previous
-      // segment until it's time to start the next segment
+      // If we end up here, we seeked into a gap
+      // at the end of the replay.
+      // This tells the timer to stop at the specified duration
+      // and prevents the timer from running infinitely.
+      this._timer.addNotificationAtTime(this._durationMs, () => {
+        this.stopReplay();
+      });
       return Promise.resolve();
     }
 

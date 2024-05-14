@@ -8,11 +8,11 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
-import {AVG_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
@@ -75,21 +75,25 @@ function DurationChart({
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
-    yAxis: [`avg(${SPAN_SELF_TIME})`],
-    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-      Boolean(value)
-    ),
-    referrer: 'api.starfish.sidebar-span-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      yAxis: [`avg(${SPAN_SELF_TIME})`],
+      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.sidebar-span-metrics-chart'
+  );
 
-  const {data, error: spanMetricsError} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    enabled: Object.values(filters).every(value => Boolean(value)),
-    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
-  });
+  const {data, error: spanMetricsError} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+      enabled: Object.values(filters).every(value => Boolean(value)),
+    },
+    'api.starfish.span-summary-panel-samples-table-avg'
+  );
 
   const spanMetrics = data[0] ?? {};
 

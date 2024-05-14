@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
 import pytest
 
@@ -30,7 +31,7 @@ class SnapshotTests(BackupTestCase):
 
     def import_export_fixture_then_validate(
         self, *, tmp_out_path: Path, fixture_file_name: str
-    ) -> json.JSONData:
+    ) -> Any:
         """
         Test helper that validates that data imported from a fixture `.json` file correctly matches
         the actual outputted export data.

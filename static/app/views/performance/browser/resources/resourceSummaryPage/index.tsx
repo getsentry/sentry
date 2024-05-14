@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,6 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
@@ -23,8 +25,8 @@ import RenderBlockingSelector from 'sentry/views/performance/browser/resources/s
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 const {
@@ -45,23 +47,26 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.group': groupId,
-    }),
-    fields: [
-      `avg(${SPAN_SELF_TIME})`,
-      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-      `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-      `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-      `sum(${SPAN_SELF_TIME})`,
-      'spm()',
-      SPAN_OP,
-      SPAN_DESCRIPTION,
-      'time_spent_percentage()',
-      'project.id',
-    ],
-  });
+  const {data} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.group': groupId,
+      }),
+      fields: [
+        `avg(${SPAN_SELF_TIME})`,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+        `sum(${SPAN_SELF_TIME})`,
+        'spm()',
+        SPAN_OP,
+        SPAN_DESCRIPTION,
+        'time_spent_percentage()',
+        'project.id',
+      ],
+    },
+    Referrer.RESOURCE_SUMMARY_METRICS_RIBBON
+  );
   const spanMetrics = selectedSpanOp
     ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
     : data[0] ?? {};
@@ -78,7 +83,7 @@ function ResourceSummary() {
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
       baseURL="/performance/browser/resources"
-      features="starfish-browser-resource-module-ui"
+      features="spans-first-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>
@@ -104,11 +109,15 @@ function ResourceSummary() {
 
           <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FloatingFeedbackWidget />
           <HeaderContainer>
             <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
@@ -130,7 +139,6 @@ function ResourceSummary() {
               throughput={spanMetrics['spm()']}
               timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
-              spanOp={spanMetrics[SPAN_OP]}
             />
           </HeaderContainer>
           {isImage && (
@@ -141,6 +149,7 @@ function ResourceSummary() {
           <SampleList
             transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
+            moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
             additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />

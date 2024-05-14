@@ -1,8 +1,8 @@
 import hashlib
 import hmac
-from datetime import datetime
 from typing import Any
 
+import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -21,12 +21,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
-from sentry.utils import json
 from sentry.utils.env import in_test_environment
 
 
@@ -46,16 +44,16 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
         return False
 
     # We aren't using the version bits currently.
-    body = json.dumps(json.loads(body.decode("utf8"))).encode("utf8")
+    body = orjson.dumps(orjson.loads(body))
     _, signature_data = signature.split(":", 2)
     signature_input = b"%s:%s" % (
-        url.encode("utf8"),
+        url.encode(),
         body,
     )
 
     for key in settings.SEER_RPC_SHARED_SECRET:
-        computed = hmac.new(key.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
-        is_valid = hmac.compare_digest(computed.encode("utf-8"), signature_data.encode("utf-8"))
+        computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+        is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
         if is_valid:
             return True
 
@@ -113,7 +111,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
-        return method(**arguments)  # type: ignore[operator]
+        return method(**arguments)
 
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
@@ -148,58 +146,12 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def on_autofix_step_update(*, issue_id: int, status: str, steps: list[dict]) -> None:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    metadata["autofix"] = {
-        **autofix_data,
-        "status": status,
-        "steps": steps,
-    }
-
-    group.data["metadata"] = metadata
-    group.save()
-
-
-def on_autofix_complete(*, issue_id: int, status: str, steps: list[dict], fix: dict | None) -> None:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    metadata["autofix"] = {
-        **autofix_data,
-        "completedAt": datetime.now().isoformat(),
-        "status": status,
-        "steps": steps,
-        "fix": fix,
-    }
-
-    group.data["metadata"] = metadata
-    group.save()
-
-
-def get_autofix_state(*, issue_id: int) -> dict:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    return autofix_data
-
-
 def get_organization_slug(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     return {"slug": org.slug}
 
 
 seer_method_registry = {
-    "on_autofix_step_update": on_autofix_step_update,
-    "on_autofix_complete": on_autofix_complete,
-    "get_autofix_state": get_autofix_state,
     "get_organization_slug": get_organization_slug,
 }
 

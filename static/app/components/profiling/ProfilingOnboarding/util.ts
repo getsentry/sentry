@@ -1,7 +1,6 @@
 import partition from 'lodash/partition';
 
-import type {PlatformKey} from 'sentry/types';
-import type {Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import type {SupportedProfilingPlatformSDK} from 'sentry/utils/profiling/platforms';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
 

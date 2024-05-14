@@ -135,8 +135,8 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Get Debug Information Related to Source Maps for a Given Event",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
         ],
         request=None,

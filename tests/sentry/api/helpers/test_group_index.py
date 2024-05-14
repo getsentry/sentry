@@ -15,7 +15,6 @@ from sentry.api.helpers.group_index.update import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
 from sentry.models.activity import Activity
-from sentry.models.actor import ActorTuple
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -29,6 +28,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
@@ -507,7 +507,7 @@ class TestHandleAssignedTo(TestCase):
     @patch("sentry.analytics.record")
     def test_assigned_to(self, mock_record: Mock) -> None:
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
+            Actor.from_identifier(self.user.id),
             None,
             None,
             self.group_list,
@@ -542,7 +542,7 @@ class TestHandleAssignedTo(TestCase):
     def test_unassign(self, mock_record: Mock) -> None:
         # first assign the issue
         handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
+            Actor.from_identifier(self.user.id),
             None,
             None,
             self.group_list,
@@ -592,7 +592,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -656,7 +656,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -701,7 +701,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(self.user.id),
+            Actor.from_identifier(self.user.id),
             None,
             None,
             self.group_list,
@@ -719,7 +719,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to someone else
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(user2.id),
+            Actor.from_identifier(user2.id),
             None,
             None,
             self.group_list,
@@ -758,7 +758,7 @@ class TestHandleAssignedTo(TestCase):
         )
         # pass assignedTo but it's the same as the existing assignee
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(user2.id),
+            Actor.from_identifier(user2.id),
             None,
             None,
             self.group_list,
@@ -816,7 +816,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -840,7 +840,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to team2
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+            Actor.from_identifier(f"team:{team2.id}"),
             None,
             None,
             self.group_list,
@@ -911,7 +911,7 @@ class TestHandleAssignedTo(TestCase):
 
         # first assign the issue to team1
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -929,7 +929,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to team2
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(f"team:{team2.id}"),
+            Actor.from_identifier(f"team:{team2.id}"),
             None,
             None,
             self.group_list,
@@ -979,7 +979,7 @@ class TestHandleAssignedTo(TestCase):
 
         # assign the issue to the team
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,
@@ -1003,7 +1003,7 @@ class TestHandleAssignedTo(TestCase):
 
         # then assign it to user1
         assigned_to = handle_assigned_to(
-            ActorTuple.from_actor_identifier(user1.id),
+            Actor.from_identifier(user1.id),
             None,
             None,
             self.group_list,
@@ -1035,7 +1035,7 @@ class TestHandleAssignedTo(TestCase):
 
         # assign the issue back to the team
         assigned_to = handle_assigned_to(
-            (ActorTuple.from_actor_identifier(f"team:{team1.id}")),
+            Actor.from_identifier(f"team:{team1.id}"),
             None,
             None,
             self.group_list,

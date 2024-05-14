@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
+import ReplayViewers from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -80,6 +81,14 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
           <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
         ) : (
           <HeaderPlaceholder width="20px" height="16px" />
+        )}
+      </KeyMetricData>
+      <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord ? (
+          <ReplayViewers projectId={replayRecord.project_id} replayId={replayRecord.id} />
+        ) : (
+          <HeaderPlaceholder width="55px" height="27px" />
         )}
       </KeyMetricData>
     </KeyMetrics>

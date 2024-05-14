@@ -6,7 +6,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner

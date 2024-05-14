@@ -1,14 +1,14 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {EventOrGroupType} from 'sentry/types/event';
 import {
-  EventOrGroupType,
   type Group,
   GroupStatus,
   GroupUnresolved,
   IssueCategory,
   IssueType,
   PriorityLevel,
-} from 'sentry/types';
+} from 'sentry/types/group';
 
 export function GroupFixture(params: Partial<Group> = {}): Group {
   const unresolvedGroup: GroupUnresolved = {

@@ -16,7 +16,7 @@ import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSet
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -71,7 +71,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                     />
                   }
                 >
-                  <Tag role="status" icon={<IconLock isSolid />}>
+                  <Tag role="status" icon={<IconLock locked />}>
                     {t('disabled')}
                   </Tag>
                 </Hovercard>

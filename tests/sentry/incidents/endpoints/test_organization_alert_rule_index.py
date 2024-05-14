@@ -9,6 +9,7 @@ from django.test.utils import override_settings
 from rest_framework import status
 
 from sentry import audit_log
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -23,7 +24,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
@@ -121,6 +122,18 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
         assert serialize([alert_rule2]) not in resp.data
         assert resp.data == serialize([alert_rule1])
+
+    def test_response_headers(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug)
+
+        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
 
     def test_simple_with_activation(self):
         self.create_team(organization=self.organization, members=[self.user])

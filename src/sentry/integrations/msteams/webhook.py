@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from enum import Enum
 from typing import Any
 
+import orjson
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -24,8 +25,8 @@ from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
-from sentry.utils import json, jwt
+from sentry.silo.base import SiloMode
+from sentry.utils import jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 
@@ -108,7 +109,7 @@ def verify_signature(request):
     public_keys = {}
     for jwk in jwks["keys"]:
         kid = jwk["kid"]
-        public_keys[kid] = jwt.rsa_key_from_jwk(json.dumps(jwk))
+        public_keys[kid] = jwt.rsa_key_from_jwk(orjson.dumps(jwk).decode())
 
     kid = jwt.peek_header(token)["kid"]
     key = public_keys[kid]

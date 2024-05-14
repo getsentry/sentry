@@ -1,10 +1,9 @@
-import {browserHistory} from 'react-router';
-
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 

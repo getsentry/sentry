@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -17,8 +16,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';

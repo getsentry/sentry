@@ -10,15 +10,15 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model, sane_repr
+from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
-from sentry.models.actor import ActorTuple
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -34,7 +34,7 @@ READ_CACHE_DURATION = 3600
 _Everyone = enum.Enum("_Everyone", "EVERYONE")
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectOwnership(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -106,7 +106,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> tuple[_Everyone | Sequence[ActorTuple], Sequence[Rule] | None]:
+    ) -> tuple[_Everyone | list[Actor], Sequence[Rule] | None]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -156,9 +156,7 @@ class ProjectOwnership(Model):
         result = [
             (
                 rule,
-                ActorTuple.resolve_many(
-                    [actors[owner] for owner in rule.owners if owner in actors]
-                ),
+                Actor.resolve_many([actors[owner] for owner in rule.owners if owner in actors]),
                 type,
             )
             for rule in rules
@@ -270,7 +268,6 @@ class ProjectOwnership(Model):
 
             autoassignment_types = cls._get_autoassignment_types(ownership)
             if not len(autoassignment_types):
-                logger.info("handle_auto_assignment.autoassignment_disabled", extra=logging_extra)
                 return
             logging_extra["autoassignment_types"] = autoassignment_types
 
@@ -280,13 +277,11 @@ class ProjectOwnership(Model):
             )
 
             if issue_owner is False:
-                logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return
             logging_extra["issue_owner"] = issue_owner
 
             owner = issue_owner.owner()
             if not owner:
-                logger.info("handle_auto_assignment.no_owner", extra=logging_extra)
                 return
 
             logging_extra["owner"] = owner
@@ -315,7 +310,6 @@ class ProjectOwnership(Model):
             if activity:
                 auto_assigned = activity[0].data.get("integration")
                 if not auto_assigned and not force_autoassign:
-                    logger.info("autoassignment.post_manual_assignment", extra=logging_extra)
                     return
 
             if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
@@ -327,14 +321,12 @@ class ProjectOwnership(Model):
                 isinstance(owner, Team)
                 and GroupAssignee.objects.filter(group=group, team=owner.id).exists()
             ):
-                logger.info("handle_auto_assignment.team_already_assigned", extra=logging_extra)
                 return
 
             if (
                 isinstance(owner, RpcUser)
                 and GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
             ):
-                logger.info("handle_auto_assignment.user_already_assigned", extra=logging_extra)
                 return
 
             assignment = GroupAssignee.objects.assign(
@@ -356,15 +348,6 @@ class ProjectOwnership(Model):
                     organization_id=organization_id or ownership.project.organization_id,
                     project_id=project_id,
                     group_id=group.id,
-                )
-                logger.info(
-                    "handle_auto_assignment.success",
-                    extra={
-                        **logging_extra,
-                        # owner_id returns a string including the owner type (user or team) and id
-                        "assignee": issue_owner.owner_id(),
-                        "reason": "created" if assignment["new_assignment"] else "updated",
-                    },
                 )
 
     @classmethod

@@ -10,7 +10,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
@@ -47,28 +47,17 @@ export default function FeedbackActions({
 }
 
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {
-    isResolved,
-    onResolveClick,
-    hasSpamFeature,
-    isSpam,
-    onSpamClick,
-    hasSeen,
-    onMarkAsReadClick,
-  } = useFeedbackActions({feedbackItem});
+  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
+    useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
       <Button priority={isResolved ? 'danger' : 'primary'} onClick={onResolveClick}>
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
-
-      {hasSpamFeature && (
-        <Button priority="default" onClick={onSpamClick}>
-          {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
-        </Button>
-      )}
-
+      <Button priority="default" onClick={onSpamClick}>
+        {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
+      </Button>
       <Button onClick={onMarkAsReadClick}>
         {hasSeen ? t('Mark Unread') : t('Mark Read')}
       </Button>
@@ -77,15 +66,8 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {
-    isResolved,
-    onResolveClick,
-    hasSpamFeature,
-    isSpam,
-    onSpamClick,
-    hasSeen,
-    onMarkAsReadClick,
-  } = useFeedbackActions({feedbackItem});
+  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
+    useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
@@ -102,13 +84,11 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           size: 'xs',
         }}
         items={[
-          hasSpamFeature
-            ? {
-                key: 'spam',
-                label: isSpam ? t('Move to Inbox') : t('Mark as Spam'),
-                onAction: onSpamClick,
-              }
-            : null,
+          {
+            key: 'spam',
+            label: isSpam ? t('Move to Inbox') : t('Mark as Spam'),
+            onAction: onSpamClick,
+          },
           {
             key: 'read',
             label: hasSeen ? t('Mark Unread') : t('Mark Read'),
@@ -121,15 +101,8 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {
-    isResolved,
-    onResolveClick,
-    hasSpamFeature,
-    isSpam,
-    onSpamClick,
-    hasSeen,
-    onMarkAsReadClick,
-  } = useFeedbackActions({feedbackItem});
+  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
+    useFeedbackActions({feedbackItem});
 
   return (
     <DropdownMenu
@@ -146,13 +119,11 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           label: isResolved ? t('Unresolve') : t('Resolve'),
           onAction: onResolveClick,
         },
-        hasSpamFeature
-          ? {
-              key: 'spam',
-              label: isSpam ? t('Move to Inbox') : t('Mark as Spam'),
-              onAction: onSpamClick,
-            }
-          : null,
+        {
+          key: 'spam',
+          label: isSpam ? t('Move to Inbox') : t('Mark as Spam'),
+          onAction: onSpamClick,
+        },
         {
           key: 'read',
           label: hasSeen ? t('Mark Unread') : t('Mark Read'),

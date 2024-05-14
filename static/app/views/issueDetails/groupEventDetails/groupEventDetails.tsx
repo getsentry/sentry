@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -23,6 +22,7 @@ import type {
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -70,11 +70,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     eventError,
     params,
   } = props;
-  const eventWithMeta = withMeta(event);
   // Reprocessing
   const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-  const {activity: activities} = group;
-  const mostRecentActivity = getGroupMostRecentActivity(activities);
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
@@ -162,6 +159,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
+  const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
@@ -179,7 +177,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           {hasReprocessingV2Feature &&
           groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+              totalEvents={
+                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                  .data.eventCount
+              }
               pendingEvents={
                 (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
               }
