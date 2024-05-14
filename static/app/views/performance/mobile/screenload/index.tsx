@@ -61,13 +61,13 @@ export default function PageloadModule() {
               />
               <HeaderWrapper>
                 <Layout.Title>{t('Screen Loads')}</Layout.Title>
-                {organization.features.includes('spans-first-ui') &&
-                  project &&
-                  isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
+                {organization.features.includes('spans-first-ui') &&
+                  project &&
+                  isCrossPlatform(project) && <PlatformSelector />}
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>

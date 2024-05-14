@@ -17,6 +17,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
@@ -223,6 +224,21 @@ class GroupHistory(Model):
         )
 
     __repr__ = sane_repr("group_id", "release_id")
+
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned protocol"""
+        return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned protocol"""
+        self.team_id = None
+        self.user_id = None
+        if actor and actor.is_user:
+            self.user_id = actor.id
+        if actor and actor.is_team:
+            self.team_id = actor.id
 
 
 def get_prev_history(group, status):

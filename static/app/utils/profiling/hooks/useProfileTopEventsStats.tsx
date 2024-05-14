@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {EventsStatsSeries, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {transformSingleSeries} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

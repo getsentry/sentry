@@ -20,7 +20,7 @@ from sentry.services.organization import OrganizationProvisioningOptions
 
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-):
+) -> RegionOutbox:
     return RegionOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,

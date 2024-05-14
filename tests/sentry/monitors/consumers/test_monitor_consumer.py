@@ -29,7 +29,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.processing_errors import (
+from sentry.monitors.processing_errors.errors import (
     CheckinValidationError,
     ProcessingError,
     ProcessingErrorType,
@@ -37,11 +37,7 @@ from sentry.monitors.processing_errors import (
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
-from sentry.utils.locking.manager import LockManager
 from sentry.utils.outcomes import Outcome
-from sentry.utils.services import build_instance_from_options
-
-locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 
 class MonitorConsumerTest(TestCase):

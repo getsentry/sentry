@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
-import {hasMetricStats} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -128,7 +128,7 @@ class UsageStatsOrganization<
   // Metric stats are not reported when grouping by category, so we make a separate request
   // and combine the results
   get metricsEndpoint(): [string, string, {query: Record<string, any>}][] {
-    if (hasMetricStats(this.props.organization)) {
+    if (hasCustomMetrics(this.props.organization)) {
       return [
         [
           'metricOrgStats',
@@ -136,7 +136,7 @@ class UsageStatsOrganization<
           {
             query: {
               ...this.endpointQuery,
-              category: DATA_CATEGORY_INFO.metricSecond.apiName,
+              category: DATA_CATEGORY_INFO.metrics.apiName,
               groupBy: ['outcome'],
             },
           },
@@ -159,7 +159,7 @@ class UsageStatsOrganization<
         ...group,
         by: {
           ...group.by,
-          category: DATA_CATEGORY_INFO.metricSecond.apiName,
+          category: DATA_CATEGORY_INFO.metrics.apiName,
         },
       };
     });
@@ -345,7 +345,7 @@ class UsageStatsOrganization<
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
         help:
-          dataCategory === DATA_CATEGORY_INFO.metricSecond.plural
+          dataCategory === DATA_CATEGORY_INFO.metrics.plural
             ? tct(
                 'Filtered metrics were blocked due to your disabled metrics [settings: settings]',
                 {

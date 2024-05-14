@@ -185,7 +185,7 @@ function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   const queryString = {
     ...query,
     transaction,
-    op,
+    'span.op': op,
   };
   return (
     <NoOverflow>

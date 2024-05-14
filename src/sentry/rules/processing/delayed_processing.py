@@ -4,8 +4,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
-from sentry import eventstore
-from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
+from sentry import nodestore
+from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -28,10 +28,14 @@ from sentry.rules.processing.processor import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import json, metrics
+from sentry.utils.iterators import chunked
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.rules.delayed_processing")
+EVENT_LIMIT = 100
 
 
 class UniqueCondition(NamedTuple):
@@ -200,42 +204,94 @@ def parse_rulegroup_to_event_data(
     return parsed_rulegroup_to_event_data
 
 
+def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]:
+    node_id_to_event_id: dict[str, str] = {
+        Event.generate_node_id(project_id, event_id=event_id): event_id for event_id in event_ids
+    }
+    node_ids = list(node_id_to_event_id.keys())
+    fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
+
+    bulk_data = {}
+    for node_id_chunk in chunked(node_ids, EVENT_LIMIT):
+        bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        bulk_data.update(bulk_results)
+
+    bulk_event_id_to_events: dict[str, Event] = {}
+    for node_id, data in bulk_data.items():
+        event_id = node_id_to_event_id[node_id]
+        if data is not None:
+            event = Event(event_id=event_id, project_id=project_id, data=data)
+            bulk_event_id_to_events[event_id] = event
+
+    return bulk_event_id_to_events
+
+
+def build_group_to_groupevent(
+    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    bulk_event_id_to_events: dict[str, Event],
+    bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
+    group_id_to_group: dict[int, Group],
+) -> dict[Group, GroupEvent]:
+    group_to_groupevent: dict[Group, GroupEvent] = {}
+
+    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
+        event_id = instance_data.get("event_id")
+        occurrence_id = instance_data.get("occurrence_id")
+        occurrence = None
+
+        if event_id:
+            event = bulk_event_id_to_events.get(event_id)
+        else:
+            logger.info("delayed_processing.missing_event_id", extra={"rule": rule_group[0]})
+        group = group_id_to_group.get(int(rule_group[1]))
+        if not group or not event:
+            if not group:
+                logger.info("delayed_processing.missing_group", extra={"rule": rule_group[0]})
+            if not event:
+                logger.info("delayed_processing.missing_event", extra={"rule": rule_group[0]})
+            continue
+
+        group_event = event.for_group(group)
+        if occurrence_id:
+            occurrence = bulk_occurrence_id_to_occurrence.get(occurrence_id)
+        group_event.occurrence = occurrence
+        group_to_groupevent[group] = group_event
+
+    return group_to_groupevent
+
+
 def get_group_to_groupevent(
     parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
     project_id: int,
     group_ids: set[int],
 ) -> dict[Group, GroupEvent]:
-    group_to_groupevent: dict[Group, GroupEvent] = {}
     groups = Group.objects.filter(id__in=group_ids)
     group_id_to_group = {group.id: group for group in groups}
-    for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
-        event_id = instance_data.get("event_id")
-        occurrence_id = instance_data.get("occurrence_id")
-        group_id = rule_group[1]
-        group = group_id_to_group.get(int(group_id))
-        if group and event_id:
-            # TODO: fetch events and occurrences in batches
-            event = Event(
-                event_id=event_id,
-                project_id=project_id,
-                snuba_data={
-                    "event_id": event_id,
-                    "group_id": group.id,
-                    "project_id": project_id,
-                },
-            )
-            eventstore.backend.bind_nodes([event])
-            group_event = event.for_group(group)
-            if occurrence_id:
-                occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project_id)
-                if occurrence:
-                    group_event.occurrence = occurrence
+    event_ids: set[str] = set()
+    occurrence_ids: list[str] = []
 
-            group_to_groupevent[group] = group_event
+    for instance_data in parsed_rulegroup_to_event_data.values():
+        event_id = instance_data.get("event_id")
+        if event_id:
+            event_ids.add(event_id)
+        occurrence_id = instance_data.get("occurrence_id")
+        if occurrence_id:
+            occurrence_ids.append(occurrence_id)
+
+    bulk_event_id_to_events = bulk_fetch_events(list(event_ids), project_id)
+    bulk_occurrences = IssueOccurrence.fetch_multi(occurrence_ids, project_id=project_id)
+    bulk_occurrence_id_to_occurrence = {
+        occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
+    }
+    group_to_groupevent = build_group_to_groupevent(
+        parsed_rulegroup_to_event_data,
+        bulk_event_id_to_events,
+        bulk_occurrence_id_to_occurrence,
+        group_id_to_group,
+    )
     return group_to_groupevent
 
 
-@redis_buffer_registry.add_handler(BufferHookEvent.FLUSH)
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
@@ -290,7 +346,8 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
-    condition_group_results = get_condition_group_results(condition_groups, project)
+    with metrics.timer("delayed_processing.get_condition_group_results.duration"):
+        condition_group_results = get_condition_group_results(condition_groups, project)
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rule_to_slow_conditions = get_rule_to_slow_conditions(alert_rules)
@@ -307,39 +364,42 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
 
-    for rule, group_ids in rules_to_fire.items():
-        frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
-        freq_offset = now - timedelta(minutes=frequency)
-        group_to_groupevent = get_group_to_groupevent(
-            parsed_rulegroup_to_event_data, project.id, group_ids
-        )
-        for group, groupevent in group_to_groupevent.items():
-            rule_statuses = bulk_get_rule_status(alert_rules, group, project)
-            status = rule_statuses[rule.id]
-            if status.last_active and status.last_active > freq_offset:
-                logger.info(
-                    "delayed_processing.last_active",
-                    extra={"last_active": status.last_active, "freq_offset": freq_offset},
-                )
-                return
-
-            updated = (
-                GroupRuleStatus.objects.filter(id=status.id)
-                .exclude(last_active__gt=freq_offset)
-                .update(last_active=now)
+    with metrics.timer("delayed_processing.fire_rules.duration"):
+        for rule, group_ids in rules_to_fire.items():
+            frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+            freq_offset = now - timedelta(minutes=frequency)
+            group_to_groupevent = get_group_to_groupevent(
+                parsed_rulegroup_to_event_data, project.id, group_ids
             )
+            for group, groupevent in group_to_groupevent.items():
+                rule_statuses = bulk_get_rule_status(alert_rules, group, project)
+                status = rule_statuses[rule.id]
+                if status.last_active and status.last_active > freq_offset:
+                    logger.info(
+                        "delayed_processing.last_active",
+                        extra={"last_active": status.last_active, "freq_offset": freq_offset},
+                    )
+                    return
 
-            if not updated:
-                logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
-                return
+                updated = (
+                    GroupRuleStatus.objects.filter(id=status.id)
+                    .exclude(last_active__gt=freq_offset)
+                    .update(last_active=now)
+                )
 
-            notification_uuid = str(uuid.uuid4())
-            groupevent = group_to_groupevent[group]
-            rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
-            for callback, futures in activate_downstream_actions(
-                rule, groupevent, notification_uuid, rule_fire_history
-            ).values():
-                safe_execute(callback, groupevent, futures, _with_transaction=False)
+                if not updated:
+                    logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
+                    return
+
+                notification_uuid = str(uuid.uuid4())
+                groupevent = group_to_groupevent[group]
+                rule_fire_history = history.record(
+                    rule, group, groupevent.event_id, notification_uuid
+                )
+                for callback, futures in activate_downstream_actions(
+                    rule, groupevent, notification_uuid, rule_fire_history
+                ).values():
+                    safe_execute(callback, groupevent, futures, _with_transaction=False)
 
     # Step 8: Clean up Redis buffer data
     hashes_to_delete = [

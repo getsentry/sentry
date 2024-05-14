@@ -63,12 +63,11 @@ class BufferHookRegistry:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
 
-    def add_handler(self, key: BufferHookEvent) -> Callable[..., Any]:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            self._registry[key] = func
-            return func
+    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
+        self._registry[key] = func
 
-        return decorator
+    def has(self, key: BufferHookEvent) -> bool:
+        return self._registry.get(key) is not None
 
     def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
         try:
@@ -312,15 +311,10 @@ class RedisBuffer(Buffer):
         return decoded_hash
 
     def process_batch(self) -> None:
-        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
-        lock_key = self._lock_key(client, self.pending_key, ex=10)
-        if not lock_key:
-            return
-
         try:
             redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
-        finally:
-            client.delete(lock_key)
+        except Exception:
+            logger.exception("process_batch.error")
 
     def incr(
         self,

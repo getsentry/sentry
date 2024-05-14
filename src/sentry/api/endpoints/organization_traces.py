@@ -41,6 +41,7 @@ class TraceInterval(TypedDict):
     kind: Literal["project", "missing", "other"]
     opCategory: str | None
     duration: int
+    isRoot: bool
     components: NotRequired[list[tuple[int, int]]]
 
 
@@ -722,7 +723,7 @@ class TraceSamplesExecutor:
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
-            orderby=["precise.start_ts", "precise.finish_ts"],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
             # large trace does not result in the rest being blank
             limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
@@ -760,10 +761,11 @@ class TraceSamplesExecutor:
                 "transaction",
                 "span.category",
                 "sdk.name",
+                "parent_span",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
-            orderby=["precise.start_ts", "precise.finish_ts"],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
             # large trace does not result in the rest being blank
             limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
@@ -972,14 +974,12 @@ def quantize_range(span_start, span_end, trace_range):
 
     bin_size = trace_range["min"]
 
-    span_duration = span_end - span_start
-
     if bin_size > 0:
         rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
         rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
 
-        # if the span is at least the min duration, ensure it spans 1 bin
-        if rounded_start == rounded_end and span_duration >= (bin_size * 0.1):
+        # ensure minimum of 1 width
+        if rounded_start == rounded_end:
             rounded_end += bin_size
     else:
         rounded_start = span_start
@@ -1002,7 +1002,12 @@ def process_breakdowns(data, traces_range):
 
     def should_merge(interval_a, interval_b):
         return (
-            interval_a["end"] >= interval_b["start"]
+            # only merge intervals that have parent spans, i.e. those that aren't the trace root
+            not interval_a["isRoot"]
+            and not interval_b["isRoot"]
+            # only merge intervals that overlap
+            and interval_a["end"] >= interval_b["start"]
+            # only merge intervals that are part of the same service
             and interval_a["project"] == interval_b["project"]
             and interval_a["sdkName"] == interval_b["sdkName"]
             and interval_a["opCategory"] == interval_b["opCategory"]
@@ -1034,14 +1039,16 @@ def process_breakdowns(data, traces_range):
                     "components": [
                         (last_interval["components"][-1][1], interval["components"][0][0]),
                     ],
+                    "isRoot": False,
                 }
             )
 
         breakdown.append(interval)
 
     def stack_push(trace, interval):
-        last_interval = stack_peek(trace)
-        if last_interval and should_merge(last_interval, interval):
+        for last_interval in reversed(stacks[trace]):
+            if not should_merge(last_interval, interval):
+                continue
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
@@ -1109,7 +1116,14 @@ def process_breakdowns(data, traces_range):
         row["quantized.start_ts"] = quantized_start
         row["quantized.finish_ts"] = quantized_end
 
-    data.sort(key=lambda row: (row["quantized.start_ts"], -row["quantized.finish_ts"]))
+    data.sort(
+        key=lambda row: (
+            row["quantized.start_ts"],
+            row["precise.start_ts"],
+            -row["quantized.finish_ts"],
+            -row["precise.finish_ts"],
+        )
+    )
 
     last_timestamp_per_trace: dict[str, int] = defaultdict(int)
 
@@ -1133,6 +1147,7 @@ def process_breakdowns(data, traces_range):
             "end": row["quantized.finish_ts"],
             "duration": 0,
             "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
+            "isRoot": not bool(row.get("parent_span")),
         }
 
         # Clear the stack of any intervals that end before the current interval
@@ -1141,23 +1156,21 @@ def process_breakdowns(data, traces_range):
 
         stack_push(trace, cur)
 
-        # Clear the stack of any intervals that end before the current interval
-        # ends. Here we do not need to push them to the breakdowns because
-        # that time has already be attributed to the most recent interval.
-        stack_clear(trace, until=cur["end"])
-
     for trace, trace_range in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
 
+        other_start = trace_range["start"]
+        other_end = trace_range["end"]
         other: TraceInterval = {
             "kind": "other",
             "project": None,
             "sdkName": None,
             "opCategory": None,
-            "start": trace_range["start"],
-            "end": trace_range["end"],
+            "start": other_start,
+            "end": other_end,
             "duration": 0,
+            "isRoot": False,
         }
 
         # Clear the remaining intervals on the stack to find the latest end time
@@ -1165,8 +1178,12 @@ def process_breakdowns(data, traces_range):
         # of the trace that was not covered by one of the intervals.
         while stacks[trace]:
             interval = stack_pop(trace)
-            # use the end time of the last component of the interval
-            other["start"] = max(other["start"], interval["components"][-1][1])
+            other["start"] = max(other["start"], interval["end"])
+            # other["start"] = max(other["start"], interval["components"][-1][1])
+            last_component = interval["components"][-1]
+            other_start = max(other_start, last_component[1])
+
+        other["components"] = [(other_start, other_end)]
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)

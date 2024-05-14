@@ -68,7 +68,6 @@ const topNodeFrameworks: PlatformKey[] = [
   'node-express',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 
