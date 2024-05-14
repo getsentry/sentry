@@ -181,6 +181,7 @@ class SeerSimilarIssueData:
             if not Group.objects.filter(id=parent_group_id).first():
                 raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
 
+        # If we don't have a parent group id, try looking one up using the parent hash
         else:
             parent_grouphash = (
                 GroupHash.objects.filter(project_id=project_id, hash=parent_hash)
