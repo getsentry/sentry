@@ -15,7 +15,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
     ExternalIssueCreatedActivityNotification,
 )
 from sentry.integrations.slack.utils.feature import (
-    organization_integration_has_issue_alerts_enabled_flag,
+    organization_integration_has_issue_alerts_flag_enabled,
 )
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
@@ -134,7 +134,7 @@ class SlackService:
             return None
 
         # If the feature is disabled for the organization integration, exit early as there's nothing to do
-        if not organization_integration_has_issue_alerts_enabled_flag(
+        if not organization_integration_has_issue_alerts_flag_enabled(
             integration=integration, organization_id=organization_id
         ):
             self._logger.info(

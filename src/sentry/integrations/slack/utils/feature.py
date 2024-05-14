@@ -46,7 +46,7 @@ def organization_integration_has_metric_alerts_flag_enabled(
     )
 
 
-def organization_integration_has_issue_alerts_enabled_flag(
+def organization_integration_has_issue_alerts_flag_enabled(
     integration: Integration | RpcIntegration, organization_id: int
 ) -> bool:
     return organization_integration_has_feature_enabled(
