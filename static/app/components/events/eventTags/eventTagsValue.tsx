@@ -20,16 +20,15 @@ function EventTagsValue({
   locationSearch,
   withOnlyFormattedText = false,
 }: Props) {
-  const content =
-    !!meta && !value ? (
-      <AnnotatedText
-        value={value}
-        meta={meta}
-        withOnlyFormattedText={withOnlyFormattedText}
-      />
-    ) : (
-      <DeviceName value={String(value)} />
-    );
+  const content = meta ? (
+    <AnnotatedText
+      value={value}
+      meta={meta}
+      withOnlyFormattedText={withOnlyFormattedText}
+    />
+  ) : (
+    <DeviceName value={String(value)} />
+  );
 
   if (!meta?.err?.length && defined(key) && streamPath && locationSearch) {
     return <Link to={{pathname: streamPath, search: locationSearch}}>{content}</Link>;

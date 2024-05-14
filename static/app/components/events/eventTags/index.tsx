@@ -7,6 +7,7 @@ import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCus
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import Pills from 'sentry/components/pills';
+import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,7 +21,7 @@ import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
-  projectSlug: string;
+  projectSlug: Project['slug'];
   filteredTags?: EventTag[];
   tagFilter?: TagFilter;
 };
@@ -112,7 +113,7 @@ export function EventTags({
   return (
     <Fragment>
       {hasNewTagsUI ? (
-        <EventTagsTree event={event} tags={tags} meta={meta} projectSlug={projectSlug} />
+        <EventTagsTree event={event} meta={meta} projectSlug={projectSlug} tags={tags} />
       ) : (
         <StyledClippedBox clipHeight={150}>
           <Pills>
