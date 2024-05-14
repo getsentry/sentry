@@ -996,13 +996,11 @@ def quantize_range(
     trace_range: TraceRange,
 ) -> tuple[tuple[int, int], tuple[int, int]]:
     trace_start = trace_range["start"]
-    trace_end = trace_range["end"]
 
     num_slices = trace_range["slices"]
-    slice_size = trace_range["slice_size"]
 
     if num_slices > 0:
-        slice_size = round((trace_end - trace_start) / num_slices)
+        slice_size = trace_range["slice_size"]
 
         slice_start = round((span_start - trace_start) / slice_size)
         slice_start = clip(slice_start, 0, num_slices)
