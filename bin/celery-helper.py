@@ -86,18 +86,18 @@ def get_reserved_task_ids_by_name(task_name: str) -> list[str]:
     return _get_task_ids_by_name_and_status(task_name, TaskStatus.RESERVED)
 
 
-def revoke_active_tasks_by_name(task_name: str, dry_run: bool = False) -> None:
+def revoke_active_tasks_by_name(task_name: str, execute: bool = False) -> None:
     """Revoke and terminate all tasks with the given name. Dangerous!"""
     _ensure_initialized()
 
     task_ids = get_active_task_ids_by_name(task_name)
     task_num = len(task_ids)
 
-    if dry_run:
-        print(f"!!![dry-run] Would revoke tasks: {task_num}")  # NOQA
-    else:
+    if execute:
         control.revoke(task_ids, terminate=True)
         print(f"Revoked tasks: {task_num}")  # NOQA
+    else:
+        print(f"!!![dry-run] Would revoke tasks: {task_num}")  # NOQA
 
 
 def generate_help() -> str:
