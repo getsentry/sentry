@@ -42,7 +42,6 @@ interface GridProps extends AriaGridListOptions<ParseResultToken> {
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const state = useListState<ParseResultToken>(props);
-
   const {gridProps} = useQueryBuilderGrid(props, state, ref);
 
   return (
@@ -55,17 +54,17 @@ function Grid(props: GridProps) {
           case Token.FILTER:
             return (
               <SearchQueryBuilderFilter
-                key={makeTokenKey(token)}
+                key={item.key}
                 token={token}
                 item={item}
                 state={state}
               />
             );
-          case Token.SPACES:
           case Token.FREE_TEXT:
+          case Token.SPACES:
             return (
               <SearchQueryBuilderInput
-                key={makeTokenKey(token)}
+                key={item.key}
                 token={token}
                 item={item}
                 state={state}
@@ -117,7 +116,7 @@ export function SearchQueryBuilder({
       <PanelProvider>
         <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
           {item => (
-            <Item key={makeTokenKey(item)}>
+            <Item key={makeTokenKey(item, parsedQuery)}>
               {item.text.trim() ? item.text : t('Space')}
             </Item>
           )}

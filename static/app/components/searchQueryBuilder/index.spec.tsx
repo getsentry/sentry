@@ -26,6 +26,10 @@ const MOCK_SUPPORTED_KEYS: TagCollection = {
 };
 
 describe('SearchQueryBuilder', function () {
+  afterEach(function () {
+    jest.restoreAllMocks();
+  });
+
   const defaultProps: ComponentProps<typeof SearchQueryBuilder> = {
     getTagValues: jest.fn(),
     initialQuery: '',
@@ -178,7 +182,13 @@ describe('SearchQueryBuilder', function () {
         screen.getByRole('combobox'),
         'some free text brow{ArrowDown}'
       );
+
+      // XXX(malwilley): SearchQueryBuilderInput updates state in the render
+      // function which causes an act warning despite using userEvent.click.
+      // Cannot find a way to avoid this warning.
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
       await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+      jest.restoreAllMocks();
 
       // Should have a free text token "some free text"
       expect(screen.getByRole('row', {name: 'some free text'})).toBeInTheDocument();
