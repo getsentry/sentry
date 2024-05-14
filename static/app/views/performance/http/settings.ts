@@ -20,4 +20,5 @@ export const SPAN_ID_DISPLAY_LENGTH = 16;
 
 export const BASE_FILTERS = {
   'span.module': ModuleName.HTTP,
+  'span.op': 'http.client', // `span.module` alone isn't enough, since some SDKs create other `http.*` spans like `http.client.response_body`
 };
