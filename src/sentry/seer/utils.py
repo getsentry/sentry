@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import NotRequired, Self, TypedDict
+from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -17,7 +18,7 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
-from sentry.utils.json import JSONDecodeError
+from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,14 @@ class SeerSimilarIssueData:
     # TODO: See if we end up needing the hash here
     parent_hash: str | None = None
 
+    # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
+    # definition because Python has no way to derive it from the type (nor vice-versa)
+    required_incoming_keys: ClassVar = {"stacktrace_distance", "message_distance", "should_group"}
+    optional_incoming_keys: ClassVar = {"parent_hash", "parent_group_id"}
+    expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
+
     @classmethod
-    def from_raw(cls, project_id: int, raw_similar_issue_data: RawSeerSimilarIssueData) -> Self:
+    def from_raw(cls, project_id: int, raw_similar_issue_data: Mapping[str, Any]) -> Self:
         """
         Create an instance of `SeerSimilarIssueData` from the raw data that comes back from Seer,
         using the parent hash to look up the parent group id. Needs to be run individually on each
@@ -148,7 +155,19 @@ class SeerSimilarIssueData:
         point to an existing group.
 
         """
-        similar_issue_data = raw_similar_issue_data
+
+        # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
+        raw_similar_issue_data = apply_key_filter(
+            raw_similar_issue_data, keep_keys=cls.expected_incoming_keys
+        )
+        missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
+        if missing_keys:
+            raise IncompleteSeerDataError(
+                "Seer similar issues response entry missing "
+                + ("keys " if len(missing_keys) > 1 else "key ")
+                + ", ".join(map(lambda key: f"'{key}'", sorted(missing_keys)))
+            )
+
         parent_hash = raw_similar_issue_data.get("parent_hash")
         parent_group_id = raw_similar_issue_data.get("parent_group_id")
 
@@ -161,6 +180,9 @@ class SeerSimilarIssueData:
             if not Group.objects.filter(id=parent_group_id).first():
                 raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
 
+            similar_issue_data = raw_similar_issue_data
+
+        # If we don't have a parent group id, try looking one up using the parent hash
         else:
             parent_grouphash = (
                 GroupHash.objects.filter(project_id=project_id, hash=parent_hash)
