@@ -79,6 +79,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
+            'time_spent_percentage()',
           ],
           dataset: 'spansMetrics',
         }),
@@ -90,5 +91,37 @@ describe('queuesTable', () => {
     expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+  });
+  it('searches for a destination and sorts', async () => {
+    render(
+      <QueuesTable
+        destination="*events*"
+        sort={{field: 'messaging.destination.name', kind: 'desc'}}
+      />
+    );
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: [
+            'messaging.destination.name',
+            'count()',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
+            'sum(span.duration)',
+            'avg(span.duration)',
+            'avg_if(span.duration,span.op,queue.publish)',
+            'avg_if(span.duration,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
+            'time_spent_percentage()',
+          ],
+          dataset: 'spansMetrics',
+          sort: '-messaging.destination.name',
+          query:
+            'span.op:[queue.process,queue.publish] messaging.destination.name:*events*',
+        }),
+      })
+    );
+    await screen.findByText('celery.backend_cleanup');
   });
 });

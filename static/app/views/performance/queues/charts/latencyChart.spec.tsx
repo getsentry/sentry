@@ -23,7 +23,7 @@ describe('latencyChart', () => {
     });
   });
   it('renders', async () => {
-    render(<LatencyChart />);
+    render(<LatencyChart destination="events" />);
     screen.getByText('Avg Latency');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -36,6 +36,8 @@ describe('latencyChart', () => {
             'count_op(queue.publish)',
             'count_op(queue.process)',
           ],
+          query:
+            'span.op:[queue.process,queue.publish] messaging.destination.name:events',
         }),
       })
     );
