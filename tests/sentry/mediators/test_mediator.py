@@ -69,7 +69,7 @@ class TestMediator(TestCase):
         "sentry.app.env",
         new_callable=PropertyMock(
             return_value=Double(
-                request=Double(resolver_match=Double(kwargs={"organization_id_or_slug": "beep"}))
+                request=Double(resolver_match=Double(kwargs={"organization_slug": "beep"}))
             )
         ),
     )
