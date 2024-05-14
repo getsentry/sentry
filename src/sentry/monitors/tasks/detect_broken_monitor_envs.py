@@ -24,7 +24,10 @@ from sentry.monitors.models import (
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.base import instrumented_task
+from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.manager import get_email_addresses
 from sentry.utils.http import absolute_uri
@@ -111,7 +114,16 @@ def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project):
 
 def get_user_emails_from_monitor(monitor: Monitor, project: Project):
     user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
-    return get_email_addresses(user_ids, project, only_verified=True).values()
+    actors = [Actor.from_id(user_id=id) for id in user_ids]
+    recipients = notifications_service.get_notification_recipients(
+        type=NotificationSettingEnum.APPROVAL,
+        recipients=actors,
+        organization_id=project.organization_id,
+        project_ids=[project.id],
+    )
+    filtered_user_ids = [recipient.id for recipient in (recipients.get("email") or [])]
+
+    return get_email_addresses(filtered_user_ids, project, only_verified=True).values()
 
 
 def generate_monitor_email_context(
