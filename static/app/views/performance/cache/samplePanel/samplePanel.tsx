@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
 import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
@@ -27,6 +28,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
@@ -72,6 +74,14 @@ export function CacheSamplePanel() {
     'project.id': query.project,
   };
 
+  const {data: cacheHitRateData, isLoading: isCacheHitRateLoading} = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
+      yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
+    },
+    Referrer.SAMPLES_CACHE_HIT_MISS_CHART
+  );
+
   const {data: cacheTransactionMetrics, isFetching: areCacheTransactionMetricsFetching} =
     useSpanMetrics(
       {
@@ -107,11 +117,11 @@ export function CacheSamplePanel() {
   };
 
   const {
-    data: cacheSpanSamplesData,
-    isFetching: isCacheSpanSamplesFetching,
-    refetch: refetchSpanSamples,
+    data: cacheHitSamples,
+    isFetching: isCacheHitsFetching,
+    refetch: refetchCacheHits,
   } = useIndexedSpans({
-    search: MutableSearch.fromQueryObject(sampleFilters).addFreeText('has:cache.hit'),
+    search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': 'true'}),
     fields: [
       SpanIndexedField.PROJECT,
       SpanIndexedField.TRACE,
@@ -124,24 +134,49 @@ export function CacheSamplePanel() {
       SpanIndexedField.CACHE_ITEM_SIZE,
     ],
     sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT,
+    limit: SPAN_SAMPLE_LIMIT / 2,
     enabled: isPanelOpen,
     referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
   });
+
+  const {
+    data: cacheMissSamples,
+    isFetching: isCacheMissesFetching,
+    refetch: refetchCacheMisses,
+  } = useIndexedSpans({
+    search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': 'false'}),
+    fields: [
+      SpanIndexedField.PROJECT,
+      SpanIndexedField.TRACE,
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.ID,
+      SpanIndexedField.TIMESTAMP,
+      SpanIndexedField.SPAN_DESCRIPTION,
+      SpanIndexedField.CACHE_HIT,
+      SpanIndexedField.SPAN_OP,
+      SpanIndexedField.CACHE_ITEM_SIZE,
+    ],
+    sorts: [SPAN_SAMPLES_SORT],
+    limit: SPAN_SAMPLE_LIMIT / 2,
+    enabled: isPanelOpen,
+    referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
+  });
+
+  const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
 
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
   } = useTransactions(
-    cacheSpanSamplesData?.map(span => span['transaction.id']) || [],
+    cacheSamples?.map(span => span['transaction.id']) || [],
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 
   const transactionDurationsMap = keyBy(transactionData, 'id');
 
   const spansWithDuration =
-    cacheSpanSamplesData?.map(span => ({
+    cacheSamples?.map(span => ({
       ...span,
       'transaction.duration':
         transactionDurationsMap[span['transaction.id']]?.['transaction.duration'],
@@ -159,6 +194,11 @@ export function CacheSamplePanel() {
         transactionMethod: undefined,
       },
     });
+  };
+
+  const handleRefetch = () => {
+    refetchCacheHits();
+    refetchCacheMisses();
   };
 
   return (
@@ -250,35 +290,38 @@ export function CacheSamplePanel() {
               />
             </MetricsRibbon>
           </ModuleLayout.Full>
+          <ModuleLayout.Half>
+            <CacheHitMissChart
+              isLoading={isCacheHitRateLoading}
+              series={cacheHitRateData[`cache_miss_rate()`]}
+            />
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <TransactionDurationChart
+              samples={spansWithDuration}
+              averageTransactionDuration={
+                transactionDurationData?.[0]?.[
+                  `avg(${MetricsFields.TRANSACTION_DURATION})`
+                ]
+              }
+              highlightedSpanId={highlightedSpanId}
+              onHighlight={highlights => {
+                const firstHighlight = highlights[0];
 
-          <Fragment>
-            <ModuleLayout.Full>
-              <TransactionDurationChart
-                samples={spansWithDuration}
-                averageTransactionDuration={
-                  transactionDurationData?.[0]?.[
-                    `avg(${MetricsFields.TRANSACTION_DURATION})`
-                  ]
+                if (!firstHighlight) {
+                  setHighlightedSpanId(undefined);
+                  return;
                 }
-                highlightedSpanId={highlightedSpanId}
-                onHighlight={highlights => {
-                  const firstHighlight = highlights[0];
 
-                  if (!firstHighlight) {
-                    setHighlightedSpanId(undefined);
-                    return;
-                  }
-
-                  const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
-                    firstHighlight.dataPoint,
-                    spansWithDuration,
-                    'transaction.duration'
-                  );
-                  setHighlightedSpanId(sample?.span_id);
-                }}
-              />
-            </ModuleLayout.Full>
-          </Fragment>
+                const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
+                  firstHighlight.dataPoint,
+                  spansWithDuration,
+                  'transaction.duration'
+                );
+                setHighlightedSpanId(sample?.span_id);
+              }}
+            />
+          </ModuleLayout.Half>
           <Fragment>
             <ModuleLayout.Full>
               <SpanSamplesTable
@@ -290,7 +333,9 @@ export function CacheSamplePanel() {
                   },
                   units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
                 }}
-                isLoading={isCacheSpanSamplesFetching || isFetchingTransactions}
+                isLoading={
+                  isCacheHitsFetching || isCacheMissesFetching || isFetchingTransactions
+                }
                 highlightedSpanId={highlightedSpanId}
                 onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
                 onSampleMouseOut={() => setHighlightedSpanId(undefined)}
@@ -301,9 +346,7 @@ export function CacheSamplePanel() {
 
           <Fragment>
             <ModuleLayout.Full>
-              <Button onClick={() => refetchSpanSamples()}>
-                {t('Try Different Samples')}
-              </Button>
+              <Button onClick={handleRefetch}>{t('Try Different Samples')}</Button>
             </ModuleLayout.Full>
           </Fragment>
         </ModuleLayout.Layout>

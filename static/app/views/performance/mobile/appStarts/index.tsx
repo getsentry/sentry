@@ -12,11 +12,6 @@ export default function InitializationModule() {
     <Feature features="spans-first-ui" organization={organization}>
       <ScreensTemplate
         additionalSelectors={<StartTypeSelector />}
-        compatibilityProps={{
-          compatibleSDKNames: ['sentry.cocoa', 'sentry.java.android'],
-          docsUrl:
-            'https://docs.sentry.io/product/performance/mobile-vitals/app-starts/#minimum-sdk-requirements',
-        }}
         content={<AppStartup chartHeight={200} />}
         title={ROUTE_NAMES['app-startup']}
       />

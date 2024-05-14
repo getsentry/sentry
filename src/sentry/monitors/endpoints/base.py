@@ -57,7 +57,7 @@ class MonitorEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
+        organization_id_or_slug: int | str,
         monitor_id_or_slug: int | str,
         environment: str | None = None,
         checkin_id: str | None = None,
@@ -67,13 +67,13 @@ class MonitorEndpoint(Endpoint):
         try:
             if (
                 id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_slug)
+                    self.convert_args.__qualname__, str(organization_id_or_slug)
                 )
-                and str(organization_slug).isdigit()
+                and str(organization_id_or_slug).isdigit()
             ):
-                organization = Organization.objects.get_from_cache(id=organization_slug)
+                organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
             else:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 

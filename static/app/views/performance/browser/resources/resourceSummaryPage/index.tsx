@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -26,7 +27,7 @@ import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 const {
@@ -80,11 +81,7 @@ function ResourceSummary() {
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -149,19 +146,32 @@ function ResourceSummary() {
           <SampleList
             transactionRoute="/performance/browser/pageloads/"
             groupId={groupId}
+            moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
             additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />
         </Layout.Main>
       </Layout.Body>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      baseURL="/performance/browser/resources"
+      features="spans-first-ui"
+    >
+      <ResourceSummary />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
 `;
-
-export default ResourceSummary;

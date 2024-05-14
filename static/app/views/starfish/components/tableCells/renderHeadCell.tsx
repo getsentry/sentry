@@ -66,6 +66,7 @@ const NUMERIC_FIELDS = new Set([
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.CACHE_ITEM_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
 ]);
 
 export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {

@@ -1439,8 +1439,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1514,15 +1512,13 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
+    # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     "organizations:custom-metrics-experimental": False,
-    # Delightful Developer Metrics (DDM):
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
-    # Enables category "metrics" in stats_v2 endpoint
-    "organizations:metrics-stats": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1794,6 +1790,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:related-events": False,
     # Enable related issues feature
     "organizations:related-issues": False,
+    # Enable related issues in issue details page
+    "organizations:related-issues-issue-details-page": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1854,10 +1852,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
-    # Enable the new flat file indexing system for sourcemaps.
-    "organizations:sourcemaps-bundle-flat-file-indexing": False,
-    # Upload release bundles as artifact bundles.
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts

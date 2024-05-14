@@ -167,7 +167,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
 
-            if features.has("organizations:metrics-stats", organization):
+            if features.has("organizations:custom-metrics", organization):
                 if (
                     request.GET.get("category") == "metrics"
                     or request.GET.get("category") == "metricSecond"
