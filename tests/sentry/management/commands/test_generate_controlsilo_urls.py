@@ -58,7 +58,8 @@ class TestGenerateControlsiloUrls(TestCase):
             Does not exist in the current pattern inventory. You should regenerate
             the pattern inventory with:
 
-            getsentry django generate_controlsilo_urls --format=js --output={pattern_file}
+            cd ../getsentry
+            getsentry django generate_controlsilo_urls --format=js --output=../sentry/{pattern_file}
 
             This command needs to be run in a getsentry environment
             in order to not lose patterns that are important for sentry.io
