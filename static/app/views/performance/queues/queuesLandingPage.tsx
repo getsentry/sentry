@@ -22,7 +22,11 @@ import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/settings';
+import {
+  BASE_URL,
+  MODULE_TITLE,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/queues/settings';
 
 function QueuesLandingPage() {
   const organization = useOrganization();
@@ -104,7 +108,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL="/performance/queues"
+      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <QueuesLandingPage />

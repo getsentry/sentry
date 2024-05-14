@@ -23,7 +23,11 @@ import {DurationChart} from 'sentry/views/performance/http/charts/durationChart'
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/http/referrers';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  BASE_URL,
+  MODULE_TITLE,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
   isAValidSort,
@@ -251,7 +255,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL="/performance/http"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <HTTPLandingPage />
