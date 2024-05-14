@@ -5,7 +5,7 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
-import type {Group, TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
@@ -20,74 +20,50 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
 const EMPTY_STATS: ReadonlyArray<TimeseriesValue> = [];
 
 type Props = {
-  data: Group;
-  statsPeriod: string;
+  stats: ReadonlyArray<TimeseriesValue>;
   groupStatus?: string;
   height?: number;
+  secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
 
 function GroupStatusChart({
-  statsPeriod,
-  data,
+  stats = EMPTY_STATS,
   groupStatus,
   height = 24,
+  secondaryStats = EMPTY_STATS,
   showMarkLine = false,
   showSecondaryPoints = false,
 }: Props) {
-  const stats: ReadonlyArray<TimeseriesValue> = statsPeriod
-    ? data.filtered
-      ? data.filtered.stats?.[statsPeriod]
-      : data.stats?.[statsPeriod]
-    : EMPTY_STATS;
-
-  const secondaryStats: TimeseriesValue[] | null =
-    statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
-
-  const [series, colors, emphasisColors]: [
-    Series[],
-    [string] | undefined,
-    [string] | undefined,
-  ] = useMemo(() => {
+  const graphOptions = useMemo<{
+    colors: [string] | undefined;
+    emphasisColors: [string] | undefined;
+    series: Series[];
+  }>(() => {
     if (!stats || !stats.length) {
-      return [[], undefined, undefined];
+      return {colors: undefined, emphasisColors: undefined, series: []};
     }
-
-    let max = 0;
-    const marklinePoints: number[] = [];
-
-    for (let i = 0; i < stats.length; i++) {
-      const point = stats[i];
-      if (point[1] > max) {
-        max = point[1];
-      }
-      marklinePoints.push(point[1]);
-    }
+    const max = Math.max(...stats.map(p => p[1]));
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const chartSeries: Series[] = [];
-    let chartColors: [string] | undefined = undefined;
-    let chartEmphasisColors: [string] | undefined = undefined;
-
     if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
-      chartSeries.push({
-        seriesName: t('Total Events'),
-        data: secondaryStats.map(asChartPoint),
-      });
-      chartSeries.push({
-        seriesName: t('Matching Events'),
-        data: stats.map(asChartPoint),
-      });
-    } else {
-      // Colors are custom to preserve historical appearance where the single series is
-      // considerably darker than the two series results.
-      chartColors = [theme.gray300];
-      chartEmphasisColors = [theme.purple300];
-      secondaryStats;
-      showSecondaryPoints;
-      chartSeries.push({
+      const series: Series[] = [
+        {
+          seriesName: t('Matching Events'),
+          data: stats.map(asChartPoint),
+        },
+        {
+          seriesName: t('Total Events'),
+          data: secondaryStats.map(asChartPoint),
+        },
+      ];
+
+      return {colors: undefined, emphasisColors: undefined, series};
+    }
+    const series: Series[] = [
+      {
         seriesName: t('Events'),
         data: stats.map(asChartPoint),
         markLine:
@@ -110,9 +86,9 @@ function GroupStatusChart({
                 },
               })
             : undefined,
-      });
-    }
-    return [chartSeries, chartColors, chartEmphasisColors];
+      },
+    ];
+    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
@@ -125,9 +101,9 @@ function GroupStatusChart({
           height={showMarkLine ? 36 : height}
           isGroupedByDate
           showTimeInTooltip
-          series={series}
-          colors={colors}
-          emphasisColors={emphasisColors}
+          series={graphOptions.series}
+          colors={graphOptions.colors}
+          emphasisColors={graphOptions.emphasisColors}
           hideDelay={50}
           showMarkLineLabel={showMarkLine}
           width={136}
@@ -144,7 +120,7 @@ const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 `;
-// TODO: Call this something better
+
 const GraphText = styled('div')`
   color: ${p => p.theme.gray300};
 `;

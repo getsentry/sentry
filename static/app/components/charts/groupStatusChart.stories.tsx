@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import storyBook from 'sentry/stories/storyBook';
-import type {Group, TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types';
 
 const stats: ReadonlyArray<TimeseriesValue> = [
   // [1715554800, 126],
@@ -31,22 +31,11 @@ const stats: ReadonlyArray<TimeseriesValue> = [
   [1715637600, 82],
 ];
 
-const fakeGroup = {
-  stats: {
-    '24h': stats,
-  },
-} as unknown as Group;
-
 export default storyBook(GroupStatusChart, story => {
   story('Default', () => {
     return (
       <GraphContainer>
-        <GroupStatusChart
-          showMarkLine
-          data={fakeGroup}
-          groupStatus="Escalating"
-          statsPeriod="24h"
-        />
+        <GroupStatusChart showMarkLine stats={stats} groupStatus="Escalating" />
       </GraphContainer>
     );
   });
