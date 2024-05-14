@@ -73,11 +73,11 @@ _default_logger = logging.getLogger(__name__)
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     _FLAGS_KEY: str = "toggleableFlags"
-    _ISSUE_ALERTS_THREAD_FLAG: str = "issueAlertsThreadFlag"
-    _METRIC_ALERTS_THREAD_FLAG: str = "metricAlertsThreadFlag"
+    ISSUE_ALERTS_THREAD_FLAG: str = "issueAlertsThreadFlag"
+    METRIC_ALERTS_THREAD_FLAG: str = "metricAlertsThreadFlag"
     _SUPPORTED_FLAGS_WITH_DEFAULTS: dict[str, bool] = {
-        _ISSUE_ALERTS_THREAD_FLAG: True,
-        _METRIC_ALERTS_THREAD_FLAG: True,
+        ISSUE_ALERTS_THREAD_FLAG: True,
+        METRIC_ALERTS_THREAD_FLAG: True,
     }
 
     def get_client(self) -> SlackClient:
@@ -186,6 +186,21 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
         """
         self._update_and_clean_flags_in_organization_config(data=data)
         super().update_organization_config(data=data)
+
+    def get_features(self) -> dict[str, bool]:
+        """
+        Helper method to get all the features saved to this organization integration installation
+        """
+        data = self.get_config_data()
+        return data[self._FLAGS_KEY]
+
+    def has_feature(self, feature_name: str) -> bool:
+        """
+        Helper method to check if a particular feature has a flag
+        Default returns to False if the flag does not exist
+        """
+        features = self.get_features()
+        return features.get(feature_name, False)
 
 
 class SlackIntegrationProvider(IntegrationProvider):

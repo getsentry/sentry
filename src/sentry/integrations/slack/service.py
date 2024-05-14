@@ -14,6 +14,9 @@ from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
+from sentry.integrations.slack.utils.feature import (
+    organization_integration_has_issue_alerts_enabled_flag,
+)
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
 from sentry.models.rule import Rule
@@ -114,19 +117,9 @@ class SlackService:
             )
             return None
 
-        # The same message is sent to all the threads, so this needs to only happen once
-        notification_to_send = self._get_notification_message_to_send(activity=activity)
-        if not notification_to_send:
-            self._logger.info(
-                "notification to send is invalid",
-                extra={
-                    "activity_id": activity.id,
-                },
-            )
-            return None
-
+        organization_id = activity.group.organization.id
         integration = get_active_integration_for_organization(
-            organization_id=activity.group.organization.id,
+            organization_id=organization_id,
             provider=ExternalProviderEnum.SLACK,
         )
         if integration is None:
@@ -134,8 +127,34 @@ class SlackService:
                 "no integration found for activity",
                 extra={
                     "activity_id": activity.id,
-                    "organization_id": activity.project.organization_id,
+                    "organization_id": organization_id,
                     "project_id": activity.project.id,
+                },
+            )
+            return None
+
+        # If the feature is disabled for the organization integration, exit early as there's nothing to do
+        if not organization_integration_has_issue_alerts_enabled_flag(
+            integration=integration, organization_id=organization_id
+        ):
+            self._logger.info(
+                "feature is turned off for this integration on this organization",
+                extra={
+                    "activity_id": activity.id,
+                    "organization_id": organization_id,
+                    "project_id": activity.project.id,
+                    "integration_id": integration.id,
+                },
+            )
+            return None
+
+        # The same message is sent to all the threads, so this needs to only happen once
+        notification_to_send = self._get_notification_message_to_send(activity=activity)
+        if not notification_to_send:
+            self._logger.info(
+                "notification to send is invalid",
+                extra={
+                    "activity_id": activity.id,
                 },
             )
             return None

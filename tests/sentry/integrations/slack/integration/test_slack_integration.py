@@ -26,8 +26,8 @@ class TestGetConfigData(_BaseTestCase):
         data = self.slack_installation.get_config_data()
         results = data.get("toggleableFlags")
         assert results == {
-            "issueAlertsThreadFlag": True,
-            "metricAlertsThreadFlag": True,
+            SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: True,
+            SlackIntegration.METRIC_ALERTS_THREAD_FLAG: True,
         }
 
     def test_gets_missing_flags(self) -> None:
@@ -36,15 +36,15 @@ class TestGetConfigData(_BaseTestCase):
             integration=self.slack_provider_integration,
             config={
                 "toggleableFlags": {
-                    "issueAlertsThreadFlag": False,
+                    SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
                 }
             },
         )
         data = self.slack_installation.get_config_data()
         results = data.get("toggleableFlags")
         assert results == {
-            "issueAlertsThreadFlag": False,
-            "metricAlertsThreadFlag": True,
+            SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+            SlackIntegration.METRIC_ALERTS_THREAD_FLAG: True,
         }
 
     def test_gets_correct_data(self) -> None:
@@ -53,16 +53,16 @@ class TestGetConfigData(_BaseTestCase):
             integration=self.slack_provider_integration,
             config={
                 "toggleableFlags": {
-                    "issueAlertsThreadFlag": False,
-                    "metricAlertsThreadFlag": False,
+                    SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+                    SlackIntegration.METRIC_ALERTS_THREAD_FLAG: False,
                 }
             },
         )
         data = self.slack_installation.get_config_data()
         results = data.get("toggleableFlags")
         assert results == {
-            "issueAlertsThreadFlag": False,
-            "metricAlertsThreadFlag": False,
+            SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+            SlackIntegration.METRIC_ALERTS_THREAD_FLAG: False,
         }
 
 
@@ -80,37 +80,37 @@ class TestUpdateAndCleanFlagsInOrganizationConfig(_BaseTestCase):
 
         results = data["toggleableFlags"]
         assert results == {
-            "issueAlertsThreadFlag": True,
-            "metricAlertsThreadFlag": True,
+            SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: True,
+            SlackIntegration.METRIC_ALERTS_THREAD_FLAG: True,
         }
 
     def test_adds_missing_flags(self) -> None:
         data: dict[str, Any] = {
             "toggleableFlags": {
-                "issueAlertsThreadFlag": False,
+                SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
             }
         }
         self.slack_installation._update_and_clean_flags_in_organization_config(data=data)
 
         results = data["toggleableFlags"]
         assert results == {
-            "issueAlertsThreadFlag": False,
-            "metricAlertsThreadFlag": True,
+            SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+            SlackIntegration.METRIC_ALERTS_THREAD_FLAG: True,
         }
 
     def test_corrects_bad_flag_values(self) -> None:
         data: dict[str, Any] = {
             "toggleableFlags": {
-                "issueAlertsThreadFlag": False,
-                "metricAlertsThreadFlag": 0,
+                SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+                SlackIntegration.METRIC_ALERTS_THREAD_FLAG: 0,
             }
         }
         self.slack_installation._update_and_clean_flags_in_organization_config(data=data)
 
         results = data["toggleableFlags"]
         assert results == {
-            "issueAlertsThreadFlag": False,
-            "metricAlertsThreadFlag": True,
+            SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+            SlackIntegration.METRIC_ALERTS_THREAD_FLAG: True,
         }
 
 
@@ -124,8 +124,8 @@ class TestUpdateOrganizationConfig(_BaseTestCase):
         )
         data: dict[str, Any] = {
             "toggleableFlags": {
-                "issueAlertsThreadFlag": False,
-                "metricAlertsThreadFlag": True,
+                SlackIntegration.ISSUE_ALERTS_THREAD_FLAG: False,
+                SlackIntegration.METRIC_ALERTS_THREAD_FLAG: True,
             }
         }
         self.slack_installation.update_organization_config(data=data)

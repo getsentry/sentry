@@ -18,6 +18,9 @@ from sentry.integrations.repository.metric_alert import (
 )
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.utils.feature import (
+    organization_integration_has_metric_alerts_flag_enabled,
+)
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -88,7 +91,13 @@ def send_incident_alert_notification(
     )
 
     # If a parent notification exists for this rule and action, then we can reply in a thread
-    if parent_notification_message is not None:
+    # However, if the feature is turned off, do not use threads
+    if (
+        parent_notification_message is not None
+        and organization_integration_has_metric_alerts_flag_enabled(
+            integration=integration, organization_id=organization.id
+        )
+    ):
         # Make sure we track that this reply will be in relation to the parent row
         new_notification_message_object.parent_notification_message_id = (
             parent_notification_message.id
