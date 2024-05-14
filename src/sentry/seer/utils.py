@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, NotRequired, Self, TypedDict
+from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -136,6 +136,10 @@ class SeerSimilarIssueData:
     # TODO: See if we end up needing the hash here
     parent_hash: str | None = None
 
+    # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
+    # definition because Python has no way to derive it from the type (nor vice-versa)
+    required_incoming_keys: ClassVar = {"stacktrace_distance", "message_distance", "should_group"}
+
     @classmethod
     def from_raw(cls, project_id: int, raw_similar_issue_data: Mapping[str, Any]) -> Self:
         """
@@ -149,6 +153,15 @@ class SeerSimilarIssueData:
         point to an existing group.
 
         """
+
+        missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
+        if missing_keys:
+            raise IncompleteSeerDataError(
+                "Seer similar issues response entry missing "
+                + ("keys " if len(missing_keys) > 1 else "key ")
+                + ", ".join(map(lambda key: f"'{key}'", sorted(missing_keys)))
+            )
+
         similar_issue_data = raw_similar_issue_data
         parent_hash = raw_similar_issue_data.get("parent_hash")
         parent_group_id = raw_similar_issue_data.get("parent_group_id")
