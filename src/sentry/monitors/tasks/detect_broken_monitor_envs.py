@@ -85,20 +85,16 @@ def update_user_monitor_dictionary(
         user_monitor_entry["environment_names"].append(environment_name)
 
 
-def get_user_emails_from_monitor(monitor: Monitor, project: Project):
+def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project):
     try:
         if monitor.owner_user_id:
             organization_member = OrganizationMember.objects.get(
                 user_id=monitor.owner_user_id, organization_id=monitor.organization_id
             )
-            return get_email_addresses(
-                [organization_member.user_id], project, only_verified=True
-            ).values()
+            return [organization_member.user_id]
         elif monitor.owner_team_id:
             team = Team.objects.get_from_cache(id=monitor.owner_team_id)
-            return get_email_addresses(
-                team.member_set.values_list("user_id", flat=True), project, only_verified=True
-            ).values()
+            return team.member_set.values_list("user_id", flat=True)
     except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
         logger.info(
             "monitors.broken_detection.invalid_owner",
@@ -110,9 +106,12 @@ def get_user_emails_from_monitor(monitor: Monitor, project: Project):
         )
 
     project = Project.objects.get_from_cache(id=monitor.project_id)
-    return get_email_addresses(
-        project.member_set.values_list("user_id", flat=True), project, only_verified=True
-    ).values()
+    return project.member_set.values_list("user_id", flat=True)
+
+
+def get_user_emails_from_monitor(monitor: Monitor, project: Project):
+    user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
+    return get_email_addresses(user_ids, project, only_verified=True).values()
 
 
 def generate_monitor_email_context(
