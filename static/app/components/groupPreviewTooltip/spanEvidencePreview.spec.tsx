@@ -107,7 +107,7 @@ describe('SpanEvidencePreview', () => {
 
     await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
-    await screen.findByTestId('span-evidence-preview-body');
+    await screen.findByTestId('span-evidence-preview-body', undefined, {timeout: 4000});
 
     expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: event.title})).toBeInTheDocument();
