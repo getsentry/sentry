@@ -3409,7 +3409,6 @@ class TraceTestCase(SpanTestCase):
     def load_errors(
         self,
         project: Project,
-        trace_id: str | None = None,
         span_id: str | None = None,
     ) -> list[Event]:
         """Generates trace with errors across two projects."""
@@ -3420,7 +3419,7 @@ class TraceTestCase(SpanTestCase):
         )
         error_data["contexts"]["trace"] = {
             "type": "trace",
-            "trace_id": trace_id or self.trace_id,
+            "trace_id": self.trace_id,
             "span_id": span_id or uuid4().hex[:16],
         }
         error_data["level"] = "fatal"
@@ -3430,7 +3429,6 @@ class TraceTestCase(SpanTestCase):
 
         another_project = self.create_project(organization=self.organization)
         another_project_error = self.store_event(error_data, project_id=another_project.id)
-
         return [error, error1, another_project_error]
 
     def load_default(self) -> Event:

@@ -46,8 +46,8 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
 
     def test_trace_connected_errors(self) -> None:
         error_event, _, another_proj_event = self.load_errors(self.project)
+        self.group_id = error_event.group_id  # type: ignore[assignment]
         group = error_event.group
-
         recommended_event = group.get_recommended_event_for_environments()  # type: ignore[union-attr]
         assert recommended_event is not None  # It helps with typing
 
@@ -55,8 +55,6 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         assert error_event.project.id != another_proj_event.project.id
         assert error_event.trace_id == another_proj_event.trace_id
 
-        # This sets the group_id to the one we want to query about
-        self.group_id = error_event.group_id  # type: ignore[assignment]
         response = self.get_success_response(qs_params={"type": "trace_connected"})
         assert response.json() == {
             "type": "trace_connected",
@@ -66,7 +64,6 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         }
 
     def test_trace_connected_errors_specific_event(self) -> None:
-        # One trace and two issues
         error_event, _, another_proj_event = self.load_errors(self.project)
 
         # This sets the group_id to the one we want to query about
