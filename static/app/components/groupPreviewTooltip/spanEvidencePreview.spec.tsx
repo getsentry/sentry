@@ -3,31 +3,27 @@ import {
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 
 describe('SpanEvidencePreview', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.resetAllMocks();
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/',
     });
   });
 
-  it('does not fetch before hover', () => {
+  it('does not fetch before hover', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/group-id/events/recommended/`,
-      body: event,
-      statusCode: 500,
+      body: {},
     });
 
     render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
-    jest.runAllTimers();
+    await act(tick);
 
     expect(mock).not.toHaveBeenCalled();
   });
@@ -35,7 +31,7 @@ describe('SpanEvidencePreview', () => {
   it('shows error when request fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/group-id/events/recommended/`,
-      body: event,
+      body: {},
       statusCode: 500,
     });
 
