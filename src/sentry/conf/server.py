@@ -1989,6 +1989,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings backfill
+    "projects:similarity-embeddings-backfill": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
     # Enable adding seer grouping metadata to new groups
