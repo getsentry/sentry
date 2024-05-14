@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -228,10 +229,16 @@ function renderBodyCell(
     if (!row['span.group']) {
       return <span>{row['span.description']}</span>;
     }
+
+    const queryString = {
+      ...location.query,
+      'span.description': row['span.description'],
+    };
+
     return (
       <Link
         to={normalizeUrl(
-          `/organizations/${organization.slug}/ai-monitoring/pipeline-type/${row['span.group']}`
+          `/organizations/${organization.slug}/ai-monitoring/pipeline-type/${row['span.group']}?${qs.stringify(queryString)}`
         )}
       >
         {row['span.description']}

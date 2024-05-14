@@ -431,7 +431,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ? null
                   : onMonitorTypeSelect({
                       monitorType: MonitorType.CONTINUOUS,
-                      activationCondition,
                     })
               }
             >
@@ -447,7 +446,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ? null
                   : onMonitorTypeSelect({
                       monitorType: MonitorType.ACTIVATED,
-                      activationCondition,
                     })
               }
             >

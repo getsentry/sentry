@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
@@ -33,6 +34,41 @@ const getTracesSupportedTags = () => {
   return tags;
 };
 
+interface SpanFieldEntry {
+  key: string;
+  name: string;
+}
+type SpanFieldsResponse = SpanFieldEntry[];
+
+const getDynamicSpanFieldsEndpoint = (orgSlug: string): ApiQueryKey => [
+  `/organizations/${orgSlug}/spans/fields/?statsPeriod=1h`,
+];
+
+const useTracesSupportedTags = (): TagCollection => {
+  const organization = useOrganization();
+  const staticTags = getTracesSupportedTags();
+
+  const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
+    getDynamicSpanFieldsEndpoint(organization.slug),
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
+
+  if (dynamicTagQuery.isSuccess) {
+    const dynamicTags: TagCollection = Object.fromEntries(
+      dynamicTagQuery.data.map(entry => [entry.key, entry])
+    );
+    return {
+      ...dynamicTags,
+      ...staticTags,
+    };
+  }
+
+  return staticTags;
+};
+
 export function TracesSearchBar({
   queries,
   handleSearch,
@@ -42,7 +78,7 @@ export function TracesSearchBar({
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
-  const supportedTags = getTracesSupportedTags();
+  const supportedTags = useTracesSupportedTags();
 
   return (
     <TraceSearchBarsContainer>

@@ -1,10 +1,10 @@
 import logging
 
+import orjson
 from django.conf import settings
 from django.db import models, router, transaction
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.encoding import force_str
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -18,7 +18,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
@@ -43,7 +42,7 @@ class ExportedData(Model):
     query_info = JSONField()
 
     @property
-    def status(self):
+    def status(self) -> ExportStatus:
         if self.date_finished is None:
             return ExportStatus.Early
         elif self.date_expired is not None and self.date_expired < timezone.now():
@@ -58,16 +57,16 @@ class ExportedData(Model):
         return payload
 
     @property
-    def file_name(self):
+    def file_name(self) -> str:
         date = self.date_added.strftime("%Y-%B-%d")
         export_type = ExportQueryType.as_str(self.query_type)
         # Example: Discover_2020-July-21_27.csv
         return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
-    def format_date(date):
+    def format_date(date) -> str | None:
         # Example: 12:21 PM on July 21, 2020 (UTC)
-        return None if date is None else force_str(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
+        return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
     def delete_file(self):
         file = self._get_file()
@@ -85,7 +84,7 @@ class ExportedData(Model):
         self.update(file_id=file.id, date_finished=current_time, date_expired=expire_time)
         transaction.on_commit(lambda: self.email_success(), router.db_for_write(ExportedData))
 
-    def email_success(self):
+    def email_success(self) -> None:
         from sentry.utils.email import MessageBuilder
 
         user_email = None
@@ -113,7 +112,7 @@ class ExportedData(Model):
         if user_email is not None:
             msg.send_async([user_email])
 
-    def email_failure(self, message):
+    def email_failure(self, message: str) -> None:
         from sentry.utils.email import MessageBuilder
 
         user = user_service.get_user(user_id=self.user_id)
@@ -125,7 +124,7 @@ class ExportedData(Model):
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,
-                "payload": json.dumps(self.payload),
+                "payload": orjson.dumps(self.payload).decode(),
             },
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",
