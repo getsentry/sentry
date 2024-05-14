@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Mapping, Sequence, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from django.db.models import Q
 from django.utils.text import get_text_list
