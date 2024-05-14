@@ -43,7 +43,7 @@
     "@react-aria/visually-hidden": "^3.8.8",
     "@react-stately/collections": "^3.10.4",
     "@react-stately/combobox": "^3.8.2",
-    "@react-stately/menu": "^3.6.0",
+    "@react-stately/menu": "^3.7.0",
     "@react-stately/numberfield": "^3.8.0",
     "@react-stately/radio": "^3.10.1",
     "@react-stately/slider": "^3.5.0",
