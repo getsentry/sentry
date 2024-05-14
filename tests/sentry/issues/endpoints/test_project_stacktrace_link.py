@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
@@ -211,48 +211,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
-
-    @patch("sentry.analytics.record")
-    @patch("sentry.integrations.utils.stacktrace_link.Timer")
-    @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_timer_duration_for_analytics(
-        self, mock_integration: MagicMock, mock_timer: MagicMock, mock_record: MagicMock
-    ) -> None:
-        mock_integration.return_value = "https://github.com/"
-        mock_duration = PropertyMock(return_value=5)
-        type(mock_timer.return_value.__enter__.return_value).duration = mock_duration
-
-        self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "groupId": 1,
-                "absPath": self.filepath,
-                "platform": "python",
-            },
-        )
-
-        mock_record.assert_any_call(
-            "function_timer.timed",
-            function_name="get_stacktrace_link",
-            duration=5,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id="1",
-            frame_abs_path=self.filepath,
-        )
-        mock_record.assert_any_call(
-            "integration.stacktrace.linked",
-            provider="example",
-            config_id=str(self.code_mapping1.id),
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            filepath=self.filepath,
-            status="success",
-            link_fetch_iterations=1,
-            platform="python",
-        )
 
 
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):

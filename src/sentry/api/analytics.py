@@ -21,19 +21,6 @@ class OrganizationSavedSearchDeletedEvent(analytics.Event):
     )
 
 
-class FunctionTimerEvent(analytics.Event):
-    type = "function_timer.timed"
-
-    attributes = (
-        analytics.Attribute("function_name"),
-        analytics.Attribute("duration"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id", required=False),
-        analytics.Attribute("frame_abs_path", required=False),
-    )
-
-
 class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     type = "group_similar_issues_embeddings.count"
 
@@ -48,5 +35,4 @@ class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
 
 analytics.register(OrganizationSavedSearchCreatedEvent)
 analytics.register(OrganizationSavedSearchDeletedEvent)
-analytics.register(FunctionTimerEvent)
 analytics.register(GroupSimilarIssuesEmbeddingsCountEvent)
