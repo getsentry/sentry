@@ -95,7 +95,6 @@ type DashboardHeadersProps = {organization: Organization};
 
 type MetricsPlanUpgradeProps = {
   children: (props: {label: string; to: string} | null) => React.ReactNode;
-
   organization: Organization;
 };
 
