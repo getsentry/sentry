@@ -100,7 +100,7 @@ function QueuesLandingPage() {
   );
 }
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -111,7 +111,8 @@ function LandingPageWithProviders() {
     </ModulePageProviders>
   );
 }
-export default LandingPageWithProviders;
+
+export default PageWithProviders;
 
 const Flex = styled('div')`
   display: flex;

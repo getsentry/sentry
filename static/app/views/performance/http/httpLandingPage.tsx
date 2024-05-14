@@ -247,7 +247,7 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -259,4 +259,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;
