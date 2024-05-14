@@ -10,7 +10,7 @@ from sentry.types.actor import Actor, ActorType, parse_and_validate_actor
 
 
 @django_db_all(transaction=True)
-def test_many_from_object_users():
+def test_many_from_object_users() -> None:
     users = [Factories.create_user(), Factories.create_user()]
     actors = Actor.many_from_object(users)
     assert len(actors) == len(users)
@@ -25,7 +25,7 @@ def test_many_from_object_users():
 
 
 @django_db_all(transaction=True)
-def test_from_identifier():
+def test_from_identifier() -> None:
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
     team = Factories.create_team(organization=org)
@@ -67,7 +67,7 @@ def test_from_identifier():
     assert not actor.is_user
 
 
-def test_from_id():
+def test_from_id() -> None:
     actor = Actor.from_id(team_id=1)
     assert actor
     assert actor.id == 1
@@ -85,7 +85,7 @@ def test_from_id():
 
 
 @django_db_all(transaction=True)
-def test_many_from_object_rpc_users():
+def test_many_from_object_rpc_users() -> None:
     orm_users = [Factories.create_user(), Factories.create_user()]
     user_ids = [u.id for u in orm_users]
     rpc_users = user_service.get_many(filter={"user_ids": user_ids})
@@ -101,7 +101,7 @@ def test_many_from_object_rpc_users():
 
 
 @django_db_all(transaction=True)
-def test_many_from_object_teams():
+def test_many_from_object_teams() -> None:
     organization = Factories.create_organization()
     teams = [
         Factories.create_team(organization=organization),
@@ -121,7 +121,7 @@ def test_many_from_object_teams():
 
 
 @django_db_all(transaction=True)
-def test_many_from_object_mixed():
+def test_many_from_object_mixed() -> None:
     organization = Factories.create_organization()
     teams = [
         Factories.create_team(organization=organization),
@@ -141,7 +141,7 @@ def test_many_from_object_mixed():
 
 
 @django_db_all(transaction=True)
-def test_resolve_many():
+def test_resolve_many() -> None:
     organization = Factories.create_organization()
     team_one = Factories.create_team(organization=organization)
     team_two = Factories.create_team(organization=organization)
@@ -167,7 +167,7 @@ def test_resolve_many():
 
 
 @django_db_all(transaction=True)
-def test_parse_and_validate_actor():
+def test_parse_and_validate_actor() -> None:
     user = Factories.create_user()
     other_user = Factories.create_user()
     org = Factories.create_organization(owner=user)
