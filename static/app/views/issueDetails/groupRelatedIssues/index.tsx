@@ -80,8 +80,8 @@ function RelatedIssuesSection({
   // This is important for traces since issues can be for any project in the org
   const baseUrl = `/organizations/${orgSlug}/issues/?project=-1`;
   let title: React.ReactNode = null;
-  let linkToTrace: React.ReactNode  = null;
-  let openIssuesButton: React.ReactNode  = null;
+  let linkToTrace: React.ReactNode = null;
+  let openIssuesButton: React.ReactNode = null;
   if (relationType === 'trace_connected' && traceMeta) {
     title = t('Issues in the same trace');
     linkToTrace = (
