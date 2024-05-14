@@ -10,7 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconLightning, IconReleases, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
+import type {MetricMeta, MetricsOperation, MRI, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   isAllowedOp,
@@ -43,13 +43,13 @@ type QueryBuilderProps = {
 const isVisibleTransactionMetric = (metric: MetricMeta) =>
   isTransactionDuration(metric) || isTransactionMeasurement(metric);
 
-const isVisibleSpanMetric = (metric: MetricMeta) =>
-  isSpanSelfTime(metric) || isSpanMeasurement(metric);
+const isVisibleSpanMetric = (metric: MetricMeta, organization: Organization) =>
+  isSpanSelfTime(metric) || isSpanMeasurement(metric, organization);
 
-const isShownByDefault = (metric: MetricMeta) =>
+const isShownByDefault = (metric: MetricMeta, organization: Organization) =>
   isCustomMetric(metric) ||
   isVisibleTransactionMetric(metric) ||
-  isVisibleSpanMetric(metric);
+  isVisibleSpanMetric(metric, organization);
 
 function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
   return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
@@ -118,7 +118,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
     const result = meta
-      .filter(metric => isShownByDefault(metric) || isSelected(metric))
+      .filter(metric => isShownByDefault(metric, organization) || isSelected(metric))
       .sort(metric => (isSelected(metric) ? -1 : 1));
 
     // Add the selected metric to the top of the list if it's not already there
@@ -138,7 +138,7 @@ export const QueryBuilder = memo(function QueryBuilder({
     }
 
     return result;
-  }, [meta, metricsQuery.mri]);
+  }, [meta, metricsQuery.mri, organization]);
 
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);

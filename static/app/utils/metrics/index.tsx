@@ -20,6 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   MetricMeta,
@@ -293,7 +294,7 @@ export function isTransactionMeasurement({mri}: {mri: MRI}) {
   return isMeasurement(name);
 }
 
-export function isSpanMeasurement({mri}: {mri: MRI}) {
+export function isSpanMeasurement({mri}: {mri: MRI}, organization: Organization) {
   if (
     mri === 'd:spans/http.response_content_length@byte' ||
     mri === 'd:spans/http.decoded_response_content_length@byte' ||
@@ -303,12 +304,13 @@ export function isSpanMeasurement({mri}: {mri: MRI}) {
   }
 
   const parsedMRI = parseMRI(mri);
-  if (
-    parsedMRI &&
-    parsedMRI.useCase === 'spans' &&
-    parsedMRI.name.startsWith('webvital.')
-  ) {
-    return true;
+  if (parsedMRI && parsedMRI.useCase === 'spans') {
+    if (parsedMRI.name.startsWith('webvital.')) {
+      return true;
+    }
+    if (organization.features.includes('dashboards-spans-metrics')) {
+      return true;
+    }
   }
 
   return false;
