@@ -270,7 +270,7 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 align="left"
-                title={DataTitles.cacheMissRate}
+                title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
                 }

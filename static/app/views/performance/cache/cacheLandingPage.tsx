@@ -170,7 +170,7 @@ export function CacheLandingPage() {
             <ModuleLayout.Half>
               <CacheHitMissChart
                 series={{
-                  seriesName: DataTitles.cacheMissRate,
+                  seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
                   data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
                 }}
                 isLoading={isCacheHitRateLoading}
