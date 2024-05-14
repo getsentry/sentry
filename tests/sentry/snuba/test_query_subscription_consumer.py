@@ -144,8 +144,6 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         )
         mock_callback.assert_called_once_with(data["payload"], sub)
 
-        raise Exception("test")
-
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def run_test(self, message):
