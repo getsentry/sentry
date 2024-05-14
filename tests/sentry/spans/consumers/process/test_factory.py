@@ -37,7 +37,7 @@ def build_mock_span(project_id, span_op=None, **kwargs):
             "environment": "development",
             "op": span_op or "base.dispatch.sleep",
             "release": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
-            "transaction": "/api/0/organizations/{organization_slug}/n-plus-one/",
+            "transaction": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
             "transaction.method": "GET",
             "transaction.op": "http.server",
             "user": "id:1",

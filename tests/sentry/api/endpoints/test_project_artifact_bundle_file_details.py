@@ -82,7 +82,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js.map").decode("utf-8"),
@@ -105,7 +105,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js").decode("utf-8"),
@@ -124,7 +124,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),
@@ -139,7 +139,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": 1234,
@@ -198,7 +198,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),

@@ -128,7 +128,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query, **kwargs):
         return self.client.get(
-            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+            reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
             query,
             format="json",
             **kwargs,

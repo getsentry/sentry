@@ -56,7 +56,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-facets-performance",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def store_transaction(

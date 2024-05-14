@@ -24,7 +24,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
                 query,
                 format="json",
                 **kwargs,
