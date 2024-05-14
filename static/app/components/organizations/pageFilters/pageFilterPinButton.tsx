@@ -38,7 +38,7 @@ function PageFilterPinButton({organization, filter, size, className}: Props) {
       size={size}
       pinned={pinned}
       borderless={size === 'zero'}
-      icon={<IconLock isSolid={pinned} size="xs" />}
+      icon={<IconLock locked={pinned} size="xs" />}
       title={t("Once locked, Sentry will remember this filter's value across pages.")}
       tooltipProps={{delay: 500}}
     >

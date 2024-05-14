@@ -650,15 +650,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Currently unused `orjson` options
-register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("auth.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("backup.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("event-manager.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("eventstore.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("relay.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1872,9 +1863,6 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
-# Turns on and off the running for dynamic sampling collect_orgs.
-register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
-
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
@@ -1976,18 +1964,6 @@ register(
 )
 
 register(
-    "delightful_metrics.enable_envelope_forwarding",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_serialization",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "delightful_metrics.enable_capture_envelope",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1995,24 +1971,6 @@ register(
 
 register(
     "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

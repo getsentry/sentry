@@ -11,10 +11,8 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.monitors.processing_errors import (
-    CheckinProcessErrorsManager,
-    CheckinProcessingErrorData,
-)
+from sentry.monitors.processing_errors.errors import CheckinProcessingErrorData
+from sentry.monitors.processing_errors.manager import get_errors_for_projects
 from sentry.utils.auth import AuthenticatedHttpRequest
 
 
@@ -46,9 +44,7 @@ class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
         Retrieves checkin processing errors for a monitor
         """
         projects = self.get_projects(request, organization)
-        paginator = SequencePaginator(
-            list(enumerate(CheckinProcessErrorsManager().get_for_projects(projects)))
-        )
+        paginator = SequencePaginator(list(enumerate(get_errors_for_projects(projects))))
 
         return self.paginate(
             request=request,

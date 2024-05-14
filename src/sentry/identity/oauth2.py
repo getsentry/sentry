@@ -5,6 +5,7 @@ import secrets
 from time import time
 from urllib.parse import parse_qsl, urlencode
 
+import orjson
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -14,7 +15,6 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import Provider
@@ -194,8 +194,8 @@ class OAuth2Provider(Provider):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
-        except Exception:
+            payload = orjson.loads(body)
+        except orjson.JSONDecodeError:
             payload = {}
 
         self.handle_refresh_error(req, payload)
@@ -288,7 +288,7 @@ class OAuth2CallbackView(PipelineView):
             body = safe_urlread(req)
             if req.headers.get("Content-Type", "").startswith("application/x-www-form-urlencoded"):
                 return dict(parse_qsl(body))
-            return json.loads(body)
+            return orjson.loads(body)
         except SSLError:
             logger.info(
                 "identity.oauth2.ssl-error",
@@ -306,7 +306,7 @@ class OAuth2CallbackView(PipelineView):
                 "error": "Could not connect to host or service",
                 "error_description": f"Ensure that {url} is open to connections",
             }
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
             return {
                 "error": "Could not decode a JSON Response",

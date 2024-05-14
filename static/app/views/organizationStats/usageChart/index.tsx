@@ -363,9 +363,7 @@ function UsageChartBody({
       if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
         return true;
       }
-      return (
-        hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
-      );
+      return hasCustomMetrics(organization);
     });
   }, [organization, categoryOptions]);
 
