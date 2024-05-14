@@ -257,6 +257,7 @@ def get_similarity_data_from_seer(
         key=lambda issue_data: issue_data.stacktrace_distance,
     )
 
+
 def post_bulk_grouping_records(
     grouping_records_request: CreateGroupingRecordsRequest,
 ) -> BulkCreateGroupingRecordsResponse:
