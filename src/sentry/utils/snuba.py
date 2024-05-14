@@ -999,7 +999,7 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data, skip_trace=True)
+            body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
                     log_snuba_info(
