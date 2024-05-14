@@ -43,11 +43,12 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -315,31 +316,28 @@ def get_suggested_assignees(
     return []
 
 
-def get_suspect_commit_text(
-    project: Project, event: GroupEvent, commits: Sequence[Mapping[str, Any]] | None = None
-) -> SlackBlock:
+def get_suspect_commit_text(group: Group) -> str | None:
     """Build up the suspect commit text for the given event"""
 
-    # commits is passed from context when the rule initially fires
-    # we may not have that data if the message is being built after an action is taken, for example
-    if not commits:
-        commits = get_commits(project, event)
-    if not commits:
+    commit = group.get_suspect_commit()
+    if not commit:
         return None
 
-    commit = commits[0]  # get the most recent commit
     suspect_commit_text = "Suspect Commit: "
-    pull_request = commit.get("pull_request")
-    author = commit.get("author")
-    commit_id = commit.get("id")
+    pull_request = PullRequest.objects.filter(
+        merge_commit_sha=commit.key, organization_id=group.project.organization_id
+    ).first()
+
+    author = commit.author
+    commit_id = commit.key
     if not (author and commit_id):  # we need both the author and commit id to continue
         return None
 
-    author_display = author.get("name") if author.get("name") is not None else author.get("email")
+    author_display = author.name if author.name else author.email
     if pull_request:
-        repo = pull_request.get("repository", {})
-        repo_base = repo.get("url")
-        provider = repo.get("provider", {}).get("id")
+        repo = Repository.objects.get(id=pull_request.repository_id)
+        repo_base = repo.url
+        provider = repo.provider
         if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
             if "bitbucket" in provider:
                 commit_link = f"<{repo_base}/commits/{commit_id}"
@@ -350,12 +348,12 @@ def get_suspect_commit_text(
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
-        pr_date = pull_request.get("dateCreated")
+        pr_date = pull_request.date_added
         if pr_date:
             pr_date = time_since(pr_date)
-        pr_id = pull_request.get("id")
-        pr_title = pull_request.get("title")
-        pr_link = pull_request.get("externalUrl")
+        pr_id = pull_request.key
+        pr_title = pull_request.title
+        pr_link = pull_request.get_external_url()
         if pr_date and pr_id and pr_title and pr_link:
             suspect_commit_text += (
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
@@ -457,7 +455,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
-        commits: Sequence[Mapping[str, Any]] | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -473,7 +470,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
-        self.commits = commits
 
     @property
     def escape_text(self) -> bool:
@@ -666,10 +662,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
         # add suspect commit info
-        if event_for_tags:
-            suspect_commit_text = get_suspect_commit_text(project, event_for_tags, self.commits)
-            if suspect_commit_text:
-                blocks.append(self.get_context_block(suspect_commit_text))
+        suspect_commit_text = get_suspect_commit_text(self.group)
+        if suspect_commit_text:
+            blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
