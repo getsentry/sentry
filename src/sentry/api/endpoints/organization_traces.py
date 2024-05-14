@@ -33,11 +33,20 @@ from sentry.utils.snuba import bulk_snuba_queries
 MAX_SNUBA_RESULTS = 10_000
 
 
+class TraceRange(TypedDict):
+    start: int
+    end: int
+    slices: int
+    slice_size: int
+
+
 class TraceInterval(TypedDict):
     project: str | None
     sdkName: str | None
     start: int
     end: int
+    startSlice: int
+    endSlice: int
     kind: Literal["project", "missing", "other"]
     opCategory: str | None
     duration: int
@@ -56,6 +65,7 @@ class TraceResult(TypedDict):
     start: int
     end: int
     breakdowns: list[TraceInterval]
+    breakdownSlice: int
     spans: list[Mapping[str, Any]]
     suggestedSpans: list[Mapping[str, Any]]
 
@@ -64,6 +74,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     breakdownCategory = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField()
     )
+    breakdownSlices = serializers.IntegerField(default=0, min_value=0)
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     metricsQuery = serializers.CharField(required=False)
@@ -73,7 +84,6 @@ class OrganizationTracesSerializer(serializers.Serializer):
     )
     suggestedQuery = serializers.CharField(required=False)
     minBreakdownDuration = serializers.IntegerField(default=0, min_value=0)
-    minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -112,9 +122,9 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             sort=serialized.get("sort"),
             limit=self.get_per_page(request),
             max_spans_per_trace=serialized["maxSpansPerTrace"],
+            breakdown_slices=serialized["breakdownSlices"],
             breakdown_categories=serialized.get("breakdownCategory", []),
             min_breakdown_duration=serialized["minBreakdownDuration"],
-            min_breakdown_percentage=serialized["minBreakdownPercentage"],
             get_all_projects=lambda: self.get_projects(
                 request,
                 organization,
@@ -153,9 +163,9 @@ class TraceSamplesExecutor:
         sort: str | None,
         limit: int,
         max_spans_per_trace: int,
+        breakdown_slices: int,
         breakdown_categories: list[str],
         min_breakdown_duration: int,
-        min_breakdown_percentage: float,
         get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
@@ -168,9 +178,9 @@ class TraceSamplesExecutor:
         self.sort = sort
         self.limit = limit
         self.max_spans_per_trace = max_spans_per_trace
+        self.breakdown_slices = breakdown_slices
         self.breakdown_categories = breakdown_categories
         self.min_breakdown_duration = min_breakdown_duration
-        self.min_breakdown_percentage = min_breakdown_percentage
         self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
 
@@ -430,6 +440,10 @@ class TraceSamplesExecutor:
             )
             all_queries.append(query)
 
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            for query in all_queries:
+                query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
+
         assert timestamp_column is not None
 
         all_raw_results = bulk_snuba_queries(
@@ -621,13 +635,16 @@ class TraceSamplesExecutor:
         suggested_spans_results,
     ) -> list[TraceResult]:
         # mapping of trace id to a tuple of start/finish times
-        traces_range = {
+        traces_range: Mapping[str, TraceRange] = {
             row["trace"]: {
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
-                "min": int(
-                    self.min_breakdown_percentage * (row["last_seen()"] - row["first_seen()"])
-                ),
+                "slices": self.breakdown_slices,
+                "slice_size": round(
+                    (row["last_seen()"] - row["first_seen()"]) / self.breakdown_slices
+                )
+                if self.breakdown_slices > 0
+                else 1,
             }
             for row in traces_metas_results["data"]
         }
@@ -639,7 +656,6 @@ class TraceSamplesExecutor:
                 traces_breakdown_categories_results["data"],
             )
         ]
-        spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
 
         traces_breakdowns = process_breakdowns(spans, traces_range)
 
@@ -682,6 +698,7 @@ class TraceSamplesExecutor:
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
                 "breakdowns": traces_breakdowns[row["trace"]],
+                "breakdownSlice": traces_range[row["trace"]]["slice_size"],
                 "spans": [
                     {field: span[field] for field in self.fields}
                     for span in traces_user_spans[row["trace"]]
@@ -783,7 +800,7 @@ class TraceSamplesExecutor:
     ) -> QueryBuilder:
         trace_ids_str = ",".join(trace_ids)
         trace_ids_condition = f"trace:[{trace_ids_str}]"
-        return SpansIndexedQueryBuilder(
+        query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
             snuba_params=snuba_params,
@@ -801,6 +818,11 @@ class TraceSamplesExecutor:
                 transform_alias_to_input_format=True,
             ),
         )
+
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
+
+        return query
 
     def get_traces_errors_query(
         self,
@@ -968,32 +990,33 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
-def quantize_range(span_start, span_end, trace_range):
+def quantize_range(
+    span_start: float,
+    span_end: float,
+    trace_range: TraceRange,
+) -> tuple[tuple[int, int], tuple[int, int]]:
     trace_start = trace_range["start"]
-    trace_end = trace_range["end"]
 
-    bin_size = trace_range["min"]
+    num_slices = trace_range["slices"]
 
-    if bin_size > 0:
-        rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
-        rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
+    if num_slices > 0:
+        slice_size = trace_range["slice_size"]
 
-        # ensure minimum of 1 width
-        if rounded_start == rounded_end:
-            rounded_end += bin_size
+        slice_start = round((span_start - trace_start) / slice_size)
+        slice_start = clip(slice_start, 0, num_slices)
+        rounded_start = int(slice_start * slice_size + trace_start)
+
+        slice_end = round((span_end - trace_start) / slice_size)
+        slice_end = clip(slice_end, 0, num_slices)
+        rounded_end = int(slice_end * slice_size + trace_start)
     else:
-        rounded_start = span_start
-        rounded_end = span_end
+        slice_start = int(span_start - trace_start)
+        rounded_start = int(span_start)
 
-    if span_start <= trace_start:
-        rounded_start = trace_start
+        slice_end = int(span_end - trace_start)
+        rounded_end = int(span_end)
 
-    # To avoid creating gaps at the end of the trace,
-    # do not adjust the end if it's at the trace end.
-    if span_end >= trace_end:
-        rounded_end = trace_end
-
-    return int(rounded_start), int(rounded_end)
+    return (rounded_start, rounded_end), (slice_start, slice_end)
 
 
 def process_breakdowns(data, traces_range):
@@ -1007,6 +1030,7 @@ def process_breakdowns(data, traces_range):
             and not interval_b["isRoot"]
             # only merge intervals that overlap
             and interval_a["end"] >= interval_b["start"]
+            and interval_a["endSlice"] >= interval_b["startSlice"]
             # only merge intervals that are part of the same service
             and interval_a["project"] == interval_b["project"]
             and interval_a["sdkName"] == interval_b["sdkName"]
@@ -1025,7 +1049,11 @@ def process_breakdowns(data, traces_range):
         if last_interval is None and breakdown:
             last_interval = breakdown[-1]
 
-        if last_interval and last_interval["end"] < interval["start"]:
+        if (
+            last_interval
+            and last_interval["end"] < interval["start"]
+            and last_interval["endSlice"] < interval["startSlice"]
+        ):
             # A gap in the breakdown was found, fill it with a missing interval
             breakdown.append(
                 {
@@ -1035,6 +1063,8 @@ def process_breakdowns(data, traces_range):
                     "opCategory": None,
                     "start": last_interval["end"],
                     "end": interval["start"],
+                    "startSlice": last_interval["endSlice"],
+                    "endSlice": interval["startSlice"],
                     "duration": 0,
                     "components": [
                         (last_interval["components"][-1][1], interval["components"][0][0]),
@@ -1052,6 +1082,7 @@ def process_breakdowns(data, traces_range):
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
+            last_interval["endSlice"] = max(interval["endSlice"], last_interval["endSlice"])
 
             # need to update the components of the last interval by merging
             # current interval into it
@@ -1089,7 +1120,7 @@ def process_breakdowns(data, traces_range):
 
     def stack_clear(trace, until=None):
         while stacks[trace]:
-            if until is not None and stack_peek(trace)["end"] >= until:
+            if until is not None and stack_peek(trace)["endSlice"] >= until:
                 break
             stack_pop(trace)
 
@@ -1106,21 +1137,26 @@ def process_breakdowns(data, traces_range):
         precise_start = clip(precise_start, trace_start, trace_end)
         precise_end = clip(precise_end, trace_start, trace_end)
 
-        quantized_start, quantized_end = quantize_range(
+        (quantized_start, quantized_end), (slice_start, slice_end) = quantize_range(
             precise_start,
             precise_end,
             traces_range[trace],
         )
+
         row["precise.start_ts"] = precise_start
         row["precise.finish_ts"] = precise_end
+
         row["quantized.start_ts"] = quantized_start
         row["quantized.finish_ts"] = quantized_end
 
+        row["quantized.start_slice"] = slice_start
+        row["quantized.finish_slice"] = slice_end
+
     data.sort(
         key=lambda row: (
-            row["quantized.start_ts"],
+            row["quantized.start_slice"],
             row["precise.start_ts"],
-            -row["quantized.finish_ts"],
+            -row["quantized.finish_slice"],
             -row["precise.finish_ts"],
         )
     )
@@ -1134,7 +1170,7 @@ def process_breakdowns(data, traces_range):
             row["precise.finish_ts"], last_timestamp_per_trace["trace"]
         )
 
-        if row["quantized.start_ts"] == row["quantized.finish_ts"]:
+        if row["quantized.start_slice"] == row["quantized.finish_slice"]:
             # after quantizing, this span is far too small to render, so remove it
             continue
 
@@ -1145,6 +1181,8 @@ def process_breakdowns(data, traces_range):
             "opCategory": row.get("span.category"),
             "start": row["quantized.start_ts"],
             "end": row["quantized.finish_ts"],
+            "startSlice": row["quantized.start_slice"],
+            "endSlice": row["quantized.finish_slice"],
             "duration": 0,
             "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
             "isRoot": not bool(row.get("parent_span")),
@@ -1152,7 +1190,7 @@ def process_breakdowns(data, traces_range):
 
         # Clear the stack of any intervals that end before the current interval
         # starts while pushing them to the breakdowns.
-        stack_clear(trace, until=cur["start"])
+        stack_clear(trace, until=cur["startSlice"])
 
         stack_push(trace, cur)
 
@@ -1169,6 +1207,8 @@ def process_breakdowns(data, traces_range):
             "opCategory": None,
             "start": other_start,
             "end": other_end,
+            "startSlice": 0,
+            "endSlice": trace_range["slices"],
             "duration": 0,
             "isRoot": False,
         }
@@ -1179,7 +1219,8 @@ def process_breakdowns(data, traces_range):
         while stacks[trace]:
             interval = stack_pop(trace)
             other["start"] = max(other["start"], interval["end"])
-            # other["start"] = max(other["start"], interval["components"][-1][1])
+            other["startSlice"] = max(other["startSlice"], interval["endSlice"])
+
             last_component = interval["components"][-1]
             other_start = max(other_start, last_component[1])
 

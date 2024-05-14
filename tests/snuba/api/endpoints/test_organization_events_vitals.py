@@ -44,7 +44,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-vitals",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         with self.feature(features):
@@ -326,7 +326,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         with self.feature(features):
             url = reverse(
                 "sentry-api-0-organization-events-vitals",
-                kwargs={"organization_slug": self.organization.slug},
+                kwargs={"organization_id_or_slug": self.organization.slug},
             )
 
         with self.feature(features):
