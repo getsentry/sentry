@@ -1710,6 +1710,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.trace-explorer-skip-floating-spans",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
@@ -1964,18 +1970,6 @@ register(
 )
 
 register(
-    "delightful_metrics.enable_envelope_forwarding",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_serialization",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "delightful_metrics.enable_capture_envelope",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1983,24 +1977,6 @@ register(
 
 register(
     "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

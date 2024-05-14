@@ -11,8 +11,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -37,6 +35,7 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -102,142 +101,154 @@ function ScreenLoadSpans() {
   } = location.query;
 
   return (
-    <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
-      <Layout.Page>
-        <PageAlertProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs crumbs={crumbs} />
-              <HeaderWrapper>
-                <Layout.Title>{transactionName}</Layout.Title>
-                {organization.features.includes('spans-first-ui') &&
-                  project &&
-                  isCrossPlatform(project) && <PlatformSelector />}
-              </HeaderWrapper>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <PageAlert />
-              <PageFiltersContainer>
-                <Container>
-                  <FilterContainer>
-                    <PageFilterBar condensed>
-                      <DatePageFilter />
-                    </PageFilterBar>
-                    <ReleaseComparisonSelector />
-                  </FilterContainer>
-                  <MetricsRibbon
-                    dataset={DiscoverDatasets.METRICS}
-                    filters={[
-                      'event.type:transaction',
-                      'transaction.op:ui.load',
-                      `transaction:${transactionName}`,
-                    ]}
-                    fields={[
-                      `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                      `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                      `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                      `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                      'count()',
-                    ]}
-                    blocks={[
-                      {
-                        unit: DurationUnit.MILLISECOND,
-                        dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                        title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
-                      },
-                      {
-                        unit: DurationUnit.MILLISECOND,
-                        dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                        title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
-                      },
-                      {
-                        unit: DurationUnit.MILLISECOND,
-                        dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                        title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
-                      },
-                      {
-                        unit: DurationUnit.MILLISECOND,
-                        dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                        title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
-                      },
-                      {
-                        unit: 'count',
-                        dataKey: 'count()',
-                        title: t('Count'),
-                      },
-                    ]}
-                    referrer="api.starfish.mobile-screen-totals"
+    <Layout.Page>
+      <PageAlertProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
+            <HeaderWrapper>
+              <Layout.Title>{transactionName}</Layout.Title>
+              {organization.features.includes('spans-first-ui') &&
+                project &&
+                isCrossPlatform(project) && <PlatformSelector />}
+            </HeaderWrapper>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <Container>
+              <FilterContainer>
+                <PageFilterBar condensed>
+                  <DatePageFilter />
+                </PageFilterBar>
+                <ReleaseComparisonSelector />
+              </FilterContainer>
+              <MetricsRibbon
+                dataset={DiscoverDatasets.METRICS}
+                filters={[
+                  'event.type:transaction',
+                  'transaction.op:ui.load',
+                  `transaction:${transactionName}`,
+                ]}
+                fields={[
+                  `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                  `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                  `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+                  `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
+                  'count()',
+                ]}
+                blocks={[
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                    title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
+                  },
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                    title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
+                  },
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+                    title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+                  },
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
+                    title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+                  },
+                  {
+                    unit: 'count',
+                    dataKey: 'count()',
+                    title: t('Count'),
+                  },
+                ]}
+                referrer="api.starfish.mobile-screen-totals"
+              />
+            </Container>
+            <ErrorBoundary mini>
+              <ScreenCharts
+                yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
+                additionalFilters={[`transaction:${transactionName}`]}
+                chartHeight={120}
+                project={project}
+              />
+              <SampleContainer>
+                <SampleContainerItem>
+                  <ScreenLoadEventSamples
+                    release={primaryRelease}
+                    sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                    cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                    transaction={transactionName}
+                    showDeviceClassSelector
+                    project={project}
                   />
-                </Container>
-              </PageFiltersContainer>
-              <ErrorBoundary mini>
-                <ScreenCharts
-                  yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
-                  additionalFilters={[`transaction:${transactionName}`]}
-                  chartHeight={120}
-                  project={project}
-                />
-                <SampleContainer>
-                  <SampleContainerItem>
-                    <ScreenLoadEventSamples
-                      release={primaryRelease}
-                      sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                      cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                      transaction={transactionName}
-                      showDeviceClassSelector
-                      project={project}
-                    />
-                  </SampleContainerItem>
-                  <SampleContainerItem>
-                    <ScreenLoadEventSamples
-                      release={secondaryRelease}
-                      sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                      cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                      transaction={transactionName}
-                      project={project}
-                    />
-                  </SampleContainerItem>
-                </SampleContainer>
-                <ScreenLoadSpansTable
-                  transaction={transactionName}
-                  primaryRelease={primaryRelease}
-                  secondaryRelease={secondaryRelease}
-                  project={project}
-                />
-                {spanGroup && (
-                  <ScreenLoadSpanSamples
-                    groupId={spanGroup}
-                    transactionName={transactionName}
-                    spanDescription={spanDescription}
-                    onClose={() => {
-                      router.replace({
-                        pathname: router.location.pathname,
-                        query: omit(
-                          router.location.query,
-                          'spanGroup',
-                          'transactionMethod'
-                        ),
-                      });
-                    }}
+                </SampleContainerItem>
+                <SampleContainerItem>
+                  <ScreenLoadEventSamples
+                    release={secondaryRelease}
+                    sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                    cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                    transaction={transactionName}
+                    project={project}
                   />
-                )}
-              </ErrorBoundary>
-            </Layout.Main>
-          </Layout.Body>
-        </PageAlertProvider>
-      </Layout.Page>
-    </SentryDocumentTitle>
+                </SampleContainerItem>
+              </SampleContainer>
+              <ScreenLoadSpansTable
+                transaction={transactionName}
+                primaryRelease={primaryRelease}
+                secondaryRelease={secondaryRelease}
+                project={project}
+              />
+              {spanGroup && (
+                <ScreenLoadSpanSamples
+                  groupId={spanGroup}
+                  transactionName={transactionName}
+                  spanDescription={spanDescription}
+                  onClose={() => {
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: omit(
+                        router.location.query,
+                        'spanGroup',
+                        'transactionMethod'
+                      ),
+                    });
+                  }}
+                />
+              )}
+            </ErrorBoundary>
+          </Layout.Main>
+        </Layout.Body>
+      </PageAlertProvider>
+    </Layout.Page>
   );
 }
 
-export default ScreenLoadSpans;
+function PageWithProviders() {
+  const location = useLocation<Query>();
+
+  const {transaction} = location.query;
+
+  return (
+    <ModulePageProviders
+      title={[transaction, t('Screen Loads')].join(' — ')}
+      baseURL="/performance/mobile/screens"
+      features="spans-first-ui"
+    >
+      <ScreenLoadSpans />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;
 
 const Container = styled('div')`
   display: grid;
