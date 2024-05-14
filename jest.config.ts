@@ -285,8 +285,8 @@ const config: Config.InitialOptions = {
           : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 1 : 0.5,
-        profilesSampleRate: CI ? 0.1 : 0,
+        tracesSampleRate: CI ? 0.5 : 0,
+        profilesSampleRate: CI ? 0.05 : 0,
         transportOptions: {keepAlive: true},
       },
       transactionOptions: {
