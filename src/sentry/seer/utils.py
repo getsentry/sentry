@@ -182,7 +182,11 @@ class SeerSimilarIssueData:
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
-    """Request similar issues data from seer and normalize the results."""
+    """
+    Request similar issues data from seer and normalize the results. Returns similar groups
+    sorted in order of descending similarity.
+    """
+
     response = seer_grouping_connection_pool.urlopen(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
@@ -230,4 +234,7 @@ def get_similarity_data_from_seer(
         except SimilarGroupNotFoundError:
             metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"})
 
-    return normalized
+    return sorted(
+        normalized,
+        key=lambda issue_data: issue_data.stacktrace_distance,
+    )
