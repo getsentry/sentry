@@ -49,7 +49,10 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
         group = error_event.group
         recommended_event = group.get_recommended_event_for_environments()  # type: ignore[union-attr]
         assert recommended_event is not None  # It helps with typing
+        # This assertion ensures that the behaviour is different from the next test
+        assert recommended_event.event_id != another_proj_event.event_id
 
+        # This asserts that there are two issues which belong to the same trace
         assert error_event.group_id != another_proj_event.group_id
         assert error_event.project.id != another_proj_event.project.id
         assert error_event.trace_id == another_proj_event.trace_id
@@ -61,7 +64,10 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
             "type": "trace_connected",
             # This is the other issue in the trace that it is not itself
             "data": [another_proj_event.group_id],
-            "meta": {"event_id": recommended_event.event_id, "trace_id": error_event.trace_id},
+            "meta": {
+                "event_id": recommended_event.event_id,
+                "trace_id": error_event.trace_id,
+            },
         }
 
     def test_trace_connected_errors_specific_event(self) -> None:
