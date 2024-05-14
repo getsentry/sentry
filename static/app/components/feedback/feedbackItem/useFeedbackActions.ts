@@ -42,7 +42,6 @@ export default function useActions({feedbackItem}: Props) {
     resolve(newStatus, mutationOptions);
   }, [isResolved, resolve]);
 
-  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
   const isSpam = feedbackItem.status === GroupStatus.IGNORED;
   const onSpamClick = useCallback(() => {
     addLoadingMessage(t('Updating feedback...'));
@@ -66,7 +65,6 @@ export default function useActions({feedbackItem}: Props) {
   return {
     isResolved,
     onResolveClick,
-    hasSpamFeature,
     isSpam,
     onSpamClick,
     hasSeen,

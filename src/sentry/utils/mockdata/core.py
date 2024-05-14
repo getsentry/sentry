@@ -621,7 +621,7 @@ def generate_events(
 
     # Add a bunch of additional dummy events to support pagination
     if extra_events:
-        for _ in range(45):
+        for i in range(45):
             platform = next(PLATFORMS)
 
             create_sample_event(
@@ -630,8 +630,8 @@ def generate_events(
                 release=release.version,
                 level=next(LEVELS),
                 environment=next(ENVIRONMENTS),
-                message="This is a mostly useless example %s exception" % platform,
-                checksum=md5_text(platform + str(_)).hexdigest(),
+                logentry={"formatted": "This is a mostly useless example %s exception" % platform},
+                checksum=md5_text(f"{platform}{i}").hexdigest(),
                 user=generate_user(),
             )
 
@@ -693,7 +693,7 @@ def generate_events(
             platform="php",
             release=release.version,
             environment=next(ENVIRONMENTS),
-            message=LONG_MESSAGE,
+            logentry={"formatted": LONG_MESSAGE},
             user=generate_user(),
         )
 

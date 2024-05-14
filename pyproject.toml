@@ -554,8 +554,7 @@ disable_error_code = [
 module = [
     "sentry.api.endpoints.issues.*",
     "sentry.api.helpers.source_map_helper",
-    "sentry.buffer.base",
-    "sentry.buffer.redis",
+    "sentry.buffer.*",
     "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
     "sentry.hybridcloud",
@@ -617,7 +616,6 @@ module = [
     "sentry.services.hybrid_cloud.notifications.*",
     "sentry.services.hybrid_cloud.organization_actions.*",
     "sentry.services.hybrid_cloud.organization_mapping.*",
-    "sentry.services.hybrid_cloud.organization_provisioning.*",
     "sentry.services.hybrid_cloud.organizationmember_mapping.*",
     "sentry.services.hybrid_cloud.orgauthtoken.*",
     "sentry.services.hybrid_cloud.pagination",
