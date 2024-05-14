@@ -21,6 +21,7 @@ from sentry.models.project import Project
 from sentry.seer.utils import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
+    delete_grouping_records,
     post_bulk_grouping_records,
 )
 from sentry.silo.base import SiloMode
@@ -60,7 +61,7 @@ class GroupStacktraceData(TypedDict):
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
 def backfill_seer_grouping_records(
-    project_id: int, last_processed_id: int | None, *args: Any, **kwargs: Any
+    project_id: int, last_processed_id: int | None, dry_run: bool = False, *args: Any, **kwargs: Any
 ) -> None:
     """
     Task to backfill seer grouping_records table.
@@ -73,6 +74,8 @@ def backfill_seer_grouping_records(
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     if last_processed_id is None:
         last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        if last_processed_id == 0 and dry_run:
+            delete_grouping_records(project_id)
 
     group_id_message_data_batch = (
         Group.objects.filter(
@@ -160,7 +163,8 @@ def backfill_seer_grouping_records(
                             "group_hash": json.dumps([group_hashes_dict[group.id]]),
                         }
                     }
-            Group.objects.bulk_update(groups, ["data"])
+            if not dry_run:
+                Group.objects.bulk_update(groups, ["data"])
 
         last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
         redis_client.set(
