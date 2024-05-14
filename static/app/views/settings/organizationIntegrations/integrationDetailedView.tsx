@@ -15,11 +15,19 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import type {
+  Integration,
+  IntegrationProvider,
+  IntegrationWithConfig,
+  ObjectStatus,
+} from 'sentry/types';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import FeatureToggleUpdater, {
+  type ToggleableFeature,
+} from 'sentry/views/settings/organizationIntegrations/featureToggle';
 
 import type {Tab} from './abstractIntegrationDetailedView';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -27,7 +35,7 @@ import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = ['github'];
+const integrationFeatures = ['github', 'slack'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -40,7 +48,7 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
 });
 
 type State = {
-  configurations: Integration[];
+  configurations: IntegrationWithConfig[];
   information: {providers: IntegrationProvider[]};
 };
 
@@ -60,7 +68,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       ],
       [
         'configurations',
-        `/organizations/${organization.slug}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
+        `/organizations/${organization.slug}/integrations/?provider_key=${integrationSlug}&includeConfig=1`,
       ],
     ];
   }
@@ -330,7 +338,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  renderFeatures() {
+  updateConfigurations = (configurations: IntegrationWithConfig[]) => {
+    this.setState({configurations: configurations});
+  };
+
+  renderGithubFeatures() {
     const {configurations} = this.state;
     const {organization} = this.props;
     const hasIntegration = configurations ? configurations.length > 0 : false;
@@ -402,6 +414,53 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         />
       </Form>
     );
+  }
+
+  renderSlackFeatures() {
+    const {configurations} = this.state;
+    const {organization} = this.props;
+
+    if (configurations.length < 1) {
+      return null;
+    }
+
+    const flags = configurations[0].configData.toggleableFlags;
+    const features: ToggleableFeature[] = [
+      {
+        name: 'issueAlertsThreadFlag',
+        label: 'Enable Slack threads on Issue Alerts',
+        help: 'Allow Slack integration to post replies in threads for an Issue Alert notification.',
+        disabledReason: 'You must have a Slack integration to enable this feature.',
+        initialState: flags.issueAlertsThreadFlag,
+      },
+      {
+        name: 'metricAlertsThreadFlag',
+        label: 'Enable Slack threads on Metric Alerts',
+        help: 'Allow Slack integration to post replies in threads for an Metric Alert notification.',
+        disabledReason: 'You must have a Slack integration to enable this feature.',
+        initialState: flags.metricAlertsThreadFlag,
+      },
+    ];
+
+    return (
+      <FeatureToggleUpdater
+        configurations={configurations}
+        features={features}
+        organization={organization}
+        onUpdate={this.updateConfigurations}
+      />
+    );
+  }
+
+  renderFeatures() {
+    switch (this.provider.key) {
+      case 'github':
+        return this.renderGithubFeatures();
+      case 'slack':
+        return this.renderSlackFeatures();
+      default:
+        return null;
+    }
   }
 
   renderBody() {
