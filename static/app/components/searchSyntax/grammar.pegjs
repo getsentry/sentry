@@ -11,7 +11,7 @@ search
     }
 
 term
-  = (boolean_operator / paren_group / filter / free_text) spaces
+  = (boolean_operator / paren_group / paren / filter / free_text) spaces
 
 boolean_operator
   = (or_operator / and_operator) {
@@ -22,6 +22,13 @@ paren_group
   = open_paren spaces:spaces inner:term+ closed_paren {
       return tc.tokenLogicGroup([spaces, ...inner].flat());
     }
+
+paren
+  = open_paren / closed_paren &{
+    return tc.predicateParen();
+  } {
+    return tc.tokenParen(text());
+  }
 
 free_text
   = free_text_quoted / free_text_unquoted
@@ -377,8 +384,8 @@ operator       = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator    = "OR"i  &end_value
 and_operator   = "AND"i &end_value
 numeric        = [0-9]+ ("." [0-9]*)? { return text(); }
-open_paren     = "("
-closed_paren   = ")"
+open_paren     = "(" { return tc.tokenParen(text()); }
+closed_paren   = ")" { return tc.tokenParen(text()); }
 open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"

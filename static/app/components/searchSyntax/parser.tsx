@@ -55,6 +55,7 @@ export enum Token {
   VALUE_TEXT = 'valueText',
   VALUE_NUMBER_LIST = 'valueNumberList',
   VALUE_TEXT_LIST = 'valueTextList',
+  PAREN = 'paren',
 }
 
 /**
@@ -415,6 +416,14 @@ export class TokenConverter {
     };
   };
 
+  tokenParen = (value: '(' | ')') => ({
+    ...this.defaultTokenFields,
+    value,
+    left: value === '(',
+    right: value === ')',
+    type: Token.PAREN as const,
+  });
+
   tokenFreeText = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.FREE_TEXT as const,
@@ -664,6 +673,14 @@ export class TokenConverter {
    */
   predicateTextOperator = (key: TextFilter['key']) =>
     this.config.textOperatorKeys.has(getKeyName(key));
+
+  /**
+   * When flattenParenGroups is enabled, paren tokens should be parsed.
+   * Due to the ordering of `paren` and `parenGroups`, `paren` takes precedence.
+   */
+  predicateParen = (): boolean => {
+    return Boolean(this.config.flattenParenGroups);
+  };
 
   /**
    * Checks the validity of a free text based on the provided search configuration
@@ -1117,7 +1134,8 @@ export type ParseResultToken =
   | TokenResult<Token.LOGIC_GROUP>
   | TokenResult<Token.FILTER>
   | TokenResult<Token.FREE_TEXT>
-  | TokenResult<Token.SPACES>;
+  | TokenResult<Token.SPACES>
+  | TokenResult<Token.PAREN>;
 
 /**
  * Result from parsing a search query.
@@ -1173,6 +1191,10 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * When true, the parser will not parse paren groups and will return individual paren tokens
+   */
+  flattenParenGroups?: boolean;
   /**
    * A function that returns a warning message for a given filter token key
    */

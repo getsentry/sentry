@@ -67,6 +67,9 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
     case Token.FREE_TEXT:
       return <FreeTextToken token={token} cursor={cursor} />;
 
+    case Token.PAREN:
+      return <Paren>{token.text}</Paren>;
+
     default:
       return token.text;
   }
@@ -385,6 +388,10 @@ const DateTime = styled('span')`
 `;
 
 const ListComma = styled('span')`
+  color: ${p => p.theme.gray300};
+`;
+
+const Paren = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
