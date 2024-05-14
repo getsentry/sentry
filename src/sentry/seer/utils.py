@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import NotRequired, Self, TypedDict
+from typing import Any, NotRequired, Self, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -136,7 +137,7 @@ class SeerSimilarIssueData:
     parent_hash: str | None = None
 
     @classmethod
-    def from_raw(cls, project_id: int, raw_similar_issue_data: RawSeerSimilarIssueData) -> Self:
+    def from_raw(cls, project_id: int, raw_similar_issue_data: Mapping[str, Any]) -> Self:
         """
         Create an instance of `SeerSimilarIssueData` from the raw data that comes back from Seer,
         using the parent hash to look up the parent group id. Needs to be run individually on each
