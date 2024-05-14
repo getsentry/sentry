@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -31,10 +31,6 @@ type SearchQueryTokenProps = {
   token: TokenResult<Token.FILTER>;
 };
 
-type FilterPartProps = {
-  token: TokenResult<Token.FILTER>;
-};
-
 const OP_LABELS = {
   [TermOperator.DEFAULT]: 'is',
   [TermOperator.GREATER_THAN]: '>',
@@ -52,7 +48,22 @@ const getOpLabel = (token: TokenResult<Token.FILTER>) => {
   return OP_LABELS[token.operator] ?? token.operator;
 };
 
-function FilterOperator({token}: FilterPartProps) {
+function useFilterButtonProps({
+  item,
+  state,
+}: Pick<SearchQueryTokenProps, 'item' | 'state'>) {
+  const onFocus = useCallback(() => {
+    // Ensure that the state is updated correctly
+    state.selectionManager.setFocusedKey(item.key);
+  }, [item.key, state.selectionManager]);
+
+  return {
+    onFocus,
+    tabIndex: -1,
+  };
+}
+
+function FilterOperator({token, state, item}: SearchQueryTokenProps) {
   const {dispatch} = useSearchQueryBuilder();
 
   const items: MenuItemProps[] = useMemo(() => {
@@ -69,12 +80,14 @@ function FilterOperator({token}: FilterPartProps) {
     }));
   }, [dispatch, token]);
 
+  const filterButtonProps = useFilterButtonProps({state, item});
+
   return (
     <DropdownMenu
       trigger={triggerProps => (
         <OpButton
           aria-label={t('Edit operator for filter: %s', token.key.text)}
-          {...triggerProps}
+          {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
           {getOpLabel(token)}
@@ -85,13 +98,18 @@ function FilterOperator({token}: FilterPartProps) {
   );
 }
 
-function FilterKey({token}: FilterPartProps) {
+function FilterKey({token, state, item}: SearchQueryTokenProps) {
   const label = token.key.text;
 
+  const filterButtonProps = useFilterButtonProps({state, item});
   // TODO(malwilley): Add edit functionality
 
   return (
-    <KeyButton aria-label={t('Edit filter key: %s', label)} onClick={() => {}}>
+    <KeyButton
+      aria-label={t('Edit filter key: %s', label)}
+      onClick={() => {}}
+      {...filterButtonProps}
+    >
       <InteractionStateLayer />
       {label}
     </KeyButton>
@@ -113,9 +131,11 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
     },
   });
 
+  const filterButtonProps = useFilterButtonProps({state, item});
+
   if (isEditing) {
     return (
-      <ValueEditing ref={ref} {...focusWithinProps}>
+      <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
           onChange={() => {
@@ -135,6 +155,7 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
     <ValueButton
       aria-label={t('Edit value for filter: %s', token.key.text)}
       onClick={() => setIsEditing(true)}
+      {...filterButtonProps}
     >
       <InteractionStateLayer />
       {formatFilterValue(token)}
@@ -142,13 +163,15 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
   );
 }
 
-function FilterDelete({token}: FilterPartProps) {
+function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   const {dispatch} = useSearchQueryBuilder();
+  const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', token.key.text)}
       onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      {...filterButtonProps}
     >
       <InteractionStateLayer />
       <IconClose legacySize="8px" />
@@ -188,16 +211,16 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       {...modifiedRowProps}
     >
       <BaseTokenPart {...gridCellProps}>
-        <FilterKey token={token} />
+        <FilterKey token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
-        <FilterOperator token={token} />
+        <FilterOperator token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterValue token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
-        <FilterDelete token={token} />
+        <FilterDelete token={token} state={state} item={item} />
       </BaseTokenPart>
     </FilterWrapper>
   );

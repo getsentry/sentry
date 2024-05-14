@@ -33,6 +33,7 @@ type SearchQueryBuilderComboboxProps = {
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  tabIndex?: number;
 };
 
 export function SearchQueryBuilderCombobox({
@@ -48,6 +49,7 @@ export function SearchQueryBuilderCombobox({
   onKeyDown,
   onInputChange,
   autoFocus,
+  tabIndex = -1,
 }: SearchQueryBuilderComboboxProps) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
@@ -162,6 +164,7 @@ export function SearchQueryBuilderCombobox({
         onClick={handleInputClick}
         value={inputValue}
         onChange={onInputChange}
+        tabIndex={tabIndex}
       />
       <StyledPositionWrapper
         {...overlayProps}

@@ -36,6 +36,7 @@ interface SearchQueryBuilderProps {
 
 interface GridProps extends AriaGridListOptions<ParseResultToken> {
   children: CollectionChildren<ParseResultToken>;
+  items: ParseResultToken[];
 }
 
 function Grid(props: GridProps) {
