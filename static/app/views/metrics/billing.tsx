@@ -3,6 +3,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,17 +13,23 @@ export const MetricsPlanUpgrade = HookOrDefault({
   defaultComponent: () => null,
 });
 
+function getBillingStart(organization: Organization) {
+  if (organization.features.includes('beta-adopter')) {
+    return new Date('2024-08-05');
+  }
+
+  return new Date('2023-06-05');
+}
+
 export function TopBanner() {
   const organization = useOrganization();
+
+  const formattedDate = getFormattedDate(getBillingStart(organization), 'MMM D, YYYY');
 
   return (
     <MetricsPlanUpgrade organization={organization}>
       {upgradeProps => {
         if (upgradeProps) {
-          const formattedDate = getFormattedDate(
-            upgradeProps.billingStartDate,
-            'MMM D, YYYY'
-          );
           if (hasCustomMetrics(organization)) {
             return (
               <Alert system type="info">
@@ -43,7 +50,10 @@ export function TopBanner() {
         }
         return (
           <Alert type="info">
-            {t('Starting on June 5th 2024, Sentry will start charging for metrics.')}
+            {tct(
+              'Starting on [billingStartDate], Sentry will start charging for metrics. ',
+              {billingStartDate: formattedDate}
+            )}
           </Alert>
         );
       }}
