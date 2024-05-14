@@ -24,8 +24,12 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             return Response(status=404)
 
         last_processed_id = None
+        dry_run = False
         if request.data.get("last_processed_id"):
             last_processed_id = int(request.data["last_processed_id"])
 
-        backfill_seer_grouping_records.delay(project.id, last_processed_id)
+        if request.data.get("dry_run"):
+            dry_run = True
+
+        backfill_seer_grouping_records.delay(project.id, last_processed_id, dry_run)
         return Response(status=204)
