@@ -178,7 +178,7 @@ function BaseGroupRow({
       setAssigneeLoading(false);
     },
     onError: () => {
-      addErrorMessage('Failed to updated assignee');
+      addErrorMessage('Failed to update assignee');
       setAssigneeLoading(false);
     },
   });
