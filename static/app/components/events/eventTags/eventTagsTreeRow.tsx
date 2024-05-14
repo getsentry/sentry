@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
@@ -15,20 +16,26 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
+import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 interface EventTagTreeRowConfig {
+  // Omits the dropdown of actions applicable to this tag
   disableActions?: boolean;
+  // Omit error styling from being displayed, even if context is invalid
+  disableErrors?: boolean;
+  // Displays tag value as plain text, rather than a hyperlink if applicable
   disableRichValue?: boolean;
 }
 
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
-  projectSlug: string;
+  project: Project;
   tagKey: string;
   config?: EventTagTreeRowConfig;
   isLast?: boolean;
@@ -39,7 +46,7 @@ export default function EventTagsTreeRow({
   event,
   content,
   tagKey,
-  projectSlug,
+  project,
   spacerCount = 0,
   isLast = false,
   config = {},
@@ -47,7 +54,7 @@ export default function EventTagsTreeRow({
 }: EventTagsTreeRowProps) {
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
+  const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
   const hasStem = !isLast && objectIsEmpty(content.subtree);
 
   if (!originalTag) {
@@ -72,7 +79,7 @@ export default function EventTagsTreeRow({
       <AnnotatedTextErrors errors={tagErrors} />
     </TreeValueErrors>
   ) : (
-    <EventTagsTreeRowDropdown content={content} event={event} />
+    <EventTagsTreeRowDropdown content={content} event={event} project={project} />
   );
 
   return (
@@ -95,7 +102,7 @@ export default function EventTagsTreeRow({
             config={config}
             content={content}
             event={event}
-            projectSlug={projectSlug}
+            project={project}
           />
         </TreeValue>
         {!config?.disableActions && tagActions}
@@ -105,11 +112,13 @@ export default function EventTagsTreeRow({
 }
 
 function EventTagsTreeRowDropdown({
-  event,
   content,
-}: Pick<EventTagsTreeRowProps, 'content' | 'event'>) {
+  event,
+  project,
+}: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const router = useRouter();
+  const {mutate: saveTag} = useMutateProject({organization, project});
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
 
@@ -118,8 +127,18 @@ function EventTagsTreeRowDropdown({
   }
 
   const referrer = 'event-tags-table';
+  const highlightTagSet = new Set(project?.highlightTags ?? []);
+  const hideAddHighlightsOption =
+    // Check for existing highlight record to prevent replacing all with a single tag if we receive a project summary (instead of a detailed project)
+    project?.highlightTags &&
+    // Skip tags already highlighted
+    highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization,
+    project,
+  });
 
   return (
     <TreeValueDropdown
@@ -154,6 +173,16 @@ function EventTagsTreeRowDropdown({
               `/organizations/${organization.slug}/issues/${searchQuery}`,
               router
             );
+          },
+        },
+        {
+          key: 'add-to-highlights',
+          label: t('Add to event highlights'),
+          hidden: hideAddHighlightsOption || !isProjectAdmin,
+          onAction: () => {
+            saveTag({
+              highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
+            });
           },
         },
         {
@@ -214,8 +243,8 @@ function EventTagsTreeValue({
   config,
   content,
   event,
-  projectSlug,
-}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'projectSlug'>) {
+  project,
+}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const {originalTag} = content;
   const tagMeta = content.meta?.value?.[''];
@@ -238,7 +267,7 @@ function EventTagsTreeValue({
       tagValue = (
         <VersionHoverCard
           organization={organization}
-          projectSlug={projectSlug}
+          projectSlug={project.slug}
           releaseVersion={content.value}
           showUnderline
           underlineColor="linkUnderline"

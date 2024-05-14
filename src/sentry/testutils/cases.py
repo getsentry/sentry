@@ -1538,7 +1538,7 @@ class BaseSpansTestCase(SnubaTestCase):
         self,
         project_id: int,
         trace_id: str,
-        transaction_id: str,
+        transaction_id: str | None,  # Nones are permitted for INP spans
         span_id: str | None = None,
         parent_span_id: str | None = None,
         profile_id: str | None = None,

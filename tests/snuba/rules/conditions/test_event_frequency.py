@@ -292,6 +292,15 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             self.assertDoesNotPass(rule, event, is_new=False)
             self.assertDoesNotPass(environment_rule, event, is_new=False)
 
+    def test_comparison_interval_empty_string(self):
+        data = {
+            "interval": "1m",
+            "value": 16,
+            "comparisonType": "count",
+            "comparisonInterval": "",
+        }
+        self._run_test(data=data, minutes=1, passes=False)
+
     def test_one_minute_with_events(self):
         data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=True, add_events=True)
