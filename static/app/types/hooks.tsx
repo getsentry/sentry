@@ -93,6 +93,11 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
+type MetricsPlanUpgradeProps = {
+  children: (props: {label: string; to: string} | null) => React.ReactNode;
+  organization: Organization;
+};
+
 type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
 type ReplayFeedbackButton = {children: React.ReactNode};
@@ -201,6 +206,7 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:metrics-plan-upgrade': () => React.ComponentType<MetricsPlanUpgradeProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;

@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -19,6 +18,10 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  OnboardingPanelPrimaryActionButton,
+  TopBanner,
+} from 'sentry/views/metrics/billing';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
@@ -50,6 +53,7 @@ export const MetricsLayout = memo(() => {
 
   return (
     <Fragment>
+      <TopBanner />
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -95,12 +99,9 @@ export const MetricsLayout = memo(() => {
                   "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
-              <Button
-                priority="primary"
+              <OnboardingPanelPrimaryActionButton
                 onClick={() => addCustomMetric('onboarding_panel')}
-              >
-                {t('Add Custom Metric')}
-              </Button>
+              />
             </OnboardingPanel>
           )}
         </Layout.Main>
