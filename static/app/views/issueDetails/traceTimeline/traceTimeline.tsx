@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -10,6 +11,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
+import {EventItem} from './traceTimelineTooltip';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 
 interface TraceTimelineProps {
@@ -26,6 +28,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   let timelineStatus: string | undefined;
   if (hasTraceId && !isLoading) {
     timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
+    // XXX: Use feature flag to determine if the timeline should be skipped;
+    // this require knowing how many issues
   } else if (!hasTraceId) {
     timelineStatus = 'no_trace_id';
   }
@@ -66,6 +70,13 @@ export function TraceTimeline({event}: TraceTimelineProps) {
             position="bottom"
           />
         </QuestionTooltipWrapper>
+        <Feature features="related-issues-issue-details-page">
+          {traceEvents
+            .filter(traceEvent => traceEvent.id !== event.id)
+            .map((traceEvent, index) => (
+              <EventItem key={index} timelineEvent={traceEvent} />
+            ))}
+        </Feature>
       </TimelineWrapper>
     </ErrorBoundary>
   );
