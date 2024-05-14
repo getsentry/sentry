@@ -804,7 +804,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
           'performance/browser/resources/',
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: 'performance/http/',
-        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]: CACHE_BASE_URL,
+        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+          CACHE_BASE_URL.slice(1),
       }[props.chartSetting] ?? '';
 
     return [
