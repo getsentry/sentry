@@ -36,8 +36,7 @@ describe('throughputChart', () => {
             'count_op(queue.publish)',
             'count_op(queue.process)',
           ],
-          query:
-            'span.op:[queue.process,queue.publish] messaging.destination.name:events',
+          query: 'span.op:[queue.process,queue.publish]',
         }),
       })
     );
