@@ -1245,6 +1245,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to remove support for percentiles on a per-use case basis.
+# Add the use case to list to disable percentiles.
+register(
+    "sentry-metrics.drop-percentiles.per-use-case",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {

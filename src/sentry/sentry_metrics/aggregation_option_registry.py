@@ -23,10 +23,31 @@ METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.lcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
 }
 
-USE_CASE_AGG_OPTION = {UseCaseID.CUSTOM: {AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS}}
+# Currently there are no default per-use case aggregation overrides
+# They are all set via options
+USE_CASE_AGG_OPTION = {}
+
+
+def set_use_case_aggregation_options():
+    # As of now this option is still restricted
+    # to the scope of the custom use case
+    if options.get("sentry-metrics.10s-granularity"):
+        USE_CASE_AGG_OPTION[UseCaseID.CUSTOM] = {
+            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
+        }
+
+    for use_case in options.get("sentry-metrics.drop-percentiles.per-use-case"):
+        USE_CASE_AGG_OPTION[UseCaseID(use_case)] = {
+            AggregationOption.NO_PERCENTILE: TimeWindow.NINETY_DAYS
+        }
 
 
 def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, TimeWindow] | None:
+
+    # Set various aggregation options that
+    # are use case-wide aggregations
+    set_use_case_aggregation_options()
+
     use_case_id: UseCaseID = extract_use_case_id(mri)
 
     # We check first if the org ID has disabled percentiles
@@ -34,9 +55,9 @@ def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, Ti
         return {AggregationOption.NO_PERCENTILE: TimeWindow.NINETY_DAYS}
     # We then first if the particular metric ID has a specified aggregation
     elif mri in METRIC_ID_AGG_OPTION:
-        return METRIC_ID_AGG_OPTION.get(mri)
+        return METRIC_ID_AGG_OPTION[mri]
     # And move to the use case if not
-    elif options.get("sentry-metrics.10s-granularity") and (use_case_id in USE_CASE_AGG_OPTION):
+    elif use_case_id in USE_CASE_AGG_OPTION:
         return USE_CASE_AGG_OPTION[use_case_id]
 
     return None
