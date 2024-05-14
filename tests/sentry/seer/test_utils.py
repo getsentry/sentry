@@ -10,7 +10,7 @@ from sentry.seer.utils import (
     SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
     detect_breakpoints,
-    get_similar_issues_embeddings,
+    get_similarity_data_from_seer,
 )
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -85,7 +85,7 @@ def test_simple_similar_issues_embeddings_only_group_id_returned(
         "stacktrace": "string",
         "message": "message",
     }
-    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
+    assert get_similarity_data_from_seer(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
 @django_db_all
@@ -118,7 +118,7 @@ def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, 
         "parent_group_id": similar_event.group_id,
     }
 
-    assert get_similar_issues_embeddings(params) == [
+    assert get_similarity_data_from_seer(params) == [
         SeerSimilarIssueData(**similar_issue_data)  # type: ignore[arg-type]
     ]
 
@@ -150,7 +150,7 @@ def test_simple_similar_issues_embeddings_both_returned(mock_seer_request, defau
         "message": "message",
     }
 
-    assert get_similar_issues_embeddings(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
+    assert get_similarity_data_from_seer(params) == [SeerSimilarIssueData(**raw_similar_issue_data)]
 
 
 @django_db_all
@@ -168,7 +168,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
         "stacktrace": "string",
         "message": "message",
     }
-    assert get_similar_issues_embeddings(params) == []
+    assert get_similarity_data_from_seer(params) == []
 
 
 # TODO: Remove once switch is complete

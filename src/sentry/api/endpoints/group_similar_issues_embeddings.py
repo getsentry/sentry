@@ -18,7 +18,7 @@ from sentry.models.user import User
 from sentry.seer.utils import (
     SeerSimilarIssueData,
     SimilarIssuesEmbeddingsRequest,
-    get_similar_issues_embeddings,
+    get_similarity_data_from_seer,
 )
 from sentry.utils.safe import get_path
 
@@ -177,7 +177,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         extra["group_message"] = extra.pop("message")
         logger.info("Similar issues embeddings parameters", extra=extra)
 
-        results = get_similar_issues_embeddings(similar_issues_params)
+        results = get_similarity_data_from_seer(similar_issues_params)
 
         analytics.record(
             "group_similar_issues_embeddings.count",

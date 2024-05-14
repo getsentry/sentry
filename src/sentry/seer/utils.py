@@ -174,7 +174,7 @@ class SeerSimilarIssueData:
         return cls(**similar_issue_data)
 
 
-def get_similar_issues_embeddings(
+def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
     """Request similar issues data from seer and normalize the results."""
