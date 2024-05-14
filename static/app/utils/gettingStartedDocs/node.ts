@@ -136,17 +136,9 @@ export function getDefaultServerlessImports({
   return imports;
 }
 
-export function getNodeRunCommandSnippet(): string {
-  return `# If you are using CommonJS (CJS)
-node --require ./instrument.js app.js
-
-# If you are using ECMAScript Modules (ESM) - Note that this is only available from Node 18.19.0 onwards.
-node --import ./instrument.mjs app.mjs`;
-}
-
 export function getImportInstrumentSnippet(): string {
   return `// IMPORTANT: Make sure to import \`instrument.js'\` at the top of your file.
-  // If you're using ECMAScript Modules (ESM), use \`import './instrument.js';\`
+  // If you're using ECMAScript Modules (ESM) syntax, use \`import './instrument.js';\`
   require('./instrument.js');`;
 }
 

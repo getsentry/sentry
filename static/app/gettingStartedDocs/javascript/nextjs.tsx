@@ -191,8 +191,6 @@ const replayOnboarding: OnboardingConfig = {
             'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
             {
               sentryClient: <code />,
-              sentryServer: <code />,
-              sentryEdge: <code />,
               instrumentation: <code />,
             }
           )}
@@ -248,8 +246,6 @@ const feedbackOnboarding: OnboardingConfig = {
             'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
             {
               sentryClient: <code />,
-              sentryServer: <code />,
-              sentryEdge: <code />,
               instrumentation: <code />,
             }
           )}
