@@ -19,7 +19,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
 
     def post(self, request: Request, project) -> Response:
         if not features.has(
-            "projects:similarity-embeddings-grouping", project
+            "projects:similarity-embeddings-backfill", project
         ) or not is_active_superuser(request):
             return Response(status=404)
 
