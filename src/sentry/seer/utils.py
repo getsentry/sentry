@@ -168,7 +168,6 @@ class SeerSimilarIssueData:
                 + ", ".join(map(lambda key: f"'{key}'", sorted(missing_keys)))
             )
 
-        similar_issue_data = raw_similar_issue_data
         parent_hash = raw_similar_issue_data.get("parent_hash")
         parent_group_id = raw_similar_issue_data.get("parent_group_id")
 
@@ -180,6 +179,8 @@ class SeerSimilarIssueData:
         if parent_group_id:
             if not Group.objects.filter(id=parent_group_id).first():
                 raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+
+            similar_issue_data = raw_similar_issue_data
 
         # If we don't have a parent group id, try looking one up using the parent hash
         else:
