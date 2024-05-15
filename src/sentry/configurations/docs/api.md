@@ -14,12 +14,12 @@ Retrieve the project's configuration.
 
 **Attributes**
 
-| Column             | Type   | Description                                           |
-| ------------------ | ------ | ----------------------------------------------------- |
-| id                 | number | The id of the project's configuration being returned. |
-| sample_rate        | number | A number value between 0 and 1.                       |
-| traces_sample_rate | number | A number value between 0 and 1.                       |
-| user_config        | any    | Arbitrary user supplied JSON.                         |
+| Column             | Type   | Description                     |
+| ------------------ | ------ | ------------------------------- |
+| id                 | number | Project id.                     |
+| sample_rate        | number | A number value between 0 and 1. |
+| traces_sample_rate | number | A number value between 0 and 1. |
+| user_config        | any    | Arbitrary user supplied JSON.   |
 
 - Response 200
 
