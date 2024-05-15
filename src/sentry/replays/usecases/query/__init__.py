@@ -72,9 +72,9 @@ def handle_viewed_by_me_filters(
         if request_user_id is None:
             if value:  # use an always-false filter so query returns nothing
                 return [
-                    SearchFilter(SearchKey("viewed_by_id"), "=", SearchValue(0)),
+                    SearchFilter(SearchKey("id"), "=", SearchValue("a" * 32)),
                     "AND",
-                    SearchFilter(SearchKey("viewed_by_id"), "!=", SearchValue(0)),
+                    SearchFilter(SearchKey("id"), "!=", SearchValue("a" * 32)),
                 ]
             return []
 
