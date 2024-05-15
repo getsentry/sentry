@@ -195,7 +195,7 @@ export function ScreenSummary() {
                   ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
                 }}
                 groupId={spanGroup}
-                moduleName={ModuleName.STARTUP}
+                moduleName={ModuleName.APP_START}
                 transactionName={transactionName}
                 spanDescription={spanDescription}
                 spanOp={spanOp}

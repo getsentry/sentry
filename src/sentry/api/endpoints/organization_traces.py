@@ -475,6 +475,10 @@ class TraceSamplesExecutor:
                 if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
+                # early escape once we have enough results
+                if len(matching_trace_ids) >= self.limit:
+                    return min_timestamp, max_timestamp, matching_trace_ids
+
         return min_timestamp, max_timestamp, matching_trace_ids
 
     def get_traces_matching_span_conditions_query(
@@ -661,7 +665,13 @@ class TraceSamplesExecutor:
         ]
         spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
 
-        traces_breakdowns = process_breakdowns(spans, traces_range)
+        try:
+            traces_breakdowns = process_breakdowns(spans, traces_range)
+        except Exception as e:
+            traces_breakdowns = defaultdict(list)
+
+            context = {"traces": list(sorted(traces_range.keys()))}
+            sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
 
         # mapping of trace id to a tuple of project slug + transaction name
         traces_names: MutableMapping[str, tuple[str, str]] = {}
@@ -696,12 +706,6 @@ class TraceSamplesExecutor:
                     "trace": row["trace"],
                     "start": row["first_seen()"],
                     "end": row["last_seen()"],
-                    "params": self.params,
-                    "user_query": self.user_queries,
-                    "mri": self.mri,
-                    "metrics_query": self.metrics_query,
-                    "metrics_min": self.metrics_min,
-                    "metrics_max": self.metrics_max,
                 }
                 sentry_sdk.capture_message(
                     "trace missing spans", contexts={"trace_missing_spans": context}
@@ -1039,6 +1043,20 @@ def quantize_range(span_start, span_end, trace_range):
     return int(rounded_start), int(rounded_end)
 
 
+def new_trace_interval(row) -> TraceInterval:
+    return {
+        "kind": "project",
+        "project": row["project"],
+        "sdkName": row["sdk.name"],
+        "opCategory": row.get("span.category"),
+        "start": row["quantized.start_ts"],
+        "end": row["quantized.finish_ts"],
+        "duration": 0,
+        "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
+        "isRoot": not bool(row.get("parent_span")),
+    }
+
+
 def process_breakdowns(data, traces_range):
     breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
     stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
@@ -1136,31 +1154,42 @@ def process_breakdowns(data, traces_range):
                 break
             stack_pop(trace)
 
+    quantized_data = []
+
     for row in data:
-        trace = row["trace"]
-        precise_start = int(row["precise.start_ts"] * 1000)
-        precise_end = int(row["precise.finish_ts"] * 1000)
+        try:
+            trace = row["trace"]
+            precise_start = int(row["precise.start_ts"] * 1000)
+            precise_end = int(row["precise.finish_ts"] * 1000)
 
-        trace_range = traces_range[trace]
-        trace_start = trace_range["start"]
-        trace_end = trace_range["end"]
+            trace_range = traces_range[trace]
+            trace_start = trace_range["start"]
+            trace_end = trace_range["end"]
 
-        # Clip the intervals os that it is within range of the trace
-        precise_start = clip(precise_start, trace_start, trace_end)
-        precise_end = clip(precise_end, trace_start, trace_end)
+            # Clip the intervals os that it is within range of the trace
+            precise_start = clip(precise_start, trace_start, trace_end)
+            precise_end = clip(precise_end, trace_start, trace_end)
 
-        quantized_start, quantized_end = quantize_range(
-            precise_start,
-            precise_end,
-            traces_range[trace],
-        )
+            quantized_start, quantized_end = quantize_range(
+                precise_start,
+                precise_end,
+                traces_range[trace],
+            )
 
-        row["precise.start_ts"] = precise_start
-        row["precise.finish_ts"] = precise_end
-        row["quantized.start_ts"] = quantized_start
-        row["quantized.finish_ts"] = quantized_end
+            quantized_data.append(
+                {
+                    **row,
+                    "precise.start_ts": precise_start,
+                    "precise.finish_ts": precise_end,
+                    "quantized.start_ts": quantized_start,
+                    "quantized.finish_ts": quantized_end,
+                }
+            )
+        except Exception as e:
+            context = {"trace": row["trace"]}
+            sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
 
-    data.sort(
+    quantized_data.sort(
         key=lambda row: (
             row["quantized.start_ts"],
             row["precise.start_ts"],
@@ -1171,34 +1200,28 @@ def process_breakdowns(data, traces_range):
 
     last_timestamp_per_trace: dict[str, int] = defaultdict(int)
 
-    for row in data:
-        trace = row["trace"]
+    for row in quantized_data:
+        try:
+            trace = row["trace"]
 
-        last_timestamp_per_trace["trace"] = max(
-            row["precise.finish_ts"], last_timestamp_per_trace["trace"]
-        )
+            last_timestamp_per_trace["trace"] = max(
+                row["precise.finish_ts"], last_timestamp_per_trace["trace"]
+            )
 
-        if row["quantized.start_ts"] == row["quantized.finish_ts"]:
-            # after quantizing, this span is far too small to render, so remove it
-            continue
+            if row["quantized.start_ts"] == row["quantized.finish_ts"]:
+                # after quantizing, this span is far too small to render, so remove it
+                continue
 
-        cur: TraceInterval = {
-            "kind": "project",
-            "project": row["project"],
-            "sdkName": row["sdk.name"],
-            "opCategory": row.get("span.category"),
-            "start": row["quantized.start_ts"],
-            "end": row["quantized.finish_ts"],
-            "duration": 0,
-            "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
-            "isRoot": not bool(row.get("parent_span")),
-        }
+            cur = new_trace_interval(row)
 
-        # Clear the stack of any intervals that end before the current interval
-        # starts while pushing them to the breakdowns.
-        stack_clear(trace, until=cur["start"])
+            # Clear the stack of any intervals that end before the current interval
+            # starts while pushing them to the breakdowns.
+            stack_clear(trace, until=cur["start"])
 
-        stack_push(trace, cur)
+            stack_push(trace, cur)
+        except Exception as e:
+            context = {"trace": row["trace"]}
+            sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
 
     for trace, trace_range in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it

@@ -111,3 +111,34 @@ class DatadogMetricsBackend(MetricsBackend):
     ) -> None:
         # We keep the same implementation for Datadog.
         self.timing(key, value, instance, tags, sample_rate)
+
+    def event(
+        self,
+        title: str,
+        message: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        priority: str | None = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        self.stats.event(
+            title=title,
+            message=message,
+            alert_type=alert_type,
+            aggregation_key=aggregation_key,
+            source_type_name=source_type_name,
+            priority=priority,
+            tags=tags_list,
+            hostname=self.host,
+        )

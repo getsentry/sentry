@@ -213,7 +213,7 @@ function ScreenLoadSpans() {
               {spanGroup && (
                 <SpanSamplesPanel
                   groupId={spanGroup}
-                  moduleName={ModuleName.SCREEN}
+                  moduleName={ModuleName.SCREEN_LOAD}
                   transactionName={transactionName}
                   spanDescription={spanDescription}
                   onClose={() => {
