@@ -78,6 +78,20 @@ class ConfiguratioAPITestCase(APITestCase):
             "version": 1,
         }
 
+    def test_post_configuration_validation_error(self):
+        response = self.client.post(
+            self.url,
+            data={"data": {}},
+            format="json",
+        )
+        assert response.status_code == 400, response.content
+
+        result = response.json()
+        assert len(result["data"]) == 3
+        assert result["data"]["sample_rate"] is not None
+        assert result["data"]["traces_sample_rate"] is not None
+        assert result["data"]["user_config"] is not None
+
     def test_delete_configuration(self):
         self.project.update_option("sentry:remote_config", "test")
         opt = self.project.get_option("sentry:remote_config")
