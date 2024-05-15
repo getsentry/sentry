@@ -14,12 +14,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {ScreenLoadSampleContainer} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples/samplesContainer';
+import {SpanSamplesContainer} from 'sentry/views/performance/mobile/components/spanSamplesPanelContainer';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import type {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
   groupId: string;
+  moduleName: ModuleName;
   transactionName: string;
   additionalFilters?: Record<string, string>;
   onClose?: () => void;
@@ -29,8 +31,9 @@ type Props = {
   transactionRoute?: string;
 };
 
-export function ScreenLoadSpanSamples({
+export function SpanSamplesPanel({
   groupId,
+  moduleName,
   transactionName,
   transactionMethod,
   spanDescription,
@@ -112,8 +115,9 @@ export function ScreenLoadSpanSamples({
         <PageAlert />
         <ChartsContainer>
           <ChartsContainerItem key="release1">
-            <ScreenLoadSampleContainer
+            <SpanSamplesContainer
               groupId={groupId}
+              moduleName={moduleName}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={primaryRelease}
@@ -124,8 +128,9 @@ export function ScreenLoadSpanSamples({
             />
           </ChartsContainerItem>
           <ChartsContainerItem key="release2">
-            <ScreenLoadSampleContainer
+            <SpanSamplesContainer
               groupId={groupId}
+              moduleName={moduleName}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={secondaryRelease}
