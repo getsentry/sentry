@@ -58,7 +58,6 @@ class GroupStacktraceData(TypedDict):
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
 )
-@metrics.wraps(f"{BACKFILL_NAME}.task")
 def backfill_seer_grouping_records(
     project_id: int, last_processed_id: int | None, dry_run: bool = False, *args: Any, **kwargs: Any
 ) -> None:
