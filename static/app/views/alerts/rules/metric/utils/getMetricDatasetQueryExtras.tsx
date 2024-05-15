@@ -35,5 +35,9 @@ export function getMetricDatasetQueryExtras({
     queryExtras.useOnDemandMetrics = 'true';
   }
 
+  if (location?.query?.aggregate?.includes('spans/')) {
+    queryExtras.dataset = 'metricsEnhanced';
+  }
+
   return queryExtras;
 }
