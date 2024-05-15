@@ -58,7 +58,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'trace_status_rate(ok)',
     name: t('Error Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -191,6 +191,16 @@ function renderBodyCell(
 
   if (key === 'transaction') {
     return <TransactionCell transaction={row[key]} op={op} />;
+  }
+
+  // Need to invert trace_status_rate(ok) to show error rate
+  if (key === 'trace_status_rate(ok)') {
+    const formatter = FIELD_FORMATTERS.percentage.renderFunc;
+    return (
+      <AlignRight>
+        {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
+      </AlignRight>
+    );
   }
 
   if (!meta?.fields) {
