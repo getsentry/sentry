@@ -185,7 +185,7 @@ export function ScreenLoadSpansTable({
           onClick={() =>
             trackAnalytics('performance_views.sample_spans.opened', {
               organization,
-              source: ModuleName.SCREEN,
+              source: ModuleName.SCREEN_LOAD,
             })
           }
           to={`${pathname}?${qs.stringify(query)}`}
