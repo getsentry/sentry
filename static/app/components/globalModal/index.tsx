@@ -11,9 +11,10 @@ import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -105,6 +106,7 @@ type Props = {
 
 function GlobalModal({onClose}: Props) {
   const {renderer, options} = useLegacyStore(ModalStore);
+  const location = useLocation();
 
   const closeEvents = options.closeEvents ?? 'all';
 
@@ -177,8 +179,12 @@ function GlobalModal({onClose}: Props) {
     return reset;
   }, [portal, handleEscapeClose, visible]);
 
-  // Close the modal when the browser history changes
-  useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
+  // Close the modal when the browser history changes.
+  //
+  // XXX: We're using useEffectAfterFirstRender primarily to support tests
+  // which render the GlobalModal after a modaul has already been registered in
+  // the modal store, meaning it would be closed immeidately.
+  useEffectAfterFirstRender(() => actionCloseModal(), [location.pathname]);
 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
