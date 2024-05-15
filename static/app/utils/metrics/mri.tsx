@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 // This is a workaround as the alert builder requires a valid aggregate to be set
@@ -110,4 +111,16 @@ export function formatMRIField(aggregate: string) {
   }
 
   return `${parsed.op}(${formatMRI(parsed.mri)})`;
+}
+
+export function defaultAggregateForMRI(mri: MRI) {
+  const parsedMRI = parseMRI(mri);
+
+  const fallbackAggregate = 'sum';
+
+  if (!parsedMRI) {
+    return fallbackAggregate;
+  }
+
+  return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
 }

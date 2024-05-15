@@ -57,3 +57,10 @@ export const emptyMetricsFormulaWidget: MetricsEquationWidget = {
   isHidden: false,
   overlays: [MetricChartOverlayType.SAMPLES],
 };
+
+export const DEFAULT_AGGREGATES = {
+  c: 'sum',
+  d: 'avg',
+  s: 'count_unique',
+  g: 'avg',
+};
