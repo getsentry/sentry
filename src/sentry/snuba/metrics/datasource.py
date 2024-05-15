@@ -312,12 +312,19 @@ def get_metrics_blocking_state_of_projects(
 def _build_metric_meta(
     parsed_mri: ParsedMRI, project_ids: Sequence[int], blocking_status: Sequence[BlockedMetric]
 ) -> MetricMeta:
+    available_operations = get_available_operations(parsed_mri)
+    blocked_operations = ["p50", "p75", "p90", "p95", "p99"]
+    if parsed_mri.namespace == "custom":
+        available_operations = [
+            operation for operation in available_operations if operation not in blocked_operations
+        ]
+
     return MetricMeta(
         type=parsed_mri.entity,
         name=parsed_mri.name,
         unit=cast(MetricUnit, parsed_mri.unit),
         mri=parsed_mri.mri_string,
-        operations=cast(Sequence[MetricOperationType], get_available_operations(parsed_mri)),
+        operations=cast(Sequence[MetricOperationType], available_operations),
         projectIds=project_ids,
         blockingStatus=blocking_status,
     )
