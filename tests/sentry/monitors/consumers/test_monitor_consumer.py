@@ -626,7 +626,7 @@ class MonitorConsumerTest(TestCase):
                 [
                     {
                         "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
-                        "existing_environment": "production",
+                        "existingEnvironment": "production",
                     }
                 ],
                 monitor,

@@ -41,7 +41,7 @@ class CheckinEnvironmentMismatch(TypedDict):
 
     type: Literal[ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH]
 
-    existing_environment: str
+    existingEnvironment: str
     """
     Name of the environment that is already associated with the check-in
     """
