@@ -107,6 +107,7 @@ def backfill_seer_grouping_records(
             "last_processed_id": last_processed_id,
         },
     )
+
     if len(group_id_message_data_batch) == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
@@ -117,9 +118,8 @@ def backfill_seer_grouping_records(
     group_id_message_batch_filtered = {
         group_id: message
         for (group_id, message, data) in group_id_message_data_batch
-        if get_path(data, "metadata", "embeddings_info", "nn_model_version") is not None
+        if get_path(data, "metadata", "embeddings_info", "nn_model_version") is None
     }
-
     if len(group_id_message_data_batch) != len(group_id_message_batch_filtered):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
@@ -222,8 +222,6 @@ def backfill_seer_grouping_records(
         backfill_seer_grouping_records.apply_async(
             args=[project.id, last_processed_id, dry_run],
         )
-        return
-
     else:
         logger.info(
             "backfill_seer_snuba_returned_empty_result",
