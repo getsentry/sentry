@@ -91,7 +91,7 @@ class OutboxCategory(IntEnum):
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
     SENTRY_APP_UPDATE = 30
-    ACTOR_UPDATE = 31  # Deprecated
+    UNUSED_FOUR = 31
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
@@ -296,7 +296,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
-            OutboxCategory.ACTOR_UPDATE,
+            OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
         },
     )
