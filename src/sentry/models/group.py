@@ -807,13 +807,20 @@ class Group(Model):
     def get_suspect_commit(self) -> Commit | None:
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
 
-        suspect_commit_owner = GroupOwner.objects.filter(
-            group_id=self.id, project_id=self.project_id, type=GroupOwnerType.SUSPECT_COMMIT.value
+        suspect_commit_owner = (
+            GroupOwner.objects.filter(
+                group_id=self.id,
+                project_id=self.project_id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                context__isnull=False,
+            )
+            .order_by("-date_added")
+            .first()
         )
-        if not suspect_commit_owner.exists():
+
+        if not suspect_commit_owner:
             return None
 
-        suspect_commit_owner = suspect_commit_owner.first()
         commit_id = suspect_commit_owner.context.get("commitId")
         if not commit_id:
             return None
