@@ -1,7 +1,6 @@
 import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -16,10 +15,12 @@ export function TopBanner() {
   return (
     <MetricsSubscriptionCTAProvider organization={organization}>
       {subscriptionCTAProps => {
+        if (!subscriptionCTAProps) {
+          return null;
+        }
         return (
-          <Alert system type="info">
-            {subscriptionCTAProps?.description}
-            <Link to={subscriptionCTAProps?.href}>{subscriptionCTAProps?.cta}</Link>
+          <Alert system type={subscriptionCTAProps.type}>
+            {subscriptionCTAProps.description}
           </Alert>
         );
       }}
