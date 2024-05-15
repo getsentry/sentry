@@ -16,7 +16,7 @@ import {MessageActorType} from 'sentry/views/performance/queues/settings';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
@@ -165,6 +165,7 @@ function renderBodyCell(
   if (key === SpanIndexedField.ID) {
     return (
       <SpanIdCell
+        moduleName={ModuleName.QUEUE}
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
