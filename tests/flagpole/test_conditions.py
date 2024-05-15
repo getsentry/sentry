@@ -6,7 +6,6 @@ from pydantic import ValidationError
 from flagpole import EvaluationContext
 from flagpole.conditions import (
     ConditionBase,
-    ConditionOperatorKind,
     ConditionTypeMismatchException,
     ContainsCondition,
     EqualsCondition,
@@ -36,28 +35,28 @@ class TestCreateCaseInsensitiveSetFromList(TestCase):
 
 def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]):
     for value in expected_types:
-        operator_dict = dict(property="test", value=value)
-        json_operator = json.dumps(operator_dict)
+        condition_dict = dict(property="test", value=value)
+        json_condition = json.dumps(condition_dict)
         try:
-            parsed_operator = condition.parse_raw(json_operator)
+            parsed_condition = condition.parse_raw(json_condition)
         except ValidationError as exc:
             raise AssertionError(
-                f"Expected value `{value}` to be a valid value for operator '{condition}'"
+                f"Expected value `{value}` to be a valid value for condition '{condition}'"
             ) from exc
-        assert parsed_operator.value == value
+        assert parsed_condition.value == value
 
 
 def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any]):
     for value in invalid_types:
         json_dict = dict(value=value)
-        operator_json = json.dumps(json_dict)
+        condition_json = json.dumps(json_dict)
         try:
-            condition.parse_raw(operator_json)
+            condition.parse_raw(condition_json)
         except ValidationError:
             continue
 
         raise AssertionError(
-            f"Expected validation error for value: `{value}` for operator `{condition}`"
+            f"Expected validation error for value: `{value}` for condition `{condition}`"
         )
 
 
@@ -71,18 +70,16 @@ class TestInConditions(TestCase):
 
     def test_is_in(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", kind=ConditionOperatorKind.IN, value=values)
+        condition = InCondition(property="foo", value=values)
         assert condition.match(context=EvaluationContext({"foo": "bar"}), segment_name="test")
 
-        not_condition = NotInCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_IN, value=values
-        )
+        not_condition = NotInCondition(property="foo", value=values)
         assert not not_condition.match(
             context=EvaluationContext({"foo": "bar"}), segment_name="test"
         )
 
         int_values = [1, 2]
-        condition = InCondition(property="foo", kind=ConditionOperatorKind.IN, value=int_values)
+        condition = InCondition(property="foo", value=int_values)
         # Validation check to ensure no type coercion occurs
         assert condition.value == int_values
         assert condition.match(context=EvaluationContext({"foo": 2}), segment_name="test")
@@ -90,43 +87,37 @@ class TestInConditions(TestCase):
 
     def test_is_in_numeric_string(self):
         values = ["123", "456"]
-        condition = InCondition(property="foo", kind=ConditionOperatorKind.IN, value=values)
+        condition = InCondition(property="foo", value=values)
         assert condition.value == values
         assert not condition.match(context=EvaluationContext({"foo": 123}), segment_name="test")
         assert condition.match(context=EvaluationContext({"foo": "123"}), segment_name="test")
 
     def test_is_not_in(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", kind=ConditionOperatorKind.IN, value=values)
+        condition = InCondition(property="foo", value=values)
         assert not condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_condition = NotInCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_IN, value=values
-        )
+        not_condition = NotInCondition(property="foo", value=values)
         assert not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
     def test_is_in_case_insensitivity(self):
         values = ["bAr", "baz"]
-        condition = InCondition(property="foo", kind=ConditionOperatorKind.IN, value=values)
+        condition = InCondition(property="foo", value=values)
         assert condition.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
 
-        not_condition = NotInCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_IN, value=values
-        )
+        not_condition = NotInCondition(property="foo", value=values)
         assert not not_condition.match(
             context=EvaluationContext({"foo": "BaR"}), segment_name="test"
         )
 
     def test_invalid_property_value(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", kind=ConditionOperatorKind.IN, value=values)
+        condition = InCondition(property="foo", value=values)
 
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"foo": []}), segment_name="test")
 
-        not_condition = NotInCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_IN, value=values
-        )
+        not_condition = NotInCondition(property="foo", value=values)
         with pytest.raises(ConditionTypeMismatchException):
             not_condition.match(context=EvaluationContext({"foo": []}), segment_name="test")
 
@@ -140,40 +131,40 @@ class TestInConditions(TestCase):
         assert_invalid_types(condition=InCondition, invalid_types=values)
         assert_invalid_types(condition=NotInCondition, invalid_types=values)
 
+    def test_missing_context_property(self):
+        values = ["bar", "baz"]
+        condition = InCondition(property="foo", value=values)
+        assert not condition.match(context=EvaluationContext({"bar": "bar"}), segment_name="test")
+
+        condition = NotInCondition(property="foo", value=values)
+        assert condition.match(context=EvaluationContext({"bar": "bar"}), segment_name="test")
+
 
 class TestContainsConditions(TestCase):
     def test_does_contain(self):
-        operator = ContainsCondition(
-            property="foo", kind=ConditionOperatorKind.CONTAINS, value="bar"
-        )
-        assert operator.match(
+        condition = ContainsCondition(property="foo", value="bar")
+        assert condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-        not_operator = NotContainsCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_CONTAINS, value="bar"
-        )
-        assert not not_operator.match(
+        not_condition = NotContainsCondition(property="foo", value="bar")
+        assert not not_condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-        operator = ContainsCondition(property="foo", kind=ConditionOperatorKind.CONTAINS, value=1)
-        assert operator.match(context=EvaluationContext({"foo": [1, 2]}), segment_name="test")
-        assert not operator.match(context=EvaluationContext({"foo": [3, 4]}), segment_name="test")
+        condition = ContainsCondition(property="foo", value=1)
+        assert condition.match(context=EvaluationContext({"foo": [1, 2]}), segment_name="test")
+        assert not condition.match(context=EvaluationContext({"foo": [3, 4]}), segment_name="test")
 
     def test_does_not_contain(self):
         values = "baz"
-        operator = ContainsCondition(
-            property="foo", kind=ConditionOperatorKind.CONTAINS, value=values
-        )
-        assert not operator.match(
+        condition = ContainsCondition(property="foo", value=values)
+        assert not condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-        not_operator = NotContainsCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_CONTAINS, value=values
-        )
-        assert not_operator.match(
+        not_condition = NotContainsCondition(property="foo", value=values)
+        assert not_condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
@@ -181,18 +172,14 @@ class TestContainsConditions(TestCase):
         values = "baz"
 
         with pytest.raises(ConditionTypeMismatchException):
-            operator = ContainsCondition(
-                property="foo", kind=ConditionOperatorKind.CONTAINS, value=values
-            )
-            assert not operator.match(
+            condition = ContainsCondition(property="foo", value=values)
+            assert not condition.match(
                 context=EvaluationContext({"foo": "oops"}), segment_name="test"
             )
 
         with pytest.raises(ConditionTypeMismatchException):
-            not_operator = NotContainsCondition(
-                property="foo", kind=ConditionOperatorKind.NOT_CONTAINS, value=values
-            )
-            assert not_operator.match(
+            not_condition = NotContainsCondition(property="foo", value=values)
+            assert not_condition.match(
                 context=EvaluationContext({"foo": "oops"}), segment_name="test"
             )
 
@@ -211,54 +198,59 @@ class TestContainsConditions(TestCase):
         assert_invalid_types(condition=ContainsCondition, invalid_types=values)
         assert_invalid_types(condition=NotContainsCondition, invalid_types=values)
 
+    def test_missing_context_property(self):
+        condition = ContainsCondition(property="foo", value="bar")
+
+        with pytest.raises(ConditionTypeMismatchException):
+            condition.match(context=EvaluationContext({"bar": ["foo", "bar"]}), segment_name="test")
+
+        not_condition = NotContainsCondition(property="foo", value="bar")
+
+        with pytest.raises(ConditionTypeMismatchException):
+            not_condition.match(
+                context=EvaluationContext({"bar": ["foo", "bar"]}), segment_name="test"
+            )
+
 
 class TestEqualsConditions(TestCase):
     def test_is_equal_string(self):
         value = "foo"
-        operator = EqualsCondition(property="foo", kind=ConditionOperatorKind.EQUALS, value=value)
-        assert operator.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
+        condition = EqualsCondition(property="foo", value=value)
+        assert condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_operator = NotEqualsCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_EQUALS, value=value
-        )
-        assert not not_operator.match(
+        not_condition = NotEqualsCondition(property="foo", value=value)
+        assert not not_condition.match(
             context=EvaluationContext({"foo": "foo"}), segment_name="test"
         )
 
     def test_is_not_equals(self):
         values = "bar"
-        operator = EqualsCondition(property="foo", kind=ConditionOperatorKind.EQUALS, value=values)
-        assert not operator.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
+        condition = EqualsCondition(property="foo", value=values)
+        assert not condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_operator = NotEqualsCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_EQUALS, value=values
-        )
-        assert not_operator.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
+        not_condition = NotEqualsCondition(property="foo", value=values)
+        assert not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
     def test_is_equal_case_insensitive(self):
         values = "bAr"
-        operator = EqualsCondition(property="foo", kind=ConditionOperatorKind.EQUALS, value=values)
-        assert operator.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
+        condition = EqualsCondition(property="foo", value=values)
+        assert condition.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
 
-        not_operator = NotEqualsCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_EQUALS, value=values
-        )
-        assert not not_operator.match(
+        not_condition = NotEqualsCondition(property="foo", value=values)
+        assert not not_condition.match(
             context=EvaluationContext({"foo": "BaR"}), segment_name="test"
         )
 
     def test_equality_type_mismatch_strings(self):
         values = ["foo", "bar"]
-        operator = EqualsCondition(property="foo", kind=ConditionOperatorKind.EQUALS, value=values)
+        condition = EqualsCondition(property="foo", value=values)
 
         with pytest.raises(ConditionTypeMismatchException):
-            operator.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
+            condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-        not_operator = NotEqualsCondition(
-            property="foo", kind=ConditionOperatorKind.NOT_EQUALS, value=values
-        )
+        not_condition = NotEqualsCondition(property="foo", value=values)
         with pytest.raises(ConditionTypeMismatchException):
-            not_operator.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
+            not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
     def test_valid_json_parsing_with_types(self):
         values = [1, 2.2, "abc", True, False, [], ["foo"], [1], [1.1]]
@@ -269,3 +261,15 @@ class TestEqualsConditions(TestCase):
         values = [None, dict(foo="bar")]
         assert_invalid_types(condition=EqualsCondition, invalid_types=values)
         assert_invalid_types(condition=NotEqualsCondition, invalid_types=values)
+
+    def test_with_missing_context_property(self):
+        value = "foo"
+        condition = EqualsCondition(property="foo", value=value)
+
+        with pytest.raises(ConditionTypeMismatchException):
+            condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
+
+        not_condition = NotEqualsCondition(property="foo", value=value)
+
+        with pytest.raises(ConditionTypeMismatchException):
+            not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
