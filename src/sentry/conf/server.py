@@ -1519,6 +1519,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:custom-metrics-experimental": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
+    # Controls the visibility of the metrics launch related UI elements
+    "organizations:metrics-launch-rollout": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
