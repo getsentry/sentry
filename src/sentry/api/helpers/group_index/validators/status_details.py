@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from sentry import features
 from sentry.models.release import Release
 
 from . import InCommitValidator
@@ -45,6 +46,24 @@ class StatusDetailsValidator(serializers.Serializer):
 
     def validate_inNextRelease(self, value: bool) -> "Release":
         project = self.context["project"]
+        try:
+            return (
+                Release.objects.filter(projects=project, organization_id=project.organization_id)
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .order_by("-sort")[0]
+            )
+        except IndexError:
+            raise serializers.ValidationError(
+                "No release data present in the system to form a basis for 'Next Release'"
+            )
+
+    def validate_inUpcomingRelease(self, value: bool) -> "Release":
+        project = self.context["project"]
+
+        if not features.has("organizations:resolve-in-upcoming-release", project.organization):
+            raise serializers.ValidationError(
+                "Your organization does not have access to this feature."
+            )
         try:
             return (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)

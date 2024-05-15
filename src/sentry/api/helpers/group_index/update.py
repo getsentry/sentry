@@ -300,7 +300,7 @@ def update_groups(
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
             res_status = GroupResolution.Status.pending
-        elif status == "resolvedInUpcomingRelease" or status_details.get("inUpcomingRelease"):
+        elif status_details.get("inUpcomingRelease"):
             if len(projects) > 1:
                 return Response(
                     {"detail": "Cannot set resolved in next release for multiple projects."},
