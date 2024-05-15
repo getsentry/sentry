@@ -12,8 +12,8 @@ interface Props {
 }
 
 export function TransactionCell({project, transaction}: Props) {
+  const moduleURL = useCacheModuleURL();
   const location = useLocation();
-  const cacheUrl = useCacheModuleURL();
 
   if (!transaction) {
     return NULL_DESCRIPTION;
@@ -27,7 +27,7 @@ export function TransactionCell({project, transaction}: Props) {
 
   return (
     <OverflowEllipsisTextContainer>
-      <Link to={`${cacheUrl}/?${qs.stringify(query)}`}>{transaction}</Link>
+      <Link to={`${moduleURL}/?${qs.stringify(query)}`}>{transaction}</Link>
     </OverflowEllipsisTextContainer>
   );
 }

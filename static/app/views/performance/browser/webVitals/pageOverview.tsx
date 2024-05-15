@@ -115,9 +115,7 @@ export function PageOverview() {
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
-    window.location.href = normalizeUrl(
-      `/organizations/${organization.slug}/performance/browser/pageloads/`
-    );
+    window.location.href = moduleURL;
     return null;
   }
 

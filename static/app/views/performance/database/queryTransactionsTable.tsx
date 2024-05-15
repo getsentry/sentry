@@ -16,7 +16,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useDatabaseModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
@@ -94,6 +94,7 @@ export function QueryTransactionsTable({
   sort,
   span,
 }: Props) {
+  const moduleURL = useDatabaseModuleURL();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -127,7 +128,7 @@ export function QueryTransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, span, location, organization),
+            renderBodyCell(moduleURL, column, row, meta, span, location, organization),
         }}
         location={location}
       />
@@ -138,6 +139,7 @@ export function QueryTransactionsTable({
 }
 
 function renderBodyCell(
+  moduleURL: string,
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
@@ -151,9 +153,8 @@ function renderBodyCell(
         ? `${row['transaction.method']} ${row.transaction}`
         : row.transaction;
 
-    const pathname = normalizeUrl(
-      `/organizations/${organization.slug}/performance/database/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`
-    );
+    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
+
     const query: {[key: string]: string | undefined} = {
       ...location.query,
       transaction: row.transaction,
