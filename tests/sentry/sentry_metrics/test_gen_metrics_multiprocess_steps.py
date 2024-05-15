@@ -313,7 +313,7 @@ def __translated_payload(
         for k, v in payload["tags"].items()
     }
 
-    agg_options = get_aggregation_options(payload["name"])
+    agg_options = get_aggregation_options(payload["name"], payload["org_id"])
     if agg_options:
         agg_option = agg_options.popitem()[0]
         payload["aggregation_option"] = agg_option
