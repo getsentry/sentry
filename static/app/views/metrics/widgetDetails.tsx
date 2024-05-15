@@ -145,23 +145,36 @@ export function MetricDetails({
   return (
     <TrayWrapper>
       <Tabs value={selectedTab} onChange={handleTabChange}>
-        <TabList>
-          <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
-          <TabList.Item
-            textValue={t('Code Location')}
-            key={Tab.CODE_LOCATIONS}
-            disabled={isCodeLocationsDisabled}
-          >
-            <Tooltip
-              title={t(
-                'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
-              )}
-              disabled={!isCodeLocationsDisabled}
+        <TabsAndAction>
+          <TabList>
+            <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
+            <TabList.Item
+              textValue={t('Code Location')}
+              key={Tab.CODE_LOCATIONS}
+              disabled={isCodeLocationsDisabled}
             >
-              <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
-            </Tooltip>
-          </TabList.Item>
-        </TabList>
+              <Tooltip
+                title={t(
+                  'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
+                )}
+                disabled={!isCodeLocationsDisabled}
+              >
+                <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
+              </Tooltip>
+            </TabList.Item>
+          </TabList>
+          <Feature
+            features={[
+              'performance-trace-explorer-with-metrics',
+              'performance-trace-explorer',
+            ]}
+            requireAll
+          >
+            <OpenInTracesButton to={tracesTarget} size="sm">
+              {t('Open in Traces')}
+            </OpenInTracesButton>
+          </Feature>
+        </TabsAndAction>
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
@@ -186,11 +199,6 @@ export function MetricDetails({
                   />
                 )}
               </MetricSampleTableWrapper>
-              <Feature features="performance-trace-explorer-with-metrics">
-                <OpenInTracesWrapper>
-                  <Button to={tracesTarget}>{t('Open in Traces')}</Button>
-                </OpenInTracesWrapper>
-              </Feature>
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
               <CodeLocations mri={mri} {...focusArea?.selection?.range} />
@@ -218,7 +226,13 @@ const ContentWrapper = styled('div')`
   padding-top: ${space(2)};
 `;
 
-const OpenInTracesWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+const OpenInTracesButton = styled(Button)`
+  margin-top: ${space(0.75)};
+`;
+
+const TabsAndAction = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: ${space(4)};
+  align-items: center;
 `;
