@@ -1486,8 +1486,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
-    # Enables detection and notification of severely broken monitors
-    "organizations:crons-broken-monitor-detection": False,
     # Disables legacy cron ingest endpoints
     "organizations:crons-disable-ingest-endpoints": False,
     # Disables legacy cron ingest endpoints

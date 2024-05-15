@@ -11,7 +11,6 @@ from django.db import router, transaction
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -185,10 +184,6 @@ def detect_broken_monitor_envs_for_org(org_id: int):
     current_time = django_timezone.now()
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
-        if not features.has(
-            "organizations:crons-broken-monitor-detection", organization=organization
-        ):
-            return
     except Organization.DoesNotExist:
         return
 
