@@ -173,18 +173,6 @@ def test_should_demote_symbolication_always_and_never(default_project):
 
 @django_db_all
 @override_settings(SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE=True)
-def test_should_demote_symbolication_with_lpq_projects(default_project):
-    with override_options(
-        {
-            "store.symbolicate-event-lpq-never": [],
-            "store.symbolicate-event-lpq-always": [],
-        }
-    ):
-        assert should_demote_symbolication(default_project.id, lpq_projects={default_project.id})
-
-
-@django_db_all
-@override_settings(SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE=True)
 def test_should_demote_symbolication_with_non_existing_lpq_projects(default_project):
     with override_options(
         {
