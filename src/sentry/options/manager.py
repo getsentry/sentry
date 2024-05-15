@@ -514,7 +514,7 @@ class OptionsManager:
 
         return None
 
-    def bulk_retrieve_options(self, keys: list[str], flag: int | None = None) -> dict[str, any]:
+    def bulk_retrieve_options(self, keys: list[str], flag: int | None = None) -> dict[str, Any]:
         key_set = set(keys)
         keys = []
 
