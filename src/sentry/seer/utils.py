@@ -333,6 +333,10 @@ def delete_grouping_records(
         return False
 
     if response.status >= 200 and response.status < 300:
+        logger.info(
+            "seer.delete_grouping_records.success",
+            extra={"project_id": project_id},
+        )
         return True
     else:
         logger.error(
