@@ -328,10 +328,10 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
-    apiName: 'profileSeconds',
+    apiName: 'profileDuration',
     plural: 'profileDuration',
-    displayName: 'profile seconds',
-    titleName: t('Profile Seconds'),
+    displayName: 'profile hours',
+    titleName: t('Profile Hours'),
     uid: 17,
   },
   /**
