@@ -95,7 +95,12 @@ type DashboardHeadersProps = {organization: Organization};
 
 type MetricsSubscriptionCTAProps = {
   children: (
-    props: {cta: string; description: string; href: string} | null
+    props: {
+      cta: string;
+      description: string;
+      href: string;
+      type: 'info' | 'warning';
+    } | null
   ) => React.ReactNode;
   organization: Organization;
 };
