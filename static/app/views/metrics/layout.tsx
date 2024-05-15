@@ -6,8 +6,10 @@ import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -18,7 +20,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
@@ -29,8 +33,15 @@ import {WidgetDetails} from 'sentry/views/metrics/widgetDetails';
 
 export const MetricsLayout = memo(() => {
   const organization = useOrganization();
-  const {hasMetrics} = useMetricsContext();
+  const pageFilters = usePageFilters();
+  const selectedProjects = pageFilters.selection.projects.join();
+  const {hasCustomMetrics, hasPerformanceMetrics, isHasMetricsLoading} =
+    useMetricsContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
+  const {dismiss: emptyStateDismiss, isDismissed: isEmptyStateDismissed} =
+    useDismissAlert({
+      key: `${organization.id}:${selectedProjects}:metrics-empty-state-dismissed`,
+    });
 
   const addCustomMetric = useCallback(
     (referrer: 'header' | 'onboarding_panel') => {
@@ -47,6 +58,14 @@ export const MetricsLayout = memo(() => {
     },
     [activateSidebar, organization]
   );
+
+  const viewPerformanceMetrics = useCallback(() => {
+    Sentry.metrics.increment('ddm.view_performance_metrics', 1);
+    trackAnalytics('ddm.view_performance_metrics', {
+      organization,
+    });
+    emptyStateDismiss();
+  }, [emptyStateDismiss, organization]);
 
   return (
     <Fragment>
@@ -65,7 +84,7 @@ export const MetricsLayout = memo(() => {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <PageHeaderActions
-            showCustomMetricButton={hasMetrics}
+            showCustomMetricButton={hasCustomMetrics || isEmptyStateDismissed}
             addCustomMetric={() => addCustomMetric('header')}
           />
         </Layout.HeaderActions>
@@ -81,7 +100,9 @@ export const MetricsLayout = memo(() => {
             </PageFilterBar>
             <IntervalSelect />
           </FilterContainer>
-          {hasMetrics ? (
+          {isHasMetricsLoading ? (
+            <LoadingIndicator />
+          ) : hasCustomMetrics || isEmptyStateDismissed ? (
             <Fragment>
               <Queries />
               <MetricScratchpad />
@@ -95,12 +116,21 @@ export const MetricsLayout = memo(() => {
                   "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
-              <Button
-                priority="primary"
-                onClick={() => addCustomMetric('onboarding_panel')}
-              >
-                {t('Add Custom Metric')}
-              </Button>
+              <div>
+                <ButtonList gap={1}>
+                  <Button
+                    priority="primary"
+                    onClick={() => addCustomMetric('onboarding_panel')}
+                  >
+                    {t('Add Custom Metric')}
+                  </Button>
+                  {hasPerformanceMetrics && (
+                    <Button onClick={viewPerformanceMetrics}>
+                      {t('View Performance Metrics')}
+                    </Button>
+                  )}
+                </ButtonList>
+              </div>
             </OnboardingPanel>
           )}
         </Layout.Main>
@@ -139,4 +169,8 @@ const EmptyStateImage = styled('img')`
     transform: translateX(-75%);
     width: 320px;
   }
+`;
+
+const ButtonList = styled(ButtonBar)`
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
