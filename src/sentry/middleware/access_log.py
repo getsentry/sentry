@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -75,6 +76,7 @@ def _create_api_access_log(
     """
     Create a log entry to be used for api metrics gathering
     """
+    sample_rate = 1
     try:
         try:
             view = request.resolver_match._func_path
@@ -86,6 +88,10 @@ def _create_api_access_log(
         if token_type == "system":
             # if its an internal request, no need to log
             return
+        user_agent = str(request.META.get("HTTP_USER_AGENT"))
+
+        if user_agent and user_agent == "TruffleHog":
+            sample_rate = 0.005
 
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
@@ -105,7 +111,7 @@ def _create_api_access_log(
             auth_id=str(auth_id),
             path=str(request.path),
             caller_ip=str(request.META.get("REMOTE_ADDR")),
-            user_agent=str(request.META.get("HTTP_USER_AGENT")),
+            user_agent=user_agent,
             rate_limited=str(getattr(request, "will_be_rate_limited", False)),
             rate_limit_category=str(getattr(request, "rate_limit_category", None)),
             request_duration_seconds=access_log_metadata.get_request_duration(),
@@ -114,7 +120,10 @@ def _create_api_access_log(
         auth = get_authorization_header(request).split()
         if len(auth) == 2:
             log_metrics["token_last_characters"] = force_str(auth[1])[-4:]
-        api_access_logger.info("api.access", extra=log_metrics)
+
+        if random.random() <= sample_rate:
+            api_access_logger.info("api.access", extra=log_metrics)
+
         metrics.incr("middleware.access_log.created")
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
