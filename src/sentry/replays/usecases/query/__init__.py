@@ -64,11 +64,10 @@ def handle_viewed_by_me_filters(
         if search_filter.operator != "=":
             raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
 
-        if not isinstance(
-            search_filter.value.value, str
-        ) or search_filter.value.value.lower() not in ["true", "false"]:
+        value = search_filter.value.value
+        if not isinstance(value, str) or value.lower() not in ["true", "false"]:
             raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
-        value = search_filter.value.value.lower() == "true"
+        value = value.lower() == "true"
 
         if request_user_id is None:
             if value:  # always False -- return nothing
