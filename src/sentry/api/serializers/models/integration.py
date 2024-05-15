@@ -155,13 +155,12 @@ class OrganizationIntegrationSerializer(Serializer):
         try:
             installation = integration.get_installation(organization_id=obj.organization_id)
         except NotImplementedError:
-            # slack doesn't have an installation implementation
             config_data = obj.config if include_config else None
         else:
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data() if include_config else None  # type: ignore[assignment]
+                config_data = installation.get_config_data() if include_config else None
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
                 # If there is an ApiError from our 3rd party integration
