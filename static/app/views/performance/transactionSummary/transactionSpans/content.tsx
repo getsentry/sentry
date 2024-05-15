@@ -22,6 +22,7 @@ import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpan
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
+import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 
 import type {SetStateAction} from '../types';
 
@@ -36,7 +37,6 @@ import {
   SPAN_SORT_OPTIONS,
   SPAN_SORT_TO_FIELDS,
 } from './utils';
-import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 
 const ANALYTICS_VALUES = {
   spanOp: (organization: Organization, value: string | undefined) =>
