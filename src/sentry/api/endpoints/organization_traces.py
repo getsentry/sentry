@@ -470,6 +470,10 @@ class TraceSamplesExecutor:
                 if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
+                # early escape once we have enough results
+                if len(matching_trace_ids) >= self.limit:
+                    return min_timestamp, max_timestamp, matching_trace_ids
+
         return min_timestamp, max_timestamp, matching_trace_ids
 
     def get_traces_matching_span_conditions_query(
