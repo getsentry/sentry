@@ -60,11 +60,9 @@ def basic_filled_out_org() -> tuple[Organization, list[User]]:
     return org, [owner, other_user]
 
 
-WithOrgsCallback = Callable[[Callable[[], tuple[Organization, list[User]]]], None]
-
-
-def parameterize_with_orgs(f: WithOrgsCallback) -> WithOrgsCallback:
-    return pytest.mark.parametrize("org_factory", [pytest.param(basic_filled_out_org)])(f)
+parameterize_with_orgs = pytest.mark.parametrize(
+    "org_factory", [pytest.param(basic_filled_out_org)]
+)
 
 
 def find_ordering(list_of_things: list[Any], e: Any) -> int:

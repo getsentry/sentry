@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from random import Random
 
 from django.core.cache import cache
@@ -137,7 +137,7 @@ def test_cache_versioning() -> None:
                 yield from CacheBackend.set_cache(shared_key, copied_local_value, version)
                 last_length = len(copied_local_value)
 
-    def writer() -> Iterator[None]:
+    def writer() -> Generator[None, None, None]:
         nonlocal true_value
         while True:
             for i in range(5):
@@ -145,7 +145,7 @@ def test_cache_versioning() -> None:
             true_value += "a"
             yield from CacheBackend.delete_cache(shared_key, SiloMode.REGION)
 
-    def cache_death_event() -> Iterator[None]:
+    def cache_death_event() -> Generator[None, None, None]:
         while True:
             for i in range(20):
                 yield
