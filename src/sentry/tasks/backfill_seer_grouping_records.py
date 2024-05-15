@@ -181,7 +181,7 @@ def backfill_seer_grouping_records(
             ex=60 * 60 * 24 * 7,
         )  # needed for typing
         backfill_seer_grouping_records.apply_async(
-            args=[project.id, last_processed_id],
+            args=[project.id, last_processed_id, dry_run],
         )
         return
 
