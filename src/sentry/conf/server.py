@@ -739,6 +739,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
+    "sentry.tasks.backfill_seer_grouping_records",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
@@ -781,6 +782,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
+    "sentry.rules.processing.delayed_processing",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
@@ -1439,8 +1441,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1514,15 +1514,11 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
+    # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     "organizations:custom-metrics-experimental": False,
-    # Delightful Developer Metrics (DDM):
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enables import of metric dashboards
-    "organizations:ddm-dashboard-import": False,
-    # Enables category "metrics" in stats_v2 endpoint
-    "organizations:metrics-stats": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1794,6 +1790,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:related-events": False,
     # Enable related issues feature
     "organizations:related-issues": False,
+    # Enable related issues in issue details page
+    "organizations:related-issues-issue-details-page": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1854,10 +1852,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
-    # Enable the new flat file indexing system for sourcemaps.
-    "organizations:sourcemaps-bundle-flat-file-indexing": False,
-    # Upload release bundles as artifact bundles.
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
@@ -1939,8 +1933,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-ingest": False,
     # Use ReplayClipPreview inside the User Feedback Details panel
     "organizations:user-feedback-replay-clip": False,
-    # Enable User Feedback spam auto filtering feature UI
-    "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback spam auto filtering feature actions
@@ -1995,6 +1987,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings backfill
+    "projects:similarity-embeddings-backfill": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
     # Enable adding seer grouping metadata to new groups
@@ -2749,6 +2743,11 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
+# This flags enables the `peanutbutter` realtime metrics backend.
+# See https://github.com/getsentry/peanutbutter.
+# We do not want/need this in normal devservices, but we need it for certain tests.
+SENTRY_USE_PEANUTBUTTER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3006,6 +3005,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"8969/tcp": 8969},
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
+        }
+    ),
+    "peanutbutter": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/peanutbutter:latest",
+            "environment": {},
+            "ports": {"4433/tcp": 4433},
+            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
         }
     ),
 }
@@ -3959,6 +3966,12 @@ SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
 SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
+SEER_GROUPING_RECORDS_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
+)
+SEER_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
+)
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

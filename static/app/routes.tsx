@@ -495,6 +495,11 @@ function buildRoutes() {
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
       />
+      <Route
+        path="user-feedback/"
+        name={t('User Feedback')}
+        component={make(() => import('sentry/views/settings/projectUserFeedback'))}
+      />
       <Route path="security-and-privacy/" name={t('Security & Privacy')}>
         <IndexRoute
           component={make(
@@ -540,14 +545,6 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
-      <Route
-        path="user-feedback-processing/"
-        name={t('User Feedback')}
-        component={make(
-          () => import('sentry/views/settings/project/projectUserFeedbackProcessing')
-        )}
-      />
-
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -634,13 +631,6 @@ function buildRoutes() {
         path="loader-script/"
         name={t('Loader Script')}
         component={make(() => import('sentry/views/settings/project/loaderScript'))}
-      />
-      <Route
-        path="user-feedback/"
-        name={t('User Feedback')}
-        component={make(
-          () => import('sentry/views/settings/project/projectUserFeedback')
-        )}
       />
       <Redirect from="csp/" to="security-headers/" />
       <Route path="security-headers/" name={t('Security Headers')}>
@@ -1669,27 +1659,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const starfishRoutes = (
-    <Route
-      path="/starfish/"
-      component={make(() => import('sentry/views/starfish'))}
-      withOrgPath
-    >
-      <Redirect from="database/" to="/performance/database" />
-      <Route path="appStartup/">
-        <IndexRoute
-          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
-        />
-        <Route
-          path="spans/"
-          component={make(
-            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-          )}
-        />
-      </Route>
-    </Route>
-  );
-
   const userFeedbackRoutes = (
     <Route
       path="/user-feedback/"
@@ -2097,7 +2066,6 @@ function buildRoutes() {
       {discoverRoutes}
       {performanceRoutes}
       {aiMonitoringRoutes}
-      {starfishRoutes}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}

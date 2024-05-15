@@ -17,7 +17,7 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
@@ -31,7 +31,6 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -338,7 +337,7 @@ class EventManager:
         project_config: Any | None = None,
         sent_at: datetime | None = None,
     ):
-        self._data = CanonicalKeyDict(data)
+        self._data: MutableMapping[str, Any] = data
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
@@ -401,7 +400,7 @@ class EventManager:
         if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
-    def get_data(self) -> CanonicalKeyDict:
+    def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
     @sentry_sdk.tracing.trace
@@ -2443,33 +2442,20 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
-        except MaxRetryError as e:
-            logger.warning(
-                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEER_SEVERITY_RETRIES,
-                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
-                repr(e.reason),
-                extra=logger_data,
-            )
+        except MaxRetryError:
             reason = "microservice_max_retry"
             update_severity_error_count()
-            metrics.incr("issues.severity.max_retry_error")
-        except Exception as e:
-            logger.warning(
-                "Unable to get severity score from microservice. Got: %s.",
-                repr(e),
-                extra=logger_data,
-            )
+            metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+        except TimeoutError:
+            reason = "microservice_timeout"
+            update_severity_error_count()
+            metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+        except Exception:
             reason = "microservice_error"
             update_severity_error_count()
-            metrics.incr("issues.severity.error")
+            metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            sentry_sdk.capture_exception()
         else:
-            logger.info(
-                "Got severity score of %s for event %s",
-                severity,
-                event.data["event_id"],
-                extra=logger_data,
-            )
             update_severity_error_count(reset=True)
 
     return severity, reason

@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -18,6 +19,7 @@ import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
+import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -35,11 +37,7 @@ function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -86,12 +84,24 @@ function ResourcesLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </PageAlertProvider>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources')].join(' — ')}
+      baseURL={`/performance/${BASE_URL}`}
+      features="spans-first-ui"
+    >
+      <ResourcesLandingPage />
     </ModulePageProviders>
   );
 }
 
+export default PageWithProviders;
+
 export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
-
-export default ResourcesLandingPage;

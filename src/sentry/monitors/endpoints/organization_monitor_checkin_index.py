@@ -27,7 +27,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
     @extend_schema(
         operation_id="Retrieve Check-Ins for a Monitor",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         responses={

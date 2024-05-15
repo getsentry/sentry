@@ -25,6 +25,7 @@ from sentry_sdk.tracing import Span, Transaction
 from sentry import quotas, ratelimits
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
@@ -41,12 +42,28 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.processing_errors import (
-    CheckinValidationError,
+from sentry.monitors.processing_errors.errors import (
+    CheckinEnvironmentMismatch,
+    CheckinFinished,
+    CheckinGuidProjectMismatch,
+    CheckinInvalidDuration,
+    CheckinInvalidGuid,
+    CheckinValidationFailed,
+    MonitorDisabled,
+    MonitorDisabledNoQuota,
+    MonitorEnviromentRateLimited,
+    MonitorEnvironmentLimitExceeded,
+    MonitorInvalidConfig,
+    MonitorInvalidEnvironment,
+    MonitorLimitExceeded,
+    MonitorNotFound,
+    MonitorOverQuota,
+    OrganizationKillswitchEnabled,
     ProcessingError,
+    ProcessingErrorsException,
     ProcessingErrorType,
-    handle_processing_errors,
 )
+from sentry.monitors.processing_errors.manager import handle_processing_errors
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -117,14 +134,11 @@ def _ensure_monitor_with_config(
         }
         logger.info("monitors.consumer.invalid_config", extra=extra)
         if not monitor:
-            raise CheckinValidationError(
-                [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
-                        {"errors": validator.errors},
-                    )
-                ]
-            )
+            error: MonitorInvalidConfig = {
+                "type": ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                "errors": validator.errors,
+            }
+            raise ProcessingErrorsException([error])
         return monitor
 
     validated_config = validator.validated_data
@@ -259,19 +273,19 @@ def update_existing_check_in(
     updated_duration: float,
 ):
     monitor = monitor_environment.monitor
-    processing_errors = []
+    processing_errors: list[ProcessingError] = []
 
     if (
         existing_check_in.project_id != project_id
         or existing_check_in.monitor_id != monitor.id
         or existing_check_in.monitor_environment_id != monitor_environment.id
     ):
-        processing_errors.append(
-            ProcessingError(
-                ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH,
-                {"guid": existing_check_in.guid.hex},
-            )
-        )
+        mismatch_error: CheckinGuidProjectMismatch = {
+            "type": ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH,
+            "guid": existing_check_in.guid.hex,
+        }
+        processing_errors.append(mismatch_error)
+
         metrics.incr(
             "monitors.checkin.result",
             tags={"source": "consumer", "status": "guid_mismatch"},
@@ -299,7 +313,11 @@ def update_existing_check_in(
     )
 
     if already_user_complete and not updated_duration_only:
-        processing_errors.append(ProcessingError(ProcessingErrorType.CHECKIN_FINISHED))
+        finished_error: CheckinFinished = {
+            "type": ProcessingErrorType.CHECKIN_FINISHED,
+        }
+        processing_errors.append(finished_error)
+
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "checkin_finished"},
@@ -325,12 +343,11 @@ def update_existing_check_in(
         )
 
     if not valid_duration(updated_duration):
-        processing_errors.append(
-            ProcessingError(
-                ProcessingErrorType.CHECKIN_INVALID_DURATION,
-                {"duration": updated_duration},
-            )
-        )
+        duration_error: CheckinInvalidDuration = {
+            "type": ProcessingErrorType.CHECKIN_INVALID_DURATION,
+            "duration": str(updated_duration),
+        }
+        processing_errors.append(duration_error)
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_duration_check"},
@@ -346,7 +363,7 @@ def update_existing_check_in(
         )
 
     if processing_errors:
-        raise CheckinValidationError(processing_errors, monitor=monitor)
+        raise ProcessingErrorsException(processing_errors, monitor=monitor)
 
     updated_checkin = {
         "status": updated_status,
@@ -412,9 +429,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)]
-        )
+        killswitch_error: OrganizationKillswitchEnabled = {
+            "type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED,
+        }
+        raise ProcessingErrorsException([killswitch_error])
 
     if check_ratelimit(metric_kwargs, item):
         track_outcome(
@@ -426,9 +444,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED)]
-        )
+        ratelimit_error: MonitorEnviromentRateLimited = {
+            "type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED,
+        }
+        raise ProcessingErrorsException([ratelimit_error])
 
     # Does quotas allow for this check-in to be accepted?
     quotas_outcome: PermitCheckInStatus = quotas.backend.check_accept_monitor_checkin(
@@ -445,7 +464,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError([ProcessingError(ProcessingErrorType.MONITOR_OVER_QUOTA)])
+        overquota_error: MonitorOverQuota = {
+            "type": ProcessingErrorType.MONITOR_OVER_QUOTA,
+        }
+        raise ProcessingErrorsException([overquota_error])
 
     guid, use_latest_checkin = transform_checkin_uuid(
         txn,
@@ -464,7 +486,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError([ProcessingError(ProcessingErrorType.CHECKIN_INVALID_GUID)])
+        guid_error: CheckinInvalidGuid = {
+            "type": ProcessingErrorType.CHECKIN_INVALID_GUID,
+        }
+        raise ProcessingErrorsException([guid_error])
 
     monitor_config = params.pop("monitor_config", None)
 
@@ -503,17 +528,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [
-                ProcessingError(
-                    ProcessingErrorType.CHECKIN_VALIDATION_FAILED, {"errors": validator.errors}
-                )
-            ]
-        )
+        validation_error: CheckinValidationFailed = {
+            "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+            "errors": validator.errors,
+        }
+        raise ProcessingErrorsException([validation_error])
 
     validated_params = validator.validated_data
 
-    ensure_config_errors = []
+    ensure_config_errors: list[ProcessingError] = []
     monitor = None
     # 01
     # Retrieve or upsert monitor for this check-in
@@ -523,7 +546,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             monitor_slug,
             monitor_config,
         )
-    except CheckinValidationError as e:
+    except ProcessingErrorsException as e:
         ensure_config_errors = list(e.processing_errors)
     except MonitorLimitsExceeded as e:
         metrics.incr(
@@ -544,9 +567,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.MONITOR_LIMIT_EXCEEDED, {"reason": str(e)})]
-        )
+        limit_error: MonitorLimitExceeded = {
+            "type": ProcessingErrorType.MONITOR_LIMIT_EXCEEDED,
+            "reason": str(e),
+        }
+        raise ProcessingErrorsException([limit_error])
 
     # When accepting for upsert attempt to assign a seat for the monitor,
     # otherwise the monitor is marked as disabled
@@ -574,8 +599,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        ensure_config_errors.append(ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND))
-        raise CheckinValidationError(ensure_config_errors)
+        monitor_missing_error: MonitorNotFound = {
+            "type": ProcessingErrorType.MONITOR_NOT_FOUND,
+        }
+        ensure_config_errors.append(monitor_missing_error)
+        raise ProcessingErrorsException(ensure_config_errors)
 
     # When a monitor was accepted for upsert but is disabled we were unable to
     # assign a seat. Discard the check-in in this case.
@@ -592,9 +620,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA)], monitor
-        )
+        quota_disabled_error: MonitorDisabledNoQuota = {
+            "type": ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA,
+        }
+        raise ProcessingErrorsException([quota_disabled_error], monitor)
 
     # Discard check-ins if the monitor is disabled
     #
@@ -617,9 +646,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.MONITOR_DISABLED)], monitor
-        )
+        disabled_error: MonitorDisabled = {
+            "type": ProcessingErrorType.MONITOR_DISABLED,
+        }
+        raise ProcessingErrorsException([disabled_error], monitor)
 
     # 02
     # Retrieve or upsert monitor environment for this check-in
@@ -651,14 +681,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [
-                ProcessingError(
-                    ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED, {"reason": str(e)}
-                )
-            ],
-            monitor,
-        )
+        env_limit_error: MonitorEnvironmentLimitExceeded = {
+            "type": ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED,
+            "reason": str(e),
+        }
+        raise ProcessingErrorsException([env_limit_error], monitor)
     except MonitorEnvironmentValidationFailed as e:
         metrics.incr(
             "monitors.checkin.result",
@@ -683,10 +710,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        raise CheckinValidationError(
-            [ProcessingError(ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT, {"reason": str(e)})],
-            monitor,
-        )
+        invalid_env_error: MonitorInvalidEnvironment = {
+            "type": ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT,
+            "reason": str(e),
+        }
+        raise ProcessingErrorsException([invalid_env_error], monitor)
 
     # 03
     # Create or update check-in
@@ -743,17 +771,14 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                             timestamp=start_time,
                             category=DataCategory.MONITOR,
                         )
-                        raise CheckinValidationError(
-                            [
-                                ProcessingError(
-                                    ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
-                                    {
-                                        "existing_environment": check_in.monitor_environment.get_environment().name
-                                    },
-                                )
-                            ],
-                            monitor,
-                        )
+
+                        existing_env = check_in.monitor_environment.get_environment().name
+
+                        env_mismatch_error: CheckinEnvironmentMismatch = {
+                            "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
+                            "existing_environment": str(existing_env),
+                        }
+                        raise ProcessingErrorsException([env_mismatch_error], monitor)
 
                 txn.set_tag("outcome", "process_existing_checkin")
                 update_existing_check_in(
@@ -822,7 +847,8 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                     )
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
-                    signal_first_checkin(project, monitor)
+                    with in_test_hide_transaction_boundary():
+                        signal_first_checkin(project, monitor)
                     metrics.incr(
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
@@ -869,7 +895,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 tags={**metric_kwargs, "status": "complete"},
             )
     except Exception as e:
-        if isinstance(e, CheckinValidationError):
+        if isinstance(e, ProcessingErrorsException):
             raise
         # Skip this message and continue processing in the consumer.
         metrics.incr(
@@ -890,9 +916,9 @@ def process_checkin(item: CheckinItem):
             name="monitors.monitor_consumer",
         ) as txn:
             # Deepcopy the checkin here so that it's not modified. We need the original when we get a
-            # `CheckinValidationError`
+            # `ProcessingErrorsException`
             _process_checkin(deepcopy(item), txn)
-    except CheckinValidationError as e:
+    except ProcessingErrorsException as e:
         handle_processing_errors(item, e)
     except Exception:
         logger.exception("Failed to process check-in")

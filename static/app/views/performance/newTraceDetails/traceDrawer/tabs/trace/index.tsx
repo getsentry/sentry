@@ -1,30 +1,34 @@
 import {Fragment, useMemo} from 'react';
 
 import type {Tag} from 'sentry/actionCreators/events';
+import type {ApiResult} from 'sentry/api';
 import type {EventTransaction} from 'sentry/types/event';
-import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
-import {formatTagKey} from 'sentry/utils/discover/fields';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryResult, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import Tags from 'sentry/views/discover/tags';
 import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
 import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
-import {isTraceNode} from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
-import {IssueList} from '../details/issues/issues';
+import {isTraceNode} from '../../../guards';
+import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import {IssueList} from '../../details/issues/issues';
+import {TraceDrawerComponents} from '../../details/styles';
+
+import {GeneralInfo} from './generalInfo';
+import {TagsSummary} from './tagsSummary';
 
 type TraceDetailsProps = {
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  tagsQueryResults: UseApiQueryResult<Tag[], RequestError>;
+  tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;
   traceEventView: EventView;
   traceType: TraceType;
   traces: TraceSplitResults<TraceFullDetailed> | null;
@@ -56,26 +60,25 @@ export function TraceDetails(props: TraceDetailsProps) {
     <Fragment>
       {props.tree.type === 'trace' ? <TraceWarnings type={props.traceType} /> : null}
       <IssueList issues={issues} node={props.node} organization={organization} />
-      {rootEvent ? (
-        <Tags
-          tagsQueryResults={props.tagsQueryResults}
-          generateUrl={(key: string, value: string) => {
-            const url = props.traceEventView.getResultsViewUrlTarget(
-              organization.slug,
-              false
-            );
-            url.query = generateQueryWithTag(url.query, {
-              key: formatTagKey(key),
-              value,
-            });
-            return url;
-          }}
-          totalValues={props.tree.eventsCount}
-          eventView={props.traceEventView}
+      <TraceDrawerComponents.SectionCardGroup>
+        <GeneralInfo
           organization={organization}
-          location={location}
+          traces={props.traces}
+          tree={props.tree}
+          node={props.node}
+          rootEventResults={props.rootEventResults}
+          metaResults={props.metaResults}
         />
-      ) : null}
+        {rootEvent ? (
+          <TagsSummary
+            tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}
+            organization={organization}
+            location={location}
+            eventView={props.traceEventView}
+            totalValues={props.tree.eventsCount}
+          />
+        ) : null}
+      </TraceDrawerComponents.SectionCardGroup>
     </Fragment>
   );
 }

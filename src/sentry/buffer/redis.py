@@ -63,18 +63,17 @@ class BufferHookRegistry:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
 
-    def add_handler(self, key: BufferHookEvent) -> Callable[..., Any]:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            self._registry[key] = func
-            return func
+    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
+        self._registry[key] = func
 
-        return decorator
+    def has(self, key: BufferHookEvent) -> bool:
+        return self._registry.get(key) is not None
 
     def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
         try:
             callback = self._registry[buffer_hook_event]
         except KeyError:
-            return False
+            logger.exception("buffer_hook_event.missing")
 
         return callback(data)
 
@@ -137,9 +136,7 @@ class RedisBuffer(Buffer):
             value = value.pk
         return force_bytes(value, errors="replace")
 
-    def _make_key(
-        self, model: type[models.Model], filters: dict[str, models.Model | str | int]
-    ) -> str:
+    def _make_key(self, model: type[models.Model], filters: dict[str, Any]) -> str:
         """
         Returns a Redis-compatible key for the model given filters.
         """
@@ -214,7 +211,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: list[str],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, Any],
     ) -> dict[str, int]:
         """
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
@@ -436,7 +433,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: dict[str, int],
-        filters: dict[str, str | datetime | date | int | float],
+        filters: dict[str, Any],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> Any:

@@ -2,10 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/useLocation');
 
 describe('transactionsTable', () => {
   const organization = OrganizationFixture();
@@ -18,6 +21,16 @@ describe('transactionsTable', () => {
     '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
 
   beforeEach(() => {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {statsPeriod: '10d', project: '1'},
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       headers: {Link: pageLinks},
@@ -35,6 +48,7 @@ describe('transactionsTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 0,
             'avg_if(span.duration,span.op,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
+            'time_spent_percentage(app,span.duration)': 0.5,
           },
         ],
         meta: {
@@ -47,6 +61,7 @@ describe('transactionsTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 'duration',
             'avg_if(span.duration,span.op,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
+            'time_spent_percentage(app,span.duration)': 'percentage',
           },
         },
       },
@@ -84,6 +99,7 @@ describe('transactionsTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
+            'time_spent_percentage(app,span.duration)',
           ],
           dataset: 'spansMetrics',
         }),
@@ -96,5 +112,48 @@ describe('transactionsTable', () => {
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Consumer'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+  });
+
+  it('sorts by processing time', async () => {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        project: '1',
+        [QueryParameterNames.DESTINATIONS_SORT]:
+          '-avg_if(span.duration,span.op,queue.process)',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    render(<TransactionsTable />);
+
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: [
+            'transaction',
+            'span.op',
+            'count()',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
+            'sum(span.duration)',
+            'avg(span.duration)',
+            'avg_if(span.duration,span.op,queue.publish)',
+            'avg_if(span.duration,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
+            'time_spent_percentage(app,span.duration)',
+          ],
+          dataset: 'spansMetrics',
+          sort: '-avg_if(span.duration,span.op,queue.process)',
+        }),
+      })
+    );
+    await screen.findByText('celery.backend_cleanup');
   });
 });

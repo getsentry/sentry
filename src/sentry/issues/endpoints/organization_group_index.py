@@ -53,6 +53,7 @@ allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigne
 UNSUPPORTED_SNUBA_FILTERS = [
     "issue.priority",  # coming soon
     "firstRelease",  # coming soon
+    "first_release",  # coming soon
 ]
 
 
@@ -177,7 +178,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = inbox_search(**query_kwargs)
             else:
 
-                def use_group_snuba_dataset():
+                def use_group_snuba_dataset() -> bool:
                     # if useGroupSnubaDataset we consider using the snuba dataset
                     if not request.GET.get("useGroupSnubaDataset"):
                         return False

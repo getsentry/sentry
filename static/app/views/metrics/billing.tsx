@@ -1,7 +1,6 @@
 import Alert from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export const MetricsSubscriptionCTAProvider = HookOrDefault({
@@ -28,7 +27,7 @@ export function TopBanner() {
   );
 }
 
-export function OnboardingPanelPrimaryActionButton({onClick}: {onClick: () => void}) {
+export function OnboardingPanelPrimaryActionButtons({children}) {
   const organization = useOrganization();
 
   return (
@@ -39,9 +38,7 @@ export function OnboardingPanelPrimaryActionButton({onClick}: {onClick: () => vo
             {subscriptionCTAProps.cta}
           </LinkButton>
         ) : (
-          <Button priority="primary" onClick={onClick}>
-            {t('Add Custom Metric')}
-          </Button>
+          children
         );
       }}
     </MetricsSubscriptionCTAProvider>

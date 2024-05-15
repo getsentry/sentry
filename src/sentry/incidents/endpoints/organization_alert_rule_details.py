@@ -319,11 +319,6 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             except Exception:
                 pass
 
-            # TODO - Cleanup Subscription Project Mapping
-            # if not, check to see if there's a project associated with the snuba query
-            if project is None:
-                project = alert_rule.snuba_query.subscriptions.get().project
-
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -335,7 +330,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             200: AlertRuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
@@ -360,7 +355,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     @extend_schema(
         operation_id="Update a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         request=OrganizationAlertRuleDetailsPutSerializer,
         responses={
             200: AlertRuleSerializer,
@@ -391,7 +386,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     @extend_schema(
         operation_id="Delete a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,

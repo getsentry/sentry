@@ -1325,16 +1325,18 @@ function MissingInstrumentationTraceBar(props: MissingInstrumentationTraceBarPro
     },
     [props.manager, props.node_space, props.virtualized_index, duration]
   );
+
   return (
-    <div ref={registerSpanBarRef} className="TraceBar">
+    <Fragment>
+      <div ref={registerSpanBarRef} className="TraceBar">
+        <div className="TracePatternContainer">
+          <div className="TracePattern missing_instrumentation" />
+        </div>
+      </div>
       <div ref={registerSpanBarTextRef} className="TraceBarDuration">
         {duration}
       </div>
-
-      <div className="TracePatternContainer">
-        <div className="TracePattern missing_instrumentation" />
-      </div>
-    </div>
+    </Fragment>
   );
 }
 

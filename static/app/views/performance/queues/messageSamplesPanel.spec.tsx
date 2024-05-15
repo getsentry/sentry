@@ -5,13 +5,13 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MessageConsumerSamplesPanel} from 'sentry/views/performance/queues/messageConsumerSamplesPanel';
+import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
-describe('messageConsumerSamplesPanel', () => {
+describe('messageSamplesPanel', () => {
   const organization = OrganizationFixture();
 
   let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock;
@@ -85,8 +85,21 @@ describe('messageConsumerSamplesPanel', () => {
     jest.resetAllMocks();
   });
 
-  it('renders', async () => {
-    render(<MessageConsumerSamplesPanel />);
+  it('renders consumer panel', async () => {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        transaction: 'sentry.tasks.store.save_event',
+        destination: 'event-queue',
+        'span.op': 'queue.process',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+    render(<MessageSamplesPanel />);
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
@@ -105,6 +118,7 @@ describe('messageConsumerSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
+            'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
           project: [],
@@ -124,6 +138,7 @@ describe('messageConsumerSamplesPanel', () => {
             'span.description',
             'measurements.messaging.message.body.size',
             'measurements.messaging.message.receive.latency',
+            'measurements.messaging.message.retry.count',
             'messaging.message.id',
             'trace.status',
             'span.duration',
@@ -132,7 +147,80 @@ describe('messageConsumerSamplesPanel', () => {
           lowerBound: 0,
           project: [],
           query:
-            'span.op:queue.process OR span.op:queue.publish transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
+            'span.op:queue.process transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
+          referrer: undefined,
+          secondBound: 5333.333333333333,
+          statsPeriod: '10d',
+          upperBound: 8000,
+        }),
+      })
+    );
+    expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
+  });
+
+  it('renders producer panel', async () => {
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {
+        transaction: 'sentry.tasks.store.save_event',
+        destination: 'event-queue',
+        'span.op': 'queue.publish',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+    render(<MessageSamplesPanel />);
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    expect(eventsStatsRequestMock).toHaveBeenCalled();
+    expect(eventsRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'count()',
+            'count_op(queue.publish)',
+            'count_op(queue.process)',
+            'sum(span.duration)',
+            'avg(span.duration)',
+            'avg_if(span.duration,span.op,queue.publish)',
+            'avg_if(span.duration,span.op,queue.process)',
+            'avg(messaging.message.receive.latency)',
+            'time_spent_percentage(app,span.duration)',
+          ],
+          per_page: 10,
+          project: [],
+          query:
+            'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
+          statsPeriod: '10d',
+        }),
+      })
+    );
+    expect(samplesRequestMock).toHaveBeenCalledWith(
+      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          additionalFields: [
+            'trace',
+            'transaction.id',
+            'span.description',
+            'measurements.messaging.message.body.size',
+            'measurements.messaging.message.receive.latency',
+            'measurements.messaging.message.retry.count',
+            'messaging.message.id',
+            'trace.status',
+            'span.duration',
+          ],
+          firstBound: 2666.6666666666665,
+          lowerBound: 0,
+          project: [],
+          query:
+            'span.op:queue.publish transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
           referrer: undefined,
           secondBound: 5333.333333333333,
           statsPeriod: '10d',
