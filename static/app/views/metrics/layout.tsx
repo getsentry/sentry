@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
+import Alert from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -20,11 +21,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  OnboardingPanelPrimaryActionButton,
+  OnboardingPanelPrimaryActionButtons,
   TopBanner,
 } from 'sentry/views/metrics/billing';
 import {useMetricsContext} from 'sentry/views/metrics/context';
@@ -70,6 +72,14 @@ export const MetricsLayout = memo(() => {
     });
     emptyStateDismiss();
   }, [emptyStateDismiss, organization]);
+
+  if (!canSeeMetricsPage(organization)) {
+    return (
+      <Layout.Page withPadding>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Layout.Page>
+    );
+  }
 
   return (
     <Fragment>
@@ -121,7 +131,7 @@ export const MetricsLayout = memo(() => {
                   "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
-              <OnboardingPanelPrimaryActionButton>
+              <OnboardingPanelPrimaryActionButtons>
                 <ButtonList gap={1}>
                   <Button
                     priority="primary"
@@ -135,7 +145,7 @@ export const MetricsLayout = memo(() => {
                     </Button>
                   )}
                 </ButtonList>
-              </OnboardingPanelPrimaryActionButton>
+              </OnboardingPanelPrimaryActionButtons>
             </OnboardingPanel>
           )}
         </Layout.Main>
