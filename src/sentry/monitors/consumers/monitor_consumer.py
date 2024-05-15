@@ -776,7 +776,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
 
                         env_mismatch_error: CheckinEnvironmentMismatch = {
                             "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
-                            "existing_environment": str(existing_env),
+                            "existingEnvironment": str(existing_env),
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
