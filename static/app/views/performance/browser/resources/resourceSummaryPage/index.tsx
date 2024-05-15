@@ -46,7 +46,7 @@ const {
 } = SpanMetricsField;
 
 function ResourceSummary() {
-  const moduleURL = useResourceModuleURL();
+  const resourcesModuleURL = useResourceModuleURL();
   const webVitalsModuleURL = useWebVitalsModuleURL();
   const organization = useOrganization();
   const {groupId} = useParams();
@@ -100,7 +100,7 @@ function ResourceSummary() {
               },
               {
                 label: 'Resources',
-                to: moduleURL,
+                to: resourcesModuleURL,
                 preservePageFilters: true,
               },
               {
