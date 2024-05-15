@@ -1,3 +1,35 @@
+24.5.0
+------
+
+### Various fixes & improvements
+
+- Revert "fix(staff): Prevent fetching authenticators before preloading (#70938)" (2d7dcff0) by @getsentry-bot
+- feat(metrics): Add custom metrics banner (#70946) by @matejminar
+- feat(metrics): Register guide (#70948) by @matejminar
+- chore(issues): Add flag for resolve in upcoming release (#70898) by @roggenkemper
+- chore(generic-metrics): Add new options to toggle dropping percentiles (#70889) by @ayirr7
+- fix(slack): don't raise RuntimeError if unable to fetch property in slack request (#67798) by @cathteng
+- Revert "nit: Remove authenticators from state (#70365)" (c946f52a) by @getsentry-bot
+- feat(performance): Adds error rate to queues module (#70883) by @edwardgou-sentry
+- feat(related_issues): Support passing an event_id to the endpoint (#70878) by @armenzg
+- dev(similarity): add more telemetry to backfill (#70947) by @JoshFerge
+- fix(issues): Fix missing retries configuration (#70907) by @mrduncan
+- chore(metrics): rollout feature flag (#70940) by @obostjancic
+- feat(trace-explorer): Supports metrics min/max (#70920) by @Zylphrex
+- feat(performance): queues module table sorting (#70817) by @edwardgou-sentry
+- feat(metrics): Default custom metric + dismiss empty state (#70936) by @matejminar
+- ref: improve devimports test (#70926) by @asottile-sentry
+- ref(insights): abstract ScreenLoadSpanSamples side panel for mobile modules (#70890) by @KevinL10
+- fix(staff): Prevent fetching authenticators before preloading (#70938) by @schew2381
+- fix(api): Update Endpoint so it Returns 404 as a `status_code` (#70918) by @iamrajjoshi
+- Hook up `peanutbutter` as an LPQ backend (#69187) by @Swatinem
+- ref(insights): Declare module base URLs as constants (#70861) by @gggritso
+- fix(metrics): copy code location (#70932) by @obostjancic
+- chore(metrics): remove meta datetime param (#70928) by @obostjancic
+- ci: reduce time running codecov (#70885) by @giovanni-guidini
+
+_Plus 747 more_
+
 24.4.2
 ------
 

@@ -194,6 +194,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             timestamp=timestamps[-1],
             transaction="qux",
             duration=40_000,
+            exclusive_time=40_000,
             tags={"foo": "qux"},
             measurements={
                 measurement: 40_000
@@ -716,6 +717,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 query = {
                     "mri": mri,
                     "metricsQuery": ["foo:qux"],
+                    "metricsMin": 30_000,
+                    "metricsMax": 50_000,
                     "project": [project_1.id],
                     "field": ["id", "parent_span", "span.duration"],
                     "suggestedQuery": ["foo:qux"],
