@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -267,7 +268,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             trace_id_1,
             trace_id_2,
             trace_id_3,
-            timestamps,
+            [int(ts.timestamp() * 1000) for ts in timestamps],
             span_ids,
         )
 
@@ -407,6 +408,132 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.data
 
+    @patch("sentry_sdk.capture_exception")
+    @patch("sentry.api.endpoints.organization_traces.process_breakdowns")
+    def test_process_breakdown_error(self, mock_process_breakdowns, mock_capture_exception):
+        exception = Exception()
+
+        mock_process_breakdowns.side_effect = exception
+
+        (
+            project_1,
+            project_2,
+            trace_id_1,
+            trace_id_2,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        query = {
+            "project": [project_2.id],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "foo:[bar, baz]",
+            "suggestedQuery": "foo:baz span.duration:>0s",
+            "maxSpansPerTrace": 3,
+            "sort": ["-span.duration"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["meta"] == {
+            "dataset": "unknown",
+            "datasetReason": "unchanged",
+            "fields": {
+                "id": "string",
+                "parent_span": "string",
+                "span.duration": "duration",
+            },
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {
+                "id": None,
+                "parent_span": None,
+                "span.duration": "millisecond",
+            },
+        }
+
+        result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
+
+        assert result_data == sorted(
+            [
+                {
+                    "trace": trace_id_1,
+                    "numErrors": 1,
+                    "numOccurrences": 0,
+                    "numSpans": 4,
+                    "project": project_1.slug,
+                    "name": "foo",
+                    "duration": 60_100,
+                    "start": timestamps[0],
+                    "end": timestamps[0] + 60_100,
+                    "breakdowns": [],
+                    "spans": [
+                        {
+                            "id": span_ids[3],
+                            "parent_span": span_ids[0],
+                            "span.duration": 30_003.0,
+                        },
+                        {
+                            "id": span_ids[2],
+                            "parent_span": span_ids[0],
+                            "span.duration": 30_002.0,
+                        },
+                        {
+                            "id": span_ids[1],
+                            "parent_span": span_ids[0],
+                            "span.duration": 30_001.0,
+                        },
+                    ],
+                    "suggestedSpans": [
+                        {
+                            "id": span_ids[3],
+                            "parent_span": span_ids[0],
+                            "span.duration": 30_003.0,
+                        },
+                    ],
+                },
+                {
+                    "trace": trace_id_2,
+                    "numErrors": 0,
+                    "numOccurrences": 0,
+                    "numSpans": 6,
+                    "project": project_1.slug,
+                    "name": "bar",
+                    "duration": 90_123,
+                    "start": timestamps[4],
+                    "end": timestamps[4] + 90_123,
+                    "breakdowns": [],
+                    "spans": [
+                        {
+                            "id": span_ids[6],
+                            "parent_span": span_ids[4],
+                            "span.duration": 20_006.0,
+                        },
+                        {
+                            "id": span_ids[5],
+                            "parent_span": span_ids[4],
+                            "span.duration": 20_005.0,
+                        },
+                    ],
+                    "suggestedSpans": [
+                        {
+                            "id": span_ids[6],
+                            "parent_span": span_ids[4],
+                            "span.duration": 20_006.0,
+                        },
+                    ],
+                },
+            ],
+            key=lambda trace: trace["trace"],
+        )
+
+        mock_capture_exception.assert_called_with(
+            exception, contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}}
+        )
+
     def test_matching_tag(self):
         (
             project_1,
@@ -467,16 +594,16 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": project_1.slug,
                         "name": "foo",
                         "duration": 60_100,
-                        "start": int(timestamps[0].timestamp() * 1000),
-                        "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                        "start": timestamps[0],
+                        "end": timestamps[0] + 60_100,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[0].timestamp() * 1000),
-                                "end": int(timestamps[0].timestamp() * 1000) + 60_100,
+                                "start": timestamps[0],
+                                "end": timestamps[0] + 60_100,
                                 "kind": "project",
                                 "duration": 60_100,
                             },
@@ -485,10 +612,10 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[1].timestamp() * 1000),
-                                "end": int(timestamps[3].timestamp() * 1000) + 30_003,
+                                "start": timestamps[1],
+                                "end": timestamps[3] + 30_003,
                                 "kind": "project",
-                                "duration": 32_003,
+                                "duration": timestamps[3] - timestamps[1] + 30_003,
                             },
                         ],
                         "spans": [
@@ -524,16 +651,16 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": project_1.slug,
                         "name": "bar",
                         "duration": 90_123,
-                        "start": int(timestamps[4].timestamp() * 1000),
-                        "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[4].timestamp() * 1000),
-                                "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                                "start": timestamps[4],
+                                "end": timestamps[4] + 90_123,
                                 "kind": "project",
                                 "duration": 90_123,
                             },
@@ -542,10 +669,10 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[5].timestamp() * 1000),
-                                "end": int(timestamps[6].timestamp() * 1000) + 20_006,
+                                "start": timestamps[5],
+                                "end": timestamps[6] + 20_006,
                                 "kind": "project",
-                                "duration": 21_006,
+                                "duration": timestamps[6] - timestamps[5] + 20_006,
                             },
                         ],
                         "spans": [
@@ -624,16 +751,16 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "project": project_1.slug,
                 "name": "bar",
                 "duration": 90_123,
-                "start": int(timestamps[4].timestamp() * 1000),
-                "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                "start": timestamps[4],
+                "end": timestamps[4] + 90_123,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "isRoot": False,
-                        "start": int(timestamps[4].timestamp() * 1000),
-                        "end": int(timestamps[4].timestamp() * 1000) + 90_123,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
                         "kind": "project",
                         "duration": 90_123,
                     },
@@ -642,8 +769,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": "http",
                         "sdkName": "",
                         "isRoot": False,
-                        "start": int(timestamps[7].timestamp() * 1000),
-                        "end": int(timestamps[7].timestamp() * 1000) + 1_000,
+                        "start": timestamps[7],
+                        "end": timestamps[7] + 1_000,
                         "kind": "project",
                         "duration": 1_000,
                     },
@@ -652,18 +779,18 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "opCategory": None,
                         "sdkName": "sentry.javascript.node",
                         "isRoot": False,
-                        "start": int(timestamps[5].timestamp() * 1000),
-                        "end": int(timestamps[6].timestamp() * 1000) + 20_006,
+                        "start": timestamps[5],
+                        "end": timestamps[6] + 20_006,
                         "kind": "project",
-                        "duration": 21_006,
+                        "duration": timestamps[6] - timestamps[5] + 20_006,
                     },
                     {
                         "project": project_1.slug,
                         "opCategory": "db",
                         "sdkName": "",
                         "isRoot": False,
-                        "start": int(timestamps[8].timestamp() * 1000),
-                        "end": int(timestamps[8].timestamp() * 1000) + 3_000,
+                        "start": timestamps[8],
+                        "end": timestamps[8] + 3_000,
                         "kind": "project",
                         "duration": 3_000,
                     },
@@ -743,16 +870,16 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "project": project_1.slug,
                         "name": "qux",
                         "duration": 40_000,
-                        "start": int(timestamps[10].timestamp() * 1000),
-                        "end": int(timestamps[10].timestamp() * 1000) + 40_000,
+                        "start": timestamps[10],
+                        "end": timestamps[10] + 40_000,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.remix",
                                 "isRoot": False,
-                                "start": int(timestamps[10].timestamp() * 1000),
-                                "end": int(timestamps[10].timestamp() * 1000) + 40_000,
+                                "start": timestamps[10],
+                                "end": timestamps[10] + 40_000,
                                 "kind": "project",
                                 "duration": 40_000,
                             },
@@ -761,8 +888,8 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                                 "opCategory": None,
                                 "sdkName": "sentry.javascript.node",
                                 "isRoot": False,
-                                "start": int(timestamps[11].timestamp() * 1000),
-                                "end": int(timestamps[11].timestamp() * 1000) + 10_000,
+                                "start": timestamps[11],
+                                "end": timestamps[11] + 10_000,
                                 "kind": "project",
                                 "duration": 10_000,
                             },
@@ -1886,3 +2013,99 @@ def test_process_breakdowns(data, traces_range, expected):
     }
     result = process_breakdowns(data, traces_range)
     assert result == expected
+
+
+@patch("sentry_sdk.capture_exception")
+@patch("sentry.api.endpoints.organization_traces.quantize_range")
+def test_quantize_range_error(mock_quantize_range, mock_capture_exception):
+    exception = Exception()
+
+    mock_quantize_range.side_effect = exception
+
+    data = [
+        {
+            "trace": "a" * 32,
+            "project": "foo",
+            "sdk.name": "sentry.javascript.node",
+            "parent_span": "a" * 16,
+            "transaction": "foo1",
+            "precise.start_ts": 0,
+            "precise.finish_ts": 0.1,
+        },
+    ]
+    traces_range = {
+        "a"
+        * 32: {
+            "start": 0,
+            "end": 100,
+            "min": 0,
+        }
+    }
+    result = process_breakdowns(data, traces_range)
+    assert result == {
+        "a"
+        * 32: [
+            {
+                "project": None,
+                "opCategory": None,
+                "sdkName": None,
+                "start": 0,
+                "end": 100,
+                "kind": "other",
+                "duration": 100,
+                "isRoot": False,
+            }
+        ]
+    }
+
+    mock_capture_exception.assert_called_with(
+        exception, contexts={"bad_trace": {"trace": "a" * 32}}
+    )
+
+
+@patch("sentry_sdk.capture_exception")
+@patch("sentry.api.endpoints.organization_traces.new_trace_interval")
+def test_build_breakdown_error(mock_new_trace_interval, mock_capture_exception):
+    exception = Exception()
+
+    mock_new_trace_interval.side_effect = exception
+
+    data = [
+        {
+            "trace": "a" * 32,
+            "project": "foo",
+            "sdk.name": "sentry.javascript.node",
+            "parent_span": "a" * 16,
+            "transaction": "foo1",
+            "precise.start_ts": 0,
+            "precise.finish_ts": 0.1,
+        },
+    ]
+    traces_range = {
+        "a"
+        * 32: {
+            "start": 0,
+            "end": 100,
+            "min": 0,
+        }
+    }
+    result = process_breakdowns(data, traces_range)
+    assert result == {
+        "a"
+        * 32: [
+            {
+                "project": None,
+                "opCategory": None,
+                "sdkName": None,
+                "start": 0,
+                "end": 100,
+                "kind": "other",
+                "duration": 100,
+                "isRoot": False,
+            }
+        ]
+    }
+
+    mock_capture_exception.assert_called_with(
+        exception, contexts={"bad_trace": {"trace": "a" * 32}}
+    )
