@@ -11,6 +11,7 @@ from sentry.options.manager import (
     FLAG_ADMIN_MODIFIABLE,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_CREDENTIAL,
+    FLAG_FLAGPOLE_FEATURE,
     FLAG_IMMUTABLE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
@@ -383,3 +384,50 @@ class OptionsManagerTest(TestCase):
         assert opt.has_any_flag({FLAG_NOSTORE})
         assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
         assert not opt.has_any_flag({FLAG_REQUIRED})
+
+    def test_bulk_retrieval(self):
+        flag_name_1 = "flagpole.super_cool_option"
+        flag_name_2 = "flagpole.multi_flagged_option"
+        bulk_options = self.manager.bulk_retrieve_options(
+            keys=[flag_name_1, flag_name_2], flag=FLAG_FLAGPOLE_FEATURE
+        )
+        assert bulk_options == {}
+
+        self.manager.register(flag_name_1, default=True, flags=FLAG_FLAGPOLE_FEATURE)
+        self.manager.register(
+            flag_name_2,
+            default=False,
+            flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_FLAGPOLE_FEATURE,
+        )
+        self.manager.register("other_option", flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+        bulk_options = self.manager.bulk_retrieve_options(
+            keys=[flag_name_1, flag_name_2], flag=FLAG_FLAGPOLE_FEATURE
+        )
+        assert bulk_options == {
+            flag_name_1: True,
+            flag_name_2: False,
+        }
+
+        bulk_options = self.manager.bulk_retrieve_options(
+            keys=[flag_name_1, flag_name_2], flag=FLAG_NOSTORE
+        )
+        assert bulk_options == {}
+
+        bulk_options = self.manager.bulk_retrieve_options(keys=[flag_name_1, flag_name_2])
+        assert bulk_options == {
+            flag_name_1: True,
+            flag_name_2: False,
+        }
+
+        bulk_options = self.manager.bulk_retrieve_options(keys=[])
+        assert bulk_options == {}
+
+        bulk_options = self.manager.bulk_retrieve_options(
+            keys=[flag_name_1, flag_name_2],
+            flag=FLAG_NOSTORE | FLAG_FLAGPOLE_FEATURE | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        assert bulk_options == {
+            flag_name_1: True,
+            flag_name_2: False,
+        }

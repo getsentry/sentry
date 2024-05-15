@@ -108,6 +108,8 @@ FLAG_BOOL = 1 << 10
 FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
 # Values that are scalar numeric integer values
 FLAG_SCALAR = 1 << 12
+# Values that are meant to be used by the flagpole feature handler
+FLAG_FLAGPOLE_FEATURE = 1 << 13
 
 FLAG_MODIFIABLE_RATE = FLAG_ADMIN_MODIFIABLE | FLAG_RATE
 FLAG_MODIFIABLE_BOOL = FLAG_ADMIN_MODIFIABLE | FLAG_BOOL
@@ -511,3 +513,21 @@ class OptionsManager:
             return NotWritableReason.DRIFTED
 
         return None
+
+    def bulk_retrieve_options(self, keys: list[str], flag: int | None = None) -> dict[str, any]:
+        key_set = set(keys)
+        keys = []
+
+        for key, value in self.registry.items():
+            flag_matches = flag is None or value.flags & flag
+            key_in_set = key in key_set
+
+            if not key_in_set or not flag_matches:
+                continue
+
+            keys.append(value)
+
+        return self.bulk_retrieve_options_by_key(keys)
+
+    def bulk_retrieve_options_by_key(self, keys) -> dict[str, any]:
+        return {key.name: self.get(key.name) for key in keys}
