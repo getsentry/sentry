@@ -62,7 +62,7 @@ function SpanSummaryButton(props: Props) {
           projectID: event.projectID,
         })}
       >
-        {t('View Resource Summary')}
+        {t('View Asset Summary')}
       </LinkButton>
     );
   }

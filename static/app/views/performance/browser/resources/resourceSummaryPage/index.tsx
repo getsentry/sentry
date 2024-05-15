@@ -100,7 +100,7 @@ function ResourceSummary() {
                 preservePageFilters: true,
               },
               {
-                label: 'Resource Summary',
+                label: 'Asset Summary',
               },
             ]}
           />
