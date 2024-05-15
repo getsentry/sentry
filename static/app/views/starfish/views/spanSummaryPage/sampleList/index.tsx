@@ -108,7 +108,10 @@ export function SampleList({
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: SpanIndexedField[] = [];
+  const additionalFields: SpanIndexedField[] = [
+    SpanIndexedField.TRACE,
+    SpanIndexedField.TRANSACTION_ID,
+  ];
 
   if (moduleName === ModuleName.RESOURCE) {
     additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
