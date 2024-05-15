@@ -8,7 +8,7 @@ import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
@@ -32,27 +32,20 @@ function SettingsLayout(props: Props) {
 
   const headerRef = useRef<HTMLDivElement>(null);
 
-  const toggleNav = useCallback(
-    (visible: boolean) => {
-      const bodyElement = document.getElementsByTagName('body')[0];
+  const location = useLocation();
 
-      window.scrollTo?.(0, 0);
-      bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
+  const toggleNav = useCallback((visible: boolean) => {
+    const bodyElement = document.getElementsByTagName('body')[0];
 
-      setMobileNavVisible(visible);
-      setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
-    },
-    [headerRef, setMobileNavVisible, setNavOffsetTop]
-  );
+    window.scrollTo?.(0, 0);
+    bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
+
+    setMobileNavVisible(visible);
+    setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
+  }, []);
 
   // Close menu when navigating away
-  useEffect(() => {
-    if (!isMobileNavVisible) {
-      return () => {};
-    }
-
-    return browserHistory.listen(() => toggleNav(false));
-  }, [toggleNav, isMobileNavVisible]);
+  useEffect(() => toggleNav(false), [toggleNav, location.pathname]);
 
   const {renderNavigation, children, params, routes, route} = props;
 
