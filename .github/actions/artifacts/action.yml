@@ -23,5 +23,6 @@ runs:
         token: ${{ inputs.token }}
         flags: ${{ inputs.type }}
         files: ${{ inputs.files }}
+        plugin: noop
         verbose: true
       continue-on-error: true
