@@ -9,7 +9,7 @@ from .base import RealtimeMetricsStore
 backend = LazyServiceWrapper(
     RealtimeMetricsStore,
     settings.SENTRY_REALTIME_METRICS_BACKEND,
-    settings.SENTRY_REALTIME_METRICS_OPTIONS,
+    options={},
 )
 backend.expose(locals())
 
