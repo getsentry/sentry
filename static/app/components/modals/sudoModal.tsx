@@ -200,6 +200,7 @@ class SudoModal extends Component<Props, State> {
     const {api} = this.props;
 
     try {
+      await Promise.all(Object.values(window.__sentry_preload));
       const authenticators = await api.requestPromise('/authenticators/');
       this.setState({authenticators: authenticators ?? []});
     } catch {

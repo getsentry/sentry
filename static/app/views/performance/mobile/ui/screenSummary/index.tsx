@@ -14,11 +14,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
-import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
+import {BASE_URL} from 'sentry/views/performance/mobile/ui/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
@@ -101,11 +102,12 @@ function ScreenSummary() {
             </SamplesContainer>
 
             {spanGroup && spanOp && (
-              <ScreenLoadSpanSamples
+              <SpanSamplesPanel
                 additionalFilters={{
                   ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
                 }}
                 groupId={spanGroup}
+                moduleName={ModuleName.OTHER}
                 transactionName={transactionName}
                 spanDescription={spanDescription}
                 spanOp={spanOp}
@@ -138,7 +140,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL="/performance/mobile/ui/spans"
+      baseURL={`/performance/${BASE_URL}`}
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />

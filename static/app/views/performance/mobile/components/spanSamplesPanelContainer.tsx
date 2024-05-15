@@ -23,8 +23,11 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  type ModuleName,
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -34,6 +37,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
+  moduleName: ModuleName;
   transactionName: string;
   additionalFilters?: Record<string, string>;
   project?: Project | null;
@@ -44,8 +48,9 @@ type Props = {
   transactionMethod?: string;
 };
 
-export function ScreenLoadSampleContainer({
+export function SpanSamplesContainer({
   groupId,
+  moduleName,
   transactionName,
   transactionMethod,
   release,
@@ -182,7 +187,7 @@ export function ScreenLoadSampleContainer({
         onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
         groupId={groupId}
         transactionName={transactionName}
-        moduleName={ModuleName.SCREEN}
+        moduleName={moduleName}
         release={release}
         columnOrder={[
           {

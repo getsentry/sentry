@@ -24,7 +24,10 @@ from sentry.monitors.models import (
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.base import instrumented_task
+from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.manager import get_email_addresses
 from sentry.utils.http import absolute_uri
@@ -85,20 +88,16 @@ def update_user_monitor_dictionary(
         user_monitor_entry["environment_names"].append(environment_name)
 
 
-def get_user_emails_from_monitor(monitor: Monitor, project: Project):
+def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project):
     try:
         if monitor.owner_user_id:
             organization_member = OrganizationMember.objects.get(
                 user_id=monitor.owner_user_id, organization_id=monitor.organization_id
             )
-            return get_email_addresses(
-                [organization_member.user_id], project, only_verified=True
-            ).values()
+            return [organization_member.user_id]
         elif monitor.owner_team_id:
             team = Team.objects.get_from_cache(id=monitor.owner_team_id)
-            return get_email_addresses(
-                team.member_set.values_list("user_id", flat=True), project, only_verified=True
-            ).values()
+            return team.member_set.values_list("user_id", flat=True)
     except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
         logger.info(
             "monitors.broken_detection.invalid_owner",
@@ -110,9 +109,21 @@ def get_user_emails_from_monitor(monitor: Monitor, project: Project):
         )
 
     project = Project.objects.get_from_cache(id=monitor.project_id)
-    return get_email_addresses(
-        project.member_set.values_list("user_id", flat=True), project, only_verified=True
-    ).values()
+    return project.member_set.values_list("user_id", flat=True)
+
+
+def get_user_emails_from_monitor(monitor: Monitor, project: Project):
+    user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
+    actors = [Actor.from_id(user_id=id) for id in user_ids]
+    recipients = notifications_service.get_notification_recipients(
+        type=NotificationSettingEnum.APPROVAL,
+        recipients=actors,
+        organization_id=project.organization_id,
+        project_ids=[project.id],
+    )
+    filtered_user_ids = [recipient.id for recipient in (recipients.get("email") or [])]
+
+    return get_email_addresses(filtered_user_ids, project, only_verified=True).values()
 
 
 def generate_monitor_email_context(

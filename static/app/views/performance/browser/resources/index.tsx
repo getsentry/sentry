@@ -20,6 +20,7 @@ import ResourceView, {
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
 import {MODULE_NAME} from 'sentry/views/performance/browser/resources/settings';
+import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -92,7 +93,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_NAME].join(' — ')}
-      baseURL="/performance/browser/resources"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <ResourcesLandingPage />

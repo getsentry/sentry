@@ -21,6 +21,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/aiMonitoring/aiMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/aiMonitoring/pipelineSpansTable';
+import {BASE_URL} from 'sentry/views/aiMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -178,7 +179,7 @@ function PageWithProviders({params}: Props) {
   return (
     <ModulePageProviders
       title={[spanDescription ?? t('(no name)'), t('Pipeline Details')].join(' — ')}
-      baseURL="/ai-monitoring/"
+      baseURL={BASE_URL}
       features="ai-analytics"
     >
       <AiMonitoringPage params={params} />

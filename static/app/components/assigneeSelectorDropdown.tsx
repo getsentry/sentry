@@ -550,6 +550,8 @@ export default function AssigneeSelectorDropdown({
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
         menuFooter={footerInviteButton}
+        sizeLimit={150}
+        sizeLimitMessage="Use search to find more users and teams..."
       />
     </AssigneeWrapper>
   );
