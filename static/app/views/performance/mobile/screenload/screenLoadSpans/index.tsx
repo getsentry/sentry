@@ -35,6 +35,7 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -240,7 +241,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL="/performance/mobile/screens"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <ScreenLoadSpans />

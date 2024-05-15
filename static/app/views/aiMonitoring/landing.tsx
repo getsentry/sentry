@@ -17,6 +17,7 @@ import {
 } from 'sentry/views/aiMonitoring/aiMonitoringCharts';
 import {AIMonitoringOnboarding} from 'sentry/views/aiMonitoring/onboarding';
 import {PipelinesTable} from 'sentry/views/aiMonitoring/PipelinesTable';
+import {BASE_URL} from 'sentry/views/aiMonitoring/settings';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -92,7 +93,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={t('AI Monitoring')}
-      baseURL="/ai-monitoring/"
+      baseURL={BASE_URL}
       features="ai-analytics"
     >
       <AiMonitoringPage />

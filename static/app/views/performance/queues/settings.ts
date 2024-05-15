@@ -2,6 +2,7 @@ import type {BadgeType} from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Queues');
+export const BASE_URL = 'queues';
 
 export const DESTINATION_TITLE = t('Destination Summary');
 
