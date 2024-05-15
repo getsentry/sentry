@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
 from sentry import nodestore
-from sentry.buffer.redis import RedisBuffer
+from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -410,3 +410,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         filters={"project_id": project_id},
         fields=hashes_to_delete,
     )
+
+
+if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
+    redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
