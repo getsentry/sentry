@@ -331,13 +331,9 @@ def get_suspect_commit_text(group: Group) -> str | None:
         return None
 
     author_display = author.name if author.name else author.email
-    pull_request = (
-        PullRequest.objects.filter(
-            merge_commit_sha=commit.key, organization_id=group.project.organization_id
-        )
-        .select_related("repository")
-        .first()
-    )
+    pull_request = PullRequest.objects.filter(
+        merge_commit_sha=commit.key, organization_id=group.project.organization_id
+    ).first()
     if pull_request:
         repo = Repository.objects.get(id=pull_request.repository_id)
         repo_base = repo.url
