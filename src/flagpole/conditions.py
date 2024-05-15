@@ -131,7 +131,7 @@ ContainsOperatorValueTypes = StrictInt | StrictStr | StrictFloat
 
 class ContainsCondition(ConditionBase):
     operator: Literal[ConditionOperatorKind.CONTAINS] = ConditionOperatorKind.CONTAINS
-    value: StrictInt | StrictStr | StrictFloat
+    value: ContainsOperatorValueTypes
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_contains(
