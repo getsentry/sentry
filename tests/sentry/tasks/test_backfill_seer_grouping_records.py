@@ -172,7 +172,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
                 self.group_hashes[event.group.id],
             )
             assert (group_data, stacktrace_string) == (None, "")
-            mock_logger.info.assert_called_with(
+            mock_logger.exception.assert_called_with(
                 "tasks.backfill_seer_grouping_records.event_lookup_exception",
                 extra={
                     "organization_id": self.project.organization.id,
@@ -261,7 +261,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             assert invalid_event_ids == set()
             assert bulk_group_data_stacktraces["data"] == []
             assert bulk_group_data_stacktraces["stacktrace_list"] == []
-            mock_logger.info.assert_called_with(
+            mock_logger.exception.assert_called_with(
                 "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                 extra={
                     "organization_id": self.project.organization.id,
@@ -510,7 +510,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.info.assert_called_with(
+        mock_logger.exception.assert_called_with(
             "tasks.backfill_seer_grouping_records.no_group_hash",
             extra={
                 "organization_id": self.project.organization.id,
@@ -550,7 +550,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.info.assert_called_with(
+        mock_logger.exception.assert_called_with(
             "tasks.backfill_seer_grouping_records.event_lookup_error",
             extra={
                 "organization_id": self.project.organization.id,
@@ -617,3 +617,27 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
 
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("embeddings_info")
+
+    @django_db_all
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    @patch("sentry.tasks.backfill_seer_grouping_records.delete_grouping_records")
+    def test_backfill_seer_grouping_records_dry_run(
+        self, mock_delete_grouping_records, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that the metadata is set for all groups showing that the record has been created.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True}
+        mock_delete_grouping_records.return_value = True
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, 0, dry_run=True)
+
+        for group in Group.objects.filter(project_id=self.project.id):
+            assert not group.data["metadata"].get("embeddings_info") == {
+                "nn_model_version": 0,
+                "group_hash": json.dumps([self.group_hashes[group.id]]),
+            }
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        assert last_processed_id != 0

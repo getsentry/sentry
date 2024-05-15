@@ -21,6 +21,7 @@ from sentry.models.project import Project
 from sentry.seer.utils import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
+    delete_grouping_records,
     post_bulk_grouping_records,
 )
 from sentry.silo.base import SiloMode
@@ -32,7 +33,6 @@ from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
 BATCH_SIZE = 20
-SEER_BACKFILL_DELAY_PER_RECORD = 0.1
 BACKFILL_NAME = "backfill_grouping_records"
 LAST_PROCESSED_REDIS_KEY = "grouping_record_backfill.last_processed_id"
 
@@ -60,12 +60,20 @@ class GroupStacktraceData(TypedDict):
 )
 @metrics.wraps(f"{BACKFILL_NAME}.task")
 def backfill_seer_grouping_records(
-    project_id: int, last_processed_id: int | None, *args: Any, **kwargs: Any
+    project_id: int, last_processed_id: int | None, dry_run: bool = False, *args: Any, **kwargs: Any
 ) -> None:
     """
     Task to backfill seer grouping_records table.
     Pass in last_processed_id = 0 if running project for the first time, else None
     """
+    logger.info(
+        "backfill_seer_grouping_records.start",
+        extra={
+            "project_id": project_id,
+            "last_processed_id": last_processed_id,
+            "dry_run": dry_run,
+        },
+    )
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
         return
@@ -73,6 +81,8 @@ def backfill_seer_grouping_records(
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     if last_processed_id is None:
         last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        if last_processed_id == 0 and dry_run:
+            delete_grouping_records(project_id)
 
     group_id_message_data_batch = (
         Group.objects.filter(
@@ -138,13 +148,14 @@ def backfill_seer_grouping_records(
             project, rows, group_id_message_batch, group_hashes_dict
         )
 
-        response = post_bulk_grouping_records(
-            CreateGroupingRecordsRequest(
-                group_id_list=group_id_batch,
-                data=data["data"],
-                stacktrace_list=data["stacktrace_list"],
+        with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
+            response = post_bulk_grouping_records(
+                CreateGroupingRecordsRequest(
+                    group_id_list=group_id_batch,
+                    data=data["data"],
+                    stacktrace_list=data["stacktrace_list"],
+                )
             )
-        )
         if response["success"]:
             groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
             for group in groups:
@@ -160,7 +171,8 @@ def backfill_seer_grouping_records(
                             "group_hash": json.dumps([group_hashes_dict[group.id]]),
                         }
                     }
-            Group.objects.bulk_update(groups, ["data"])
+            if not dry_run:
+                Group.objects.bulk_update(groups, ["data"])
 
         last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
         redis_client.set(
@@ -170,7 +182,6 @@ def backfill_seer_grouping_records(
         )  # needed for typing
         backfill_seer_grouping_records.apply_async(
             args=[project.id, last_processed_id],
-            countdown=BATCH_SIZE * SEER_BACKFILL_DELAY_PER_RECORD,
         )
         return
 
@@ -200,7 +211,9 @@ def lookup_group_data_stacktrace_bulk_with_fallback(
                     "group_id": group_id,
                     "event_id": event_id,
                 }
-                logger.info("tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra)
+                logger.exception(
+                    "tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra
+                )
                 continue
             except KeyError:
                 extra = {
@@ -208,7 +221,7 @@ def lookup_group_data_stacktrace_bulk_with_fallback(
                     "project_id": project.id,
                     "group_id": group_id,
                 }
-                logger.info("tasks.backfill_seer_grouping_records.no_group_hash", extra=extra)
+                logger.exception("tasks.backfill_seer_grouping_records.no_group_hash", extra=extra)
                 continue
 
     return bulk_group_data_stacktraces
@@ -245,7 +258,7 @@ def lookup_group_data_stacktrace_bulk(
                     "group_data": json.dumps(rows),
                     "error": e.message,
                 }
-                logger.info(
+                logger.exception(
                     "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                     extra=extra,
                 )
@@ -318,7 +331,7 @@ def lookup_group_data_stacktrace_single(
                     "event_id": event_id,
                     "error": e.message,
                 }
-                logger.info(
+                logger.exception(
                     "tasks.backfill_seer_grouping_records.event_lookup_exception", extra=extra
                 )
 
