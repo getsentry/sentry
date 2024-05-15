@@ -88,6 +88,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         cluster_options = kafka_config.get_kafka_admin_cluster_options("default")
         admin_client = AdminClient(cluster_options)
         result = admin_client.list_topics(topic_defn["real_topic_name"])
+        print("=========================")  # noqa
+        print("real topic name", topic_defn["real_topic_name"])  # noqa
         print(result.topics.get("events"))  # noqa
         wait_for_topics(admin_client, [topic_defn["real_topic_name"]])
         result = admin_client.list_topics(topic_defn["real_topic_name"])
