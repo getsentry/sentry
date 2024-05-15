@@ -83,12 +83,14 @@ def backfill_seer_grouping_records(
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     if last_processed_id is None:
         last_processed_id = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
-        if last_processed_id == 0 and dry_run:
-            logger.info(
-                "backfill_seer_grouping_records.delete_all_seer_records",
-                extra={"project_id": project.id},
-            )
-            delete_grouping_records(project_id)
+
+    if last_processed_id == 0 and dry_run:
+        logger.info(
+            "backfill_seer_grouping_records.delete_all_seer_records",
+            extra={"project_id": project.id},
+        )
+        delete_grouping_records(project_id)
+        redis_client.delete(make_backfill_redis_key(project_id))
 
     group_id_message_data_batch = (
         Group.objects.filter(
@@ -99,7 +101,11 @@ def backfill_seer_grouping_records(
     )
     logger.info(
         "backfill_seer_grouping_records.batch",
-        extra={"project_id": project.id, "batch": group_id_message_data_batch},
+        extra={
+            "project_id": project.id,
+            "batch_len": len(group_id_message_data_batch),
+            "last_processed_id": last_processed_id,
+        },
     )
     if len(group_id_message_data_batch) == 0:
         logger.info(
@@ -108,13 +114,19 @@ def backfill_seer_grouping_records(
         )
         return
 
-    group_id_message_batch = {
+    group_id_message_batch_filtered = {
         group_id: message
         for (group_id, message, data) in group_id_message_data_batch
-        if not get_path(data, "metadata", "embeddings_info", "nn_model_version")
+        if get_path(data, "metadata", "embeddings_info", "nn_model_version") is not None
     }
 
-    group_id_batch = list(group_id_message_batch.keys())
+    if len(group_id_message_data_batch) != len(group_id_message_batch_filtered):
+        logger.info(
+            "backfill_seer_grouping_records.groups_already_had_embedding",
+            extra={"project_id": project.id, "num_groups": len(group_id_message_batch_filtered)},
+        )
+
+    group_id_batch = list(group_id_message_batch_filtered.keys())
     time_now = datetime.now()
     events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -159,7 +171,7 @@ def backfill_seer_grouping_records(
         ).distinct("group_id")
         group_hashes_dict = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
         data = lookup_group_data_stacktrace_bulk_with_fallback(
-            project, rows, group_id_message_batch, group_hashes_dict
+            project, rows, group_id_message_batch_filtered, group_hashes_dict
         )
 
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
@@ -186,14 +198,18 @@ def backfill_seer_grouping_records(
                         }
                     }
             if not dry_run:
-                Group.objects.bulk_update(groups, ["data"])
+                num_updated = Group.objects.bulk_update(groups, ["data"])
+                logger.info(
+                    "backfill_seer_grouping_records.bulk_update",
+                    extra={"project_id": project.id, "num_updated": num_updated},
+                )
 
         last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
         redis_client.set(
             f"{make_backfill_redis_key(project_id)}",
             last_processed_id if last_processed_id is not None else 0,
             ex=60 * 60 * 24 * 7,
-        )  # needed for typing
+        )
 
         logger.info(
             "calling next backfill task",
@@ -207,6 +223,12 @@ def backfill_seer_grouping_records(
             args=[project.id, last_processed_id, dry_run],
         )
         return
+
+    else:
+        logger.info(
+            "backfill_seer_snuba_returned_empty_result",
+            extra={"project_id": project.id},
+        )
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
