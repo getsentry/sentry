@@ -7,7 +7,7 @@ export type DDMEventParameters = {
     source: 'global' | 'widget';
   };
   'ddm.open-onboarding': {
-    source: 'onboarding_panel' | 'header';
+    source: 'onboarding_panel' | 'header' | 'banner';
   };
   'ddm.opt_in_modal_closed': {
     source: 'im_in' | 'learn_more' | 'close_button';

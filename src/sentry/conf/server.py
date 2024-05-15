@@ -1808,6 +1808,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable resolve in upcoming release
+    "organizations:resolve-in-upcoming-release": False,
     # Enable post create/edit rule confirmation notifications
     "organizations:rule-create-edit-confirm-notification": False,
     # Enable team member role provisioning through scim
@@ -3035,7 +3037,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.2"
+SELF_HOSTED_STABLE_VERSION = "24.5.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

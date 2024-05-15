@@ -152,7 +152,6 @@ function ResourceSummary() {
             groupId={groupId}
             moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
-            additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />
         </Layout.Main>
       </Layout.Body>
