@@ -55,6 +55,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
+import {MODULE_NAME} from 'sentry/views/performance/browser/resources/settings';
 import {
   MODULE_TITLE as CACHE_MODULE_TITLE,
   releaseLevelAsBadgeProps as CacheModuleBadgeProps,
@@ -364,7 +365,7 @@ function Sidebar() {
               <Feature features="spans-first-ui">
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+                  label={<GuideAnchor target="starfish">{MODULE_NAME}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources/`}
                   id="performance-browser-resources"
                   icon={<SubitemDot collapsed />}
