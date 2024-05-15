@@ -129,53 +129,6 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
                         },
                     )
                     cleaned_flags_data[flag_name] = default_flag_value
-        base_data["installationType"] = metadata_.get("installation_type", default_installation)
-
-        # Add missing toggleable feature flags
-        stored_flag_data = base_data.get(self._FLAGS_KEY, {})
-        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
-            if flag_name not in stored_flag_data:
-                stored_flag_data[flag_name] = default_flag_value
-
-        base_data[self._FLAGS_KEY] = stored_flag_data
-        return base_data
-
-    def _update_and_clean_flags_in_organization_config(
-        self, data: MutableMapping[str, Any]
-    ) -> None:
-        """
-        Checks the new provided data for the flags key.
-        If the key does not exist, uses the default set values.
-        """
-
-        cleaned_flags_data = data.get(self._FLAGS_KEY, {})
-        # ensure we add the default supported flags if they don't already exist
-        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
-            flag_value = cleaned_flags_data.get(flag_name, None)
-            if flag_value is None:
-                cleaned_flags_data[flag_name] = default_flag_value
-            else:
-                # if the type for the flag is not the same as the default, use the default value as an override
-                if type(flag_value) is not type(default_flag_value):
-                    _default_logger.info(
-                        "Flag value was not correct, overriding with default",
-                        extra={
-                            "flag_name": flag_name,
-                            "flag_value": flag_value,
-                            "default_flag_value": default_flag_value,
-                        },
-                    )
-                    cleaned_flags_data[flag_name] = default_flag_value
-
-        data[self._FLAGS_KEY] = cleaned_flags_data
-
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """
-        Update the organization's configuration, but make sure to properly handle specific things for Slack installation
-        before passing it off to the parent method
-        """
-        self._update_and_clean_flags_in_organization_config(data=data)
-        super().update_organization_config(data=data)
 
         data[self._FLAGS_KEY] = cleaned_flags_data
 
