@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -73,17 +74,34 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-interface Props {
-  domain?: string;
-  error?: Error | null;
-  meta?: EventsMetaType;
+const SORTABLE_FIELDS = [
+  'messaging.destination.name',
+  'time_spent_percentage()',
+] as const;
+
+type ValidSort = Sort & {
+  field: (typeof SORTABLE_FIELDS)[number];
+};
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return (SORTABLE_FIELDS as ReadonlyArray<string>).includes(sort.field);
 }
 
-export function QueuesTable({error}: Props) {
+interface Props {
+  destination?: string;
+  error?: Error | null;
+  meta?: EventsMetaType;
+  sort?: ValidSort;
+}
+
+export function QueuesTable({error, destination, sort}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({});
+  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({
+    destination,
+    sort,
+  });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({

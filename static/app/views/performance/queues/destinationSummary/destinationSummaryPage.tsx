@@ -25,7 +25,7 @@ import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {MessageConsumerSamplesPanel} from 'sentry/views/performance/queues/messageConsumerSamplesPanel';
+import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
   DESTINATION_TITLE,
@@ -138,11 +138,11 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart />
+                  <LatencyChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart />
+                  <ThroughputChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -155,12 +155,12 @@ function DestinationSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-      <MessageConsumerSamplesPanel />
+      <MessageSamplesPanel />
     </Fragment>
   );
 }
 
-function DestinationSummaryPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -171,7 +171,7 @@ function DestinationSummaryPageWithProviders() {
     </ModulePageProviders>
   );
 }
-export default DestinationSummaryPageWithProviders;
+export default PageWithProviders;
 
 const Flex = styled('div')`
   display: flex;

@@ -171,18 +171,15 @@ function useDemoTrace(
     }
   );
 
-  // Without the useMemo, the demoTraceQueryResults will be re-created on every render,
+  // Without the useMemo, the trace from the transformed response  will be re-created on every render,
   // causing the trace view to re-render as we interact with it.
-  const demoTraceQueryResults = useMemo(() => {
-    return {
-      ...demoEventQuery,
-      data: makeTraceFromTransaction(demoEventQuery.data),
-    };
-  }, [demoEventQuery]);
+  const data = useMemo(() => {
+    return makeTraceFromTransaction(demoEventQuery.data);
+  }, [demoEventQuery.data]);
 
   // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
   // from EventTransaction to TraceSplitResults<TraceFullDetailed>
-  return demoTraceQueryResults as UseApiQueryResult<
+  return {...demoEventQuery, data} as UseApiQueryResult<
     TraceSplitResults<TraceFullDetailed> | undefined,
     any
   >;

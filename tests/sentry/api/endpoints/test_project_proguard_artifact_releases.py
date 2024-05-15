@@ -14,7 +14,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -52,7 +52,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -85,7 +85,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -150,7 +150,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -168,7 +168,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -202,7 +202,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )

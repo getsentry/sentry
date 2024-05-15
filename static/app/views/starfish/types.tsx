@@ -159,8 +159,10 @@ export type MetricsFilters = {
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
 export enum SpanIndexedField {
+  ENVIRONMENT = 'environment',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  SPAN_CATEGORY = 'span.category',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
@@ -170,6 +172,7 @@ export enum SpanIndexedField {
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
+  SDK_NAME = 'sdk.name',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
   TRANSACTION_METHOD = 'transaction.method',
@@ -180,6 +183,7 @@ export enum SpanIndexedField {
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
+  RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
   REPLAY_ID = 'replay.id',
@@ -196,9 +200,14 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_ID = 'messaging.message.id',
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
+  MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
 }
 
 export type IndexedResponse = {
+  [SpanIndexedField.ENVIRONMENT]: string;
+  [SpanIndexedField.RELEASE]: string;
+  [SpanIndexedField.SDK_NAME]: string;
+  [SpanIndexedField.SPAN_CATEGORY]: string;
   [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
@@ -236,6 +245,7 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_ID]: string;
   [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
