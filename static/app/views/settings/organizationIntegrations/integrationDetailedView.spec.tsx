@@ -54,7 +54,7 @@ describe('IntegrationDetailedView', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/?provider_key=bitbucket&includeConfig=0`,
+      url: `/organizations/${org.slug}/integrations/?provider_key=bitbucket&includeConfig=1`,
       body: [
         {
           accountType: null,
@@ -128,7 +128,7 @@ describe('IntegrationDetailedView', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
+      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=1`,
       body: [
         {
           accountType: null,
@@ -172,7 +172,7 @@ describe('IntegrationDetailedView', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
+      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=1`,
       body: [
         {
           accountType: null,
@@ -215,7 +215,7 @@ describe('IntegrationDetailedView', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
+      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=1`,
       body: [],
     });
 
@@ -248,7 +248,7 @@ describe('IntegrationDetailedView', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
+      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=1`,
       body: [GitHubIntegrationFixture()],
     });
     render(
