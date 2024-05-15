@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
-from flagpole.operators import OperatorKind
+from flagpole.conditions import ConditionOperatorKind
 
 
 class TestParseFeatureConfig:
@@ -47,10 +47,8 @@ class TestParseFeatureConfig:
                     "rollout": 100,
                     "conditions": [{
                         "property": "test_property",
-                        "operator": {
-                            "kind": "in",
-                            "value": ["foobar"]
-                        }
+                        "operator": "in",
+                        "value": ["foobar"]
                     }]
                 }]
             }
@@ -65,8 +63,8 @@ class TestParseFeatureConfig:
         condition = feature.segments[0].conditions[0]
         assert condition.property == "test_property"
         assert condition.operator
-        assert condition.operator.kind == OperatorKind.IN
-        assert condition.operator.value == ["foobar"]
+        assert condition.operator == ConditionOperatorKind.IN
+        assert condition.value == ["foobar"]
 
         assert feature.match(EvaluationContext(dict(test_property="foobar")))
         assert not feature.match(EvaluationContext(dict(test_property="barfoo")))
@@ -97,10 +95,8 @@ class TestParseFeatureConfig:
                     "conditions": [{
                         "name": "Always true",
                         "property": "is_true",
-                        "operator": {
-                            "kind": "equals",
-                            "value": true
-                        }
+                        "operator": "equals",
+                        "value": true
                     }]
                 }]
             }
@@ -123,10 +119,8 @@ class TestParseFeatureConfig:
                     "conditions": [{
                         "name": "Always true",
                         "property": "is_true",
-                        "operator": {
-                            "kind": "equals",
-                            "value": true
-                        }
+                        "operator": "equals",
+                        "value": true
                     }]
                 }]
             }
