@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping, MutableMapping
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -66,6 +67,8 @@ class OrganizationTracesSerializer(serializers.Serializer):
     )
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
+    metricsMax = serializers.FloatField(required=False)
+    metricsMin = serializers.FloatField(required=False)
     metricsQuery = serializers.CharField(required=False)
     mri = serializers.CharField(required=False)
     query = serializers.ListField(
@@ -107,6 +110,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             # Filter out empty queries as they do not do anything to change the results.
             user_queries=[query.strip() for query in serialized.get("query", []) if query.strip()],
             suggested_query=serialized.get("suggestedQuery", ""),
+            metrics_max=serialized.get("metricsMax"),
+            metrics_min=serialized.get("metricsMin"),
             metrics_query=serialized.get("metricsQuery", ""),
             mri=serialized.get("mri"),
             sort=serialized.get("sort"),
@@ -148,6 +153,8 @@ class TraceSamplesExecutor:
         fields: list[str],
         user_queries: list[str],
         suggested_query: str,
+        metrics_max: float | None,
+        metrics_min: float | None,
         metrics_query: str,
         mri: str | None,
         sort: str | None,
@@ -163,6 +170,8 @@ class TraceSamplesExecutor:
         self.fields = fields
         self.user_queries = user_queries
         self.suggested_query = suggested_query
+        self.metrics_max = metrics_max
+        self.metrics_min = metrics_min
         self.metrics_query = metrics_query
         self.mri = mri
         self.sort = sort
@@ -326,6 +335,8 @@ class TraceSamplesExecutor:
             params=params,
             snuba_params=snuba_params,
             fields=["trace"],
+            max=self.metrics_max,
+            min=self.metrics_min,
             query=self.metrics_query,
             referrer=Referrer.API_TRACE_EXPLORER_METRICS_SPANS_LIST,
         )
@@ -674,6 +685,23 @@ class TraceSamplesExecutor:
             for row in suggested_spans_results["data"]:
                 traces_suggested_spans[row["trace"]].append(row)
 
+        for row in traces_metas_results["data"]:
+            if not traces_user_spans[row["trace"]]:
+                context = {
+                    "trace": row["trace"],
+                    "start": row["first_seen()"],
+                    "end": row["last_seen()"],
+                    "params": self.params,
+                    "user_query": self.user_queries,
+                    "mri": self.mri,
+                    "metrics_query": self.metrics_query,
+                    "metrics_min": self.metrics_min,
+                    "metrics_max": self.metrics_max,
+                }
+                sentry_sdk.capture_message(
+                    "trace missing spans", contexts={"trace_missing_spans": context}
+                )
+
         return [
             {
                 "trace": row["trace"],
@@ -696,6 +724,7 @@ class TraceSamplesExecutor:
                 ],
             }
             for row in traces_metas_results["data"]
+            if traces_user_spans[row["trace"]]
         ]
 
     def process_meta_results(self, results):
@@ -1120,6 +1149,7 @@ def process_breakdowns(data, traces_range):
             precise_end,
             traces_range[trace],
         )
+
         row["precise.start_ts"] = precise_start
         row["precise.finish_ts"] = precise_end
         row["quantized.start_ts"] = quantized_start
