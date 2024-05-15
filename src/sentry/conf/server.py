@@ -1519,8 +1519,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:custom-metrics-experimental": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enables import of metric dashboards
-    "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
