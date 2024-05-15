@@ -145,7 +145,6 @@ const StyledTag = styled(Tag)`
     padding: ${space(0.5)};
   }
   color: ${p => p.theme.subText};
-  cursor: pointer;
 `;
 
 const TooltipSubtext = styled('div')`

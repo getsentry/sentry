@@ -98,8 +98,14 @@ export function makeGroupPriorityDropdownOptions({
 }
 
 export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
+  const organization = useOrganization();
   return (
-    <StyledTag type={getTagTypeForPriority(priority)}>
+    <StyledTag
+      type={getTagTypeForPriority(priority)}
+      bigTag={organization.features.includes(
+        'organizations:issue-stream-new-assignee-dropdown-trigger'
+      )}
+    >
       {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
       {children}
     </StyledTag>
@@ -266,11 +272,15 @@ const DropdownButton = styled(Button)`
   box-shadow: none;
 `;
 
-const StyledTag = styled(Tag)`
+const StyledTag = styled(Tag)<{bigTag: boolean}>`
   span {
     display: flex;
     align-items: center;
     gap: ${space(0.25)};
+  }
+
+  & > div {
+    height: ${p => (p.bigTag ? '24px' : '18px')};
   }
 `;
 
