@@ -73,7 +73,7 @@ class BufferHookRegistry:
         try:
             callback = self._registry[buffer_hook_event]
         except KeyError:
-            return False
+            logger.exception("buffer_hook_event.missing")
 
         return callback(data)
 

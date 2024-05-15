@@ -33,6 +33,8 @@ import {DomainStatusLink} from 'sentry/views/performance/http/components/domainS
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
+  BASE_FILTERS,
+  BASE_URL,
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
@@ -49,7 +51,7 @@ import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCel
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -76,9 +78,8 @@ export function HTTPDomainSummaryPage() {
   });
 
   const project = projects.find(p => projectId === p.id);
-
   const filters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
   };
 
@@ -357,7 +358,7 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      baseURL="/performance/http"
+      baseURL={`/performance/${BASE_URL}`}
       title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="spans-first-ui"
     >

@@ -29,6 +29,7 @@ export function useQueuesMetricsQuery({destination, transaction, enabled}: Props
         'avg_if(span.duration,span.op,queue.process)',
         'avg(messaging.message.receive.latency)',
         'trace_status_rate(ok)',
+        'time_spent_percentage(app,span.duration)',
       ],
       enabled,
       sorts: [],

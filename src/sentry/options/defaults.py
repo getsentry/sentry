@@ -1237,6 +1237,13 @@ register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Option to enable direct storage queries for meta queries in the metrics layer
+register(
+    "sentry-metrics.metrics-layer.use-storage-direct-meta-queries",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1707,6 +1714,12 @@ register(
     "performance.traces.trace-explorer-max-trace-ids-per-chunk",
     type=Int,
     default=2500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-skip-floating-spans",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2335,6 +2348,13 @@ register(
 register(
     "profiling.generic_metrics.functions_ingestion.rollout_rate",
     type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# temporary option for logging canonical key fallback stacktraces
+register(
+    "canonical-fallback.send-error-to-sentry",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
