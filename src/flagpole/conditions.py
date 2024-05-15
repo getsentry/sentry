@@ -54,9 +54,6 @@ class ConditionBase(BaseModel):
     value: Any
 
     def match(self, context: EvaluationContext, segment_name: str) -> bool:
-        if self.property is None:
-            return False
-
         return self._operator_match(
             condition_property=context.get(self.property), segment_name=segment_name
         )
@@ -65,7 +62,7 @@ class ConditionBase(BaseModel):
     def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
         raise NotImplementedError("Each Condition needs to implement this method")
 
-    def _evaluate_in(self, condition_property: any, segment_name: str) -> bool:
+    def _evaluate_in(self, condition_property: Any, segment_name: str) -> bool:
         if not isinstance(self.value, list):
             raise ConditionTypeMismatchException(
                 f"'In' condition value must be a list, but was provided a '{get_type_name(self.value)}'"

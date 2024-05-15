@@ -63,10 +63,10 @@ def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any
 class TestInConditions(TestCase):
     def test_invalid_values(self):
         with pytest.raises(ValidationError):
-            InCondition(value="bar")
+            InCondition(property="foo", value="bar")
 
         with pytest.raises(ValidationError):
-            InCondition(value=1234)
+            InCondition(property="foo", value=1234)
 
     def test_is_in(self):
         values = ["bar", "baz"]
@@ -133,11 +133,15 @@ class TestInConditions(TestCase):
 
     def test_missing_context_property(self):
         values = ["bar", "baz"]
-        condition = InCondition(property="foo", value=values)
-        assert not condition.match(context=EvaluationContext({"bar": "bar"}), segment_name="test")
+        in_condition = InCondition(property="foo", value=values)
+        assert not in_condition.match(
+            context=EvaluationContext({"bar": "bar"}), segment_name="test"
+        )
 
-        condition = NotInCondition(property="foo", value=values)
-        assert condition.match(context=EvaluationContext({"bar": "bar"}), segment_name="test")
+        not_on_condition = NotInCondition(property="foo", value=values)
+        assert not_on_condition.match(
+            context=EvaluationContext({"bar": "bar"}), segment_name="test"
+        )
 
 
 class TestContainsConditions(TestCase):
