@@ -692,7 +692,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
               const cacheMissRate = listItem[fieldString];
               const target = normalizeUrl(
-                `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction})}`
+                `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
               );
               return (
                 <Fragment>
@@ -809,12 +809,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
           'performance/browser/resources/',
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: 'performance/http/',
+        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+          CACHE_BASE_URL.slice(1),
       }[props.chartSetting] ?? '';
 
     return [
       PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>

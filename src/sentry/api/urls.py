@@ -28,6 +28,9 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
+from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
+    ProjectBackfillSimilarIssuesEmbeddingsRecords,
+)
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
@@ -200,6 +203,7 @@ from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
+from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.avatar import (
     DocIntegrationAvatarEndpoint,
@@ -821,6 +825,11 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^validate/$",
+        AuthValidateEndpoint.as_view(),
+        name="sentry-api-0-auth-test",
     ),
 ]
 
@@ -2534,6 +2543,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
         ProjectRuleTaskDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-task-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/backfill-similar-embeddings-records/$",
+        ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
+        name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/stats/$",

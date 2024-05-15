@@ -43,7 +43,25 @@ CANONICAL_KEY_MAPPING = {
 
 
 def get_canonical_name(key: str) -> str:
-    return CANONICAL_KEY_MAPPING.get(key, (key,))[0]
+    rv = CANONICAL_KEY_MAPPING.get(key)
+    if rv is None:
+        return key
+    else:
+        from sentry.utils import metrics
+
+        metrics.incr("canonical-legacy-key")
+
+        import random
+
+        from sentry import options
+
+        if options.get("canonical-fallback.send-error-to-sentry") >= random.random():
+            import logging
+
+            # exc_info=(None, None, None) gives us a full traceback
+            logging.getLogger(__name__).error("canonical fallback", exc_info=(None, None, None))
+
+        return rv[0]
 
 
 class CanonicalKeyView(Mapping[str, V]):

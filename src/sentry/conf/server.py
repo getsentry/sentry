@@ -739,6 +739,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
+    "sentry.tasks.backfill_seer_grouping_records",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
@@ -1518,8 +1519,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:custom-metrics-experimental": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enables import of metric dashboards
-    "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1988,6 +1987,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings backfill
+    "projects:similarity-embeddings-backfill": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
     # Enable adding seer grouping metadata to new groups
@@ -3952,6 +3953,12 @@ SEER_SIMILARITY_MODEL_VERSION = "v0"
 SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
 SEER_MAX_GROUPING_DISTANCE = 0.01
 SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
+SEER_GROUPING_RECORDS_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
+)
+SEER_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
+)
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

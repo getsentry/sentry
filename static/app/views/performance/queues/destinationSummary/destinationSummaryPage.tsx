@@ -139,11 +139,11 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart />
+                  <LatencyChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart />
+                  <ThroughputChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
