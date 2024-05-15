@@ -70,7 +70,7 @@ def handle_viewed_by_me_filters(
         value = value.lower() == "true"
 
         if request_user_id is None:
-            if value:  # always False -- return nothing
+            if value:  # use an always-false filter so query returns nothing
                 return [
                     SearchFilter(SearchKey("viewed_by_id"), "=", SearchValue(0)),
                     "AND",
