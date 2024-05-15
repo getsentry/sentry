@@ -1,4 +1,4 @@
-import {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types';
 import {getDefaultMetricOp} from 'sentry/utils/metrics';
 import {
   DEFAULT_SORT_STATE,

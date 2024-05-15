@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
