@@ -22,7 +22,7 @@ Retrieve a project's configuration.
 | options.user_config        | any    | Arbitrary JSON provided by the user.  |
 | version                    | number | The version of the protocol.          |
 
-**Server Matches ETag or ETag Omitted**
+**Server Matches ETag**
 
 If the server's ETag matches the request's a 304 (NOT MODIFIED) response is returned.
 
@@ -41,7 +41,7 @@ If the server's ETag matches the request's a 304 (NOT MODIFIED) response is retu
     Content-Type: application/json
     ETag: 8832040536272351350
 
-**Server Does Match ETag**
+**Server Does Match ETag or ETag Omitted**
 
 If the server's ETag does not match the request's a 200 response is returned.
 
