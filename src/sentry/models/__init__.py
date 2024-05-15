@@ -1,5 +1,4 @@
 from .activity import *  # NOQA
-from .actor import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
 from .apigrant import *  # NOQA
@@ -114,7 +113,6 @@ from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
-from .sentryfunction import *  # NOQA
 from .sentryshot import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA

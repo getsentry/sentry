@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from sentry_relay.processing import parse_release
 
 from sentry.models.activity import Activity
@@ -19,7 +20,7 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
         self.version = self.activity.data.get("version", "")
-        self.version_parsed = parse_release(self.version)["description"]
+        self.version_parsed = parse_release(self.version, json_loads=orjson.loads)["description"]
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         if self.version:

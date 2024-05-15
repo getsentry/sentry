@@ -3,6 +3,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+import orjson
 import pytest
 import responses
 from django.core import mail
@@ -26,7 +27,6 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -38,7 +38,7 @@ GITHUB_CODEOWNERS = {
 
 
 class GitHubAppsClientTest(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
@@ -77,7 +77,7 @@ class GitHubAppsClientTest(TestCase):
                 },
             },
         )
-        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             gh_rate_limit = self.github_client.get_rate_limit()
             assert gh_rate_limit.limit == 5000
             assert gh_rate_limit.remaining == 4999
@@ -101,7 +101,7 @@ class GitHubAppsClientTest(TestCase):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_file(self, get_jwt):
         path = "src/sentry/integrations/github/client.py"
@@ -118,7 +118,7 @@ class GitHubAppsClientTest(TestCase):
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_no_file(self, get_jwt):
         path = "src/santry/integrations/github/client.py"
@@ -131,7 +131,7 @@ class GitHubAppsClientTest(TestCase):
             self.github_client.check_file(self.repo, path, version)
         assert responses.calls[0].response.status_code == 404
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_stacktrace_link(self, get_jwt):
         path = "/src/sentry/integrations/github/client.py"
@@ -152,7 +152,7 @@ class GitHubAppsClientTest(TestCase):
             == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_with_pagination(self, get_jwt):
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
@@ -188,7 +188,7 @@ class GitHubAppsClientTest(TestCase):
         assert len(responses.calls) == 4
         assert responses.calls[0].response.status_code == 200
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_with_pagination_only_one_page(self, get_jwt):
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
@@ -203,7 +203,7 @@ class GitHubAppsClientTest(TestCase):
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
         return_value=GITHUB_CODEOWNERS["html_url"],
     )
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_codeowner_file(self, mock_jwt, mock_check_file):
         self.config = self.create_code_mapping(
@@ -235,7 +235,7 @@ class GitHubAppsClientTest(TestCase):
         )
         repo_key = f"github:repo:{self.repo.name}:source-code"
         assert cache.get(repo_key) is None
-        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert cache.get(repo_key) == files
             # Calling a second time should work
@@ -262,11 +262,11 @@ class GitHubAppsClientTest(TestCase):
         )
         repo_key = f"github:repo:{self.repo.name}:all"
         assert cache.get(repo_key) is None
-        with mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1"):
+        with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             files = self.github_client.get_cached_repo_files(self.repo.name, "master")
             assert files == ["src/foo.py"]
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_update_comment(self, get_jwt):
         responses.add(
@@ -309,7 +309,7 @@ class GitHubAppsClientTest(TestCase):
         assert responses.calls[1].response.status_code == 200
         assert responses.calls[1].request.body == b'{"body": "world"}'
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_comment_reactions(self, get_jwt):
         comment_reactions = {
@@ -549,7 +549,7 @@ class GithubProxyClientTest(TestCase):
 
 
 class GitHubClientFileBlameBase(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         integration = self.create_integration(
             organization=self.organization,
@@ -596,7 +596,7 @@ class GitHubClientFileBlameBase(TestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -607,14 +607,14 @@ class GitHubClientFileBlameBase(TestCase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
 
 
 class GitHubClientFileBlameIntegrationDisableTest(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
         ten_days = timezone.now() + timedelta(days=10)
         self.integration = self.create_integration(
@@ -681,7 +681,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -692,7 +692,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
@@ -787,7 +787,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     def setUp(self):
         super().setUp()
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_same_repo(self, get_jwt):
         """
@@ -868,8 +868,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -877,7 +877,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             "path_0_0_1": "src/sentry/integrations/github/client_2.py",
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_different_repos(self, get_jwt):
         """
@@ -982,8 +982,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -995,7 +995,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             "path_1_0_0": "src/getsentry/file.py",
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_different_refs(self, get_jwt):
         """
@@ -1082,8 +1082,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -1092,7 +1092,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
             "path_0_1_0": "src/sentry/integrations/github/client.py",
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_trim_file_path_for_query(self, get_jwt):
         """
@@ -1144,8 +1144,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -1247,7 +1247,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             }
         }
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_full_response(self, get_jwt):
         """
@@ -1302,7 +1302,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             ],
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_cached_blame_for_files_full_response(self, get_jwt):
         """
@@ -1321,7 +1321,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             generate_file_path_mapping([self.file1, self.file2, self.file3]), extra={}
         )
         cache_key = self.github_client.get_cache_key(
-            "/graphql", json.dumps({"query": query, "variables": variables})
+            "/graphql", orjson.dumps({"query": query, "variables": variables}).decode()
         )
         assert self.github_client.check_cache(cache_key) is None
         response = self.github_client.get_blame_for_files(
@@ -1379,7 +1379,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_response_partial_data(self, get_jwt):
         """
@@ -1467,7 +1467,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         )
 
     @mock.patch("sentry.integrations.github.client.logger.error")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_error):
         """
@@ -1594,7 +1594,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -1605,13 +1605,13 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
 
     @mock.patch("sentry.integrations.github.client.logger.error")
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_rate_limit_exceeded(self, get_jwt, mock_logger_error):
         with pytest.raises(ApiRateLimitedError):
@@ -1627,7 +1627,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
             },
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_no_rate_limiting(self, get_jwt):
         """

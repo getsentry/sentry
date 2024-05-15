@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment';
@@ -36,7 +36,7 @@ import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/w
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 
-export default function WebVitalsLandingPage() {
+export function WebVitalsLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
@@ -68,11 +68,7 @@ export default function WebVitalsLandingPage() {
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL="/performance/browser/pageloads"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -178,9 +174,23 @@ export default function WebVitalsLandingPage() {
           setState({...state, webVital: null});
         }}
       />
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+      features="spans-first-ui"
+    >
+      <WebVitalsLandingPage />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const TopMenuContainer = styled('div')`
   display: flex;

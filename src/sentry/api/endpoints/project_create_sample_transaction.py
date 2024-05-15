@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import orjson
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +13,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.constants import DATA_ROOT
-from sentry.utils import json
 from sentry.utils.samples import create_sample_event_basic
 
 base_platforms_with_transactions = ["javascript", "python", "apple-ios"]
@@ -84,8 +84,8 @@ class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
         if expected_commonpath != os.path.commonpath([expected_commonpath, json_real_path]):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        with open(json_path) as fp:
-            data = json.load(fp)
+        with open(json_path, "rb") as fp:
+            data = orjson.loads(fp.read())
 
         data = fix_event_data(data)
         event = create_sample_event_basic(

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -10,6 +9,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
@@ -17,12 +17,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionCell} from 'sentry/views/performance/http/tables/transactionCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
-  MetricsResponse,
+  SpanMetricsResponse,
   | 'project.id'
   | 'transaction'
   | 'transaction.method'

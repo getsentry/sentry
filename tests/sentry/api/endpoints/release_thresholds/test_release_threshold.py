@@ -20,7 +20,10 @@ class ReleaseThresholdTest(APITestCase):
 
         self.url = reverse(
             "sentry-api-0-project-release-thresholds",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
     def test_post_missing_params(self):
@@ -72,8 +75,8 @@ class ReleaseThresholdTest(APITestCase):
         url_with_invalid_project = reverse(
             "sentry-api-0-project-release-thresholds",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": "Why did it have to be snakes?",
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": "Why did it have to be snakes?",
             },
         )
         response = self.client.post(
@@ -153,8 +156,8 @@ class ReleaseThresholdTest(APITestCase):
         url_with_invalid_project = reverse(
             "sentry-api-0-project-release-thresholds",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": "Why did it have to be snakes?",
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": "Why did it have to be snakes?",
             },
         )
         response = self.client.get(url_with_invalid_project, data={"environment": "canary"})

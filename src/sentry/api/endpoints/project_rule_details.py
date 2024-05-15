@@ -39,12 +39,11 @@ from sentry.models.integrations.sentry_app_installation import (
 )
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -107,8 +106,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve an Issue Alert Rule for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={
@@ -207,8 +206,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Update an Issue Alert Rule",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         request=ProjectRuleDetailsPutSerializer,
@@ -233,8 +232,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
-        if rule.owner:
-            rule_data_before["owner"] = rule.owner
+        if rule.owner_team_id or rule.owner_user_id:
+            rule_data_before["owner"] = Actor.from_id(
+                user_id=rule.owner_user_id, team_id=rule.owner_team_id
+            )
         rule_data_before["label"] = rule.label
 
         serializer = DrfRuleSerializer(
@@ -325,17 +326,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             owner = data.get("owner")
             if owner:
-                try:
-                    # TODO(mark) Use owner.resolve() instead when owner is removed.
-                    actor = owner.resolve_to_actor()
-                    kwargs["owner"] = actor.id
-                    kwargs["owner_user_id"] = actor.user_id
-                    kwargs["owner_team_id"] = actor.team_id
-                except (User.DoesNotExist, Team.DoesNotExist):
-                    return Response(
-                        "Could not resolve owner",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                kwargs["owner"] = owner
 
             if rule.status == ObjectStatus.DISABLED:
                 rule.status = ObjectStatus.ACTIVE
@@ -394,8 +385,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Delete an Issue Alert Rule",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={

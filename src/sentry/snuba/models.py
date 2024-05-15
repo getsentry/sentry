@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model
 from sentry.models.team import Team
 from sentry.models.user import User
 
@@ -24,10 +24,10 @@ query_aggregation_to_snuba = {
 }
 
 
-@region_silo_only_model
+@region_silo_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization
-    __relocation_dependencies__ = {"sentry.Actor", "sentry.Organization", "sentry.Project"}
+    __relocation_dependencies__ = {"sentry.Organization", "sentry.Project"}
 
     class Type(Enum):
         ERROR = 0
@@ -71,7 +71,7 @@ class SnubaQuery(Model):
         return q & models.Q(pk__in=set(from_alert_rule).union(set(from_query_subscription)))
 
 
-@region_silo_only_model
+@region_silo_model
 class SnubaQueryEventType(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -93,7 +93,7 @@ class SnubaQueryEventType(Model):
         return self.EventType(self.type)
 
 
-@region_silo_only_model
+@region_silo_model
 class QuerySubscription(Model):
     __relocation_scope__ = RelocationScope.Organization
 

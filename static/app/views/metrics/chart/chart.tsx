@@ -10,13 +10,13 @@ import omitBy from 'lodash/omitBy';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import {
   defaultFormatAxisLabel,
   getFormatter,
 } from 'sentry/components/charts/components/tooltip';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import ChartZoom from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -235,9 +235,7 @@ export const MetricChart = memo(
                   return true;
                 });
 
-                const date = params[0].value[0];
-
-                defaultFormatAxisLabel(
+                const formattedDate = defaultFormatAxisLabel(
                   params[0].value[0] as number,
                   timeseriesFormatters.isGroupedByDate,
                   timeseriesFormatters.utc,
@@ -251,7 +249,7 @@ export const MetricChart = memo(
                     '<div class="tooltip-series">',
                     `<center>${t('No data available')}</center>`,
                     '</div>',
-                    `<div class="tooltip-footer">${date}</div>`,
+                    `<div class="tooltip-footer">${formattedDate}</div>`,
                   ].join('');
                 }
                 return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);

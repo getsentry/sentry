@@ -104,7 +104,7 @@ def query_groups_past_counts(groups: Sequence[Group]) -> list[GroupsCountRespons
     for g in groups:
         if g.issue_category == GroupCategory.ERROR:
             error_groups.append(g)
-        elif g.issue_type.should_detect_escalation(g.organization):
+        elif g.issue_type.should_detect_escalation():
             other_groups.append(g)
 
     all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)
@@ -205,7 +205,7 @@ def _query_metrics_with_pagination(
     end_date: datetime,
     all_results: list[GroupsCountResponse],
     category: GroupCategory | None = None,
-):
+) -> None:
     """
     Paginates Snuba metric queries for event counts for the
     given list of project ids and groups ids in a time range.
@@ -296,7 +296,7 @@ def _generate_generic_metrics_backend_query(
     end_date: datetime,
     offset: int,
     category: GroupCategory | None = None,
-):
+) -> MetricsQuery:
     """
     This function generates a query to fetch the hourly events
     for a group_id through the Generic Metrics Backend.
@@ -522,6 +522,7 @@ def manage_issue_states(
                 event=event,
                 sender=manage_issue_states,
                 was_until_escalating=True if has_forecast else False,
+                new_substatus=GroupSubStatus.ESCALATING,
             )
             if data and activity_data and has_forecast:  # Redundant checks needed for typing
                 data.update(activity_data)

@@ -72,8 +72,10 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start
+from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
+    UnqualifiedQueryError,
     is_duration_measurement,
     is_measurement,
     is_numeric_measurement,
@@ -89,6 +91,7 @@ class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
     free_text_key = "message"
+    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     entity: Entity | None = None
@@ -275,9 +278,6 @@ class BaseQueryBuilder:
             self.orderby_converter,
         ) = self.load_config()
 
-        self.limitby = self.resolve_limitby(limitby)
-        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
-
         self.start: datetime | None = None
         self.end: datetime | None = None
         self.resolve_query(
@@ -288,6 +288,9 @@ class BaseQueryBuilder:
             orderby=orderby,
         )
         self.entity = entity
+
+        self.limitby = self.resolve_limitby(limitby)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def are_columns_resolved(self) -> bool:
         return self.columns and isinstance(self.columns[0], Function)
@@ -397,6 +400,12 @@ class BaseQueryBuilder:
 
         if isinstance(resolved, Column):
             return LimitBy([resolved], count)
+
+        # Special case to allow limit bys on array joined columns.
+        # Simply allowing any function to be used in a limit by
+        # result in hard to debug issues so be careful.
+        if isinstance(resolved, Function) and resolved.function == "arrayJoin":
+            return LimitBy([Column(resolved.alias)], count)
 
         # TODO: Limit By can only operate on a `Column`. This has the implication
         # that non aggregate transforms are not allowed in the order by clause.
@@ -583,13 +592,25 @@ class BaseQueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
-        conditions.append(
-            Condition(
-                self.column("project_id"),
-                Op.IN,
-                self.params.project_ids,
+        # project_ids is a required column for most datasets, however, Snuba does not
+        # complain on an empty list which results on no data being returned.
+        # This change will prevent calling Snuba when no projects are selected.
+        # Snuba will complain with UnqualifiedQueryError: validation failed for entity...
+        if not self.params.project_ids:
+            # TODO: Fix the tests and always raise the error
+            # In development, we will let Snuba complain about the lack of projects
+            # so the developer can write their tests with a non-empty project list
+            # In production, we will raise an error
+            if not in_test_environment():
+                raise UnqualifiedQueryError("You need to specify at least one project.")
+        else:
+            conditions.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params.project_ids,
+                )
             )
-        )
 
         if len(self.params.environments) > 0:
             term = event_search.SearchFilter(
@@ -1301,6 +1322,9 @@ class BaseQueryBuilder:
                 1,
             )
         else:
+            # pull out the aliased expression if it exists
+            if isinstance(lhs, AliasedExpression):
+                lhs = lhs.exp
             condition = Condition(lhs, Op(search_filter.operator), value)
 
         if is_null_condition:
@@ -1575,7 +1599,7 @@ class QueryBuilder(BaseQueryBuilder):
                 raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
         # Validate event ids, trace ids, and profile ids are uuids
-        if name in {"id", "trace", "profile.id", "replay.id"}:
+        if name in self.uuid_fields:
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():

@@ -85,9 +85,9 @@ def get_invite_state(
         if (
             id_or_slug_path_params_enabled(
                 convert_args_class=AcceptOrganizationInvite,
-                organization_slug=str(organization_id_or_slug),
+                organization_id_or_slug=str(organization_id_or_slug),
             )
-            and str(organization_id_or_slug).isnumeric()
+            and str(organization_id_or_slug).isdecimal()
         ):
             invite_context = organization_service.get_invite_by_id(
                 organization_id=organization_id_or_slug,
@@ -127,12 +127,12 @@ class AcceptOrganizationInvite(Endpoint):
         request: Request,
         member_id: int,
         token: str,
-        organization_slug: int | str | None = None,
+        organization_id_or_slug: int | str | None = None,
     ) -> Response:
 
         invite_context = get_invite_state(
             member_id=int(member_id),
-            organization_id_or_slug=organization_slug,
+            organization_id_or_slug=organization_id_or_slug,
             user_id=request.user.id,
             request=request,
         )
@@ -222,11 +222,15 @@ class AcceptOrganizationInvite(Endpoint):
         return response
 
     def post(
-        self, request: Request, member_id: int, token: str, organization_slug: str | None = None
+        self,
+        request: Request,
+        member_id: int,
+        token: str,
+        organization_id_or_slug: int | str | None = None,
     ) -> Response:
         invite_context = get_invite_state(
             member_id=int(member_id),
-            organization_id_or_slug=organization_slug,
+            organization_id_or_slug=organization_id_or_slug,
             user_id=request.user.id,
             request=request,
         )

@@ -10,7 +10,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -26,7 +25,7 @@ import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {MessageConsumerSamplesPanel} from 'sentry/views/performance/queues/messageConsumerSamplesPanel';
+import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
   DESTINATION_TITLE,
@@ -93,15 +92,13 @@ function DestinationSummaryPage() {
                   <MetricsRibbon>
                     <MetricReadout
                       title={t('Avg Time In Queue')}
-                      value={undefined}
+                      value={data[0]?.['avg(messaging.message.receive.latency)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
                     <MetricReadout
-                      title={t('Avg Processing Latency')}
-                      value={
-                        data[0]?.['avg_if(span.self_time,span.op,queue.task.celery)']
-                      }
+                      title={t('Avg Processing Time')}
+                      value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
@@ -113,19 +110,19 @@ function DestinationSummaryPage() {
                     />
                     <MetricReadout
                       title={t('Published')}
-                      value={data[0]?.['count_op(queue.submit.celery)']}
+                      value={data[0]?.['count_op(queue.publish)']}
                       unit={'count'}
                       isLoading={false}
                     />
                     <MetricReadout
                       title={t('Processed')}
-                      value={data[0]?.['count_op(queue.task.celery)']}
+                      value={data[0]?.['count_op(queue.process)']}
                       unit={'count'}
                       isLoading={false}
                     />
                     <MetricReadout
                       title={t('Time Spent')}
-                      value={data[0]?.['sum(span.self_time)']}
+                      value={data[0]?.['sum(span.duration)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={false}
                     />
@@ -141,17 +138,15 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart />
+                  <LatencyChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart />
+                  <ThroughputChart destination={destination} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
                   <Flex>
-                    {/* TODO: Make search bar work */}
-                    <SmartSearchBar />
                     <TransactionsTable />
                   </Flex>
                 </ModuleLayout.Full>
@@ -160,12 +155,12 @@ function DestinationSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-      <MessageConsumerSamplesPanel />
+      <MessageSamplesPanel />
     </Fragment>
   );
 }
 
-function DestinationSummaryPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
@@ -176,7 +171,7 @@ function DestinationSummaryPageWithProviders() {
     </ModulePageProviders>
   );
 }
-export default DestinationSummaryPageWithProviders;
+export default PageWithProviders;
 
 const Flex = styled('div')`
   display: flex;

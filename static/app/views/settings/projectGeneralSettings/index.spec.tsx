@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -19,6 +18,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 

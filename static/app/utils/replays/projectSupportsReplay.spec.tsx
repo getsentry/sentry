@@ -1,7 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import type {MinimalProject, PlatformKey} from 'sentry/types';
 import projectSupportsReplay, {
   projectCanLinkToReplay,
 } from 'sentry/utils/replays/projectSupportsReplay';
+import useOrganization from 'sentry/utils/useOrganization';
+
+jest.mock('sentry/utils/useOrganization');
 
 function mockProjectFixture(platform: PlatformKey): MinimalProject {
   return {
@@ -12,6 +17,9 @@ function mockProjectFixture(platform: PlatformKey): MinimalProject {
 }
 
 describe('projectSupportsReplay & projectCanLinkToReplay', () => {
+  const organization = OrganizationFixture();
+  jest.mocked(useOrganization).mockReturnValue(organization);
+
   it.each([
     'javascript-angular' as PlatformKey,
     'javascript-nextjs' as PlatformKey,

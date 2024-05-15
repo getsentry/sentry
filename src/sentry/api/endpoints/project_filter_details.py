@@ -30,8 +30,8 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update an Inbound Data Filter",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.FILTER_ID,
         ],
         request=_LegacyBrowserFilterSerializer,

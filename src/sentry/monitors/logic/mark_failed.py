@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections import Counter
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from django.db.models import Q
+from django.utils.text import get_text_list
+from django.utils.translation import gettext_lazy as _
 
 from sentry import features
-from sentry.issues.grouptype import (
-    MonitorCheckInFailure,
-    MonitorCheckInMissed,
-    MonitorCheckInTimeout,
-)
+from sentry.issues.grouptype import MonitorIncidentType
 from sentry.models.organization import Organization
-from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
@@ -23,6 +23,9 @@ from sentry.monitors.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 
 def mark_failed(
@@ -98,8 +101,16 @@ def mark_failed(
         return mark_failed_no_threshold(failed_checkin)
 
 
+class SimpleCheckIn(TypedDict):
+    id: int
+    date_added: datetime
+    status: int
+
+
 def mark_failed_threshold(
-    failed_checkin: MonitorCheckIn, failure_issue_threshold: int, received: datetime | None
+    failed_checkin: MonitorCheckIn,
+    failure_issue_threshold: int,
+    received: datetime | None,
 ):
     from sentry.signals import monitor_environment_failed
 
@@ -108,7 +119,7 @@ def mark_failed_threshold(
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
         if failure_issue_threshold == 1:
-            previous_checkins = [
+            previous_checkins: list[SimpleCheckIn] = [
                 {
                     "id": failed_checkin.id,
                     "date_added": failed_checkin.date_added,
@@ -116,13 +127,14 @@ def mark_failed_threshold(
                 }
             ]
         else:
-            previous_checkins = (
+            previous_checkins = cast(
+                list[SimpleCheckIn],
                 # Using .values for performance reasons
                 MonitorCheckIn.objects.filter(
                     monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
                 )
                 .order_by("-date_added")
-                .values("id", "date_added", "status")
+                .values("id", "date_added", "status"),
             )
 
             # reverse the list after slicing in order to start with oldest check-in
@@ -171,8 +183,13 @@ def mark_failed_threshold(
     # - The monitor and env are not muted
     if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
         checkins = MonitorCheckIn.objects.filter(id__in=[c["id"] for c in previous_checkins])
-        for previous_checkin in checkins:
-            create_issue_platform_occurrence(previous_checkin, incident, received=received)
+        for checkin in checkins:
+            create_issue_platform_occurrence(
+                previous_checkins,
+                checkin,
+                incident,
+                received=received,
+            )
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
@@ -233,6 +250,7 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
 
 
 def create_issue_platform_occurrence(
+    failed_checkins: Sequence[SimpleCheckIn],
     failed_checkin: MonitorCheckIn,
     incident: MonitorIncident,
     received: datetime | None,
@@ -243,10 +261,8 @@ def create_issue_platform_occurrence(
     monitor_env = failed_checkin.monitor_environment
     current_timestamp = datetime.now(timezone.utc)
 
-    occurrence_data = get_occurrence_data(failed_checkin)
-
     # Get last successful check-in to show in evidence display
-    last_successful_checkin_timestamp = "None"
+    last_successful_checkin_timestamp = "Never"
     last_successful_checkin = monitor_env.get_last_successful_checkin()
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
@@ -257,11 +273,13 @@ def create_issue_platform_occurrence(
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
         fingerprint=[incident.grouphash],
-        type=occurrence_data["group_type"],
+        type=MonitorIncidentType,
         issue_title=f"Monitor failure: {monitor_env.monitor.name}",
-        subtitle=occurrence_data["subtitle"],
+        subtitle="Your monitor has reached its failure threshold.",
         evidence_display=[
-            IssueEvidence(name="Failure reason", value=occurrence_data["reason"], important=True),
+            IssueEvidence(
+                name="Failure reason", value=get_failure_reason(failed_checkins), important=True
+            ),
             IssueEvidence(
                 name="Environment", value=monitor_env.get_environment().name, important=False
             ),
@@ -272,9 +290,9 @@ def create_issue_platform_occurrence(
             ),
         ],
         evidence_data={},
-        culprit=occurrence_data["reason"],
+        culprit="",
         detection_time=current_timestamp,
-        level=occurrence_data["level"],
+        level="error",
         assignee=monitor_env.monitor.owner_actor,
     )
 
@@ -311,6 +329,48 @@ def create_issue_platform_occurrence(
     )
 
 
+HUMAN_FAILURE_STATUS_MAP: Mapping[int, _StrPromise] = {
+    CheckInStatus.ERROR: _("error"),
+    CheckInStatus.MISSED: _("missed"),
+    CheckInStatus.TIMEOUT: _("timeout"),
+}
+
+# Exists due to the vowel differences (A vs An) in the statuses
+SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
+    CheckInStatus.ERROR: _("An error check-in was detected"),
+    CheckInStatus.MISSED: _("A missed check-in was detected"),
+    CheckInStatus.TIMEOUT: _("A timeout check-in was detected"),
+}
+
+
+def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
+    """
+    Builds a humam readible strong from a list of failed check-ins.
+
+    "3 missed check-ins detected"
+    "2 missed check-ins, 1 timeout check-in and 1 error check-in were detected"
+    "A failed check-in was detected"
+    """
+    status_counts = Counter(
+        checkin["status"]
+        for checkin in failed_checkins
+        if checkin["status"] in HUMAN_FAILURE_STATUS_MAP.keys()
+    )
+
+    if sum(status_counts.values()) == 1:
+        return SINGULAR_HUMAN_FAILURE_MAP[list(status_counts.keys())[0]]
+
+    human_status = get_text_list(
+        [
+            "%(count)d %(status)s" % {"count": count, "status": HUMAN_FAILURE_STATUS_MAP[status]}
+            for status, count in status_counts.items()
+        ],
+        last_word=_("and"),
+    )
+
+    return _("%(problem_checkins)s check-ins detected") % {"problem_checkins": human_status}
+
+
 def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
     config = monitor_environment.monitor.config.copy()
     if "schedule_type" in config:
@@ -323,37 +383,4 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
         "config": monitor_environment.monitor.config,
         "status": monitor_environment.get_status_display(),
         "type": monitor_environment.monitor.get_type_display(),
-    }
-
-
-def get_occurrence_data(checkin: MonitorCheckIn):
-    if checkin.status == CheckInStatus.MISSED:
-        expected_time = (
-            checkin.expected_time.astimezone(checkin.monitor.timezone).strftime(
-                SUBTITLE_DATETIME_FORMAT
-            )
-            if checkin.expected_time
-            else "the expected time"
-        )
-        return {
-            "group_type": MonitorCheckInMissed,
-            "level": "warning",
-            "reason": "missed_checkin",
-            "subtitle": f"No check-in reported on {expected_time}.",
-        }
-
-    if checkin.status == CheckInStatus.TIMEOUT:
-        duration = (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
-        return {
-            "group_type": MonitorCheckInTimeout,
-            "level": "error",
-            "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {duration} minutes.",
-        }
-
-    return {
-        "group_type": MonitorCheckInFailure,
-        "level": "error",
-        "reason": "error",
-        "subtitle": "An error occurred during the latest check-in.",
     }

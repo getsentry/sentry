@@ -11,11 +11,12 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 
 from sentry import options
-from sentry.backup.dependencies import ImportKind
+from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apiscopes import HasApiScopes
@@ -100,7 +101,7 @@ class ApiTokenManager(ControlOutboxProducingManager):
         return api_token
 
 
-@control_silo_only_model
+@control_silo_model
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
@@ -317,6 +318,37 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 self.expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         return super().write_relocation_import(scope, flags)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        token = generate_token()
+        token_last_characters = token[-4:]
+        hashed_token = hashlib.sha256(token.encode()).hexdigest()
+        refresh_token = generate_token()
+        hashed_refresh_token = hashlib.sha256(refresh_token.encode()).hexdigest()
+
+        sanitizer.set_string(json, SanitizableField(model_name, "token"), lambda _: token)
+        sanitizer.set_string(
+            json,
+            SanitizableField(model_name, "token_last_characters"),
+            lambda _: token_last_characters,
+        )
+        sanitizer.set_string(
+            json, SanitizableField(model_name, "hashed_token"), lambda _: hashed_token
+        )
+        sanitizer.set_string(
+            json, SanitizableField(model_name, "refresh_token"), lambda _: refresh_token
+        )
+        sanitizer.set_string(
+            json,
+            SanitizableField(model_name, "hashed_refresh_token"),
+            lambda _: hashed_refresh_token,
+        )
 
     @property
     def organization_id(self) -> int | None:

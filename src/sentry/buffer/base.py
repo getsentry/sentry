@@ -1,7 +1,7 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
-from django.db.models import F
+from django.db.models import Expression, F
 
 from sentry.db import models
 from sentry.signals import buffer_incr_complete
@@ -29,12 +29,20 @@ class Buffer(Service):
         self,
         model: type[models.Model],
         columns: list[str],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, Any],
     ) -> dict[str, int]:
         """
         We can't fetch values from Celery, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
+
+    def get_hash(
+        self, model: type[models.Model], field: dict[str, models.Model | str | int]
+    ) -> dict[str, str]:
+        return {}
+
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+        return []
 
     def incr(
         self,
@@ -61,17 +69,17 @@ class Buffer(Service):
             }
         )
 
-    def process_pending(self, partition: int | None = None) -> None:
+    def process_pending(self) -> None:
         return
 
-    def process_batch(self, partition: int | None = None) -> None:
+    def process_batch(self) -> None:
         return
 
     def process(
         self,
         model: type[models.Model],
-        columns: dict[Any, Any],
-        filters: dict[str, str | datetime | date | int | float],
+        columns: dict[str, int],
+        filters: dict[str, Any],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
@@ -81,7 +89,7 @@ class Buffer(Service):
         created = False
 
         if not signal_only:
-            update_kwargs = {c: F(c) + v for c, v in columns.items()}
+            update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 update_kwargs.update(extra)

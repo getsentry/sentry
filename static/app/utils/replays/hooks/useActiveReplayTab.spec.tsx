@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,14 +46,6 @@ describe('useActiveReplayTab', () => {
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
 
-  it('should use Tags as a default for video replays', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {isVideoReplay: true},
-    });
-
-    expect(result.current.getActiveTab()).toBe(TabKey.TAGS);
-  });
-
   it('should use Breadcrumbs as a default, when there is a click search in the url', () => {
     mockLocation('click.tag:button');
 
@@ -87,19 +79,6 @@ describe('useActiveReplayTab', () => {
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
       query: {t_main: TabKey.BREADCRUMBS},
-    });
-  });
-
-  it('should set the default tab if the name is invalid for video replays', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {isVideoReplay: true},
-    });
-    expect(result.current.getActiveTab()).toBe(TabKey.TAGS);
-
-    result.current.setActiveTab('foo bar');
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.TAGS},
     });
   });
 });

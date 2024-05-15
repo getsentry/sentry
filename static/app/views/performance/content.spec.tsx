@@ -1,42 +1,25 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, router}) {
+function WrappedComponent({router}) {
   return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <RouteContext.Provider
-        value={{
-          location: router.location,
-          params: {},
-          router,
-          routes: [],
-        }}
-      >
-        <OrganizationContext.Provider value={organization}>
-          <MEPSettingProvider>
-            <PerformanceContent router={router} location={router.location} />
-          </MEPSettingProvider>
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>
-    </QueryClientProvider>
+    <MEPSettingProvider>
+      <PerformanceContent router={router} location={router.location} />
+    </MEPSettingProvider>
   );
 }
 
@@ -293,7 +276,7 @@ describe('Performance > Content', function () {
     const projects = [ProjectFixture({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 
@@ -309,7 +292,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {project: [1]});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 
@@ -325,7 +308,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {project: ['-1']});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -336,7 +319,7 @@ describe('Performance > Content', function () {
     const projects = [ProjectFixture({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 
@@ -357,7 +340,7 @@ describe('Performance > Content', function () {
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 
@@ -372,7 +355,7 @@ describe('Performance > Content', function () {
       statsPeriod: '24h',
     });
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 
@@ -401,7 +384,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -412,7 +395,7 @@ describe('Performance > Content', function () {
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -422,7 +405,7 @@ describe('Performance > Content', function () {
   it('Tags are replaced with trends default query if navigating to trends', async function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 
@@ -447,7 +430,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
+    render(<WrappedComponent router={data.router} />, {
       context: data.routerContext,
     });
 

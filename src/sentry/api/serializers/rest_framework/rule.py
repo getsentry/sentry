@@ -1,6 +1,7 @@
 from typing import Any
 from uuid import UUID, uuid4
 
+import orjson
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -10,7 +11,6 @@ from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
 from sentry.rules import rules
-from sentry.utils import json
 
 ValidationError = serializers.ValidationError
 
@@ -27,7 +27,7 @@ class RuleNodeField(serializers.Field):
     def to_internal_value(self, data):
         if isinstance(data, str):
             try:
-                data = json.loads(data.replace("'", '"'))
+                data = orjson.loads(data.replace("'", '"'))
             except Exception:
                 raise ValidationError("Failed trying to parse dict from string")
         elif not isinstance(data, dict):
@@ -46,7 +46,7 @@ class RuleNodeField(serializers.Field):
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
 
-        node = cls(self.context["project"], data)
+        node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
         if node.id in SENTRY_APP_ACTIONS:

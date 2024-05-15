@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -10,30 +9,49 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {RATE_UNIT_TITLE, RateUnit, type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import CacheMissCell from 'sentry/views/performance/cache/tables/cacheMissRateCell';
 import {TransactionCell} from 'sentry/views/performance/cache/tables/transactionCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {
+  MetricsFields,
+  type MetricsResponse,
+  SpanFunction,
+  SpanMetricsField,
+  type SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
+const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {TRANSACTION_DURATION} = MetricsFields;
+const {CACHE_ITEM_SIZE} = SpanMetricsField;
+
 type Row = Pick<
-  MetricsResponse,
+  SpanMetricsResponse,
+  | 'project'
   | 'project.id'
   | 'transaction'
   | 'spm()'
-  | 'cache_hit_rate()'
+  | 'cache_miss_rate()'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
->;
+  | 'avg(cache.item_size)'
+> &
+  Pick<MetricsResponse, 'avg(transaction.duration)'>;
 
 type Column = GridColumnHeader<
-  'transaction' | 'spm()' | 'cache_hit_rate()' | 'time_spent_percentage()'
+  | 'transaction'
+  | 'spm()'
+  | 'cache_miss_rate()'
+  | 'time_spent_percentage()'
+  | 'project'
+  | 'avg(transaction.duration)'
+  | 'avg(cache.item_size)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -43,23 +61,43 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'project',
+    name: t('Project'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `avg(${CACHE_ITEM_SIZE})`,
+    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `${SPM}()`,
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `cache_hit_rate()`,
+    key: `avg(${TRANSACTION_DURATION})`,
+    name: DataTitles[`avg(${TRANSACTION_DURATION})`],
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `${CACHE_MISS_RATE}()`,
     name: DataTitles.cacheMissRate,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: `${TIME_SPENT_PERCENTAGE}()`,
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = ['spm()', 'cache_hit_rate()', 'time_spent_percentage()'] as const;
+const SORTABLE_FIELDS = [
+  `${SPM}()`,
+  `${CACHE_MISS_RATE}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `avg(${CACHE_ITEM_SIZE})`,
+] as const;
 
 type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
@@ -144,11 +182,6 @@ function renderBodyCell(
         transactionMethod={row['transaction.method']}
       />
     );
-  }
-
-  if (column.key === 'cache_hit_rate()') {
-    const value = row[column.key] ? 1 - row[column.key] : 0; // convert to miss rate
-    return <CacheMissCell value={value} />;
   }
 
   if (!meta?.fields) {

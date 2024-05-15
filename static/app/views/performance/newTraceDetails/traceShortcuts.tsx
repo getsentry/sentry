@@ -1,19 +1,23 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import tracingKeyboardIllustration from 'sentry-images/tracing/tracing-keyboard.jpg';
+import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
 export function TraceShortcuts() {
+  const organization = useOrganization();
   const onOpenShortcutsClick = useCallback(() => {
+    traceAnalytics.trackViewShortcuts(organization);
     openModal(props => <TraceShortcutsModal {...props} />);
-  }, []);
+  }, [organization]);
   return (
-    <Button size="xs" onClick={onOpenShortcutsClick} aria-label="Trace Shortcuts">
+    <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
       ⌘
     </Button>
   );
@@ -56,7 +60,7 @@ function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
             </Shortcuts>
           </div>
           <div>
-            <img src={tracingKeyboardIllustration} alt="Sentry cant fix this" />
+            <img src={tracingKeyboardShortcuts} alt={t('Sentry cant fix this')} />
           </div>
         </ShortcutsLayout>
       </Body>

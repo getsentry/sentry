@@ -1,6 +1,5 @@
 import type {CSSProperties} from 'react';
 import {forwardRef} from 'react';
-import {browserHistory} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,7 +13,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -26,6 +25,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -52,9 +52,11 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const isOpen = useIsSelectedFeedback({feedbackItem});
     const {feedbackHasReplay} = useReplayCountForFeedbacks();
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
+    const location = useLocation();
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
     const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+    const hasAttachments = feedbackItem.latestEventHasAttachments;
     const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
@@ -63,16 +65,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
         <ThemeProvider theme={theme}>
           <LinkedFeedbackCard
             data-selected={isOpen}
-            to={() => {
-              const location = browserHistory.getCurrentLocation();
-              return {
-                pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-                query: {
-                  ...location.query,
-                  referrer: 'feedback_list_page',
-                  feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
-                },
-              };
+            to={{
+              pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+              query: {
+                ...location.query,
+                referrer: 'feedback_list_page',
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+              },
             }}
             onClick={() => {
               trackAnalytics('feedback.list-item-selected', {organization});
@@ -146,6 +145,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 {hasReplayId && (
                   <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
                     <IconPlay size="xs" />
+                  </Tooltip>
+                )}
+
+                {hasAttachments && (
+                  <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
+                    <IconImage size="xs" />
                   </Tooltip>
                 )}
 

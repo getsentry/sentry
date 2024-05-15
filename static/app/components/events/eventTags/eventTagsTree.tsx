@@ -1,12 +1,19 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventTagsTreeRow, {
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -31,7 +38,7 @@ interface TagTreeColumnData {
 
 interface EventTagsTreeProps {
   event: Event;
-  projectSlug: string;
+  projectSlug: Project['slug'];
   tags: EventTag[];
   meta?: Record<any, any>;
 }
@@ -43,6 +50,10 @@ function addToTagTree(
   originalTag: EventTag
 ): TagTree {
   const BRANCH_MATCHES_REGEX = /\./g;
+  if (!defined(tag.key)) {
+    return tree;
+  }
+
   const branchMatches = tag.key.match(BRANCH_MATCHES_REGEX) ?? [];
 
   const hasInvalidBranchCount =
@@ -102,6 +113,7 @@ function getTagTreeRows({
       tagKey={tagKey}
       content={content}
       spacerCount={spacerCount}
+      data-test-id="tag-tree-row"
       {...props}
     />,
     ...subtreeRows,
@@ -116,9 +128,22 @@ function TagTreeColumns({
   meta,
   tags,
   columnCount,
+  projectSlug,
   ...props
 }: EventTagsTreeProps & {columnCount: number}) {
+  const organization = useOrganization();
+  const {data: project, isLoading} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
   const assembledColumns = useMemo(() => {
+    if (isLoading) {
+      return <TreeLoadingIndicator hideMessage />;
+    }
+
+    if (!project) {
+      return [];
+    }
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
       (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
@@ -128,7 +153,7 @@ function TagTreeColumns({
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project: project, ...props})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -165,7 +190,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [meta, tags, props, columnCount]);
+  }, [columnCount, isLoading, project, props, tags, meta]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
@@ -174,9 +199,11 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
-    <TreeContainer columnCount={columnCount} ref={containerRef}>
-      <TagTreeColumns columnCount={columnCount} {...props} />
-    </TreeContainer>
+    <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
+      <TreeContainer columnCount={columnCount} ref={containerRef}>
+        <TagTreeColumns columnCount={columnCount} {...props} />
+      </TreeContainer>
+    </ErrorBoundary>
   );
 }
 
@@ -191,6 +218,9 @@ export const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(auto, 175px) 1fr;
   grid-column-gap: ${space(3)};
+  &:first-child {
+    margin-left: -${space(1)};
+  }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.innerBorder};
     padding-left: ${space(2)};
@@ -200,6 +230,10 @@ export const TreeColumn = styled('div')`
     border-right: 1px solid ${p => p.theme.innerBorder};
     padding-right: ${space(2)};
   }
+`;
+
+export const TreeLoadingIndicator = styled(LoadingIndicator)`
+  grid-column: 1 /-1;
 `;
 
 export default EventTagsTree;

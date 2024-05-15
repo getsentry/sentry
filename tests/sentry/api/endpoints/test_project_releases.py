@@ -63,7 +63,10 @@ class ProjectReleaseListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={
+                "organization_id_or_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
+            },
         )
         response = self.client.get(url, format="json")
 
@@ -90,7 +93,10 @@ class ProjectReleaseListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url + "?query=foo", format="json")
 
@@ -205,8 +211,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         response = self.client.get(url + "?environment=" + self.env1.name, format="json")
@@ -220,8 +226,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project2.organization.slug,
-                "project_slug": self.project2.slug,
+                "organization_id_or_slug": self.project2.organization.slug,
+                "project_id_or_slug": self.project2.slug,
             },
         )
         response = self.client.get(url + "?environment=" + self.env2.name, format="json")
@@ -231,8 +237,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -242,8 +248,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
@@ -256,8 +262,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         ReleaseProjectEnvironment.objects.create(
@@ -323,7 +329,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(
             url,
@@ -349,7 +358,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, data={"version": "1.2.1 (123)"})
 
@@ -371,7 +383,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(url, data={"version": "1.2.1"})
@@ -390,7 +405,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project2.organization.slug, "project_slug": project2.slug},
+            kwargs={
+                "organization_id_or_slug": project2.organization.slug,
+                "project_id_or_slug": project2.slug,
+            },
         )
 
         response = self.client.post(url, data={"version": "1.2.1"})
@@ -411,7 +429,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(url, data={"version": "1.2.3\n"})
@@ -445,7 +466,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, data={"version": "1.2.1", "owner": self.user.email})
 
@@ -464,7 +488,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(
             url, data={"version": "1.2.1", "commits": [{"id": "a" * 40}, {"id": "b" * 40}]}
@@ -501,7 +528,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": org.slug, "project_slug": project1.slug},
+            kwargs={"organization_id_or_slug": org.slug, "project_id_or_slug": project1.slug},
         )
 
         # test right org, wrong permissions level
@@ -573,8 +600,8 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         return reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 

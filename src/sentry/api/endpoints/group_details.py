@@ -30,6 +30,7 @@ from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
@@ -135,7 +136,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
-        :pparam string organization_slug: The slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
@@ -234,6 +235,20 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     list(external_issues), request, serializer=PlatformExternalIssueSerializer()
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
+
+            if "latestEventHasAttachments" in expand:
+                if not features.has(
+                    "organizations:event-attachments",
+                    group.project.organization,
+                    actor=request.user,
+                ):
+                    return self.respond(status=404)
+
+                latest_event = group.get_latest_event()
+                num_attachments = EventAttachment.objects.filter(
+                    project_id=latest_event.project_id, event_id=latest_event.event_id
+                ).count()
+                data.update({"latestEventHasAttachments": num_attachments > 0})
 
             data.update(
                 {

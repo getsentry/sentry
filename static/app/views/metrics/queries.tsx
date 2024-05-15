@@ -22,7 +22,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {METRIC_CHART_GROUP} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
@@ -273,7 +273,7 @@ function Formula({
           type={MetricExpressionType.EQUATION}
         />
       )}
-      <FormulaInput
+      <EquationInput
         availableVariables={availableVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}

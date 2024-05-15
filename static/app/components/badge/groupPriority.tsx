@@ -222,14 +222,14 @@ export function GroupPriorityDropdown({
         </MenuTitleContainer>
       }
       minMenuWidth={230}
-      trigger={triggerProps => (
+      trigger={(triggerProps, isOpen) => (
         <DropdownButton
           {...triggerProps}
           aria-label={t('Modify issue priority')}
           size="zero"
         >
           <GroupPriorityBadge priority={value}>
-            <Chevron direction="down" size="small" />
+            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}

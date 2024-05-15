@@ -10,6 +10,8 @@ import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -129,7 +131,7 @@ const metricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -140,18 +142,34 @@ const metricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Dart',
-                  value: 'dart',
-                  language: 'dart',
-                  code: `
-// Add 4 to a counter named "hits"
-Sentry.metrics().increment("hits", value: 4);`,
-                },
-              ],
+              label: 'Counter',
+              value: 'counter',
+              language: 'dart',
+              code: exampleSnippets.dart.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'dart',
+              code: exampleSnippets.dart.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'dart',
+              code: exampleSnippets.dart.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'dart',
+              code: exampleSnippets.dart.gauge,
             },
           ],
         },

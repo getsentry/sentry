@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -6,6 +5,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {FilterFields} from 'sentry/views/replays/detail/console/useConsoleFilters';

@@ -42,7 +42,7 @@ class SlowDBQueryDetector(PerformanceDetector):
 
         self.stored_problems = {}
 
-    def visit_span(self, span: Span):
+    def visit_span(self, span: Span) -> None:
         settings_for_span = self.settings_for_span(span)
         if not settings_for_span:
             return
@@ -122,7 +122,7 @@ class SlowDBQueryDetector(PerformanceDetector):
 
         return True
 
-    def _fingerprint(self, hash):
+    def _fingerprint(self, hash: str) -> str:
         signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
         return f"1-{PerformanceSlowDBQueryGroupType.type_id}-{full_fingerprint}"

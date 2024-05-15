@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
@@ -29,15 +30,17 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
-    def _make_sessions(self, num: int, environment_name: str | None = None):
+    def _make_sessions(
+        self, num: int, environment_name: str | None = None, project: Project | None = None
+    ):
         received = time.time()
 
         def make_session(i):
             return dict(
                 distinct_id=uuid4().hex,
                 session_id=uuid4().hex,
-                org_id=self.project.organization_id,
-                project_id=self.project.id,
+                org_id=project.organization_id if project else self.project.organization_id,
+                project_id=project.id if project else self.project.id,
                 status="ok",
                 seq=0,
                 release="foo@1.0.0",
@@ -288,6 +291,15 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         else:
             self.assertDoesNotPass(rule, event, is_new=False)
             self.assertDoesNotPass(environment_rule, event, is_new=False)
+
+    def test_comparison_interval_empty_string(self):
+        data = {
+            "interval": "1m",
+            "value": 16,
+            "comparisonType": "count",
+            "comparisonInterval": "",
+        }
+        self._run_test(data=data, minutes=1, passes=False)
 
     def test_one_minute_with_events(self):
         data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}

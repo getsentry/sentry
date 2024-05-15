@@ -21,8 +21,8 @@ class ProjectMemberIndexTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-member-index",
             kwargs={
-                "organization_slug": project_1.organization.slug,
-                "project_slug": project_1.slug,
+                "organization_id_or_slug": project_1.organization.slug,
+                "project_id_or_slug": project_1.slug,
             },
         )
         response = self.client.get(url)

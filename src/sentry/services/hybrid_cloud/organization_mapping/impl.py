@@ -86,7 +86,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def _upsert_organization_slug_reservation_for_monolith(
         self, organization_id: int, mapping_update: RpcOrganizationMappingUpdate
-    ):
+    ) -> None:
         org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
             organization_id=organization_id
         )

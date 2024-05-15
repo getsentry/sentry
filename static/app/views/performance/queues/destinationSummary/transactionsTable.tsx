@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'qs';
@@ -8,30 +7,29 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
+import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
-  MetricsResponse,
-  | 'avg_if(span.self_time,span.op,queue.task.celery)'
-  | 'count_op(queue.submit.celery)'
-  | 'count_op(queue.task.celery)'
-  | 'sum(span.self_time)'
+  SpanMetricsResponse,
+  | 'sum(span.duration)'
   | 'transaction'
+  | `avg_if(${string},${string},${string})`
+  | `count_op(${string})`
 >;
 
 type Column = GridColumnHeader<string>;
@@ -43,17 +41,17 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'span.op',
     name: t('Type'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'avg(messaging.message.receive.latency)',
     name: t('Avg Time in Queue'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.self_time,span.op,queue.task.celery)',
+    key: 'avg_if(span.duration,span.op,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -63,57 +61,29 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.submit.celery)',
+    key: 'count_op(queue.publish)',
     name: t('Published'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'count_op(queue.task.celery)',
+    key: 'count_op(queue.process)',
     name: t('Processed'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum(span.self_time)',
+    key: 'sum(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-interface Props {
-  domain?: string;
-  error?: Error | null;
-  meta?: EventsMetaType;
-  pageLinks?: string;
-}
-
-export function TransactionsTable({error, pageLinks}: Props) {
+export function TransactionsTable() {
   const organization = useOrganization();
   const location = useLocation();
   const destination = decodeScalar(location.query.destination);
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
-  const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
-  // TODO: This should filter by destination, not transaction.
-  // We are using transaction for now as a proxy to demo some functionality until destination becomes a filterable tag.
-  if (destination) {
-    mutableSearch.addFilterValue('transaction', destination);
-  }
-  const {data, isLoading, meta} = useSpanMetrics({
-    search: mutableSearch,
-    fields: [
-      'transaction',
-      'count()',
-      'count_op(queue.submit.celery)',
-      'count_op(queue.task.celery)',
-      'sum(span.self_time)',
-      'avg(span.self_time)',
-      'avg_if(span.self_time,span.op,queue.submit.celery)',
-      'avg_if(span.self_time,span.op,queue.task.celery)',
-    ],
-    sorts: [],
-    limit: 10,
-    cursor,
-    referrer: 'api.starfish.http-module-landing-domains-list',
+  const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
+    destination,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
@@ -156,8 +126,20 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
+  const op = row['span.op'];
+  const isProducer = op === 'queue.publish';
+  const isConsumer = op === 'queue.process';
   const key = column.key;
-  if (row[key] === undefined) {
+  if (
+    row[key] === undefined ||
+    (isConsumer && ['count_op(queue.publish)'].includes(key)) ||
+    (isProducer &&
+      [
+        'count_op(queue.process)',
+        'avg(messaging.message.receive.latency)',
+        'avg_if(span.duration,span.op,queue.process)',
+      ].includes(key))
+  ) {
     return (
       <AlignRight>
         <NoValue>{' \u2014 '}</NoValue>
@@ -166,11 +148,27 @@ function renderBodyCell(
   }
 
   if (key === 'transaction') {
-    return <TransactionCell transaction={row[key]} />;
+    return <TransactionCell transaction={row[key]} op={op} />;
   }
 
   if (!meta?.fields) {
     return row[column.key];
+  }
+
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
+  }
+
+  if (key === 'span.op') {
+    switch (row[key]) {
+      case 'queue.publish':
+        return t('Producer');
+      case 'queue.process':
+        return t('Consumer');
+      default:
+        return row[key];
+    }
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
@@ -181,12 +179,13 @@ function renderBodyCell(
   });
 }
 
-function TransactionCell({transaction}: {transaction: string}) {
+function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   const organization = useOrganization();
   const {query} = useLocation();
   const queryString = {
     ...query,
     transaction,
+    'span.op': op,
   };
   return (
     <NoOverflow>

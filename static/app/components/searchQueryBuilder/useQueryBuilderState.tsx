@@ -1,10 +1,6 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
 import {
-  type QueryBuilderFocusState,
-  QueryBuilderFocusType,
-} from 'sentry/components/searchQueryBuilder/types';
-import {
   type ParseResultToken,
   TermOperator,
   type Token,
@@ -13,13 +9,18 @@ import {
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 
 type QueryBuilderState = {
-  focus: QueryBuilderFocusState | null;
   query: string;
 };
 
 type DeleteTokenAction = {
   token: ParseResultToken;
   type: 'DELETE_TOKEN';
+};
+
+type UpdateFreeTextAction = {
+  text: string;
+  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+  type: 'UPDATE_FREE_TEXT';
 };
 
 type UpdateFilterOpAction = {
@@ -34,27 +35,11 @@ type UpdateTokenValueAction = {
   value: string;
 };
 
-type ExitTokenAction = {
-  type: 'EXIT_TOKEN';
-};
-
-type ClickTokenOpAction = {
-  token: TokenResult<Token>;
-  type: 'CLICK_TOKEN_OP';
-};
-
-type ClickTokenValueAction = {
-  token: TokenResult<Token>;
-  type: 'CLICK_TOKEN_VALUE';
-};
-
 export type QueryBuilderActions =
   | DeleteTokenAction
+  | UpdateFreeTextAction
   | UpdateFilterOpAction
-  | UpdateTokenValueAction
-  | ExitTokenAction
-  | ClickTokenOpAction
-  | ClickTokenValueAction;
+  | UpdateTokenValueAction;
 
 function removeQueryToken(query: string, token: TokenResult<Token>): string {
   return (
@@ -85,66 +70,57 @@ function replaceQueryToken(
   token: TokenResult<Token>,
   value: string
 ): string {
-  return (
-    query.substring(0, token.location.start.offset) +
-    value +
-    query.substring(token.location.end.offset)
-  );
+  const start = query.substring(0, token.location.start.offset);
+  const end = query.substring(token.location.end.offset);
+
+  return start + value + end;
+}
+
+// Ensures that the replaced token is separated from the rest of the query
+// and cleans up any extra whitespace
+function replaceTokenWithPadding(
+  query: string,
+  token: TokenResult<Token>,
+  value: string
+): string {
+  const start = query.substring(0, token.location.start.offset);
+  const end = query.substring(token.location.end.offset);
+
+  return (start.trimEnd() + ' ' + value.trim() + ' ' + end.trimStart()).trim();
+}
+
+function updateFreeText(
+  state: QueryBuilderState,
+  action: UpdateFreeTextAction
+): QueryBuilderState {
+  const newQuery = replaceTokenWithPadding(state.query, action.token, action.text);
+
+  return {
+    ...state,
+    query: newQuery,
+  };
 }
 
 export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
-  const initialState: QueryBuilderState = {query: initialQuery, focus: null};
+  const initialState: QueryBuilderState = {query: initialQuery};
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       switch (action.type) {
         case 'DELETE_TOKEN':
           return {
-            ...state,
             query: removeQueryToken(state.query, action.token),
-            focus: null,
           };
+        case 'UPDATE_FREE_TEXT':
+          return updateFreeText(state, action);
         case 'UPDATE_FILTER_OP':
           return {
-            ...state,
             query: modifyFilterOperator(state.query, action.token, action.op),
-            focus: null,
           };
         case 'UPDATE_TOKEN_VALUE':
           return {
-            ...state,
             query: replaceQueryToken(state.query, action.token, action.value),
-            focus: null,
           };
-        case 'EXIT_TOKEN':
-          return {
-            ...state,
-            focus: null,
-          };
-        case 'CLICK_TOKEN_OP':
-          return {
-            ...state,
-            focus: {
-              type: QueryBuilderFocusType.FILTER_OP,
-              range: {
-                start: action.token.location.start.offset,
-                end: action.token.location.end.offset,
-              },
-            },
-          };
-        case 'CLICK_TOKEN_VALUE':
-          return {
-            ...state,
-            focus: {
-              type: QueryBuilderFocusType.FILTER_VALUE,
-              range: {
-                start: action.token.location.start.offset,
-                end: action.token.location.end.offset,
-              },
-              editing: true,
-            },
-          };
-
         default:
           return state;
       }

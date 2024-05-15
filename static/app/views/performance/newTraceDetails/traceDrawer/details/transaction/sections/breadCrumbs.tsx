@@ -1,15 +1,26 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
-import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {
+  Breadcrumbs,
+  SearchAndSortWrapper,
+} from 'sentry/components/events/interfaces/breadcrumbs';
+import {
+  BreadcrumbRow,
+  StyledBreadcrumbPanelTable,
+} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
+import {LazyRender} from 'sentry/components/lazyRender';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {t, tct} from 'sentry/locale';
 import {
   type EntryBreadcrumbs,
   EntryType,
   type EventTransaction,
   type Organization,
 } from 'sentry/types';
+
+import {TraceDrawerComponents} from '../../styles';
 
 export function BreadCrumbs({
   event,
@@ -18,20 +29,6 @@ export function BreadCrumbs({
   event: EventTransaction;
   organization: Organization;
 }) {
-  const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
-  const breadCrumbsContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setTimeout(() => {
-      if (showBreadCrumbs) {
-        breadCrumbsContainerRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-        });
-      }
-    }, 100);
-  }, [showBreadCrumbs, breadCrumbsContainerRef]);
-
   const matchingEntry: EntryBreadcrumbs | undefined = event?.entries?.find(
     (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
   );
@@ -40,28 +37,79 @@ export function BreadCrumbs({
     return null;
   }
 
-  const renderText = showBreadCrumbs ? t('Hide Breadcrumbs') : t('Show Breadcrumbs');
-  const chevron = <IconChevron size="xs" direction={showBreadCrumbs ? 'up' : 'down'} />;
   return (
-    <Fragment>
-      <a
-        style={{display: 'flex', alignItems: 'center', gap: space(0.5)}}
-        onClick={() => {
-          setShowBreadCrumbs(prev => !prev);
-        }}
+    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+      <EventDataSection
+        showPermalink={false}
+        key={'breadcrumbs'}
+        type={'breadcrumbs'}
+        title={t('BreadCrumbs')}
+        help={tct(
+          'The trail of events that happened prior to an event. [link:Learn more]',
+          {
+            link: (
+              <ExternalLink
+                openInNewTab
+                href={'https://docs.sentry.io/product/issues/issue-details/breadcrumbs/'}
+              />
+            ),
+          }
+        )}
+        isHelpHoverable
       >
-        {renderText} {chevron}
-      </a>
-      <div ref={breadCrumbsContainerRef}>
-        {showBreadCrumbs && (
+        <ResponsiveBreadcrumbWrapper>
           <Breadcrumbs
             hideTitle
             data={matchingEntry.data}
             event={event}
             organization={organization}
           />
-        )}
-      </div>
-    </Fragment>
+        </ResponsiveBreadcrumbWrapper>
+      </EventDataSection>
+    </LazyRender>
   );
 }
+
+const ResponsiveBreadcrumbWrapper = styled('div')`
+  container: breadcrumbs / inline-size;
+
+  ${SearchAndSortWrapper} {
+    > div {
+      width: auto !important;
+    }
+  }
+
+  ${StyledBreadcrumbPanelTable} {
+    @container breadcrumbs (width < 640px) {
+      grid-template-columns: 64px 1fr 106px;
+    }
+  }
+
+  @container breadcrumbs (width < 640px) {
+    ${PanelTableHeader}:nth-child(2) {
+      display: none;
+    }
+
+    ${PanelTableHeader}:nth-child(4) {
+      display: none;
+    }
+  }
+
+  ${BreadcrumbRow} {
+    @container breadcrumbs (width < 640px) {
+      > div {
+        grid-template-columns: 64px 1fr 106px;
+      }
+
+      ${PanelTableHeader}:nth-child(2),
+      > div > div:nth-child(2) {
+        display: none;
+      }
+
+      ${PanelTableHeader}:nth-child(4),
+      > div > span:nth-child(4) {
+        display: none;
+      }
+    }
+  }
+`;

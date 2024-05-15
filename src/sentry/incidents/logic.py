@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import logging
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
@@ -14,7 +15,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, quotas
+from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -30,10 +31,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.incidents.models.alert_rule_activations import (
-    AlertRuleActivationCondition,
-    AlertRuleActivations,
-)
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivationCondition
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -46,7 +44,6 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -81,13 +78,13 @@ from sentry.snuba.subscriptions import (
 )
 from sentry.snuba.tasks import build_query_builder
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
 
 if TYPE_CHECKING:
     from sentry.incidents.utils.types import AlertRuleActivationConditionType
-    from sentry.snuba.models import QuerySubscription
 
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -125,6 +122,7 @@ def create_incident(
     projects=None,
     user=None,
     alert_rule=None,
+    activation=None,
 ):
     if date_detected is None:
         date_detected = date_started
@@ -139,6 +137,7 @@ def create_incident(
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
+            activation=activation,
         )
         if projects:
             incident_projects = [
@@ -459,7 +458,16 @@ class AlertRuleNameAlreadyUsedError(Exception):
 
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
-DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
+DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER = 2
+DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION = {
+    30: 2,
+    60: 3,
+    90: 3,
+    120: 3,
+    240: 5,
+    720: 5,
+    1440: 15,
+}
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
@@ -471,6 +479,21 @@ query_datasets_to_type = {
 }
 
 
+def get_alert_resolution(time_window: int, organization) -> int:
+    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+
+    if features.has("organizations:metric-alert-load-shedding", organization=organization):
+        windows = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
+        index = bisect.bisect_right(windows, time_window)
+
+        if index == 0:
+            return DEFAULT_ALERT_RULE_RESOLUTION
+
+        resolution = DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[windows[index - 1]]
+
+    return resolution
+
+
 def create_alert_rule(
     organization,
     projects,
@@ -480,7 +503,7 @@ def create_alert_rule(
     time_window,
     threshold_type,
     threshold_period,
-    owner=None,
+    owner: Actor | None = None,
     resolve_threshold=None,
     environment=None,
     include_all_projects=False,
@@ -502,7 +525,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
-    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
+    :param owner: Actor (sentry.types.actor.Actor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -527,18 +550,12 @@ def create_alert_rule(
     if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
-    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    resolution = get_alert_resolution(time_window, organization)
+
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
-        resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+        resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-
-    # TODO(mark) type is documented as ActorTuple but these runtime checks are for other types.
-    actor = None
-    if owner and not isinstance(owner, Actor):
-        actor = owner.resolve_to_actor()
-    elif owner and isinstance(owner, Actor):
-        actor = owner
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
         # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
@@ -561,11 +578,8 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
-            # TODO(mark) remove owner in the future
-            owner=actor,
             comparison_delta=comparison_delta,
-            user_id=actor.user_id if actor else None,
-            team_id=actor.team_id if actor else None,
+            owner=owner,
             monitor_type=monitor_type.value,
         )
 
@@ -630,9 +644,9 @@ def snapshot_alert_rule(alert_rule, user=None):
         alert_rule_snapshot.id = None
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.snuba_query = snuba_query_snapshot
-        if alert_rule.owner:
-            alert_rule_snapshot.user_id = alert_rule.owner.user_id
-            alert_rule_snapshot.team_id = alert_rule.owner.team_id
+        if alert_rule.user_id or alert_rule.team_id:
+            alert_rule_snapshot.user_id = alert_rule.user_id
+            alert_rule_snapshot.team_id = alert_rule.team_id
         alert_rule_snapshot.save()
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
@@ -665,7 +679,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
-    owner=NOT_SET,
+    owner: Actor | None | object = NOT_SET,
     query=None,
     aggregate=None,
     time_window=None,
@@ -689,7 +703,7 @@ def update_alert_rule(
     `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
-    :param owner: ActorTuple (sentry.models.actor.ActorTuple) or None
+    :param owner: Actor (sentry.types.actor.Actor) or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
@@ -708,7 +722,7 @@ def update_alert_rule(
     comparison period. In minutes.
     :return: The updated `AlertRule`
     """
-    updated_fields = {"date_modified": django_timezone.now()}
+    updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
@@ -737,25 +751,47 @@ def update_alert_rule(
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
-        if owner is not None and not isinstance(owner, Actor):
-            owner = owner.resolve_to_actor()
         updated_fields["owner"] = owner
-        updated_fields["team_id"] = owner.team_id if owner else None
-        updated_fields["user_id"] = owner.user_id if owner else None
     if comparison_delta is not NOT_SET:
-        resolution = DEFAULT_ALERT_RULE_RESOLUTION
         if comparison_delta is not None:
             # Since comparison alerts make twice as many queries, run the queries less frequently.
-            resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
             comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
 
-        updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
+
+    # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
+    if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
+        window = int(
+            updated_query_fields.get(
+                "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
+            ).total_seconds()
+            / 60
+        )
+
+        resolution = get_alert_resolution(window, organization=alert_rule.organization)
+        resolution_comparison_delta = updated_fields.get(
+            "comparison_delta", alert_rule.comparison_delta
+        )
+
+        if resolution_comparison_delta is not None:
+            updated_query_fields["resolution"] = timedelta(
+                minutes=(resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER)
+            )
+        else:
+            updated_query_fields["resolution"] = timedelta(minutes=resolution)
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
             snapshot_alert_rule(alert_rule, user)
+
+        if "owner" in updated_fields:
+            alert_rule.owner = updated_fields.pop("owner", None)
+            # This is clunky but Model.update() uses QuerySet.update()
+            # and doesn't persist other dirty attributes in the model
+            updated_fields["user_id"] = alert_rule.user_id
+            updated_fields["team_id"] = alert_rule.team_id
+
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
@@ -947,23 +983,6 @@ class AlertRuleActivationConditionLabelAlreadyUsedError(Exception):
 class ProjectsNotAssociatedWithAlertRuleError(Exception):
     def __init__(self, project_slugs):
         self.project_slugs = project_slugs
-
-
-def create_alert_rule_activation(
-    alert_rule: AlertRule,
-    query_subscription: QuerySubscription,
-    metric_value: int | None = None,
-    finished_at: datetime | None = None,
-):
-    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
-        activation = AlertRuleActivations.objects.create(
-            alert_rule=alert_rule,
-            finished_at=finished_at,
-            metric_value=metric_value,
-            query_subscription=query_subscription,
-        )
-
-    return activation
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):

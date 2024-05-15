@@ -20,7 +20,6 @@ from zlib import compress
 import pytest
 import requests
 import responses
-import sentry_kafka_schemas
 from click.testing import CliRunner
 from django.conf import settings
 from django.contrib.auth import login
@@ -63,6 +62,7 @@ from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
 from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.snuba import SnubaEventStream
@@ -105,6 +105,8 @@ from sentry.models.rule import RuleSource
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.notifications.notifications.base import alert_page_needs_org_id
+from sentry.notifications.types import FineTuningAPIKey
 from sentry.plugins.base import plugins
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -855,13 +857,15 @@ class TwoFactorAPITestCase(APITestCase):
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
         url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+            "sentry-api-0-organization-details",
+            kwargs={"organization_id_or_slug": organization.slug},
         )
         return self.client.put(url, data={"require2FA": True})
 
     def api_disable_org_2fa(self, organization, user):
         url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+            "sentry-api-0-organization-details",
+            kwargs={"organization_id_or_slug": organization.slug},
         )
         return self.client.put(url, data={"require2FA": False})
 
@@ -1191,7 +1195,10 @@ class IntegrationTestCase(TestCase):
 
         self.init_path = reverse(
             "sentry-organization-integrations-setup",
-            kwargs={"organization_slug": self.organization.slug, "provider_id": self.provider.key},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "provider_id": self.provider.key,
+            },
         )
 
         self.setup_path = reverse(
@@ -1484,6 +1491,8 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
+        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        sdk_name: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1513,16 +1522,23 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
+        if sdk_name is not None:
+            payload["sentry_tags"]["sdk.name"] = sdk_name
 
         self.store_span(payload)
+
+        if "_metrics_summary" in payload:
+            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
         project_id: int,
         trace_id: str,
-        transaction_id: str,
+        transaction_id: str | None,  # Nones are permitted for INP spans
         span_id: str | None = None,
         parent_span_id: str | None = None,
         profile_id: str | None = None,
@@ -1536,6 +1552,7 @@ class BaseSpansTestCase(SnubaTestCase):
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
+        category: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1573,6 +1590,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
+        if category is not None:
+            payload["sentry_tags"]["category"] = category
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -1710,7 +1729,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
-            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
+            value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
         elif type == "distribution":
             value = [value]
         elif type == "gauge":
@@ -1759,9 +1778,9 @@ class BaseMetricsTestCase(SnubaTestCase):
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
         if entity.startswith("generic_"):
-            codec = sentry_kafka_schemas.get_codec("snuba-generic-metrics")
+            codec = get_topic_codec(Topic.SNUBA_GENERIC_METRICS)
         else:
-            codec = sentry_kafka_schemas.get_codec("snuba-metrics")
+            codec = get_topic_codec(Topic.SNUBA_METRICS)
 
         for bucket in buckets:
             codec.validate(bucket)
@@ -2174,7 +2193,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: list[int] | int,
+        value: dict[str, int] | list[int] | int,
         metric: str = "span.self_time",
         internal_metric: str | None = None,
         entity: str | None = None,
@@ -2874,15 +2893,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_performance_issue_blocks(
         self,
         blocks,
-        org_slug,
-        project_slug,
+        org: Organization,
+        project_slug: str,
         group,
         referrer,
-        alert_type="workflow",
+        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
         issue_link_extra_params=None,
     ):
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
         assert (
@@ -2896,9 +2915,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             blocks[3]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
         )
+        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[4]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
     def assert_generic_issue_attachments(
@@ -2915,15 +2935,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
     def assert_generic_issue_blocks(
         self,
         blocks,
-        org_slug,
-        project_slug,
+        org: Organization,
+        project_slug: str,
         group,
         referrer,
         alert_type="workflow",
         issue_link_extra_params=None,
     ):
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
         assert (
@@ -2935,9 +2955,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
 
+        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
         assert (
             blocks[-2]["elements"][0]["text"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
 
@@ -3124,7 +3145,6 @@ class MonitorTestCase(APITestCase):
         ]
         rule = Creator(
             name="New Cool Rule",
-            owner=None,
             project=self.project,
             conditions=conditions,
             filterMatch="all",

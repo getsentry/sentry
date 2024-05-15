@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping, MutableMapping
-from typing import TypeVar
+from collections.abc import Iterator, Mapping, MutableMapping
+from typing import Self, TypeVar
 
-from django.conf import settings
-
-K = TypeVar("K")
 V = TypeVar("V")
 
 __all__ = ("CanonicalKeyDict", "CanonicalKeyView", "get_canonical_name")
@@ -45,28 +42,42 @@ CANONICAL_KEY_MAPPING = {
 }
 
 
-def get_canonical_name(key):
-    return CANONICAL_KEY_MAPPING.get(key, (key,))[0]
+def get_canonical_name(key: str) -> str:
+    rv = CANONICAL_KEY_MAPPING.get(key)
+    if rv is None:
+        return key
+    else:
+        from sentry.utils import metrics
+
+        metrics.incr("canonical-legacy-key")
+
+        import random
+
+        from sentry import options
+
+        if options.get("canonical-fallback.send-error-to-sentry") >= random.random():
+            import logging
+
+            # exc_info=(None, None, None) gives us a full traceback
+            logging.getLogger(__name__).error("canonical fallback", exc_info=(None, None, None))
+
+        return rv[0]
 
 
-def get_legacy_name(key):
-    return LEGACY_KEY_MAPPING.get(key, (key,))[0]
-
-
-class CanonicalKeyView(Mapping):
-    def __init__(self, data):
+class CanonicalKeyView(Mapping[str, V]):
+    def __init__(self, data: dict[str, V]) -> None:
         self.data = data
         self._len = len({get_canonical_name(key) for key in self.data})
 
-    def copy(self):
+    def copy(self) -> Self:
         return self
 
     __copy__ = copy
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._len
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         # Preserve the order of iteration while prioritizing canonical keys
         keys = list(self.data)
         for key in keys:
@@ -76,7 +87,7 @@ class CanonicalKeyView(Mapping):
             elif all(k not in keys for k in canonicals):
                 yield canonicals[0]
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> V:
         canonical = get_canonical_name(key)
         for k in (canonical,) + LEGACY_KEY_MAPPING.get(canonical, ()):
             if k in self.data:
@@ -84,64 +95,45 @@ class CanonicalKeyView(Mapping):
 
         raise KeyError(key)
 
-    def __repr__(self):
-        return self.data.__repr__()
+    def __repr__(self) -> str:
+        return f"CanonicalKeyView({self.data!r})"
 
 
-class CanonicalKeyDict(MutableMapping[K, V]):
-    def __init__(self, data: Mapping[K, V], legacy: bool | None = None) -> None:
-        self.legacy = legacy
-        self.__init(data)
-
-    def __init(self, data: Mapping[K, V]) -> None:
-        legacy = self.legacy
-        if legacy is None:
-            legacy = settings.PREFER_CANONICAL_LEGACY_KEYS
-        norm_func = get_legacy_name if legacy else get_canonical_name
-        self._norm_func = norm_func
-        self.data: dict[K, V] = {}
+class CanonicalKeyDict(MutableMapping[str, V]):
+    def __init__(self, data: Mapping[str, V]) -> None:
+        self.data: dict[str, V] = {}
         for key, value in data.items():
-            canonical_key = norm_func(key)
+            canonical_key = get_canonical_name(key)
             if key == canonical_key or canonical_key not in self.data:
                 self.data[canonical_key] = value
 
-    def __getstate__(self):
-        state = dict(self.__dict__)
-        state.pop("_norm_func", None)
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.__init(state["data"])
-
-    def copy(self):
+    def copy(self) -> Self:
         rv = object.__new__(self.__class__)
-        rv._norm_func = self._norm_func
         rv.data = copy.copy(self.data)
         return rv
 
     __copy__ = copy
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self.data)
 
-    def __contains__(self, key):
-        return self._norm_func(key) in self.data
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and get_canonical_name(key) in self.data
 
-    def __getitem__(self, key):
-        return self.data[self._norm_func(key)]
+    def __getitem__(self, key: str) -> V:
+        return self.data[get_canonical_name(key)]
 
-    def __setitem__(self, key, value):
-        self.data[self._norm_func(key)] = value
+    def __setitem__(self, key: str, value: V) -> None:
+        self.data[get_canonical_name(key)] = value
 
-    def __delitem__(self, key):
-        del self.data[self._norm_func(key)]
+    def __delitem__(self, key: str) -> None:
+        del self.data[get_canonical_name(key)]
 
-    def __repr__(self):
-        return f"CanonicalKeyDict({self.data.__repr__()})"
+    def __repr__(self) -> str:
+        return f"CanonicalKeyDict({self.data!r})"
 
 
 CANONICAL_TYPES = (CanonicalKeyDict, CanonicalKeyView)

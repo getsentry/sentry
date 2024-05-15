@@ -20,13 +20,13 @@ from sentry.integrations.slack.message_builder.issues import (
     get_context,
     get_option_groups_block_kit,
     get_tags,
-    time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.message_builder.time_utils import time_since
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
@@ -38,16 +38,16 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -101,6 +101,7 @@ def build_test_message_blocks(
         for k, v in tags.items():
             if k == "release":
                 v = format_release_tag(v, group)
+            v = v.replace("`", "")
             tags_text += f"{k}: `{v}`  "
 
         tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
@@ -271,7 +272,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "tags": {"foo": "bar"},
+                "tags": {"escape": "`room`", "foo": "bar"},
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
@@ -284,7 +285,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        more_tags = {"foo": "bar"}
+        more_tags = {"escape": "`room`", "foo": "bar"}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
@@ -294,7 +295,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}
+            group, event.for_group(group), tags={"foo", "escape"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -315,7 +316,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, notes=notes
+            group, event.for_group(group), tags={"foo", "escape"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -435,11 +436,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in ret["blocks"]:
             assert section["type"] != "actions"
 
-    @patch(
-        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
-        return_value="https://github.com/meowmeow/cats/pull/1",
-    )
-    def test_issue_alert_with_suspect_commits(self, mock_external_url):
+    def test_issue_alert_with_suspect_commits(self):
         self.login_as(user=self.user)
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -448,7 +445,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             name="example",
             integration_id=self.integration.id,
             url="http://www.github.com/meowmeow/cats",
-            provider="github",
+            provider="integrations:github",
         )
         commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -482,7 +479,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = event.group
 
         GroupOwner.objects.create(
-            group=event.group,
+            group=group,
             user_id=self.user.id,
             project=self.project,
             organization=self.organization,
@@ -490,13 +487,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
-        commits = get_commits(self.project, event)
+        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{pull_request.get_external_url()}|View Pull Request>"
 
         assert SlackIssuesMessageBuilder(
             group,
             event.for_group(group),
-            commits=commits,
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -506,11 +501,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suggested_assignees=commit_author.email,
         )
 
-    @patch(
-        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
-        return_value="https://unknown.com/meowmeow/cats/pull/1",
-    )
-    def test_issue_alert_with_suspect_commits_unknown_provider(self, mock_external_url):
+    def test_issue_alert_with_suspect_commits_unknown_provider(self):
         self.login_as(user=self.user)
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -529,7 +520,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             key="asdfwreqr",
             message="placeholder commit message",
         )
-        pull_request = PullRequest.objects.create(
+        PullRequest.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
             key="9",
@@ -553,7 +544,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = event.group
 
         GroupOwner.objects.create(
-            group=event.group,
+            group=group,
             user_id=self.user.id,
             project=self.project,
             organization=self.organization,
@@ -561,13 +552,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
-        commits = get_commits(self.project, event)
+        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email}"
 
         assert SlackIssuesMessageBuilder(
             group,
             event.for_group(group),
-            commits=commits,
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -648,7 +637,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
         suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.email}"  # no commit link because there is no PR
 
-        commits = get_commits(self.project, event)
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -660,9 +648,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert (
-            SlackIssuesMessageBuilder(
-                group, event.for_group(group), tags={"foo"}, commits=commits
-            ).build()
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
         )
 
@@ -680,18 +666,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             initial_assignee=self.user,
             suspect_commit_text=suspect_commit_text,
         )
-        commits = get_commits(self.project, event)
         assert (
-            SlackIssuesMessageBuilder(
-                group, event.for_group(group), tags={"foo"}, commits=commits
-            ).build()
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
         )
 
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
+            issue_alert_group, recipient=Actor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
         has_actions = False
@@ -708,7 +691,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             project=self.project, group=issue_alert_group, user_id=self.user.id
         )
         ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
+            issue_alert_group, recipient=Actor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
         assert (
@@ -1150,8 +1133,18 @@ class ActionsTest(TestCase):
         MOCKIDENTITY = Mock()
 
         assert build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "", "_actioned_issue")
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "", False)
+
+    @with_feature("organizations:slack-thread-issue-alert")
+    def test_identity_and_action_has_action(self):
+        # returns True to indicate to use the white circle emoji
+        group = self.create_group(project=self.project)
+        MOCKIDENTITY = Mock()
+
+        assert build_actions(
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "", True)
 
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [
@@ -1171,9 +1164,7 @@ class ActionsTest(TestCase):
             "value": "unresolved:ongoing",
         }
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1190,9 +1181,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "unresolved:ongoing",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1209,9 +1198,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "archive_dialog",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1228,9 +1215,7 @@ class ActionsTest(TestCase):
             "type": "button",
             "value": "archive_dialog",
         }
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             expected,
@@ -1238,9 +1223,7 @@ class ActionsTest(TestCase):
 
     def test_no_ignore_if_feedback(self):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         # no ignore action if feedback issue, so only assign and resolve
         assert len(res[0]) == 2
 
@@ -1249,9 +1232,7 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -1270,9 +1251,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = False
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             {
@@ -1290,9 +1269,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         self._assert_message_actions_list(
             res[0],
             {
@@ -1310,9 +1287,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -1327,7 +1302,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )
 
-        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
+        self.cron_issue = self.create_group(type=MonitorIncidentType.type_id)
         self.feedback_issue = self.create_group(
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )

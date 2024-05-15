@@ -24,6 +24,7 @@ from sentry.services.hybrid_cloud.user.model import (
     UserIdEmailArgs,
 )
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 
 
 class UserService(RpcService):
@@ -46,21 +47,52 @@ class UserService(RpcService):
         auth_context: AuthenticationContext | None = None,
         serializer: UserSerializeType | None = None,
     ) -> list[OpaqueSerializedResponse]:
+        """
+        Get a list of users serialized as dictionaries with the API serializer.
+
+        This is most useful when you need to stitch users into an API response.
+
+        :param filter: Filtering options. See UserFilterArgs
+        :param as_user: The user making the request, this is used to perform field level authorization required by the serializer
+        :param auth_context: Authentication context that the request is being made under.
+        :param serializer: The serializer to use.
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def get_many(self, *, filter: UserFilterArgs) -> list[RpcUser]:
+        """
+        Get a list of users as RpcUser objects.
+
+        :param filter: Filtering options. See UserFilterArgs
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def get_many_ids(self, *, filter: UserFilterArgs) -> list[int]:
+        """
+        Get a list of userids that match the filter operation
+
+        This is a more efficient way to fetch users when you need to create
+        query conditions on other tables.
+
+        :param filter: Filtering options. See UserFilterArgs
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def get_many_profiles(self, *, filter: UserFilterArgs) -> list[RpcUserProfile]:
+        """
+        Get a list of RpcUserProfile matching `filter`
+
+        If you only need basic profile information about a user this is more efficient
+        than `get_many`
+
+        :param filter: Filtering options. See UserFilterArgs
+        """
         pass
 
     @rpc_method
@@ -75,9 +107,10 @@ class UserService(RpcService):
     ) -> list[RpcUser]:
         """
         Return a list of users matching the filters
-        :param email:
-        A case insensitive email to match
-        :return:
+
+        :param emails: A list of case insensitive emails to match
+        :param is_active: Whether the users need to be active
+        :param is_verified: Whether the user's emails need to be verified.
         """
 
     @rpc_method
@@ -86,20 +119,21 @@ class UserService(RpcService):
         self, *, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> list[RpcUser]:
         """
-        Return a list of users that match a username and falling back to email
-        :param username:
-        A case insensitive username/email to match
-        :param with_valid_password:
-        filter to ensure a password is set
-        :param is_active:
-        filter for only active users
-        :return:
+        Return a list of users that match a username and falling back to email.
+
+        :param username: A case insensitive username/email to match
+        :param with_valid_password: filter to ensure a password is set
+        :param is_active: filter for only active users
         """
 
     @rpc_method
     @abstractmethod
     def get_existing_usernames(self, *, usernames: list[str]) -> list[str]:
-        """Get all usernames from the set that belong to existing users."""
+        """
+        Get all usernames from the set that belong to existing users.
+
+        :param usernames: A list of usernames to match
+        """
 
     @rpc_method
     @abstractmethod
@@ -109,28 +143,56 @@ class UserService(RpcService):
         user_id: int,
         only_visible: bool = False,
     ) -> list[RpcOrganizationMapping]:
-        """Get summary data for all organizations of which the user is a member.
+        """
+        Get summary data for all organizations of which the user is a member.
 
         The organizations may span multiple regions.
+
+        :param user_id: The user to find organizations from.
+        :param only_visible: Whether or not to only fetch visible organizations
         """
 
     @rpc_method
     @abstractmethod
     def get_member_region_names(self, *, user_id: int) -> list[str]:
-        """Get a list of region names where the user is a member of at least one org."""
+        """
+        Get a list of region names where the user is a member of at least one org.
+
+        :param user_id: The user to fetch region names for.
+        """
 
     @rpc_method
     @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
-        # Returns a serialized user
+        """
+        Update a user and return the API serialized form
+
+        :param user_id: The user to update
+        :param attrs: A dictionary of properties to update.
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def flush_nonce(self, *, user_id: int) -> None:
+        """
+        Reset a user's session nonce
+
+        This will log out all sessions that don't contain the same session nonce.
+
+        :param user_id: The user to update
+        """
         pass
 
     def get_user(self, user_id: int) -> RpcUser | None:
+        """
+        Get a single user by id
+
+        The result of this method is cached.
+
+        :param user_id: The user to fetch
+        """
+        metrics.incr("user_service.get_user.call")
         return get_user(user_id)
 
     @rpc_method
@@ -138,11 +200,23 @@ class UserService(RpcService):
     def get_user_by_social_auth(
         self, *, organization_id: int, provider: str, uid: str
     ) -> RpcUser | None:
+        """
+        Get a user for a given organization, social auth provider and public id
+
+        :param organization_id: The organization to search in.
+        :param provider: the authentication provider to search in.
+        :param uid: The external id to search with.
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def get_first_superuser(self) -> RpcUser | None:
+        """
+        Get the first superuser in the database.
+
+        The results of this method are ordered by id
+        """
         pass
 
     @rpc_method
@@ -154,6 +228,13 @@ class UserService(RpcService):
         ident: str | None = None,
         referrer: str | None = None,
     ) -> tuple[RpcUser, bool]:
+        """
+        Get or create a user with a matching email address or AuthIdentity
+
+        :param email: The email to search by.
+        :param ident: If provided, and multiple users are found with a matching email, the ident
+          is used to narrow down results.
+        """
         pass
 
     @rpc_method
@@ -164,16 +245,34 @@ class UserService(RpcService):
         email: str,
         ident: str | None = None,
     ) -> RpcUser | None:
+        """
+        Get a user with a matching email address or AuthIdentity
+
+        :param email: The email/username to use.
+        :param ident: If provided, and multiple users are found with a matching email, the ident
+          is used to narrow down results.
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def verify_user_email(self, *, email: str, user_id: int) -> bool:
+        """
+        Verify a user's email address
+
+        :param email: The email to verify
+        :param user_id: The user id to verify email for.
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def verify_any_email(self, *, email: str) -> bool:
+        """
+        Verifies the first email address (ordered by id) that matches.
+
+        :param email: The email to verify.
+        """
         pass
 
     @rpc_method
@@ -196,18 +295,24 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def verify_user_emails(
-        self, *, user_id_emails: list[UserIdEmailArgs]
+        self, *, user_id_emails: list[UserIdEmailArgs], only_verified: bool = False
     ) -> dict[int, RpcVerifyUserEmail]:
         pass
 
     @rpc_method
     @abstractmethod
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
+        """
+        Get a user's avatar if available
+
+        :param user_id: The user to get an avatar for.
+        """
         pass
 
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
 def get_user(user_id: int) -> RpcUser | None:
+    metrics.incr("user_service.get_user.rpc_call")
     users = user_service.get_many(filter=dict(user_ids=[user_id]))
     if len(users) > 0:
         return users[0]

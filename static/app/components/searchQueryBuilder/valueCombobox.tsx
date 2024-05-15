@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
@@ -16,6 +16,7 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
 type SearchQueryValueBuilderProps = {
+  onChange: () => void;
   token: TokenResult<Token.FILTER>;
 };
 
@@ -32,13 +33,11 @@ function getPredefinedValues({key}: {key?: Tag}): string[] {
 
   const fieldDef = getFieldDefinition(key.key);
 
-  if (!key.values) {
-    return [];
-  }
-
-  if (isStringFilterValues(key.values)) {
+  if (key.values && isStringFilterValues(key.values)) {
     return key.values;
   }
+
+  // TODO(malwilley): Add support for grouped values
 
   switch (fieldDef?.valueType) {
     // TODO(malwilley): Better duration suggestions
@@ -54,7 +53,10 @@ function getPredefinedValues({key}: {key?: Tag}): string[] {
   }
 }
 
-export function SearchQueryBuilderValueCombobox({token}: SearchQueryValueBuilderProps) {
+export function SearchQueryBuilderValueCombobox({
+  token,
+  onChange,
+}: SearchQueryValueBuilderProps) {
   const [inputValue, setInputValue] = useState('');
 
   const {getTagValues, keys, dispatch} = useSearchQueryBuilder();
@@ -84,25 +86,30 @@ export function SearchQueryBuilderValueCombobox({token}: SearchQueryValueBuilder
     );
   }, [data, key, shouldFetchValues]);
 
+  const handleSelectValue = useCallback(
+    (value: string) => {
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token: token.value,
+        value: escapeTagValue(value),
+      });
+      onChange();
+    },
+    [dispatch, onChange, token.value]
+  );
+
   return (
     // TODO(malwilley): Support for multiple values
     <SearchQueryBuilderCombobox
       items={items}
-      onChange={value => {
-        dispatch({
-          type: 'UPDATE_TOKEN_VALUE',
-          token: token.value,
-          value: escapeTagValue(value),
-        });
-      }}
-      onExit={() => {
-        dispatch({type: 'EXIT_TOKEN'});
-      }}
+      onOptionSelected={handleSelectValue}
+      onCustomValueSelected={handleSelectValue}
       inputValue={inputValue}
-      setInputValue={setInputValue}
       placeholder={formatFilterValue(token)}
       token={token}
-      inputLabel={t('Filter value')}
+      inputLabel={t('Edit filter value')}
+      onInputChange={e => setInputValue(e.target.value)}
+      autoFocus
     >
       <Section>
         {items.map(item => (

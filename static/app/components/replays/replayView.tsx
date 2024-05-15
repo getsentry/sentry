@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
@@ -30,7 +31,7 @@ function ReplayView({toggleFullscreen}: Props) {
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
           <ContextContainer>
-            <ReplayCurrentUrl />
+            {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
             <BrowserOSIcons showBrowser={!isVideoReplay} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton

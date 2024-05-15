@@ -24,13 +24,10 @@ from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.endpoints.base import (
-    ProjectMonitorPermission,
-    get_monitor_by_org_id_or_slug,
-    try_checkin_lookup,
-)
 from sentry.monitors.models import Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context
+
+from .base import ProjectMonitorPermission, get_monitor_by_org_id_or_slug, try_checkin_lookup
 
 MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
@@ -51,7 +48,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
 
     """
-    Loosens the base endpoint such that a monitor with the provided monitor_slug
+    Loosens the base endpoint such that a monitor with the provided monitor_id_or_slug
     does not need to exist. This is used for initial checkin creation with
     monitor upsert.
 
@@ -61,9 +58,9 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_slug: str | int,
+        monitor_id_or_slug: int | str,
         checkin_id: str,
-        organization_slug: str | int | None = None,
+        organization_id_or_slug: int | str | None = None,
         *args,
         **kwargs,
     ):
@@ -86,26 +83,30 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
                 raise ResourceDoesNotExist
         else:
 
-            # When using DSN auth we're able to infer the organization slug
-            if not organization_slug and using_dsn_auth:
-                organization_slug = request.auth.project.organization.slug
+            # When using DSN auth we're able to infer the organization slug (organization_id_or_slug is slug in this case)
+            if not organization_id_or_slug and using_dsn_auth:
+                organization_id_or_slug = request.auth.project.organization.slug
 
-            # The only monitor endpoints that do not have the org slug in their
+            # The only monitor endpoints that do not have the org id or slug in their
             # parameters are the GUID-style checkin endpoints
-            if organization_slug:
+            if organization_id_or_slug:
                 try:
-                    # Try lookup by slug first. This requires organization context.
+                    # Try lookup by id or slug first. This requires organization context.
                     if (
                         id_or_slug_path_params_enabled(
-                            self.convert_args.__qualname__, str(organization_slug)
+                            self.convert_args.__qualname__, str(organization_id_or_slug)
                         )
-                        and str(organization_slug).isnumeric()
+                        and str(organization_id_or_slug).isdecimal()
                     ):
-                        organization = Organization.objects.get_from_cache(id=organization_slug)
+                        organization = Organization.objects.get_from_cache(
+                            id=organization_id_or_slug
+                        )
                     else:
-                        organization = Organization.objects.get_from_cache(slug=organization_slug)
+                        organization = Organization.objects.get_from_cache(
+                            slug=organization_id_or_slug
+                        )
 
-                    monitor = get_monitor_by_org_id_or_slug(organization, monitor_slug)
+                    monitor = get_monitor_by_org_id_or_slug(organization, monitor_id_or_slug)
                 except (Organization.DoesNotExist, Monitor.DoesNotExist):
                     pass
 
@@ -113,12 +114,12 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
             if not monitor:
                 # Validate GUIDs
                 try:
-                    UUID(monitor_slug)
+                    UUID(monitor_id_or_slug)
                     # When looking up by guid we don't include the org conditional
                     # (since GUID lookup allows orgless routes), we will validate
                     # permissions later in this function
                     try:
-                        monitor = Monitor.objects.get(guid=monitor_slug)
+                        monitor = Monitor.objects.get(guid=monitor_id_or_slug)
                     except Monitor.DoesNotExist:
                         monitor = None
                 except ValueError:
@@ -143,12 +144,12 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         # When looking up via GUID we do not check the organization slug,
         # validate that the slug matches the org of the monitors project
 
-        # We only raise if the organization_slug was set and it doesn't match.
+        # We only raise if the organization_id_or_slug was set and it doesn't match.
         # We don't check the api.id-or-slug-enabled option here because slug and id are unique
         if (
-            organization_slug
-            and project.organization.slug != organization_slug
-            and project.organization.id != organization_slug
+            organization_id_or_slug
+            and project.organization.slug != organization_id_or_slug
+            and project.organization.id != organization_id_or_slug
         ):
             raise ResourceDoesNotExist
 

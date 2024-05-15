@@ -10,7 +10,7 @@ import jsonschema
 
 from sentry import features
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -20,6 +20,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -35,6 +36,7 @@ class FeedbackCreationSource(Enum):
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
+    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
 
     @classmethod
     def new_feedback_category_values(cls) -> set[str]:
@@ -54,6 +56,7 @@ class FeedbackCreationSource(Enum):
                 cls.CRASH_REPORT_EMBED_FORM,
                 cls.USER_REPORT_ENVELOPE,
                 cls.USER_REPORT_DJANGO_ENDPOINT,
+                cls.UPDATE_USER_REPORTS_TASK,
             ]
         }
 
@@ -61,6 +64,13 @@ class FeedbackCreationSource(Enum):
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
+    if feedback.get("associated_event_id"):
+        evidence_data["associated_event_id"] = feedback["associated_event_id"]
+        evidence_display.append(
+            IssueEvidence(
+                name="associated_event_id", value=feedback["associated_event_id"], important=False
+            )
+        )
     if feedback.get("contact_email"):
         evidence_data["contact_email"] = feedback["contact_email"]
         evidence_display.append(
@@ -79,7 +89,7 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
     evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
     if is_message_spam is True:
-        evidence_data["is_spam"] = str(is_message_spam)
+        evidence_data["is_spam"] = is_message_spam
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
@@ -173,7 +183,7 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     return False
 
 
-def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
     metrics.incr("feedback.create_feedback_issue.entered")
 
     if should_filter_feedback(event, project_id, source):
@@ -244,15 +254,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
     if is_message_spam:
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project_id,
-                new_status=GroupStatus.RESOLVED,
-                new_substatus=None,
-            ),
-        )
+        auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={"referrer": source.value},
@@ -296,7 +298,7 @@ class UserReportShimDict(TypedDict):
 
 def shim_to_feedback(
     report: UserReportShimDict,
-    event: Event,
+    event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
 ):
@@ -347,4 +349,18 @@ def shim_to_feedback(
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"
+        )
+
+
+def auto_ignore_spam_feedbacks(project, issue_fingerprint):
+    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
+        metrics.incr("feedback.spam-detection-actions.set-ignored")
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project.id,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                new_substatus=GroupSubStatus.FOREVER,
+            ),
         )
