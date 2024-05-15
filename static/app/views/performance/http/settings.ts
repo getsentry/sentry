@@ -3,6 +3,7 @@ import {t} from 'sentry/locale';
 import {ModuleName} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLE = t('Requests');
+export const BASE_URL = 'http';
 
 export const NULL_DOMAIN_DESCRIPTION = t('Unknown Domain');
 
