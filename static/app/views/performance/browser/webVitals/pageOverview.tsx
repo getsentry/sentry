@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment';
@@ -37,6 +37,7 @@ import {
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
+import {BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -74,7 +75,7 @@ function getCurrentTabSelection(selectedTab) {
   return LandingDisplayField.OVERVIEW;
 }
 
-export default function PageOverview() {
+export function PageOverview() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -138,11 +139,7 @@ export default function PageOverview() {
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL="/performance/browser/pageloads"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Tabs
         value={tab}
         onChange={value => {
@@ -303,9 +300,23 @@ export default function PageOverview() {
           }}
         />
       </Tabs>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL={`/performance/${BASE_URL}`}
+      features="spans-first-ui"
+    >
+      <PageOverview />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const ViewAllPagesButton = styled(LinkButton)`
   margin-right: ${space(1)};

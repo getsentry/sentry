@@ -23,6 +23,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
+import {BASE_URL} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -265,11 +266,11 @@ const SelectorContainer = styled('div')`
 
 const LIMIT: number = 25;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database')].join(' — ')}
-      baseURL="/performance/database"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <DatabaseLandingPage />
@@ -277,4 +278,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

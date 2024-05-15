@@ -46,7 +46,6 @@
   "sentry_repositoryprojectpathconfig",
   "sentry_reprocessingreport",
   "sentry_scheduleddeletion",
-  "sentry_sentryfunction",
   "sentry_sentryshot",
   "sentry_stringindexer",
   "sentry_team",

@@ -62,7 +62,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
         url = reverse(
             "sentry-api-0-organization-tagkey-values",
-            kwargs={"organization_slug": self.org.slug, "key": "fruit"},
+            kwargs={"organization_id_or_slug": self.org.slug, "key": "fruit"},
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content

@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -20,6 +21,7 @@ import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/re
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
+import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
@@ -80,11 +82,7 @@ function ResourceSummary() {
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -151,18 +149,29 @@ function ResourceSummary() {
             groupId={groupId}
             moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
-            additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />
         </Layout.Main>
       </Layout.Body>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      baseURL={`/performance/${BASE_URL}`}
+      features="spans-first-ui"
+    >
+      <ResourceSummary />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
 `;
-
-export default ResourceSummary;
