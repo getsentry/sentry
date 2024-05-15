@@ -72,7 +72,6 @@ export type Choices = Choice[];
  * that are used in stats but not other places like billing.
  */
 export enum DataCategory {
-  DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
