@@ -34,7 +34,6 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BATCH_SIZE = 20
 BACKFILL_NAME = "backfill_grouping_records"
-LAST_PROCESSED_REDIS_KEY = "grouping_record_backfill.last_processed_id"
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +82,7 @@ def backfill_seer_grouping_records(
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     if last_processed_id is None:
-        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        last_processed_id = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
         if last_processed_id == 0 and dry_run:
             logger.info(
                 "backfill_seer_grouping_records.delete_all_seer_records",
@@ -191,7 +190,7 @@ def backfill_seer_grouping_records(
 
         last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
         redis_client.set(
-            f"{LAST_PROCESSED_REDIS_KEY}",
+            f"{make_backfill_redis_key(project_id)}",
             last_processed_id if last_processed_id is not None else 0,
             ex=60 * 60 * 24 * 7,
         )  # needed for typing
@@ -381,3 +380,8 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
     event.data = data
     return event
+
+
+def make_backfill_redis_key(project_id):
+    redis_key = "grouping_record_backfill.last_processed_id"
+    return f"{redis_key}-{project_id}"
