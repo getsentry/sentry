@@ -19,8 +19,10 @@ import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
-import {MODULE_NAME} from 'sentry/views/performance/browser/resources/settings';
-import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
+import {
+  BASE_URL,
+  MODULE_TITLE,
+} from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -55,7 +57,7 @@ function ResourcesLandingPage() {
               ]}
             />
 
-            <Layout.Title>{MODULE_NAME}</Layout.Title>
+            <Layout.Title>{MODULE_TITLE}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -92,7 +94,7 @@ function ResourcesLandingPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), MODULE_NAME].join(' — ')}
+      title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
