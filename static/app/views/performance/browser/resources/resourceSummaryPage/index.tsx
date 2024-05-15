@@ -21,6 +21,7 @@ import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/re
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
+import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
@@ -160,7 +161,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
-      baseURL="/performance/browser/resources"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <ResourceSummary />
