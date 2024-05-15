@@ -172,7 +172,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
                 self.group_hashes[event.group.id],
             )
             assert (group_data, stacktrace_string) == (None, "")
-            mock_logger.info.assert_called_with(
+            mock_logger.exception.assert_called_with(
                 "tasks.backfill_seer_grouping_records.event_lookup_exception",
                 extra={
                     "organization_id": self.project.organization.id,
@@ -261,7 +261,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             assert invalid_event_ids == set()
             assert bulk_group_data_stacktraces["data"] == []
             assert bulk_group_data_stacktraces["stacktrace_list"] == []
-            mock_logger.info.assert_called_with(
+            mock_logger.exception.assert_called_with(
                 "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                 extra={
                     "organization_id": self.project.organization.id,
@@ -510,7 +510,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.info.assert_called_with(
+        mock_logger.exception.assert_called_with(
             "tasks.backfill_seer_grouping_records.no_group_hash",
             extra={
                 "organization_id": self.project.organization.id,
@@ -550,7 +550,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.info.assert_called_with(
+        mock_logger.exception.assert_called_with(
             "tasks.backfill_seer_grouping_records.event_lookup_error",
             extra={
                 "organization_id": self.project.organization.id,

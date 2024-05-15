@@ -1519,8 +1519,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:custom-metrics-experimental": False,
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enables import of metric dashboards
-    "organizations:ddm-dashboard-import": False,
+    # Controls the visibility of the metrics launch related UI elements
+    "organizations:metrics-launch-rollout": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1808,6 +1808,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable resolve in upcoming release
+    "organizations:resolve-in-upcoming-release": False,
     # Enable post create/edit rule confirmation notifications
     "organizations:rule-create-edit-confirm-notification": False,
     # Enable team member role provisioning through scim
@@ -2745,6 +2747,11 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
+# This flags enables the `peanutbutter` realtime metrics backend.
+# See https://github.com/getsentry/peanutbutter.
+# We do not want/need this in normal devservices, but we need it for certain tests.
+SENTRY_USE_PEANUTBUTTER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3002,6 +3009,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"8969/tcp": 8969},
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
+        }
+    ),
+    "peanutbutter": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/peanutbutter:latest",
+            "environment": {},
+            "ports": {"4433/tcp": 4433},
+            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
         }
     ),
 }

@@ -16,13 +16,17 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
+import {
+  SpanFunction,
+  SpanIndexedField,
+  type SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
@@ -53,7 +57,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate()',
+    key: 'trace_status_rate(ok)',
     name: t('Error Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -68,15 +72,19 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum(span.duration)',
+    key: 'time_spent_percentage(app,span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
 const SORTABLE_FIELDS = [
-  'messaging.destination.name',
-  'time_spent_percentage()',
+  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  'count_op(queue.publish)',
+  'count_op(queue.process)',
+  'avg_if(span.duration,span.op,queue.process)',
+  'avg(messaging.message.receive.latency)',
+  `${SpanFunction.TIME_SPENT_PERCENTAGE}(app,span.duration)`,
 ] as const;
 
 type ValidSort = Sort & {
@@ -88,10 +96,10 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 interface Props {
+  sort: ValidSort;
   destination?: string;
   error?: Error | null;
   meta?: EventsMetaType;
-  sort?: ValidSort;
 }
 
 export function QueuesTable({error, destination, sort}: Props) {
@@ -118,12 +126,19 @@ export function QueuesTable({error, destination, sort}: Props) {
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
         grid={{
-          renderHeadCell: col =>
+          renderHeadCell: column =>
             renderHeadCell({
-              column: col,
+              column,
+              sort,
               location,
+              sortParameterName: QueryParameterNames.DESTINATIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
@@ -160,13 +175,19 @@ function renderBodyCell(
     return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
   }
 
-  if (key === 'failure_rate()') {
-    return <AlignRight>{formatPercentage(row[key])}</AlignRight>;
-  }
-
   if (key.startsWith('avg')) {
     const renderer = FIELD_FORMATTERS.duration.renderFunc;
     return renderer(key, row);
+  }
+
+  // Need to invert trace_status_rate(ok) to show error rate
+  if (key === 'trace_status_rate(ok)') {
+    const formatter = FIELD_FORMATTERS.percentage.renderFunc;
+    return (
+      <AlignRight>
+        {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
+      </AlignRight>
+    );
   }
 
   if (!meta?.fields) {
