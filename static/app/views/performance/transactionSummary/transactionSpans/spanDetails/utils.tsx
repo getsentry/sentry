@@ -1,6 +1,7 @@
 import type {Query} from 'history';
 
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 
 export function generateSpanDetailsRoute({
   orgSlug,
@@ -90,7 +91,7 @@ export function generateResourceSummaryRoute({
   group: string;
   orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/performance/browser/resources/spans/span/${group}/`;
+  return `/organizations/${orgSlug}/performance/${BASE_URL}/spans/span/${group}/`;
 }
 
 export function resourceSummaryRouteWithQuery({
