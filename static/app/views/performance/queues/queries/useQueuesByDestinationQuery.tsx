@@ -33,7 +33,7 @@ export function useQueuesByDestinationQuery({enabled, destination, sort}: Props)
         'avg_if(span.duration,span.op,queue.publish)',
         'avg_if(span.duration,span.op,queue.process)',
         'avg(messaging.message.receive.latency)',
-        'time_spent_percentage()',
+        'time_spent_percentage(app,span.duration)',
       ],
       enabled,
       sorts: sort ? [sort] : [],

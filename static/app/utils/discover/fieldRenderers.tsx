@@ -35,6 +35,7 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -782,10 +783,12 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     );
   },
   time_spent_percentage: fieldName => data => {
+    const parsedFunction = parseFunction(fieldName);
+    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
-        total={data[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        total={data[`sum(${column})`]}
         op={data[`span.op`]}
       />
     );

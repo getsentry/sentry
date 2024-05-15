@@ -4,6 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useOrganization');
 
@@ -34,6 +35,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 0,
             'avg_if(span.duration,span.op,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
+            'time_spent_percentage(app,span.duration)': 0.5,
           },
         ],
         meta: {
@@ -46,13 +48,18 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 'duration',
             'avg_if(span.duration,span.op,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
+            'time_spent_percentage(app,span.duration)': 'percentage',
           },
         },
       },
     });
   });
   it('renders', async () => {
-    render(<QueuesTable />);
+    render(
+      <QueuesTable
+        sort={{field: 'time_spent_percentage(app,span.duration)', kind: 'desc'}}
+      />
+    );
     expect(screen.getByRole('table', {name: 'Queues'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Destination'})).toBeInTheDocument();
     expect(
@@ -79,7 +86,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
-            'time_spent_percentage()',
+            'time_spent_percentage(app,span.duration)',
           ],
           dataset: 'spansMetrics',
         }),
@@ -96,7 +103,7 @@ describe('queuesTable', () => {
     render(
       <QueuesTable
         destination="*events*"
-        sort={{field: 'messaging.destination.name', kind: 'desc'}}
+        sort={{field: SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
       />
     );
     expect(eventsMock).toHaveBeenCalledWith(
@@ -113,7 +120,7 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
-            'time_spent_percentage()',
+            'time_spent_percentage(app,span.duration)',
           ],
           dataset: 'spansMetrics',
           sort: '-messaging.destination.name',

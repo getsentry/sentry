@@ -1,3 +1,4 @@
+import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -8,9 +9,10 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 type Props = {
   destination?: string;
   enabled?: boolean;
+  sort?: Sort;
 };
 
-export function useQueuesByTransactionQuery({destination, enabled}: Props) {
+export function useQueuesByTransactionQuery({destination, enabled, sort}: Props) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
@@ -32,9 +34,10 @@ export function useQueuesByTransactionQuery({destination, enabled}: Props) {
         'avg_if(span.duration,span.op,queue.publish)',
         'avg_if(span.duration,span.op,queue.process)',
         'avg(messaging.message.receive.latency)',
+        'time_spent_percentage(app,span.duration)',
       ],
       enabled,
-      sorts: [],
+      sorts: sort ? [sort] : [],
       limit: 10,
       cursor,
     },
