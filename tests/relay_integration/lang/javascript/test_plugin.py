@@ -27,6 +27,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 # IMPORTANT:
 #
@@ -397,7 +398,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         # Since we couldn't expand source for the 2nd frame, both
         # its raw and original form should be identical, apart from `data.symbolicated`
-        assert not frame_list[1].data.get("symbolicated", False)
+        assert not get_path(frame_list[1], "data", "symbolicated", default=False)
         assert raw_frame_list[1].abs_path == frame_list[1].abs_path
         assert raw_frame_list[1].filename == frame_list[1].filename
         assert raw_frame_list[1].function == frame_list[1].function
