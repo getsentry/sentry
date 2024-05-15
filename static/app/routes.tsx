@@ -1504,7 +1504,7 @@ function buildRoutes() {
             )}
           />
         </Route>
-        <Route path="resources/">
+        <Route path="assets/">
           <IndexRoute
             component={make(
               () => import('sentry/views/performance/browser/resources/index')
