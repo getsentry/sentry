@@ -31,6 +31,7 @@ import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {
   type IndexedResponse,
+  ModuleName,
   SpanIndexedField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -256,6 +257,7 @@ function renderBodyCell(
     if (column.key === SpanIndexedField.ID) {
       return (
         <SpanIdCell
+          moduleName={ModuleName.OTHER}
           projectSlug={project}
           spanId={span_id}
           timestamp={timestamp}
