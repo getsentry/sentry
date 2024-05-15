@@ -19,18 +19,6 @@ def extract_packages(text_content: str) -> set[str]:
     return {line.split("==")[0] for line in text_content.splitlines() if "==" in line}
 
 
-def package_top_level(package: str) -> list[str]:
-    # Ideally we'd use importlib.metadata.packages_distributions()
-    # but we're not on py3.10 yet.
-    # Inspired by https://github.com/python/cpython/blob/e25d8b40cd70744513e190b1ca153087382b6b09/Lib/importlib/metadata/__init__.py#L934
-    dist = importlib.metadata.distribution(package)
-    top_level = dist.read_text("top_level.txt")
-    if top_level:
-        return top_level.split()
-    else:
-        return []
-
-
 @functools.lru_cache
 def dev_dependencies() -> tuple[str, ...]:
     with open("requirements-dev-frozen.txt") as f:
@@ -38,11 +26,14 @@ def dev_dependencies() -> tuple[str, ...]:
     with open("requirements-frozen.txt") as f:
         prod_packages = extract_packages(f.read())
 
-    module_names = []
     # We have some packages that are both runtime + dev
     # but we only care about packages that are exclusively dev deps
-    for package in dev_packages - prod_packages:
-        module_names.extend(package_top_level(package))
+    devonly = dev_packages - prod_packages
+
+    module_names = []
+    for mod, packages in importlib.metadata.packages_distributions().items():
+        if devonly.intersection(packages):
+            module_names.append(mod)
     return tuple(sorted(module_names))
 
 
