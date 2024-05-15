@@ -266,7 +266,7 @@ def update_groups(
             actor=acting_user,
             project_lookup=project_lookup,
         )
-    if status in ("resolved", "resolvedInNextRelease"):
+    if status in ("resolved", "resolvedInNextRelease", "resolvedInUpcomingRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -300,14 +300,21 @@ def update_groups(
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
             res_status = GroupResolution.Status.pending
-        elif status_details.get("resolvedInUpcomingRelease"):
+        elif status == "resolvedInUpcomingRelease" or status_details.get("inUpcomingRelease"):
             if len(projects) > 1:
                 return Response(
                     {"detail": "Cannot set resolved in next release for multiple projects."},
                     status=400,
                 )
-            release = True
-            activity_type = ActivityType.SET_RESOLVED_IN_UPCOMING_RELEASE.value
+            release = (
+                status_details.get("inNextRelease")
+                or Release.objects.filter(
+                    projects=projects[0], organization_id=projects[0].organization_id
+                )
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .order_by("-sort")[0]
+            )
+            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
                 "version": ""
@@ -630,6 +637,7 @@ def update_groups(
             if res_type in (
                 GroupResolution.Type.in_next_release,
                 GroupResolution.Type.in_release,
+                GroupResolution.Type.in_upcoming_release,
             ):
                 result["activity"] = serialize(
                     Activity.objects.get_activities_for_group(

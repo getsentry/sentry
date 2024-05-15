@@ -7,6 +7,7 @@ from . import InCommitValidator
 
 class StatusDetailsValidator(serializers.Serializer):
     inNextRelease = serializers.BooleanField()
+    inUpcomingRelease = serializers.BooleanField()
     inRelease = serializers.CharField()
     inCommit = InCommitValidator(required=False)
     ignoreDuration = serializers.IntegerField()

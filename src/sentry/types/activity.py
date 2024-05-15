@@ -23,7 +23,6 @@ class ActivityType(Enum):
     UNMERGE_SOURCE = 19
     UNMERGE_DESTINATION = 20
     SET_RESOLVED_IN_PULL_REQUEST = 21
-    SET_RESOLVED_IN_UPCOMING_RELEASE = 22
 
     # The user has reprocessed the group, so events may have moved to new groups
     REPROCESS = 22
