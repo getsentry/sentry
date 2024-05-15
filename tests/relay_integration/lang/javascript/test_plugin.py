@@ -396,8 +396,14 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame.lineno == 1
 
         # Since we couldn't expand source for the 2nd frame, both
-        # its raw and original form should be identical
-        assert raw_frame_list[1] == frame_list[1]
+        # its raw and original form should be identical, apart from `data.symbolicated`
+        assert not frame_list[1].data.get("symbolicated", False)
+        assert raw_frame_list[1].abs_path == frame_list[1].abs_path
+        assert raw_frame_list[1].filename == frame_list[1].filename
+        assert raw_frame_list[1].function == frame_list[1].function
+        assert raw_frame_list[1].in_app == frame_list[1].in_app
+        assert raw_frame_list[1].lineno == frame_list[1].lineno
+        assert raw_frame_list[1].colno == frame_list[1].colno
 
         # The second non-js frame should be untouched
         assert raw_frame_list[2] == frame_list[2]
@@ -1621,7 +1627,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         frame = frame_list[2]
         assert "resolved_with" not in frame.data
-        assert "symbolicated" not in frame.data
+        assert not frame.data.get("symbolicated", False)
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}"]
