@@ -271,19 +271,20 @@ function ProducerMetricsRibbon({
   isLoading: boolean;
   metrics: Partial<SpanMetricsResponse>[];
 }) {
+  const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
       <MetricReadout
         align="left"
         title={t('Published')}
-        value={metrics?.[0]?.['count()']}
+        value={metrics?.[0]?.['count_op(queue.publish)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
         align="left"
         title={t('Error Rate')}
-        value={undefined}
+        value={errorRate}
         unit={'percentage'}
         isLoading={isLoading}
       />
@@ -298,19 +299,20 @@ function ConsumerMetricsRibbon({
   isLoading: boolean;
   metrics: Partial<SpanMetricsResponse>[];
 }) {
+  const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
       <MetricReadout
         align="left"
         title={t('Processed')}
-        value={metrics?.[0]?.['count()']}
+        value={metrics?.[0]?.['count_op(queue.process)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
         align="left"
         title={t('Error Rate')}
-        value={undefined}
+        value={errorRate}
         unit={'percentage'}
         isLoading={isLoading}
       />
@@ -321,7 +323,7 @@ function ConsumerMetricsRibbon({
         isLoading={false}
       />
       <MetricReadout
-        title={t('Avg Processing Latency')}
+        title={t('Avg Processing Time')}
         value={metrics[0]?.['avg_if(span.duration,span.op,queue.process)']}
         unit={DurationUnit.MILLISECOND}
         isLoading={false}

@@ -43,6 +43,7 @@ function DestinationSummaryPage() {
   const destination = decodeScalar(query.destination);
 
   const {data, isLoading} = useQueuesMetricsQuery({destination});
+  const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
       <Layout.Header>
@@ -106,7 +107,7 @@ function DestinationSummaryPage() {
                     />
                     <MetricReadout
                       title={t('Error Rate')}
-                      value={undefined}
+                      value={errorRate}
                       unit={'percentage'}
                       isLoading={isLoading}
                     />
