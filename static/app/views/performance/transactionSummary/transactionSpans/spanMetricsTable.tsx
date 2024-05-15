@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link, browserHistory} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -9,31 +9,28 @@ import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
-
+import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
-
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
-  type SpanMetricsQueryFilters,
   SpanMetricsField,
+  type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
-
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 type DataRow = {
   [SpanMetricsField.SPAN_OP]: string;
   [SpanMetricsField.SPAN_DESCRIPTION]: string;
   [SpanMetricsField.SPAN_GROUP]: string;
-  'spm()': number;
   'avg(span.duration)': number;
+  'spm()': number;
   'sum(span.self_time)': number;
 };
 
@@ -78,8 +75,8 @@ const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [SpanMetricsField.SPAN_OP]: 'string',
   [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
   ['spm()']: 'rate',
-  [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'number',
-  [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'number',
+  [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
+  [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'duration',
 };
 
 const LIMIT = 8;
@@ -126,8 +123,6 @@ export default function SpanMetricsTable(props: Props) {
     },
     ''
   );
-
-  console.dir(data);
 
   return (
     <Fragment>
@@ -190,9 +185,8 @@ function renderBodyCell(
       );
     }
 
-    const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
+    const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE, false);
     const rendered = fieldRenderer(dataRow, {location, organization});
-    console.dir(rendered);
 
     return rendered;
   };
