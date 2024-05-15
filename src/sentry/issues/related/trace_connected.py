@@ -1,7 +1,9 @@
 # Module to evaluate if other errors happened in the same trace.
 #
 # Refer to README in module for more details.
+from sentry import eventstore
 from sentry.api.utils import default_start_end_dates
+from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.events.builder import QueryBuilder
@@ -11,12 +13,47 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
 
 
-def trace_connected_analysis(group: Group) -> tuple[list[int], dict[str, str]]:
+# If we drop trace connected issues from similar issues we can stop using the group
+def trace_connected_analysis(
+    group: Group, extra_args: dict[str, str | None] | None = None
+) -> tuple[list[int], dict[str, str]]:
     """Determine if the group has a trace connected to it and return other issues that were part of it."""
-    event = group.get_recommended_event_for_environments()
-    if not event or event.trace_id is None:
-        return [], {}
+    if extra_args is None:
+        extra_args = {}
 
+    issues: list[int] = []
+    meta: dict[str, str] = {}
+    event_id = extra_args.get("event_id")
+    project_id = extra_args.get("project_id")
+    if event_id:
+        # If we are passing an specific event_id, we need to get the project_id
+        assert project_id is not None
+        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id=group.id)
+        # If we are requesting an specific event, we want to be notified with an error
+        assert event is not None
+        # This ensures that the event is actually part of the group and we are notified
+        assert event.group_id == group.id
+    else:
+        # If we drop trace connected issues from similar issues we can remove this
+        event = group.get_recommended_event_for_environments()
+
+    if event:
+        issues, meta = trace_connected_issues(event)
+    else:
+        meta["error"] = "No event found for group."
+
+    return issues, meta
+
+
+def trace_connected_issues(event: GroupEvent) -> tuple[list[int], dict[str, str]]:
+    meta = {"event_id": event.event_id}
+    if event.trace_id:
+        meta["trace_id"] = event.trace_id
+    else:
+        meta["error"] = "No trace_id found in event."
+        return [], meta
+
+    group = event.group
     org_id = group.project.organization_id
     # XXX: Test without a list and validate the data type
     project_ids = list(Project.objects.filter(organization_id=org_id).values_list("id", flat=True))
@@ -41,4 +78,4 @@ def trace_connected_analysis(group: Group) -> tuple[list[int], dict[str, str]]:
             if datum["issue.id"] != group.id  # Exclude itself
         }
     )
-    return transformed_results, {"event_id": event.event_id, "trace_id": event.trace_id}
+    return transformed_results, meta
