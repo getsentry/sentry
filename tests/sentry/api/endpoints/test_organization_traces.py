@@ -700,25 +700,26 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for mri in [
-            TransactionMRI.DURATION.value,
-            "d:transactions/measurements.lcp@millisecond",
-            SpanMRI.DURATION.value,
-            SpanMRI.SELF_TIME.value,
-            "d:spans/webvital.score.total@ratio",
-            "d:spans/webvital.score.inp@ratio",
-            "d:spans/webvital.score.weight.inp@ratio",
-            "d:spans/http.response_content_length@byte",
-            "d:spans/http.decoded_response_content_length@byte",
-            "d:spans/http.response_transfer_size@byte",
-            "d:custom/value@millisecond",
+        for (mri, op) in [
+            (TransactionMRI.DURATION.value, "count"),
+            ("d:transactions/measurements.lcp@millisecond", "max"),
+            (SpanMRI.DURATION.value, "min"),
+            (SpanMRI.SELF_TIME.value, "avg"),
+            ("d:spans/webvital.score.total@ratio", "count"),
+            ("d:spans/webvital.score.inp@ratio", "max"),
+            ("d:spans/webvital.score.weight.inp@ratio", "min"),
+            ("d:spans/http.response_content_length@byte", "avg"),
+            ("d:spans/http.decoded_response_content_length@byte", "count"),
+            ("d:spans/http.response_transfer_size@byte", "max"),
+            ("d:custom/value@millisecond", "min"),
         ]:
             for user_query in ["foo:qux", None]:
                 query = {
                     "mri": mri,
-                    "metricsQuery": ["foo:qux"],
                     "metricsMin": 30_000,
                     "metricsMax": 50_000,
+                    "metricsOp": op,
+                    "metricsQuery": ["foo:qux"],
                     "project": [project_1.id],
                     "field": ["id", "parent_span", "span.duration"],
                     "suggestedQuery": ["foo:qux"],
