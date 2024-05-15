@@ -1,7 +1,7 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import type {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
@@ -9,9 +9,9 @@ type Query = {
 };
 
 const SORTABLE_FIELDS = [
-  `sum(${SpanIndexedField.SPAN_SELF_TIME})`,
+  `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
   'spm()',
-  `avg(${SpanIndexedField.SPAN_DURATION})`,
+  `avg(${SpanMetricsField.SPAN_DURATION})`,
 ] as const;
 
 export type ValidSort = Sort & {

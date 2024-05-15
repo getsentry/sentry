@@ -79,7 +79,7 @@ const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'duration',
 };
 
-const LIMIT = 8;
+const LIMIT = 12;
 
 type Props = {
   project: Project | undefined;
