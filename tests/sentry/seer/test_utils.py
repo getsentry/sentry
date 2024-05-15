@@ -1,10 +1,16 @@
+import copy
 from typing import Any
 from unittest import mock
 
 import pytest
+from django.conf import settings
+from urllib3.connectionpool import ConnectionPool
+from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry.seer.utils import (
+    POST_BULK_GROUPING_RECORDS_TIMEOUT,
+    CreateGroupingRecordsRequest,
     IncompleteSeerDataError,
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
@@ -12,11 +18,22 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     detect_breakpoints,
     get_similarity_data_from_seer,
+    post_bulk_grouping_records,
 )
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.types import NonNone
+
+DUMMY_POOL = ConnectionPool("dummy")
+CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
+    "group_id_list": [1, 2],
+    "data": [
+        {"hash": "hash-1", "project_id": 1, "message": "message"},
+        {"hash": "hash-2", "project_id": 1, "message": "message 2"},
+    ],
+    "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
+}
 
 
 @mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
@@ -275,9 +292,41 @@ def test_from_raw_parent_group_id_and_parent_hash(default_project):
 
 
 @django_db_all
+def test_from_raw_unexpected_data(default_project):
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+    raw_similar_issue_data = {
+        "message_distance": 0.05,
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+        "something": "unexpected",
+    }
+
+    expected_similar_issue_data = {
+        "message_distance": 0.05,
+        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "should_group": True,
+        "stacktrace_distance": 0.01,
+        "parent_group_id": NonNone(similar_event.group_id),
+    }
+
+    # Everything worked fine, in spite of the extra data
+    assert SeerSimilarIssueData.from_raw(
+        default_project.id, raw_similar_issue_data
+    ) == SeerSimilarIssueData(
+        **expected_similar_issue_data  # type:ignore[arg-type]
+    )
+
+
+@django_db_all
 def test_from_raw_missing_data(default_project):
-    with pytest.raises(IncompleteSeerDataError):
-        raw_similar_issue_data: RawSeerSimilarIssueData = {
+    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
+
+    with pytest.raises(
+        IncompleteSeerDataError,
+        match="Seer similar issues response missing both `parent_group_id` and `parent_hash`",
+    ):
+        raw_similar_issue_data: Any = {
             # missing both `parent_group_id` and `parent_hash`
             "message_distance": 0.05,
             "should_group": True,
@@ -286,11 +335,39 @@ def test_from_raw_missing_data(default_project):
 
         SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
 
+    with pytest.raises(
+        IncompleteSeerDataError,
+        match="Seer similar issues response entry missing key 'message_distance'",
+    ):
+        raw_similar_issue_data = {
+            "parent_group_id": NonNone(similar_event.group_id),
+            "parent_hash": NonNone(similar_event.get_primary_hash()),
+            # missing `message_distance`
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+
+        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
+
+    with pytest.raises(
+        IncompleteSeerDataError,
+        match="Seer similar issues response entry missing keys 'message_distance', 'stacktrace_distance'",
+    ):
+        raw_similar_issue_data = {
+            "parent_group_id": NonNone(similar_event.group_id),
+            "parent_hash": NonNone(similar_event.get_primary_hash()),
+            # missing `message_distance`
+            "should_group": True,
+            # missing `stacktrace_distance`
+        }
+
+        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
+
 
 @django_db_all
 def test_from_raw_nonexistent_group(default_project):
     with pytest.raises(SimilarGroupNotFoundError):
-        raw_similar_issue_data: RawSeerSimilarIssueData = {
+        raw_similar_issue_data = {
             "parent_group_id": 1121201212312012,  # too high to be real
             "parent_hash": "not a real hash",
             "message_distance": 0.05,
@@ -299,3 +376,78 @@ def test_from_raw_nonexistent_group(default_project):
         }
 
         SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
+
+
+@mock.patch("sentry.seer.utils.logger")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
+    expected_return_value = {"success": True}
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps(expected_return_value).encode("utf-8"), status=200
+    )
+
+    response = post_bulk_grouping_records(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    assert response == expected_return_value
+    mock_logger.info.assert_called_with(
+        "seer.post_bulk_grouping_records.success",
+        extra={
+            "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
+            "project_id": 1,
+        },
+    )
+
+
+@mock.patch("sentry.seer.utils.logger")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
+    expected_return_value = {"success": False}
+    mock_seer_request.side_effect = ReadTimeoutError(
+        DUMMY_POOL, settings.SEER_AUTOFIX_URL, "read timed out"
+    )
+
+    response = post_bulk_grouping_records(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    assert response == expected_return_value
+    mock_logger.info.assert_called_with(
+        "seer.post_bulk_grouping_records.failure",
+        extra={
+            "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
+            "project_id": 1,
+            "reason": "ReadTimeoutError",
+            "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        },
+    )
+
+
+@mock.patch("sentry.seer.utils.logger")
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
+    expected_return_value = {"success": False}
+    mock_seer_request.return_value = HTTPResponse(
+        b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
+        reason="INTERNAL SERVER ERROR",
+        status=500,
+    )
+
+    response = post_bulk_grouping_records(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    assert response == expected_return_value
+    mock_logger.info.assert_called_with(
+        "seer.post_bulk_grouping_records.failure",
+        extra={
+            "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
+            "project_id": 1,
+            "reason": "INTERNAL SERVER ERROR",
+        },
+    )
+
+
+@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+def test_post_bulk_grouping_records_empty_data(mock_seer_request):
+    """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
+    expected_return_value = {"success": True}
+    mock_seer_request.return_value = HTTPResponse(
+        json.dumps(expected_return_value).encode("utf-8"), status=200
+    )
+    empty_data = copy.deepcopy(CREATE_GROUPING_RECORDS_REQUEST_PARAMS)
+    empty_data["data"] = []
+    response = post_bulk_grouping_records(empty_data)
+    assert response == expected_return_value
