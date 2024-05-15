@@ -99,6 +99,7 @@ jobs:
           kafka: true
           snuba: true
           symbolicator: true
+          peanutbutter: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
           # is way smaller than the time it would take to run in its own job.
