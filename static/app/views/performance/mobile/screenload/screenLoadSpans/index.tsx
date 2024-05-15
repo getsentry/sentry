@@ -21,13 +21,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
   ScreenCharts,
   YAxis,
 } from 'sentry/views/performance/mobile/screenload/screenLoadSpans/charts';
 import {ScreenLoadEventSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamples';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
 import {ScreenLoadSpansTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/table';
 import {
   MobileCursors,
@@ -42,7 +42,7 @@ import {
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
@@ -209,8 +209,9 @@ function ScreenLoadSpans() {
                 project={project}
               />
               {spanGroup && (
-                <ScreenLoadSpanSamples
+                <SpanSamplesPanel
                   groupId={spanGroup}
+                  moduleName={ModuleName.SCREEN}
                   transactionName={transactionName}
                   spanDescription={spanDescription}
                   onClose={() => {
