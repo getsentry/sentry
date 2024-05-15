@@ -24,7 +24,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
                 query,
                 format="json",
                 **kwargs,
@@ -76,7 +76,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         project_2 = self.create_project()
 
         # Hack: ensure that no span ids with leading 0s are generated for the test
-        span_ids = ["1" + uuid4().hex[:15] for _ in range(12)]
+        span_ids = ["1" + uuid4().hex[:15] for _ in range(13)]
         tags = ["", "bar", "bar", "baz", "", "bar", "baz"]
         timestamps = []
 
@@ -194,6 +194,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             timestamp=timestamps[-1],
             transaction="qux",
             duration=40_000,
+            exclusive_time=40_000,
             tags={"foo": "qux"},
             measurements={
                 measurement: 40_000
@@ -244,6 +245,21 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         }
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
+
+        timestamps.append(before_now(days=0, minutes=21, seconds=0).replace(microsecond=0))
+        self.store_indexed_span(
+            project_id=project_1.id,
+            trace_id=trace_id_2,
+            transaction_id=None,  # mock an INP span
+            span_id=span_ids[12],
+            parent_span_id=span_ids[4],
+            timestamp=timestamps[-1],
+            transaction="",
+            duration=1_000,
+            exclusive_time=1_000,
+            op="ui.navigation.click",
+            category="ui",
+        )
 
         return (
             project_1,
@@ -684,22 +700,25 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for mri in [
-            TransactionMRI.DURATION.value,
-            "d:transactions/measurements.lcp@millisecond",
-            SpanMRI.DURATION.value,
-            SpanMRI.SELF_TIME.value,
-            "d:spans/webvital.score.total@ratio",
-            "d:spans/webvital.score.inp@ratio",
-            "d:spans/webvital.score.weight.inp@ratio",
-            "d:spans/http.response_content_length@byte",
-            "d:spans/http.decoded_response_content_length@byte",
-            "d:spans/http.response_transfer_size@byte",
-            "d:custom/value@millisecond",
+        for (mri, op) in [
+            (TransactionMRI.DURATION.value, "count"),
+            ("d:transactions/measurements.lcp@millisecond", "max"),
+            (SpanMRI.DURATION.value, "min"),
+            (SpanMRI.SELF_TIME.value, "avg"),
+            ("d:spans/webvital.score.total@ratio", "count"),
+            ("d:spans/webvital.score.inp@ratio", "max"),
+            ("d:spans/webvital.score.weight.inp@ratio", "min"),
+            ("d:spans/http.response_content_length@byte", "avg"),
+            ("d:spans/http.decoded_response_content_length@byte", "count"),
+            ("d:spans/http.response_transfer_size@byte", "max"),
+            ("d:custom/value@millisecond", "min"),
         ]:
             for user_query in ["foo:qux", None]:
                 query = {
                     "mri": mri,
+                    "metricsMin": 30_000,
+                    "metricsMax": 50_000,
+                    "metricsOp": op,
                     "metricsQuery": ["foo:qux"],
                     "project": [project_1.id],
                     "field": ["id", "parent_span", "span.duration"],

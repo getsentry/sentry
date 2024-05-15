@@ -20,6 +20,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
+import {BASE_URL} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -31,7 +32,7 @@ import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCel
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -266,6 +267,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
           <SampleList
             groupId={span[SpanMetricsField.SPAN_GROUP]}
+            moduleName={ModuleName.DB}
             transactionName={transaction}
             transactionMethod={transactionMethod}
           />
@@ -313,7 +315,7 @@ function PageWithProviders(props) {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <DatabaseSpanSummaryPage {...props} />

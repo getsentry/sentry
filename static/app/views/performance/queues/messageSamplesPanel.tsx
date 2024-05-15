@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -23,22 +24,26 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
+import {
+  CONSUMER_QUERY_FILTER,
+  MessageActorType,
+  PRODUCER_QUERY_FILTER,
+} from 'sentry/views/performance/queues/settings';
+import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, type SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
-// We're defining our own query filter here, apart from settings.ts because the spans endpoint doesn't accept IN operations
-const DEFAULT_QUERY_FILTER = 'span.op:queue.process OR span.op:queue.publish';
-
-export function MessageConsumerSamplesPanel() {
+export function MessageSamplesPanel() {
   const router = useRouter();
   const query = useLocationQuery({
     fields: {
       project: decodeScalar,
       destination: decodeScalar,
       transaction: decodeScalar,
+      'span.op': decodeScalar,
     },
   });
   const {projects} = useProjects();
@@ -59,7 +64,16 @@ export function MessageConsumerSamplesPanel() {
 
   const isPanelOpen = Boolean(detailKey);
 
-  const search = new MutableSearch(DEFAULT_QUERY_FILTER);
+  const messageActorType =
+    query['span.op'] === 'queue.publish'
+      ? MessageActorType.PRODUCER
+      : MessageActorType.CONSUMER;
+  const queryFilter =
+    messageActorType === MessageActorType.PRODUCER
+      ? PRODUCER_QUERY_FILTER
+      : CONSUMER_QUERY_FILTER;
+
+  const search = new MutableSearch(queryFilter);
   search.addFilterValue('transaction', query.transaction);
   search.addFilterValue('messaging.destination.name', query.destination);
 
@@ -103,6 +117,7 @@ export function MessageConsumerSamplesPanel() {
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
       SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
       SpanIndexedField.MESSAGING_MESSAGE_ID,
       SpanIndexedField.TRACE_STATUS,
       SpanIndexedField.SPAN_DURATION,
@@ -139,7 +154,7 @@ export function MessageConsumerSamplesPanel() {
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>
-              {project && (
+              {project ? (
                 <SpanSummaryProjectAvatar
                   project={project}
                   direction="left"
@@ -147,8 +162,15 @@ export function MessageConsumerSamplesPanel() {
                   hasTooltip
                   tooltip={project.slug}
                 />
+              ) : (
+                <div />
               )}
               <TitleContainer>
+                <Subtitle>
+                  {messageActorType === MessageActorType.PRODUCER
+                    ? t('Producer')
+                    : t('Consumer')}
+                </Subtitle>
                 <Title>
                   <Link
                     to={normalizeUrl(
@@ -168,36 +190,19 @@ export function MessageConsumerSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <MetricsRibbon>
-              <MetricReadout
-                align="left"
-                title={t('Processed')}
-                value={transactionMetrics?.[0]?.['count()']}
-                unit={'count'}
-                isLoading={aretransactionMetricsFetching}
-              />
-              <MetricReadout
-                align="left"
-                title={t('Error Rate')}
-                value={undefined}
-                unit={'percentage'}
-                isLoading={aretransactionMetricsFetching}
-              />
-              <MetricReadout
-                title={t('Avg Time In Queue')}
-                value={transactionMetrics[0]?.['avg(messaging.message.receive.latency)']}
-                unit={DurationUnit.MILLISECOND}
-                isLoading={false}
-              />
-              <MetricReadout
-                title={t('Avg Processing Latency')}
-                value={
-                  transactionMetrics[0]?.['avg_if(span.duration,span.op,queue.process)']
-                }
-                unit={DurationUnit.MILLISECOND}
-                isLoading={false}
-              />
-            </MetricsRibbon>
+            <MetricsRibbonContainer>
+              {messageActorType === MessageActorType.PRODUCER ? (
+                <ProducerMetricsRibbon
+                  metrics={transactionMetrics}
+                  isLoading={aretransactionMetricsFetching}
+                />
+              ) : (
+                <ConsumerMetricsRibbon
+                  metrics={transactionMetrics}
+                  isLoading={aretransactionMetricsFetching}
+                />
+              )}
+            </MetricsRibbonContainer>
           </ModuleLayout.Full>
           <ModuleLayout.Full>
             <DurationChart
@@ -235,14 +240,16 @@ export function MessageConsumerSamplesPanel() {
               // Samples endpoint doesn't provide meta data, so we need to provide it here
               meta={{
                 fields: {
-                  'span.duration': 'duration',
-                  'measurements.messaging.message.body.size': 'size',
+                  [SpanIndexedField.SPAN_DURATION]: 'duration',
+                  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
+                  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
                 },
                 units: {
-                  'span.duration': DurationUnit.MILLISECOND,
-                  'measurements.messaging.message.body.size': SizeUnit.BYTE,
+                  [SpanIndexedField.SPAN_DURATION]: DurationUnit.MILLISECOND,
+                  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
                 },
               }}
+              type={messageActorType}
             />
           </ModuleLayout.Full>
 
@@ -254,6 +261,74 @@ export function MessageConsumerSamplesPanel() {
         </ModuleLayout.Layout>
       </DetailPanel>
     </PageAlertProvider>
+  );
+}
+
+function ProducerMetricsRibbon({
+  metrics,
+  isLoading,
+}: {
+  isLoading: boolean;
+  metrics: Partial<SpanMetricsResponse>[];
+}) {
+  const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
+  return (
+    <Fragment>
+      <MetricReadout
+        align="left"
+        title={t('Published')}
+        value={metrics?.[0]?.['count_op(queue.publish)']}
+        unit={'count'}
+        isLoading={isLoading}
+      />
+      <MetricReadout
+        align="left"
+        title={t('Error Rate')}
+        value={errorRate}
+        unit={'percentage'}
+        isLoading={isLoading}
+      />
+    </Fragment>
+  );
+}
+
+function ConsumerMetricsRibbon({
+  metrics,
+  isLoading,
+}: {
+  isLoading: boolean;
+  metrics: Partial<SpanMetricsResponse>[];
+}) {
+  const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
+  return (
+    <Fragment>
+      <MetricReadout
+        align="left"
+        title={t('Processed')}
+        value={metrics?.[0]?.['count_op(queue.process)']}
+        unit={'count'}
+        isLoading={isLoading}
+      />
+      <MetricReadout
+        align="left"
+        title={t('Error Rate')}
+        value={errorRate}
+        unit={'percentage'}
+        isLoading={isLoading}
+      />
+      <MetricReadout
+        title={t('Avg Time In Queue')}
+        value={metrics[0]?.['avg(messaging.message.receive.latency)']}
+        unit={DurationUnit.MILLISECOND}
+        isLoading={false}
+      />
+      <MetricReadout
+        title={t('Avg Processing Time')}
+        value={metrics[0]?.['avg_if(span.duration,span.op,queue.process)']}
+        unit={DurationUnit.MILLISECOND}
+        isLoading={false}
+      />
+    </Fragment>
   );
 }
 
@@ -285,7 +360,7 @@ const Title = styled('h4')`
   margin-bottom: 0;
 `;
 
-const MetricsRibbon = styled('div')`
+const MetricsRibbonContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(4)};

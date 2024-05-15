@@ -566,6 +566,30 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",
                 ),
+                fields.MetricsFunction(
+                    "trace_status_rate",
+                    required_args=[
+                        SnQLStringArg("status"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_status_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -1125,6 +1149,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_avg_compare(self, args, alias):
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
+
+    def _resolve_trace_status_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "equals",
+            [
+                self.builder.column("trace.status"),
+                args["status"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
+            alias,
+        )
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:

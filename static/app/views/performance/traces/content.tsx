@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -19,10 +20,13 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {getFormattedMQL} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -56,9 +60,24 @@ export function Content() {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
 
+  const removeMetric = useCallback(() => {
+    browserHistory.push({
+      ...location,
+      query: omit(location.query, [
+        'mri',
+        'metricsOp',
+        'metricsQuery',
+        'metricsMax',
+        'metricsMin',
+      ]),
+    });
+  }, [location]);
+
+  const metricsMax = decodeScalar(location.query.metricsMax);
+  const metricsMin = decodeScalar(location.query.metricsMin);
   const metricsOp = decodeScalar(location.query.metricsOp);
-  const mri = decodeScalar(location.query.mri);
   const metricsQuery = decodeScalar(location.query.metricsQuery);
+  const mri = decodeScalar(location.query.mri);
 
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
@@ -113,6 +132,9 @@ export function Content() {
     query: queries,
     sort: SORTS,
     mri: hasMetric ? mri : undefined,
+    metricsMax: hasMetric ? metricsMax : undefined,
+    metricsMin: hasMetric ? metricsMin : undefined,
+    metricsOp: hasMetric ? metricsOp : undefined,
     metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
@@ -129,9 +151,17 @@ export function Content() {
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
       {hasMetric && (
-        <StyledAlert type="info" showIcon>
+        <StyledAlert
+          type="info"
+          showIcon
+          trailingItems={<StyledCloseButton onClick={removeMetric} />}
+        >
           {tct('The metric query [metricQuery] is filtering the results below.', {
-            metricQuery: <strong>{`${metricsOp}(${mri}){${metricsQuery || ''}}`}</strong>,
+            metricQuery: (
+              <strong>
+                {getFormattedMQL({mri: mri as MRI, op: metricsOp, query: metricsQuery})}
+              </strong>
+            ),
           })}
         </StyledAlert>
       )}
@@ -408,6 +438,9 @@ interface UseTracesOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
+  metricsMax?: string;
+  metricsMin?: string;
+  metricsOp?: string;
   metricsQuery?: string;
   mri?: string;
   query?: string | string[];
@@ -421,6 +454,9 @@ function useTraces<F extends string>({
   enabled,
   limit,
   mri,
+  metricsMax,
+  metricsMin,
+  metricsOp,
   metricsQuery,
   query,
   suggestedQuery,
@@ -441,9 +477,13 @@ function useTraces<F extends string>({
       suggestedQuery,
       sort,
       per_page: limit,
+      breakdownSlices: 40,
       minBreakdownPercentage: 1 / 40,
       maxSpansPerTrace: 5,
       mri,
+      metricsMax,
+      metricsMin,
+      metricsOp,
       metricsQuery,
     },
   };
@@ -554,4 +594,8 @@ const EmptyValueContainer = styled('span')`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
+`;
+
+const StyledCloseButton = styled(IconClose)`
+  cursor: pointer;
 `;

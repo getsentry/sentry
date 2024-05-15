@@ -18,7 +18,11 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/starfish/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -27,8 +31,8 @@ const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 
 type Props = {
   groupId: string;
+  moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
@@ -37,10 +41,10 @@ type Props = {
 
 export function SampleList({
   groupId,
+  moduleName,
   transactionName,
   transactionMethod,
   spanDescription,
-  additionalFields,
   onClose,
   transactionRoute = '/performance/summary/',
 }: Props) {
@@ -104,7 +108,14 @@ export function SampleList({
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  if (additionalFields?.includes(HTTP_RESPONSE_CONTENT_LENGTH)) {
+  const additionalFields: SpanIndexedField[] = [
+    SpanIndexedField.TRACE,
+    SpanIndexedField.TRANSACTION_ID,
+  ];
+
+  if (moduleName === ModuleName.RESOURCE) {
+    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
+
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
       {
@@ -171,6 +182,7 @@ export function SampleList({
           onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
           onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
           groupId={groupId}
+          moduleName={moduleName}
           transactionName={transactionName}
           query={extraQuery}
           columnOrder={columnOrder}

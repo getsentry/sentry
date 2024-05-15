@@ -66,6 +66,10 @@ export interface AssigneeSelectorDropdownProps {
    */
   loading: boolean;
   /**
+   * Additional styles to apply to the dropdown
+   */
+  className?: string;
+  /**
    * Optional list of members to populate the dropdown with.
    */
   memberList?: User[];
@@ -192,6 +196,7 @@ export function AssigneeAvatar({
 }
 
 export default function AssigneeSelectorDropdown({
+  className,
   group,
   loading,
   memberList,
@@ -371,7 +376,10 @@ export default function AssigneeSelectorDropdown({
             data-test-id="assignee-option"
             displayName={`${assignee.name}${isCurrentUser ? ' (You)' : ''}`}
             user={assignee.assignee as User}
-            description={suggestedReasonTable[assignee.suggestedReason]}
+            description={
+              assignee.suggestedReasonText ??
+              suggestedReasonTable[assignee.suggestedReason]
+            }
           />
         ),
         value: `user:${assignee.id}`,
@@ -384,7 +392,9 @@ export default function AssigneeSelectorDropdown({
         <TeamBadge
           data-test-id="assignee-option"
           team={assignedTeam.team}
-          description={suggestedReasonTable[assignee.suggestedReason]}
+          description={
+            assignee.suggestedReasonText ?? suggestedReasonTable[assignee.suggestedReason]
+          }
         />
       ),
       value: `team:${assignee.id}`,
@@ -503,28 +513,27 @@ export default function AssigneeSelectorDropdown({
     );
   };
 
-  const makeFooterInviteButton = () => {
-    return (
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd isCircled />}
-      >
-        {t('Invite Member')}
-      </Button>
-    );
-  };
+  const footerInviteButton = (
+    <Button
+      size="xs"
+      aria-label={t('Invite Member')}
+      disabled={loading}
+      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        event.preventDefault();
+        openInviteMembersModal({source: 'assignee_selector'});
+      }}
+      icon={<IconAdd isCircled />}
+    >
+      {t('Invite Member')}
+    </Button>
+  );
 
   return (
     <AssigneeWrapper>
       <CompactSelect
         searchable
         clearable
+        className={className}
         menuWidth={275}
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
@@ -540,7 +549,9 @@ export default function AssigneeSelectorDropdown({
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={makeFooterInviteButton()}
+        menuFooter={footerInviteButton}
+        sizeLimit={150}
+        sizeLimitMessage="Use search to find more users and teams..."
       />
     </AssigneeWrapper>
   );

@@ -3,7 +3,6 @@
   "dist": null,
   "platform": "csharp",
   "culprit": "Samples.AspNetCore.Mvc.Controllers.HomeController in PostIndex",
-  "message": "Param is null!",
   "time_spent": null,
   "tags": [
     ["server-runtime", ".NET Core 2.1.5"],

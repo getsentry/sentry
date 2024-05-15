@@ -4,6 +4,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useEventDetails} from 'sentry/views/starfish/queries/useEventDetails';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import type {IndexedProperty} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 const DEFAULT_SORT: Sort[] = [{field: 'timestamp', kind: 'desc'}];
@@ -23,16 +24,17 @@ export function useFullSpanFromTrace(
     filters[SpanIndexedField.SPAN_GROUP] = group;
   }
 
-  // TODO: we're using all SpanIndexedFields here, but maybe we should only use what we need?
-  // Truncate to 20 fields otherwise discover will complain.
-  const fields = Object.values(SpanIndexedField).slice(0, 20);
-
   const indexedSpansResponse = useIndexedSpans({
     search: MutableSearch.fromQueryObject(filters),
     sorts: sorts || DEFAULT_SORT,
     limit: 1,
     enabled,
-    fields,
+    fields: [
+      SpanIndexedField.TRANSACTION_ID,
+      SpanIndexedField.PROJECT,
+      SpanIndexedField.ID,
+      ...(sorts?.map(sort => sort.field as IndexedProperty) || []),
+    ],
     referrer: 'api.starfish.full-span-from-trace',
   });
 
