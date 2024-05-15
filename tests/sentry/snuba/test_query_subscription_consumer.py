@@ -87,9 +87,11 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         topic_defn = get_topic_definition(Topic.EVENTS)
         cluster_options = kafka_config.get_kafka_admin_cluster_options("default")
         admin_client = AdminClient(cluster_options)
-        print(admin_client.list_topics(topic_defn["real_topic_name"]))  # noqa
+        result = admin_client.list_topics(topic_defn["real_topic_name"])
+        print(result.topics.get("events"))  # noqa
         wait_for_topics(admin_client, [topic_defn["real_topic_name"]])
-        print(admin_client.list_topics(topic_defn["real_topic_name"]))  # noqa
+        result = admin_client.list_topics(topic_defn["real_topic_name"])
+        print(result.topics.get("events"))  # noqa
 
         registration_key = "registered_test_2"
         mock_callback = mock.Mock()
@@ -143,6 +145,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             tzinfo=timezone.utc
         )
         mock_callback.assert_called_once_with(data["payload"], sub)
+
+        raise Exception("test")
 
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
