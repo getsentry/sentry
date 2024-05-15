@@ -102,7 +102,7 @@ export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps
   return (
     <StyledTag
       type={getTagTypeForPriority(priority)}
-      bigTag={organization.features.includes(
+      bigtag={organization.features.includes(
         'organizations:issue-stream-new-assignee-dropdown-trigger'
       )}
     >
@@ -272,7 +272,7 @@ const DropdownButton = styled(Button)`
   box-shadow: none;
 `;
 
-const StyledTag = styled(Tag)<{bigTag: boolean}>`
+const StyledTag = styled(Tag)<{bigtag: boolean}>`
   span {
     display: flex;
     align-items: center;
@@ -280,7 +280,7 @@ const StyledTag = styled(Tag)<{bigTag: boolean}>`
   }
 
   & > div {
-    height: ${p => (p.bigTag ? '24px' : '18px')};
+    height: ${p => (p.bigtag ? '24px' : '18px')};
   }
 `;
 
