@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
@@ -42,6 +43,18 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_no_last_processed_id(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
+    ):
+        response = self.client.post(self.url, data={})
+        assert response.status_code == 204, response.content
+        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, None, False)
+
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records.delay"
+    )
+    @with_feature("projects:similarity-embeddings-backfill")
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    def test_post_success_no_last_processed_id_single_org(
+        self, mock_backfill_seer_grouping_records
     ):
         response = self.client.post(self.url, data={})
         assert response.status_code == 204, response.content

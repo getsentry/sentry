@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,9 +19,9 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
     }
 
     def post(self, request: Request, project) -> Response:
-        if not features.has(
-            "projects:similarity-embeddings-backfill", project
-        ) or not is_active_superuser(request):
+        if not features.has("projects:similarity-embeddings-backfill", project) or (
+            not is_active_superuser(request) and not settings.SENTRY_SINGLE_ORGANIZATION
+        ):
             return Response(status=404)
 
         last_processed_id = None
