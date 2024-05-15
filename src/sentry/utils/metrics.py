@@ -231,3 +231,31 @@ def wraps(
         return inner  # type: ignore[return-value]
 
     return wrapper
+
+
+def event(
+    title: str,
+    message: str,
+    alert_type: str | None = None,
+    aggregation_key: str | None = None,
+    source_type_name: str | None = None,
+    priority: str | None = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
+    stacklevel: int = 0,
+) -> None:
+    try:
+        backend.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            tags,
+            stacklevel + 1,
+        )
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
