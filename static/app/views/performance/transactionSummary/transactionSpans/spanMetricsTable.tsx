@@ -20,7 +20,6 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {
   type SpanMetricsQueryFilters,
   SpanMetricsField,
-  type MetricsResponse,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -39,7 +38,13 @@ type DataRowKeys =
 
 type ColumnKeys = Exclude<DataRowKeys, SpanMetricsField.SPAN_GROUP>;
 
-type DataRow = Pick<MetricsResponse, DataRowKeys>;
+type DataRow = {
+  [SpanMetricsField.SPAN_OP]: string;
+  [SpanMetricsField.SPAN_DESCRIPTION]: string;
+  [SpanMetricsField.SPAN_GROUP]: string;
+  'avg(span.self_time)': number;
+  'sum(span.self_time)': number;
+};
 
 type Column = GridColumnHeader<ColumnKeys>;
 
