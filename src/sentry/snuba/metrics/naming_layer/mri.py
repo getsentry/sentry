@@ -45,8 +45,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
-    AVAILABLE_GENERIC_OPERATIONS,
     AVAILABLE_OPERATIONS,
+    METRICS_OPERATIONS_CONFIG,
     OP_REGEX,
     MetricOperationType,
     MetricUnit,
@@ -338,7 +338,7 @@ def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
         return AVAILABLE_OPERATIONS[entity_key]
     else:
         entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
-        return AVAILABLE_GENERIC_OPERATIONS[entity_key]
+        return METRICS_OPERATIONS_CONFIG.get_available_operations_for_entity_key(entity_key)
 
 
 def extract_use_case_id(mri: str) -> UseCaseID:

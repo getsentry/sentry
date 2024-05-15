@@ -194,9 +194,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
-                    function="p95",
+                    function="avg",
                     parameters=[Column("d:transactions/duration@millisecond")],
-                    alias="p95",
+                    alias="avg",
                 ),
                 Function(
                     function="rate",
@@ -283,9 +283,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             orderby=[
                 OrderBy(
                     exp=Function(
-                        function="p95",
+                        function="avg",
                         parameters=[Column("d:transactions/duration@millisecond")],
-                        alias="p95",
+                        alias="avg",
                     ),
                     direction=Direction.ASC,
                 ),
@@ -312,9 +312,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             project_ids=[13],
             select=[
                 MetricField(
-                    op="p95",
+                    op="avg",
                     metric_mri="d:transactions/duration@millisecond",
-                    alias="p95",
+                    alias="avg",
                 ),
                 MetricField(
                     op="rate",
@@ -366,9 +366,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             orderby=[
                 MetricOrderByField(
                     field=MetricField(
-                        op="p95",
+                        op="avg",
                         metric_mri="d:transactions/duration@millisecond",
-                        alias="p95",
+                        alias="avg",
                     ),
                     direction=Direction.ASC,
                 ),
@@ -393,9 +393,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
-                    function="p95",
+                    function="avg",
                     parameters=[Column("d:transactions/duration@millisecond")],
-                    alias="p95",
+                    alias="avg",
                 ),
                 Function(
                     function="team_key_transaction",
@@ -474,9 +474,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
                 OrderBy(
                     exp=Function(
-                        function="p95",
+                        function="avg",
                         parameters=[Column("d:transactions/duration@millisecond")],
-                        alias="p95",
+                        alias="avg",
                     ),
                     direction=Direction.ASC,
                 ),
@@ -492,9 +492,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             project_ids=[13],
             select=[
                 MetricField(
-                    op="p95",
+                    op="avg",
                     metric_mri="d:transactions/duration@millisecond",
-                    alias="p95",
+                    alias="avg",
                 ),
                 MetricField(
                     op="team_key_transaction",
@@ -541,9 +541,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
                 MetricOrderByField(
                     field=MetricField(
-                        op="p95",
+                        op="avg",
                         metric_mri="d:transactions/duration@millisecond",
-                        alias="p95",
+                        alias="avg",
                     ),
                     direction=Direction.ASC,
                 ),
@@ -552,7 +552,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             offset=Offset(offset=0),
             include_series=False,
         ),
-        id="team_key_transaction transformation with p95 in select",
+        id="team_key_transaction transformation with avg in select",
     ),
     pytest.param(
         Query(
@@ -712,11 +712,11 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="apdex",
                 ),
                 Function(
-                    function="p75",
+                    function="avg",
                     parameters=[
                         Column("d:transactions/measurements.cls@millisecond"),
                     ],
-                    alias="p75_measurements_cls",
+                    alias="avg_measurements_cls",
                 ),
                 Function(
                     function="rate",
@@ -728,19 +728,19 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="tpm",
                 ),
                 Function(
-                    function="p75",
+                    function="avg",
                     parameters=[Column("d:transactions/measurements.fid@millisecond")],
-                    alias="p75_measurements_fid",
+                    alias="avg_measurements_fid",
                 ),
                 Function(
-                    function="p75",
+                    function="avg",
                     parameters=[Column("d:transactions/measurements.fcp@millisecond")],
-                    alias="p75_measurements_fcp",
+                    alias="avg_measurements_fcp",
                 ),
                 Function(
-                    function="p75",
+                    function="avg",
                     parameters=[Column("d:transactions/measurements.lcp@millisecond")],
-                    alias="p75_measurements_lcp",
+                    alias="avg_measurements_lcp",
                 ),
             ],
             groupby=[
@@ -799,9 +799,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="apdex",
                 ),
                 MetricField(
-                    op="p75",
+                    op="avg",
                     metric_mri="d:transactions/measurements.cls@millisecond",
-                    alias="p75_measurements_cls",
+                    alias="avg_measurements_cls",
                 ),
                 MetricField(
                     op="rate",
@@ -810,19 +810,19 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="tpm",
                 ),
                 MetricField(
-                    op="p75",
+                    op="avg",
                     metric_mri="d:transactions/measurements.fid@millisecond",
-                    alias="p75_measurements_fid",
+                    alias="avg_measurements_fid",
                 ),
                 MetricField(
-                    op="p75",
+                    op="avg",
                     metric_mri="d:transactions/measurements.fcp@millisecond",
-                    alias="p75_measurements_fcp",
+                    alias="avg_measurements_fcp",
                 ),
                 MetricField(
-                    op="p75",
+                    op="avg",
                     metric_mri="d:transactions/measurements.lcp@millisecond",
-                    alias="p75_measurements_lcp",
+                    alias="avg_measurements_lcp",
                 ),
             ],
             start=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535),
@@ -1732,7 +1732,7 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
         _construct_snuba_sdk_query(
             select=[
                 Function(
-                    function="p95",
+                    function="avg",
                     parameters=[],
                     alias="has_value_transaction_count",
                 ),
@@ -1904,16 +1904,16 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
             where=[
                 Condition(
                     lhs=Function(
-                        function="p95",
+                        function="avg",
                         parameters=[Column("d:transactions/duration@millisecond")],
-                        alias="p95",
+                        alias="avg",
                     ),
                     op=Op.EQ,
                     rhs=1,
                 )
             ],
         ),
-        "Unsupported function 'p95' in where",
+        "Unsupported function 'avg' in where",
         id="Unsupported function/operation in where clause",
     ),
     # Validate OrderBy statements

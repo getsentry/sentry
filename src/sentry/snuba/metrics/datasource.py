@@ -68,10 +68,10 @@ from sentry.snuba.metrics.query_builder import (
     translate_meta_results,
 )
 from sentry.snuba.metrics.utils import (
-    AVAILABLE_GENERIC_OPERATIONS,
     AVAILABLE_OPERATIONS,
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
+    METRICS_OPERATIONS_CONFIG,
     UNALLOWED_TAGS,
     BlockedMetric,
     DerivedMetricParseException,
@@ -474,9 +474,9 @@ def get_custom_measurements(
                     MetricMeta(
                         name=parsed_mri.name,
                         type=metric_type,
-                        operations=AVAILABLE_GENERIC_OPERATIONS[
-                            METRIC_TYPE_TO_ENTITY[metric_type].value
-                        ],
+                        operations=METRICS_OPERATIONS_CONFIG.get_available_operations_for_entity_key(
+                            METRIC_TYPE_TO_ENTITY[metric_type]
+                        ),
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
                         mri=parsed_mri.mri_string,

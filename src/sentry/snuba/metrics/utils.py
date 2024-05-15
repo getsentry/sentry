@@ -6,6 +6,35 @@ from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Literal, TypedDict, overload
 
+from sentry.sentry_metrics.querying.operations import MetricsOperationsConfig
+from sentry.sentry_metrics.querying.operations.available_operations import (
+    OP_COUNTERS_MAX_TIMESTAMP,
+    OP_COUNTERS_MIN_TIMESTAMP,
+    OP_COUNTERS_SUM,
+    OP_DISTRIBUTIONS_AVG,
+    OP_DISTRIBUTIONS_COUNT,
+    OP_DISTRIBUTIONS_HISTOGRAM,
+    OP_DISTRIBUTIONS_MAX,
+    OP_DISTRIBUTIONS_MAX_TIMESTAMP,
+    OP_DISTRIBUTIONS_MIN,
+    OP_DISTRIBUTIONS_MIN_TIMESTAMP,
+    OP_DISTRIBUTIONS_P50,
+    OP_DISTRIBUTIONS_P75,
+    OP_DISTRIBUTIONS_P90,
+    OP_DISTRIBUTIONS_P95,
+    OP_DISTRIBUTIONS_P99,
+    OP_DISTRIBUTIONS_P100,
+    OP_DISTRIBUTIONS_SUM,
+    OP_GAUGES_AVG,
+    OP_GAUGES_COUNT,
+    OP_GAUGES_LAST,
+    OP_GAUGES_MAX,
+    OP_GAUGES_MIN,
+    OP_GAUGES_SUM,
+    OP_SETS_COUNT_UNIQUE,
+    OP_SETS_MAX_TIMESTAMP,
+    OP_SETS_MIN_TIMESTAMP,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 
@@ -19,8 +48,6 @@ __all__ = (
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
-    "AVAILABLE_GENERIC_OPERATIONS",
-    "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
     "FILTERABLE_TAGS",
     "FIELD_ALIAS_MAPPINGS",
@@ -66,6 +93,12 @@ MetricOperationType = Literal[
     "sum",
     "max",
     "min",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
     "percentage",
     "histogram",
     "rate",
@@ -133,6 +166,37 @@ MetricEntity = Literal[
     "generic_metrics_gauges",
 ]
 
+
+METRICS_OPERATIONS_CONFIG = MetricsOperationsConfig()
+METRICS_OPERATIONS_CONFIG.register(OP_COUNTERS_SUM)
+METRICS_OPERATIONS_CONFIG.register(OP_COUNTERS_MIN_TIMESTAMP)
+METRICS_OPERATIONS_CONFIG.register(OP_COUNTERS_MAX_TIMESTAMP)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_AVG)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_COUNT)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_MAX)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_MIN)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_HISTOGRAM)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_SUM)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_MIN_TIMESTAMP)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_MAX_TIMESTAMP)
+METRICS_OPERATIONS_CONFIG.register(OP_SETS_COUNT_UNIQUE)
+METRICS_OPERATIONS_CONFIG.register(OP_SETS_MIN_TIMESTAMP)
+METRICS_OPERATIONS_CONFIG.register(OP_SETS_MAX_TIMESTAMP)
+METRICS_OPERATIONS_CONFIG.register(OP_GAUGES_MIN)
+METRICS_OPERATIONS_CONFIG.register(OP_GAUGES_MAX)
+METRICS_OPERATIONS_CONFIG.register(OP_GAUGES_SUM)
+METRICS_OPERATIONS_CONFIG.register(OP_GAUGES_COUNT)
+METRICS_OPERATIONS_CONFIG.register(OP_GAUGES_LAST)
+METRICS_OPERATIONS_CONFIG.register(OP_GAUGES_AVG)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_P50)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_P75)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_P90)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_P95)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_P99)
+METRICS_OPERATIONS_CONFIG.register(OP_DISTRIBUTIONS_P100)
+METRICS_OPERATIONS_CONFIG.enable_class("timestamp")
+METRICS_OPERATIONS_CONFIG.enable_class("percentile")
+
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {
         "sum": "sumIf",
@@ -144,6 +208,12 @@ OP_TO_SNUBA_FUNCTION = {
         "count": "countIf",
         "max": "maxIf",
         "min": "minIf",
+        "p50": "quantilesIf(0.50)",
+        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
+        "p75": "quantilesIf(0.75)",
+        "p90": "quantilesIf(0.90)",
+        "p95": "quantilesIf(0.95)",
+        "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
         "sum": "sumIf",
         "min_timestamp": "minIf",
@@ -153,20 +223,6 @@ OP_TO_SNUBA_FUNCTION = {
         "count_unique": "uniqIf",
         "min_timestamp": "minIf",
         "max_timestamp": "maxIf",
-    },
-}
-GENERIC_OP_TO_SNUBA_FUNCTION = {
-    "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
-    "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
-    "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
-    # Gauges are not supported by non-generic metrics.
-    "generic_metrics_gauges": {
-        "min": "minIf",
-        "max": "maxIf",
-        "sum": "sumIf",
-        "count": "countIf",
-        "last": "lastIf",
-        "avg": "avg",
     },
 }
 
@@ -244,25 +300,16 @@ def generate_operation_regex():
     operations = set()
     for item in OP_TO_SNUBA_FUNCTION.values():
         operations.update(set(item.keys()))
-    for item in GENERIC_OP_TO_SNUBA_FUNCTION.values():
-        operations.update(set(item.keys()))
+    operations.update(METRICS_OPERATIONS_CONFIG.get_all_available_operation_names())
 
     return rf"({'|'.join(map(str, operations))})"
 
 
 OP_REGEX = generate_operation_regex()
 
+
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
-}
-AVAILABLE_GENERIC_OPERATIONS = {
-    type_: sorted(mapping.keys()) for type_, mapping in GENERIC_OP_TO_SNUBA_FUNCTION.items()
-}
-OPERATIONS_TO_ENTITY = {
-    op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
-}
-GENERIC_OPERATIONS_TO_ENTITY = {
-    op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
 }
 
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
@@ -337,7 +384,15 @@ class MetricMetaWithTagKeys(MetricMeta):
     tags: Sequence[Tag]
 
 
-OPERATIONS_PERCENTILES = ()
+OPERATIONS_PERCENTILES = (
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
+)
+
 
 DERIVED_OPERATIONS = (
     "histogram",
@@ -362,12 +417,18 @@ DERIVED_OPERATIONS = (
 )
 OPERATIONS = ("avg", "count_unique", "count", "max", "min", "sum", "last") + DERIVED_OPERATIONS
 
+
 DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
     "min": None,
     "max": None,
+    "p50": None,
+    "p75": None,
+    "p90": None,
+    "p95": None,
+    "p99": None,
     "sum": 0,
     "percentage": None,
     "last": None,

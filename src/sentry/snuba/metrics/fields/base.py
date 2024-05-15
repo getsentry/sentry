@@ -68,8 +68,8 @@ from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
-    GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
+    METRICS_OPERATIONS_CONFIG,
     OP_TO_SNUBA_FUNCTION,
     OPERATIONS_PERCENTILES,
     UNIT_TO_TYPE,
@@ -481,7 +481,9 @@ class RawOp(MetricOperation):
             UseCaseID.CUSTOM,
             UseCaseID.ESCALATING_ISSUES,
         ]:
-            snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
+            snuba_function = METRICS_OPERATIONS_CONFIG.get_operation_for_entity_key(
+                EntityKey(entity), self.op
+            ).snuba_fn
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
 
