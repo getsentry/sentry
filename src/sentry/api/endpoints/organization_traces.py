@@ -697,12 +697,6 @@ class TraceSamplesExecutor:
                     "trace": row["trace"],
                     "start": row["first_seen()"],
                     "end": row["last_seen()"],
-                    "params": self.params,
-                    "user_query": self.user_queries,
-                    "mri": self.mri,
-                    "metrics_query": self.metrics_query,
-                    "metrics_min": self.metrics_min,
-                    "metrics_max": self.metrics_max,
                 }
                 sentry_sdk.capture_message(
                     "trace missing spans", contexts={"trace_missing_spans": context}
