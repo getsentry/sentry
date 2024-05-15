@@ -47,7 +47,7 @@ class TestPathParams(TestCase):
                     if not callback.__module__.startswith(self.IGNORE_CLASS_PREFIXES):
                         # if any of the path params are just *_slug and not *_id_or_slug, error
                         for param in slug_path_params:
-                            if param.endswith("_slug") and not param.endswith("_id_or_slug"):
+                            if not param.endswith("_id_or_slug"):
                                 self.fail(
                                     f"Path param {param} in {callback} is missing '_id_or_slug' suffix. Our endpoints support ids and slugs, please only use *_id_or_slug path params."
                                 )
