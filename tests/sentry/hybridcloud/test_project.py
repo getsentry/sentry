@@ -5,7 +5,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)
-def test_get_or_create_project():
+def test_get_or_create_project() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     team = Factories.create_team(org)
