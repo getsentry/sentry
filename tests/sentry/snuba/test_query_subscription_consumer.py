@@ -90,6 +90,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         result = admin_client.list_topics(topic_defn["real_topic_name"])
         print("=========================")  # noqa
         print("real topic name", topic_defn["real_topic_name"])  # noqa
+        print(result.topics)  # noqa
         print(result.topics.get("events"))  # noqa
         wait_for_topics(admin_client, [topic_defn["real_topic_name"]])
         result = admin_client.list_topics(topic_defn["real_topic_name"])
