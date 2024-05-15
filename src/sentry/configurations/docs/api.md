@@ -21,6 +21,8 @@ Retrieve the project's configuration.
 | traces_sample_rate | number | A number value between 0 and 1. |
 | user_config        | any    | Arbitrary user supplied JSON.   |
 
+**If an existing configuration exists**
+
 - Response 200
 
   ```json
@@ -36,9 +38,13 @@ Retrieve the project's configuration.
   }
   ```
 
-### Update Configuration [PATCH]
+**If no existing configuration exists**
 
-Update the project's configuration.
+- Response 404
+
+### Set Configuration [POST]
+
+Set the project's configuration.
 
 - Request
 
