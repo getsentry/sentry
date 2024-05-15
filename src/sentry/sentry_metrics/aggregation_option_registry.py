@@ -53,7 +53,7 @@ def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, Ti
     # We check first if the org ID has disabled percentiles
     if org_id in options.get("sentry-metrics.drop-percentiles.per-org"):
         return {AggregationOption.NO_PERCENTILE: TimeWindow.NINETY_DAYS}
-    # We then first if the particular metric ID has a specified aggregation
+    # We then check if the particular metric ID has a specified aggregation
     elif mri in METRIC_ID_AGG_OPTION:
         return METRIC_ID_AGG_OPTION[mri]
     # And move to the use case if not
