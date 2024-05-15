@@ -300,6 +300,30 @@ def update_groups(
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
             res_status = GroupResolution.Status.pending
+        elif status_details.get("resolvedInUpcomingRelease"):
+            if len(projects) > 1:
+                return Response(
+                    {"detail": "Cannot set resolved in next release for multiple projects."},
+                    status=400,
+                )
+            release = True
+            activity_type = ActivityType.SET_RESOLVED_IN_UPCOMING_RELEASE.value
+            activity_data = {
+                # no version yet
+                "version": ""
+            }
+
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
+            new_status_details = {
+                "inUpcomingRelease": True,
+            }
+            if serialized_user:
+                new_status_details["actor"] = serialized_user[0]
+            res_type = GroupResolution.Type.in_upcoming_release
+            res_type_str = "in_upcoming_release"
+            res_status = GroupResolution.Status.pending
         elif status_details.get("inRelease"):
             # TODO(jess): We could update validation to check if release
             # applies to multiple projects, but I think we agreed to punt
