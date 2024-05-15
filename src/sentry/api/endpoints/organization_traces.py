@@ -69,6 +69,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     metricsMax = serializers.FloatField(required=False)
     metricsMin = serializers.FloatField(required=False)
+    metricsOp = serializers.CharField(required=False)
     metricsQuery = serializers.CharField(required=False)
     mri = serializers.CharField(required=False)
     query = serializers.ListField(
@@ -112,7 +113,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             suggested_query=serialized.get("suggestedQuery", ""),
             metrics_max=serialized.get("metricsMax"),
             metrics_min=serialized.get("metricsMin"),
-            metrics_query=serialized.get("metricsQuery", ""),
+            metrics_operation=serialized.get("metricsOp"),
+            metrics_query=serialized.get("metricsQuery"),
             mri=serialized.get("mri"),
             sort=serialized.get("sort"),
             limit=self.get_per_page(request),
@@ -155,7 +157,8 @@ class TraceSamplesExecutor:
         suggested_query: str,
         metrics_max: float | None,
         metrics_min: float | None,
-        metrics_query: str,
+        metrics_operation: str | None,
+        metrics_query: str | None,
         mri: str | None,
         sort: str | None,
         limit: int,
@@ -172,6 +175,7 @@ class TraceSamplesExecutor:
         self.suggested_query = suggested_query
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
+        self.metrics_operation = metrics_operation
         self.metrics_query = metrics_query
         self.mri = mri
         self.sort = sort
@@ -337,6 +341,7 @@ class TraceSamplesExecutor:
             fields=["trace"],
             max=self.metrics_max,
             min=self.metrics_min,
+            operation=self.metrics_operation,
             query=self.metrics_query,
             referrer=Referrer.API_TRACE_EXPLORER_METRICS_SPANS_LIST,
         )
