@@ -31,9 +31,3 @@ def test_timing(mock_timing, statsd_backend):
 def test_gauge(mock_gauge, statsd_backend):
     statsd_backend.gauge("foo", 5)
     mock_gauge.assert_called_once_with("sentrytest.foo", 5, 1)
-
-
-@patch("statsd.StatsClient.event")
-def test_event(mock_event, statsd_backend):
-    statsd_backend.event("foo", "bar")
-    mock_event.assert_called_once_with("foo", "bar")
