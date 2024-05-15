@@ -6,7 +6,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)
-def test_get_or_create_team_member():
+def test_get_or_create_team_member() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     member = Factories.create_member(organization=org, user_id=user.id)
@@ -33,7 +33,7 @@ def test_get_or_create_team_member():
 
 
 @django_db_all(transaction=True)
-def test_get_or_create_default_team():
+def test_get_or_create_default_team() -> None:
     org = Factories.create_organization()
     team = Factories.create_team(org)
     team.update(status=TeamStatus.PENDING_DELETION)

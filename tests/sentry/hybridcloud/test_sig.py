@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SerializableFunctionSignatureTest(TestCase):
-    def test_signature(self):
+    def test_signature(self) -> None:
         class AnObject(pydantic.BaseModel):
             a: int
             b: str

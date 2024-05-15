@@ -23,29 +23,29 @@ _TEST_REGIONS = (
 
 @control_silo_test(regions=_TEST_REGIONS)
 class RegionResolutionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.target_region = _TEST_REGIONS[0]
         self.organization = self.create_organization(region=self.target_region)
 
-    def test_by_organization_object(self):
+    def test_by_organization_object(self) -> None:
         region_resolution = ByOrganizationObject()
         arguments = {"organization": self.organization}
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_by_organization_id(self):
+    def test_by_organization_id(self) -> None:
         region_resolution = ByOrganizationId()
         arguments = {"organization_id": self.organization.id}
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_by_organization_slug(self):
+    def test_by_organization_slug(self) -> None:
         region_resolution = ByOrganizationSlug()
         arguments = {"slug": self.organization.slug}
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_by_organization_id_attribute(self):
+    def test_by_organization_id_attribute(self) -> None:
         region_resolution = ByOrganizationIdAttribute("organization_member")
         with assume_test_silo_mode(SiloMode.REGION):
             org_member = OrganizationMember.objects.create(
@@ -56,7 +56,7 @@ class RegionResolutionTest(TestCase):
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_require_single_organization(self):
+    def test_require_single_organization(self) -> None:
         region_resolution = RequireSingleOrganization()
 
         with override_regions([self.target_region]), override_settings(
