@@ -766,6 +766,7 @@ def _get_project_config(
                 ],
                 "piiConfig": get_pii_config(project),
                 "datascrubbingSettings": get_datascrubbing_settings(project),
+                "remote_config": project.get_option("sentry:remote_config"),
             },
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
