@@ -9,7 +9,7 @@ class RealtimeMetricsStore(Service):
         "is_lpq_project",
     )
 
-    def record_project_duration(self, project_id: int, duration: float) -> None:
+    def record_project_duration(self, platform: str, project_id: int, duration: float) -> None:
         """
         Records the duration of a symbolication request for the given project_id.
 
@@ -39,7 +39,7 @@ class RealtimeMetricsStore(Service):
         """
         raise NotImplementedError
 
-    def is_lpq_project(self, project_id: int) -> bool:
+    def is_lpq_project(self, platform: str, project_id: int) -> bool:
         """
         Checks whether the given project is currently using the low priority queue.
         """

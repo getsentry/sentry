@@ -19,10 +19,10 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
         self.target = target
         self.session = Session()
 
-    def record_project_duration(self, project_id: int, duration: float) -> None:
+    def record_project_duration(self, platform: str, project_id: int, duration: float) -> None:
         url = urljoin(self.target, "/record_spending")
         request = {
-            "config_name": "symbolication-native",
+            "config_name": f"symbolication-{platform}",
             "project_id": project_id,
             "spent": duration,
         }
@@ -35,10 +35,10 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
         except RequestException:
             pass
 
-    def is_lpq_project(self, project_id: int) -> bool:
+    def is_lpq_project(self, platform: str, project_id: int) -> bool:
         url = urljoin(self.target, "/exceeds_budget")
         request = {
-            "config_name": "symbolication-native",
+            "config_name": f"symbolication-{platform}",
             "project_id": project_id,
         }
         try:
