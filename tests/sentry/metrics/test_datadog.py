@@ -42,3 +42,17 @@ class DatadogMetricsBackendTest(TestCase):
             tags=["instance:bar"],
             host=get_hostname(hostname_from_config=True),
         )
+
+    @patch("datadog.threadstats.base.ThreadStats.event")
+    def test_event(self, mock_event):
+        self.backend.event("foo", "bar", instance="baz")
+        mock_event.assert_called_once_with(
+            title="foo",
+            message="bar",
+            alert_type=None,
+            aggregation_key=None,
+            source_type_name=None,
+            priority=None,
+            tags=["instance:baz"],
+            hostname=get_hostname(hostname_from_config=True),
+        )
