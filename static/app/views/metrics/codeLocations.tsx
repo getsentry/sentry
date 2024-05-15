@@ -118,6 +118,9 @@ function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
                 size="zero"
                 iconSize="xs"
                 borderless
+                onClick={e => {
+                  e.stopPropagation();
+                }}
               />
               <ToggleCodeLocationContextButton
                 disabled={!hasContext}
