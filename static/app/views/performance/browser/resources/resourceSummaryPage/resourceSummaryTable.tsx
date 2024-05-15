@@ -9,8 +9,10 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
@@ -22,7 +24,11 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -44,6 +50,7 @@ type Row = {
 type Column = GridColumnHeader<keyof Row>;
 
 function ResourceSummaryTable() {
+  const organization = useOrganization();
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
@@ -99,6 +106,12 @@ function ResourceSummaryTable() {
 
       const link = (
         <Link
+          onClick={() =>
+            trackAnalytics('performance_views.sample_spans.opened', {
+              organization,
+              source: ModuleName.RESOURCE,
+            })
+          }
           to={{
             pathname: location.pathname,
             query: {
