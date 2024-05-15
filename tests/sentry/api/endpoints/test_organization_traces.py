@@ -852,6 +852,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "suggestedQuery": ["foo:qux"],
                     "maxSpansPerTrace": 3,
                     "sort": ["-span.duration"],
+                    "per_page": 1,
                 }
                 if user_query:
                     query["query"] = user_query
