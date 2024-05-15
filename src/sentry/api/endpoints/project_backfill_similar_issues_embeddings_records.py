@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,14 +19,23 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
     }
 
     def post(self, request: Request, project) -> Response:
-        if not features.has(
-            "projects:similarity-embeddings-backfill", project
-        ) or not is_active_superuser(request):
+        if not features.has("projects:similarity-embeddings-backfill", project):
             return Response(status=404)
 
+        # needs to have the flag to run
+
+        if not (is_active_superuser(request) or settings.SENTRY_SINGLE_ORGANIZATION):
+            return Response(status=404)
+
+        # needs to either be a superuser or be in single org mode
+
         last_processed_id = None
+        dry_run = False
         if request.data.get("last_processed_id"):
             last_processed_id = int(request.data["last_processed_id"])
 
-        backfill_seer_grouping_records.delay(project.id, last_processed_id)
+        if request.data.get("dry_run"):
+            dry_run = True
+
+        backfill_seer_grouping_records.delay(project.id, last_processed_id, dry_run)
         return Response(status=204)
