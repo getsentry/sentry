@@ -134,6 +134,9 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
       }
     ),
     configurations: [
+      {
+        description: metricTagsExplanation,
+      },
       JSExampleConfig,
       {
         description: t(
@@ -214,6 +217,9 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
         }
       ),
       configurations: [
+        {
+          description: metricTagsExplanation,
+        },
         JSExampleConfig,
         {
           description: t(
@@ -431,22 +437,22 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Kotlin',
-                  value: 'kotlin',
-                  language: 'java',
-                  code: getJvmKotlinVerifySnippet(),
-                },
-                {
-                  label: 'Java',
-                  value: 'java',
-                  language: 'java',
-                  code: getJvmJavaVerifySnippet(),
-                },
-              ],
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
+              code: getJvmKotlinVerifySnippet(),
+            },
+            {
+              label: 'Java',
+              value: 'java',
+              language: 'java',
+              code: getJvmJavaVerifySnippet(),
             },
           ],
         },
@@ -529,22 +535,22 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Java',
-                  value: 'java',
-                  language: 'java',
-                  code: getJvmJavaVerifySnippet(),
-                },
-                {
-                  label: 'Kotlin',
-                  value: 'kotlin',
-                  language: 'java',
-                  code: getJvmKotlinVerifySnippet(),
-                },
-              ],
+              label: 'Java',
+              value: 'java',
+              language: 'java',
+              code: getJvmJavaVerifySnippet(),
+            },
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
+              code: getJvmKotlinVerifySnippet(),
             },
           ],
         },

@@ -139,10 +139,10 @@ export const MetricsLayout = memo(() => {
             </Fragment>
           ) : (
             <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
-              <h3>{t('Get started with custom metrics')}</h3>
+              <h3>{t('Track and solve what matters')}</h3>
               <p>
                 {t(
-                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                  'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
                 )}
               </p>
               <div>
