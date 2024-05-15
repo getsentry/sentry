@@ -19,6 +19,7 @@ Sentry.init({
 });`;
 
 const JSExampleConfig = {
+  description: t('Try out these examples:'),
   code: [
     {
       label: 'Counter',
