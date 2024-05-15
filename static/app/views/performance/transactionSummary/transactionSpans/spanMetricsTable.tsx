@@ -28,23 +28,21 @@ import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
-type DataRowKeys =
-  | SpanMetricsField.SPAN_OP
-  | SpanMetricsField.SPAN_DESCRIPTION
-  | SpanMetricsField.SPAN_GROUP
-  | 'spm()'
-  | `avg(${SpanMetricsField.SPAN_SELF_TIME})`
-  | `sum(${SpanMetricsField.SPAN_SELF_TIME})`;
-
-type ColumnKeys = Exclude<DataRowKeys, SpanMetricsField.SPAN_GROUP>;
-
 type DataRow = {
   [SpanMetricsField.SPAN_OP]: string;
   [SpanMetricsField.SPAN_DESCRIPTION]: string;
   [SpanMetricsField.SPAN_GROUP]: string;
-  'avg(span.self_time)': number;
+  'spm()': number;
+  'avg(span.duration)': number;
   'sum(span.self_time)': number;
 };
+
+type ColumnKeys =
+  | SpanMetricsField.SPAN_OP
+  | SpanMetricsField.SPAN_DESCRIPTION
+  | 'spm()'
+  | `avg(${SpanMetricsField.SPAN_DURATION})`
+  | `sum(${SpanMetricsField.SPAN_SELF_TIME})`;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -65,7 +63,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+    key: `avg(${SpanMetricsField.SPAN_DURATION})`,
     name: t('Avg Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -80,8 +78,8 @@ const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [SpanMetricsField.SPAN_OP]: 'string',
   [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
   ['spm()']: 'rate',
-  [`avg(${SpanMetricsField.SPAN_SELF_TIME})`]: 'duration',
-  [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'duration',
+  [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'number',
+  [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'number',
 };
 
 const LIMIT = 8;
@@ -90,8 +88,6 @@ type Props = {
   project: Project | undefined;
   transactionName: string;
 };
-
-// TODO: Convert this table
 
 export default function SpanMetricsTable(props: Props) {
   const {project, transactionName} = props;
@@ -121,7 +117,7 @@ export default function SpanMetricsTable(props: Props) {
         SpanMetricsField.SPAN_DESCRIPTION,
         SpanMetricsField.SPAN_GROUP,
         `spm()`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_DURATION})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
       ],
       sorts: [sort],
