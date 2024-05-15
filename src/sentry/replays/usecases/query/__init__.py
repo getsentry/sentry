@@ -209,6 +209,7 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
+    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
     search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
