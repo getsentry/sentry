@@ -39,5 +39,8 @@ class RelatedIssuesEndpoint(GroupEndpoint):
             "event_id": request.query_params.get("event_id"),
             "project_id": request.query_params.get("project_id"),
         }
-        data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group, extra_args)
-        return Response({"type": related_type, "data": data, "meta": meta})
+        try:
+            data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group, extra_args)
+            return Response({"type": related_type, "data": data, "meta": meta})
+        except AssertionError:
+            return Response({}, status=400)
