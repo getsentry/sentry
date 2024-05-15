@@ -13,7 +13,7 @@ from django.utils.functional import cached_property
 from sentry import nodestore
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.strings import decompress
 
 from .gzippeddict import GzippedDictField
@@ -66,7 +66,7 @@ class NodeData(MutableMapping[str, Any]):
         # duplicate, reject it.
         state.pop("data", None)
         if state.pop("_node_data_CANONICAL", False):
-            state["_node_data"] = CanonicalKeyDict(state["_node_data"])
+            state["_node_data"] = state["_node_data"]
         self.__dict__ = state
 
     def __getitem__(self, key):
