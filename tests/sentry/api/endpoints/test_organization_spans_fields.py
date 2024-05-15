@@ -3,6 +3,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 
 
@@ -152,31 +153,32 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 tags={"tag": tag},
             )
 
-        for key in ["tag", "transaction"]:
-            query = {
-                "project": [self.project.id],
-                "query": "b",
-            }
-            response = self.do_request(key, query=query)
-            assert response.status_code == 200, response.data
-            assert response.data == [
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "bar",
-                    "name": "bar",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "baz",
-                    "name": "baz",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-            ]
+        with override_options({"performance.spans-tags-values.search": True}):
+            for key in ["tag", "transaction"]:
+                query = {
+                    "project": [self.project.id],
+                    "query": "b",
+                }
+                response = self.do_request(key, query=query)
+                assert response.status_code == 200, response.data
+                assert response.data == [
+                    {
+                        "count": 1,
+                        "key": key,
+                        "value": "bar",
+                        "name": "bar",
+                        "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    },
+                    {
+                        "count": 1,
+                        "key": key,
+                        "value": "baz",
+                        "name": "baz",
+                        "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    },
+                ]
 
     def test_non_string_fields(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
