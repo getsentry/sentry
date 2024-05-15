@@ -419,6 +419,7 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   return {start: startObj.toISOString(), end: now.toISOString()};
 }
 
+// TODO(metrics): remove this when we switch tags to the new meta
 export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
   if (datetime?.period) {
     if (statsPeriodToDays(datetime.period) < 14) {
