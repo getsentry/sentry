@@ -59,12 +59,7 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.utils import method_dispatch
-from sentry.configurations.endpoints import (
-    ConfigurationEndpoint,
-    ConfigurationFeatureEndpoint,
-    ConfigurationFeaturesEndpoint,
-    ConfigurationsEndpoint,
-)
+from sentry.configurations.endpoints import ProjectConfigurationEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -1166,27 +1161,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
         name="sentry-api-0-organization-combined-rules",
-    ),
-    # Configurations
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/configurations/$",
-        ConfigurationsEndpoint.as_view(),
-        name="sentry-api-0-organization-configurations",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/configurations/(?P<configuration_id>\d+)/$",
-        ConfigurationEndpoint.as_view(),
-        name="sentry-api-0-organization-configuration",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/configurations/(?P<configuration_id>\d+)/features/$",
-        ConfigurationFeaturesEndpoint.as_view(),
-        name="sentry-api-0-organization-configuration-features",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/configurations/(?P<configuration_id>\d+)/features/(?P<configuration_feature_id>[^\/]+)/$",
-        ConfigurationFeatureEndpoint.as_view(),
-        name="sentry-api-0-organization-configuration-feature",
     ),
     # Data Export
     re_path(
@@ -2342,6 +2316,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/associate/$",
         AssociateDSymFilesEndpoint.as_view(),
         name="sentry-api-0-associate-dsym-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/configuration/$",
+        ProjectConfigurationEndpoint.as_view(),
+        name="sentry-api-0-project-configuration",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/filters/$",
