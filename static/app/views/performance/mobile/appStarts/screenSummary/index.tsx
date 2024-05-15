@@ -24,11 +24,8 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
-<<<<<<< HEAD
 import {BASE_URL} from 'sentry/views/performance/mobile/appStarts/settings';
-=======
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
->>>>>>> 16c919f580 (ref(insights): abstract ScreenLoadSpans side panel for mobile modules)
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {
