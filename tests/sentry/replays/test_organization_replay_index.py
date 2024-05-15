@@ -773,8 +773,24 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_user_filters_invalid_operator(self):
         self.create_project(teams=[self.team])
 
+        queries = [
+            "transaction.duration:>0",
+            "viewed_by_me:<true",
+            "seen_by_me:>false",
+            "!viewed_by_me:false",
+            "!seen_by_me:true",
+        ]
+
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url + "?field=id&query=transaction.duration:>0")
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400
+
+    def test_get_replays_user_filters_invalid_value(self):
+        self.create_project(teams=[self.team])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&query=viewed_by_me:potato")
             assert response.status_code == 400
 
     def test_get_replays_user_sorts(self):
