@@ -33,9 +33,11 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
+  const moduleURL = useQueueModuleURL();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -57,9 +59,7 @@ function DestinationSummaryPage() {
               },
               {
                 label: MODULE_TITLE,
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/queues/`
-                ),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {

@@ -27,6 +27,7 @@ import RenderBlockingSelector from 'sentry/views/performance/browser/resources/s
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useResourceModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -42,6 +43,7 @@ const {
 } = SpanMetricsField;
 
 function ResourceSummary() {
+  const moduleURL = useResourceModuleURL();
   const organization = useOrganization();
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
@@ -94,9 +96,7 @@ function ResourceSummary() {
               },
               {
                 label: 'Resources',
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/browser/resources/`
-                ),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {
