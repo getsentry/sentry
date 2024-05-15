@@ -13,6 +13,7 @@ import {BarChart} from './barChart';
 import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({
+  animateBars,
   height,
   hideDelay,
   tooltipFormatter,
@@ -24,6 +25,7 @@ function makeBaseChartOptions({
   showXAxisLine,
   xAxisLineColor,
 }: {
+  animateBars: boolean;
   height: number;
   markLineLabelSide: 'right' | 'left';
   showXAxisLine: boolean;
@@ -84,9 +86,14 @@ function makeBaseChartOptions({
         },
       },
     },
-    options: {
-      animation: false,
-    },
+    options: animateBars
+      ? {
+          animation: true,
+          animationEasing: 'circularOut',
+        }
+      : {
+          animation: false,
+        },
   };
 }
 
@@ -117,6 +124,12 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
    * Chart height
    */
   height: number;
+
+  /**
+   * Whether to animate the bars on initial render.
+   * If true, bars will rise from the x-axis to their final height.
+   */
+  animateBars?: boolean;
 
   /**
    * Opacity of each bar in the graph (0-1)
@@ -205,6 +218,7 @@ export function getYAxisMaxFn(height: number) {
 }
 
 function MiniBarChart({
+  animateBars = false,
   barOpacity = 0.6,
   emphasisColors,
   series,
@@ -252,6 +266,7 @@ function MiniBarChart({
       }
       set(updated, 'itemStyle.color', colorList[i]);
       set(updated, 'itemStyle.opacity', barOpacity); // Opacity of each bar
+      set(updated, 'itemStyle.borderRadius', [1, 1, 0, 0]); // Rounded corners on top of the bar
       set(updated, 'emphasis.itemStyle.opacity', 1.0);
       set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
       chartSeries.push(updated);
@@ -273,6 +288,7 @@ function MiniBarChart({
       : noLabelYAxisOptions;
 
     const options = makeBaseChartOptions({
+      animateBars,
       height,
       hideDelay,
       tooltipFormatter,
@@ -287,6 +303,7 @@ function MiniBarChart({
 
     return options;
   }, [
+    animateBars,
     grid,
     height,
     hideDelay,

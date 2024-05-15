@@ -70,12 +70,18 @@ function GroupStatusChart({
           showMarkLine && max > 0
             ? MarkLine({
                 silent: true,
-                lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                lineStyle: {
+                  color: theme.gray200,
+                  type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
+                  opacity: 0.6,
+                  cap: 'round', // Rounded edges for the dashes
+                },
                 data: [
                   {
                     type: 'max',
                   },
                 ],
+                animation: false,
                 label: {
                   show: true,
                   position: 'end',
@@ -95,6 +101,7 @@ function GroupStatusChart({
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
       <ChartWrapper>
         <MiniBarChart
+          animateBars
           showXAxisLine
           markLineLabelSide="right"
           barOpacity={0.4}
