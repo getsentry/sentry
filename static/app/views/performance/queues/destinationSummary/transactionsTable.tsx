@@ -25,8 +25,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
-  SpanFunction,
   ModuleName,
+  SpanFunction,
   type SpanMetricsResponse,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
