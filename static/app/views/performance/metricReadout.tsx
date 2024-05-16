@@ -107,11 +107,11 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
 
   if (unit === CurrencyUnit.USD) {
     const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (numericValue < 0.01) {
+    if (numericValue <= 1) {
       renderedValue = (
-        <NumberContainer align={align}>US {numericValue * 100}¢</NumberContainer>
+        <NumberContainer align={align}>US ${numericValue.toFixed(3)}</NumberContainer>
       );
-    } else if (numericValue >= 1) {
+    } else {
       renderedValue = (
         <NumberContainer align={align}>
           US ${formatAbbreviatedNumber(numericValue)}

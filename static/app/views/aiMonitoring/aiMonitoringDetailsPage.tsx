@@ -99,10 +99,10 @@ export function AiMonitoringPage({params}: Props) {
                 },
                 {
                   label: t('AI Monitoring'),
+                  to: moduleURL,
                 },
                 {
                   label: spanDescription ?? t('(no name)'),
-                  to: moduleURL,
                 },
               ]}
             />
