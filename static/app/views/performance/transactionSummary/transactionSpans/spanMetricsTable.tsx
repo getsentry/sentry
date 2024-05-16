@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
-import {browserHistory, Link} from 'react-router';
+import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
@@ -183,7 +184,9 @@ function renderBodyCell(
 
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key] || t('(unnamed span)')}</Link>
+          <Link to={target} disabled={!dataRow['span.group']}>
+            {dataRow[column.key] || t('(unnamed span)')}
+          </Link>
         </TableCellContainer>
       );
     }

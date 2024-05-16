@@ -246,7 +246,7 @@ function SpansContentV2(props: Props) {
       /> */}
       </FilterActions>
 
-      <SpanMetricsTable project={project} transactionName={''} />
+      <SpanMetricsTable project={project} transactionName={transactionName} />
     </Layout.Main>
   );
 }
