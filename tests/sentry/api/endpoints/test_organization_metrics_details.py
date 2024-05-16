@@ -9,6 +9,7 @@ from sentry.sentry_metrics.use_case_id_registry import (
 )
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -228,5 +229,28 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "max_timestamp",
             "min",
             "min_timestamp",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
             "sum",
         ]
+
+        with override_options(
+            {"sentry-metrics.metrics-api.hide-percentile-operations": True},
+        ):
+            response = self.get_success_response(
+                self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+            )
+            data = sorted(response.data, key=lambda d: d["mri"])
+            assert sorted(data[1]["operations"]) == [
+                "avg",
+                "count",
+                "histogram",
+                "max",
+                "max_timestamp",
+                "min",
+                "min_timestamp",
+                "sum",
+            ]
