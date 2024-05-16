@@ -19,7 +19,7 @@ boolean_operator
     }
 
 paren_group
-  = open_paren spaces:spaces inner:term+ closed_paren {
+  = open_paren spaces:spaces inner:term* closed_paren {
       return tc.tokenLogicGroup([spaces, ...inner].flat());
     }
 

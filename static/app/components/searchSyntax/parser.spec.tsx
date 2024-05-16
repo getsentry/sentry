@@ -296,5 +296,24 @@ describe('searchSyntax/parser', function () {
         expect.objectContaining({type: Token.SPACES}),
       ]);
     });
+
+    it('tokenizes empty matched parens and flattenParenGroups=false', () => {
+      const result = parseSearch('()', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.LOGIC_GROUP,
+          inner: [expect.objectContaining({type: Token.SPACES})],
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
   });
 });
