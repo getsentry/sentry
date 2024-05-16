@@ -409,7 +409,7 @@ class EventManager:
         project_id: int | None,
         raw: bool = False,
         assume_normalized: bool = False,
-        start_time: int | None = None,
+        start_time: float | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         has_attachments: bool = False,
@@ -2664,7 +2664,7 @@ def save_attachment(
     event_id: str,
     key_id: int | None = None,
     group_id: int | None = None,
-    start_time: float | int | None = None,
+    start_time: float | None = None,
 ) -> None:
     """
     Persists a cached event attachments into the file store.
