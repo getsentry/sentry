@@ -235,7 +235,7 @@ class DailySummaryTest(
             mock_prepare_summary_data.delay.call_count == 1
         )  # note this didn't fire again, it just didn't increase from before
 
-    @pytest.mark.skip()
+    @pytest.mark.skip(reason="test is failing, but relevant feature is disabled")
     def test_build_summary_data(self):
         self.populate_event_data()
 
