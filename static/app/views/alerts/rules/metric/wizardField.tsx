@@ -118,6 +118,20 @@ export default function WizardField({
           : []),
       ],
     },
+    {
+      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
+      options: [
+        hasCustomMetrics(organization)
+          ? {
+              label: AlertWizardAlertNames.custom_metrics,
+              value: 'custom_metrics',
+            }
+          : {
+              label: AlertWizardAlertNames.custom_transactions,
+              value: 'custom_transactions',
+            },
+      ],
+    },
   ];
 
   return (
