@@ -272,7 +272,7 @@ function EventTagsTreeValue({
           showUnderline
           underlineColor="linkUnderline"
         >
-          <Version version={content.value} truncate />
+          <Version version={content.value} truncate shouldWrapText />
         </VersionHoverCard>
       );
       break;

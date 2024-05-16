@@ -1,12 +1,9 @@
 import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useRequestsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 interface Props {
   domain?: string;
@@ -21,8 +18,8 @@ export function TransactionCell({
   transaction,
   transactionMethod,
 }: Props) {
+  const moduleURL = useRequestsModuleURL();
   const location = useLocation();
-  const organization = useOrganization();
 
   if (!transaction) {
     return NULL_DESCRIPTION;
@@ -34,9 +31,7 @@ export function TransactionCell({
       ? `${transactionMethod} ${transaction}`
       : transaction;
 
-  const pathname = normalizeUrl(
-    `/organizations/${organization.slug}/performance/http/domains/`
-  );
+  const pathname = `${moduleURL}/domains/`;
 
   const query = {
     ...location.query,
@@ -48,17 +43,7 @@ export function TransactionCell({
 
   return (
     <OverflowEllipsisTextContainer>
-      <Link
-        onClick={() =>
-          trackAnalytics('performance_views.sample_spans.opened', {
-            organization,
-            source: ModuleName.HTTP,
-          })
-        }
-        to={`${pathname}?${qs.stringify(query)}`}
-      >
-        {label}
-      </Link>
+      <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
     </OverflowEllipsisTextContainer>
   );
 }

@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -20,18 +21,20 @@ const EMPTY_STATS: ReadonlyArray<TimeseriesValue> = [];
 
 type Props = {
   stats: ReadonlyArray<TimeseriesValue>;
+  groupStatus?: string;
   height?: number;
   secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
 
-function GroupChart({
+function GroupStatusChart({
   stats,
+  groupStatus,
   height = 24,
   secondaryStats = EMPTY_STATS,
-  showSecondaryPoints = false,
   showMarkLine = false,
+  showSecondaryPoints = false,
 }: Props) {
   const graphOptions = useMemo<{
     colors: [string] | undefined;
@@ -41,7 +44,6 @@ function GroupChart({
     if (!stats || !stats.length) {
       return {colors: undefined, emphasisColors: undefined, series: []};
     }
-
     const max = Math.max(...stats.map(p => p[1]));
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
@@ -68,16 +70,22 @@ function GroupChart({
           showMarkLine && max > 0
             ? MarkLine({
                 silent: true,
-                lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
+                lineStyle: {
+                  color: theme.gray200,
+                  type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
+                  opacity: 0.6,
+                  cap: 'round', // Rounded edges for the dashes
+                },
                 data: [
                   {
                     type: 'max',
                   },
                 ],
+                animation: false,
                 label: {
                   show: true,
-                  position: 'start',
-                  color: `${theme.gray200}`,
+                  position: 'end',
+                  color: `${theme.gray300}`,
                   fontFamily: 'Rubik',
                   fontSize: 10,
                   formatter: `${formattedMarkLine}`,
@@ -90,19 +98,36 @@ function GroupChart({
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
-    <LazyRender containerHeight={showMarkLine ? 30 : height}>
-      <MiniBarChart
-        height={showMarkLine ? 36 : height}
-        isGroupedByDate
-        showTimeInTooltip
-        series={graphOptions.series}
-        colors={graphOptions.colors}
-        emphasisColors={graphOptions.emphasisColors}
-        hideDelay={50}
-        showMarkLineLabel={showMarkLine}
-      />
+    <LazyRender containerHeight={showMarkLine ? 26 : height}>
+      <ChartWrapper>
+        <MiniBarChart
+          animateBars
+          showXAxisLine
+          markLineLabelSide="right"
+          barOpacity={0.4}
+          height={showMarkLine ? 36 : height}
+          isGroupedByDate
+          showTimeInTooltip
+          series={graphOptions.series}
+          colors={graphOptions.colors}
+          emphasisColors={graphOptions.emphasisColors}
+          hideDelay={50}
+          showMarkLineLabel={showMarkLine}
+          width={136}
+        />
+        <GraphText>{groupStatus}</GraphText>
+      </ChartWrapper>
     </LazyRender>
   );
 }
 
-export default GroupChart;
+export default GroupStatusChart;
+
+const ChartWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const GraphText = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
