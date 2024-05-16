@@ -709,9 +709,9 @@ urlpatterns += [
     ),
     # AI Monitoring
     re_path(
-        r"^ai-monitoring/",
+        r"^llm-monitoring/",
         react_page_view,
-        name="ai-monitoring",
+        name="llm-monitoring",
     ),
     # Performance
     re_path(
