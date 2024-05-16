@@ -14,7 +14,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.exceptions import InvalidParams
-from sentry.incidents.endpoints.incident import IncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleActivity, AlertRuleActivityType
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.snuba.dataset import Dataset

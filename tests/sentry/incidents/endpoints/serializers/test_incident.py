@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.incidents.endpoints.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
