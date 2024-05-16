@@ -31,7 +31,6 @@ function filterAndSortOperations(operations: string[]) {
 function MriField({aggregate, project, onChange}: Props) {
   const {data: meta, isLoading} = useMetricsMeta({projects: [parseInt(project.id, 10)]}, [
     'custom',
-    'spans',
   ]);
 
   const metaArr = useMemo(() => {
