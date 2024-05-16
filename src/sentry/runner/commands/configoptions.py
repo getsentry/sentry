@@ -275,6 +275,8 @@ def sync(ctx: click.Context) -> None:
                                 raise
                         presenter_delegator.unset(opt.name)
                     else:
+                        # If an option is set on disk, but not passed into configoptions,
+                        # we can safely continue.
                         if options.is_set_on_disk(opt.name):
                             continue
                         else:
