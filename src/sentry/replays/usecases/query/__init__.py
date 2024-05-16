@@ -70,13 +70,9 @@ def handle_viewed_by_me_filters(
         value = value.lower() == "true"
 
         if request_user_id is None:
-            if value:  # use an always-false filter so query returns nothing
-                return [
-                    SearchFilter(SearchKey("id"), "=", SearchValue("a" * 32)),
-                    "AND",
-                    SearchFilter(SearchKey("id"), "!=", SearchValue("a" * 32)),
-                ]
-            return []
+            # This case will only occur from programmer error.
+            # Note the replay index endpoint returns 401 automatically for unauthorized and anonymous users.
+            raise ValueError("Invalid user id")
 
         operator = "=" if value else "!="
         new_filters.append(
