@@ -2,8 +2,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
-import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import BreadcrumbTitle from './breadcrumbTitle';
+import SettingsBreadcrumb from '.';
 
 jest.unmock('sentry/utils/recreateRoute');
 

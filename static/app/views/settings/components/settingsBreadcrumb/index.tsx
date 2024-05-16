@@ -4,13 +4,13 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
-import Divider from 'sentry/views/settings/components/settingsBreadcrumb/divider';
-import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
-import ProjectCrumb from 'sentry/views/settings/components/settingsBreadcrumb/projectCrumb';
-import TeamCrumb from 'sentry/views/settings/components/settingsBreadcrumb/teamCrumb';
 
 import {useBreadcrumbsPathmap} from './context';
+import Crumb from './crumb';
+import Divider from './divider';
+import {OrganizationCrumb} from './organizationCrumb';
+import ProjectCrumb from './projectCrumb';
+import TeamCrumb from './teamCrumb';
 import type {RouteWithName} from './types';
 
 const MENUS = {
