@@ -18,7 +18,7 @@ from sentry.models.user import User
 from sentry.seer.utils import (
     SeerSimilarIssueData,
     SimilarIssuesEmbeddingsRequest,
-    get_similar_issues_embeddings,
+    get_similarity_data_from_seer,
 )
 from sentry.utils.safe import get_path
 
@@ -131,21 +131,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             )
         }
 
-        result = []
-        for group_id in group_data:
-            try:
-                result.append((serialized_groups[group_id], group_data[group_id]))
-            except KeyError:
-                # KeyErrors may occur if seer API returns a deleted/merged group, which means it
-                # will be missing from `serialized_groups`
-                #
-                # TODO: This shouldn't be an issue for merged groups once we only use hashes (since
-                # merging leaves the hashes intact), but it will still be an error for deleted
-                # groups/hashes.
-                #
-                # TODO: Report back to seer that the hash has been deleted.
-                continue
-        return result
+        return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
     def get(self, request: Request, group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
@@ -177,7 +163,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         extra["group_message"] = extra.pop("message")
         logger.info("Similar issues embeddings parameters", extra=extra)
 
-        results = get_similar_issues_embeddings(similar_issues_params)
+        results = get_similarity_data_from_seer(similar_issues_params)
 
         analytics.record(
             "group_similar_issues_embeddings.count",

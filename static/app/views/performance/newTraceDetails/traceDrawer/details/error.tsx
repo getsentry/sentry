@@ -59,7 +59,7 @@ export function ErrorNodeDetails({
     {
       key: 'title',
       subject: t('Title'),
-      value: <TraceDrawerComponents.CardValueWithCopy value={node.value.title} />,
+      value: <TraceDrawerComponents.CopyableCardValueWithLink value={node.value.title} />,
     },
   ];
 

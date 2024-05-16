@@ -21,7 +21,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.login_as(self.user)
         self.url = reverse(
             "sentry-api-0-organization-dashboards",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.dashboard_2 = Dashboard.objects.create(
             title="Dashboard 2", created_by_id=self.user.id, organization=self.organization

@@ -9,6 +9,7 @@ import type {TagCollection} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 interface TracesSearchBarProps {
@@ -40,16 +41,24 @@ interface SpanFieldEntry {
 }
 type SpanFieldsResponse = SpanFieldEntry[];
 
-const getDynamicSpanFieldsEndpoint = (orgSlug: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/spans/fields/?statsPeriod=1h`,
+const getDynamicSpanFieldsEndpoint = (orgSlug: string, selection): ApiQueryKey => [
+  `/organizations/${orgSlug}/spans/fields/`,
+  {
+    query: {
+      project: selection.projects,
+      environment: selection.environments,
+      statsPeriod: '1h', // Hard coded stats period to load recent tags fast
+    },
+  },
 ];
 
 const useTracesSupportedTags = (): TagCollection => {
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const staticTags = getTracesSupportedTags();
 
   const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
-    getDynamicSpanFieldsEndpoint(organization.slug),
+    getDynamicSpanFieldsEndpoint(organization.slug, selection),
     {
       staleTime: 0,
       retry: false,
@@ -75,6 +84,7 @@ export function TracesSearchBar({
   handleClearSearch,
 }: TracesSearchBarProps) {
   // TODO: load tags for autocompletion
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
@@ -86,6 +96,7 @@ export function TracesSearchBar({
         <TraceBar key={index}>
           <SpanLetter>{getSpanName(index)}</SpanLetter>
           <StyledSearchBar
+            searchSource="trace-explorer"
             query={query}
             onSearch={(queryString: string) => handleSearch(index, queryString)}
             placeholder={t(
@@ -95,6 +106,7 @@ export function TracesSearchBar({
             metricAlert={false}
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
           />
           <StyledButton
             aria-label={t('Remove span')}

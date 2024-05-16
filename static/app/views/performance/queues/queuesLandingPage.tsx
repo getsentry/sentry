@@ -10,23 +10,69 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
-import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/settings';
+import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
+import {
+  BASE_URL,
+  DEFAULT_QUERY_FILTER,
+  MODULE_TITLE,
+  ONBOARDING_CONTENT,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/queues/settings';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage(app,span.duration)' as const,
+  kind: 'desc' as const,
+};
 
 function QueuesLandingPage() {
   const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
+  const location = useLocation();
+
+  const query = useLocationQuery({
+    fields: {
+      destination: decodeScalar,
+      [QueryParameterNames.DESTINATIONS_SORT]: decodeScalar,
+    },
+  });
+
+  const sort =
+    decodeSorts(query[QueryParameterNames.DESTINATIONS_SORT])
+      .filter(isAValidSort)
+      .at(0) ?? DEFAULT_SORT;
+
+  const handleSearch = (newDestination: string) => {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        destination: newDestination === '' ? undefined : newDestination,
+        [QueryParameterNames.DESTINATIONS_CURSOR]: undefined,
+      },
+    });
+  };
+
+  // The QueuesTable component queries using the destination prop.
+  // We wrap the user input in wildcards to allow for partial matches.
+  const wildCardDestinationFilter = query.destination
+    ? `*${escapeFilterValue(query.destination)}*`
+    : undefined;
 
   return (
     <Fragment>
@@ -67,32 +113,30 @@ function QueuesLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
+            <ModulesOnboarding
+              moduleQueryFilter={new MutableSearch(DEFAULT_QUERY_FILTER)}
+              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
+              referrer={'api.performance.queues.landing-onboarding'}
+            >
+              <ModuleLayout.Half>
+                <LatencyChart />
+              </ModuleLayout.Half>
 
-            {onboardingProject && (
+              <ModuleLayout.Half>
+                <ThroughputChart />
+              </ModuleLayout.Half>
+
               <ModuleLayout.Full>
-                <Onboarding organization={organization} project={onboardingProject} />
+                <Flex>
+                  <SearchBar
+                    query={query.destination}
+                    placeholder={t('Search for more destinations')}
+                    onSearch={handleSearch}
+                  />
+                  <QueuesTable sort={sort} destination={wildCardDestinationFilter} />
+                </Flex>
               </ModuleLayout.Full>
-            )}
-
-            {!onboardingProject && (
-              <Fragment>
-                <ModuleLayout.Half>
-                  <LatencyChart />
-                </ModuleLayout.Half>
-
-                <ModuleLayout.Half>
-                  <ThroughputChart />
-                </ModuleLayout.Half>
-
-                <ModuleLayout.Full>
-                  <Flex>
-                    {/* TODO: Make search bar work */}
-                    <SmartSearchBar />
-                    <QueuesTable />
-                  </Flex>
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
+            </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
@@ -104,7 +148,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL="/performance/queues"
+      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <QueuesLandingPage />

@@ -259,6 +259,10 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/performance
 /src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/performance
 /tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/performance
+/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/performance
+/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/performance
+/src/sentry/api/endpoints/organization_traces.py                                    @getsentry/performance
+/tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/performance
 
 /static/app/views/starfish/                                                         @getsentry/performance
 ## Endof Performance
@@ -415,6 +419,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /.github/workflows/openapi.yml        @getsentry/owners-api
 /.github/workflows/openapi-diff.yml   @getsentry/owners-api
 /src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
+/tests/sentry/api/test_path_params.py                      @getsentry/owners-api
 ## End of APIs
 
 

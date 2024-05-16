@@ -37,6 +37,7 @@ import {
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
+import {BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -47,6 +48,7 @@ import {
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useWebVitalsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -75,6 +77,7 @@ function getCurrentTabSelection(selectedTab) {
 }
 
 export function PageOverview() {
+  const moduleURL = useWebVitalsModuleURL();
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -112,9 +115,7 @@ export function PageOverview() {
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
-    window.location.href = normalizeUrl(
-      `/organizations/${organization.slug}/performance/browser/pageloads/`
-    );
+    window.location.href = moduleURL;
     return null;
   }
 
@@ -162,9 +163,7 @@ export function PageOverview() {
                 },
                 {
                   label: 'Web Vitals',
-                  to: normalizeUrl(
-                    `/organizations/${organization.slug}/performance/browser/pageloads/`
-                  ),
+                  to: moduleURL,
                   preservePageFilters: true,
                 },
                 ...(transaction ? [{label: 'Page Overview'}] : []),
@@ -307,7 +306,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL="/performance/browser/pageloads"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <PageOverview />

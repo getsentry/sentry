@@ -83,6 +83,13 @@ def queue_comment_task_if_needed(
             )
         return
 
+    if response[0]["state"] == "open":
+        metrics.incr(
+            "github_pr_comment.queue_comment_check.open_pr",
+            sample_rate=1.0,
+        )
+        return
+
     merge_commit_sha = response[0]["merge_commit_sha"]
 
     pr_query = PullRequest.objects.filter(

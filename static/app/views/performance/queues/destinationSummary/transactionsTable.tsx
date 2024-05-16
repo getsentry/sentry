@@ -15,13 +15,15 @@ import type {Organization} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {decodeScalar} from 'sentry/utils/queryString';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
+import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
+import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
@@ -56,7 +58,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: '', // TODO
+    key: 'trace_status_rate(ok)',
     name: t('Error Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -71,19 +73,52 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum(span.duration)',
+    key: 'time_spent_percentage(app,span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
+const SORTABLE_FIELDS = [
+  'transaction',
+  'count_op(queue.publish)',
+  'count_op(queue.process)',
+  'avg_if(span.duration,span.op,queue.process)',
+  'avg(messaging.message.receive.latency)',
+  `${SpanFunction.TIME_SPENT_PERCENTAGE}(app,span.duration)`,
+] as const;
+
+type ValidSort = Sort & {
+  field: (typeof SORTABLE_FIELDS)[number];
+};
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
+}
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage(app,span.duration)' as const,
+  kind: 'desc' as const,
+};
+
 export function TransactionsTable() {
   const organization = useOrganization();
   const location = useLocation();
-  const destination = decodeScalar(location.query.destination);
+
+  const locationQuery = useLocationQuery({
+    fields: {
+      destination: decodeScalar,
+      [QueryParameterNames.DESTINATIONS_SORT]: decodeScalar,
+    },
+  });
+  const sort =
+    decodeSorts(locationQuery[QueryParameterNames.DESTINATIONS_SORT])
+      .filter(isAValidSort)
+      .at(0) ?? DEFAULT_SORT;
 
   const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
-    destination,
+    destination: locationQuery.destination,
+    sort,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
@@ -101,12 +136,19 @@ export function TransactionsTable() {
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
         grid={{
-          renderHeadCell: col =>
+          renderHeadCell: column =>
             renderHeadCell({
-              column: col,
+              column,
+              sort,
               location,
+              sortParameterName: QueryParameterNames.DESTINATIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
@@ -151,6 +193,16 @@ function renderBodyCell(
     return <TransactionCell transaction={row[key]} op={op} />;
   }
 
+  // Need to invert trace_status_rate(ok) to show error rate
+  if (key === 'trace_status_rate(ok)') {
+    const formatter = FIELD_FORMATTERS.percentage.renderFunc;
+    return (
+      <AlignRight>
+        {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
+      </AlignRight>
+    );
+  }
+
   if (!meta?.fields) {
     return row[column.key];
   }
@@ -180,7 +232,7 @@ function renderBodyCell(
 }
 
 function TransactionCell({transaction, op}: {op: string; transaction: string}) {
-  const organization = useOrganization();
+  const moduleURL = useQueueModuleURL();
   const {query} = useLocation();
   const queryString = {
     ...query,
@@ -189,11 +241,7 @@ function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   };
   return (
     <NoOverflow>
-      <Link
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/performance/queues/destination/?${qs.stringify(queryString)}`
-        )}
-      >
+      <Link to={`${moduleURL}/destination/?${qs.stringify(queryString)}`}>
         {transaction}
       </Link>
     </NoOverflow>

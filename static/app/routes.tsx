@@ -495,6 +495,11 @@ function buildRoutes() {
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
       />
+      <Route
+        path="user-feedback/"
+        name={t('User Feedback')}
+        component={make(() => import('sentry/views/settings/projectUserFeedback'))}
+      />
       <Route path="security-and-privacy/" name={t('Security & Privacy')}>
         <IndexRoute
           component={make(
@@ -540,14 +545,6 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
-      <Route
-        path="user-feedback-processing/"
-        name={t('User Feedback')}
-        component={make(
-          () => import('sentry/views/settings/project/projectUserFeedbackProcessing')
-        )}
-      />
-
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -634,13 +631,6 @@ function buildRoutes() {
         path="loader-script/"
         name={t('Loader Script')}
         component={make(() => import('sentry/views/settings/project/loaderScript'))}
-      />
-      <Route
-        path="user-feedback/"
-        name={t('User Feedback')}
-        component={make(
-          () => import('sentry/views/settings/project/projectUserFeedback')
-        )}
       />
       <Redirect from="csp/" to="security-headers/" />
       <Route path="security-headers/" name={t('Security Headers')}>
@@ -1457,17 +1447,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const performanceRoutes = (
-    <Route
-      path="/performance/"
-      component={make(() => import('sentry/views/performance'))}
-      withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
+  const insightsRoutes = (
+    <Fragment>
       <Route path="database/">
         <IndexRoute
           component={make(
@@ -1582,6 +1563,20 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+    </Fragment>
+  );
+
+  const performanceRoutes = (
+    <Route
+      path="/performance/"
+      component={make(() => import('sentry/views/performance'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <Route
+        path="trends/"
+        component={make(() => import('sentry/views/performance/trends'))}
+      />
       <Route path="traces/">
         <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
       </Route>
@@ -1662,6 +1657,7 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
+      {insightsRoutes}
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}

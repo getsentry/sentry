@@ -1,6 +1,13 @@
 import type {MetricType, MRI} from 'sentry/types';
 import type {ParsedMRI, UseCase} from 'sentry/types/metrics';
-import {getUseCaseFromMRI, parseField, parseMRI, toMRI} from 'sentry/utils/metrics/mri';
+import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
+import {
+  defaultAggregateForMRI,
+  getUseCaseFromMRI,
+  parseField,
+  parseMRI,
+  toMRI,
+} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -204,4 +211,19 @@ describe('toMRI', () => {
       expect(toMRI(parsedMRI)).toEqual(mri);
     }
   );
+});
+
+describe('defaultAggregateForMRI', () => {
+  it.each(['c', 'd', 'g', 's'])(
+    'should give default aggregate - metric type %s',
+    metricType => {
+      const mri = `${metricType as MetricType}:custom/xyz@test` as MRI;
+
+      expect(defaultAggregateForMRI(mri)).toBe(DEFAULT_AGGREGATES[metricType]);
+    }
+  );
+
+  it('should fallback to sum', () => {
+    expect(defaultAggregateForMRI('b:roken/MRI@none' as MRI)).toBe('sum');
+  });
 });
