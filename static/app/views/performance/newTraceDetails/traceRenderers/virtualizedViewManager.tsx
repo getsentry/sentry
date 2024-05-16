@@ -1274,7 +1274,8 @@ export class VirtualizedViewManager {
 
       const outside_left =
         span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
-      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+      const outside_right =
+        span.space[0] - this.to_origin - error_margin > this.trace_view.right;
 
       if (outside_left || outside_right) {
         this.hideSpanBar(this.span_bars[i], this.span_text[i]);
