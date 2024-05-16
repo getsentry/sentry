@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+import orjson
 import pytest
 from django.urls import reverse
 from pytest_django.live_server_helper import LiveServer
@@ -17,7 +18,6 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import region_silo_test
 from sentry.types.region import Region
-from sentry.utils import json
 from tests.sentry.middleware.test_proxy import test_region
 
 
@@ -67,6 +67,6 @@ class EndToEndAPIProxyTest(TransactionTestCase):
                 )
 
         assert_status_code(resp, 201)
-        result = json.loads(resp.getvalue())
+        result = orjson.loads(resp.getvalue())
         team = Team.objects.get(id=result["id"])
         assert team.idp_provisioned

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
@@ -17,7 +18,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import control_silo_test, create_test_regions
-from sentry.utils import json
 from sentry.utils.signing import sign
 
 
@@ -59,7 +59,7 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert response.status_code == 200
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data == {"type": 1}
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -89,7 +89,7 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert response.status_code == 200
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data == {"type": 1}
         assert_no_webhook_payloads()
         assert len(responses.calls) == 0
@@ -208,7 +208,7 @@ class DiscordRequestParserTest(TestCase):
             }
         )
         assert response.status_code == status.HTTP_202_ACCEPTED
-        assert json.loads(response.content) == parser.async_response_data
+        assert orjson.loads(response.content) == parser.async_response_data
 
 
 @control_silo_test
@@ -232,6 +232,6 @@ class End2EndTest(APITestCase):
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
         assert response.status_code == 200
-        data = json.loads(response.content)
+        data = orjson.loads(response.content)
         assert data == {"type": 1}
         assert mock_verify_signature.call_count == 1

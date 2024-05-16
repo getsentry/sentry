@@ -1,3 +1,4 @@
+import orjson
 import responses
 
 from sentry.mediators.external_requests.alert_rule_action_requester import (
@@ -7,7 +8,6 @@ from sentry.mediators.external_requests.alert_rule_action_requester import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -71,11 +71,11 @@ class TestAlertRuleActionRequester(TestCase):
             ],
             "installationId": self.install.uuid,
         }
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == data
 
         assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature(
-            json.dumps(payload)
+            orjson.dumps(payload).decode()
         )
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
@@ -147,11 +147,11 @@ class TestAlertRuleActionRequester(TestCase):
             ],
             "installationId": self.install.uuid,
         }
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == data
 
         assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature(
-            json.dumps(payload)
+            orjson.dumps(payload).decode()
         )
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
