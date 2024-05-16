@@ -275,12 +275,9 @@ def sync(ctx: click.Context) -> None:
                                 raise
                         presenter_delegator.unset(opt.name)
                     else:
-                        if (
-                            options.can_update(
-                                opt.name, options.get(opt.name), options.UpdateChannel.AUTOMATOR
-                            )
-                            == options.NotWritableReason.OPTION_ON_DISK
-                        ):
+                        # If an option is set on disk, but not passed into configoptions,
+                        # we can safely continue.
+                        if options.is_set_on_disk(opt.name):
                             continue
                         else:
                             presenter_delegator.drift(opt.name, options.get(opt.name))
