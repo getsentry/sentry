@@ -70,8 +70,6 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
-    "span-metrics-extraction-resource",
-    "span-metrics-extraction-all-modules",
     "race-free-group-creation",
     "first-event-severity-new-escalation",
     "first-event-severity-calculation",
