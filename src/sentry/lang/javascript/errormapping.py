@@ -25,6 +25,12 @@ REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
 
+# Regex for React error messages.
+# * The `(\d+)` group matches the error code
+# * The `(?:\?(\S+))?` group optionally matches a query (non-capturing),
+#   and `(\S+)` matches the query parameters.
+REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://[^?]+(?:\?(\S+))?"
+
 error_processors: dict[str, Processor] = {}
 
 
@@ -85,7 +91,7 @@ def minified_error(vendor, mapping_url, regex):
 @minified_error(
     vendor="react",
     mapping_url=REACT_MAPPING_URL,
-    regex=r"Minified React error #(\d+); visit https?://[^?]+\?(\S+)",
+    regex=REACT_ERROR_REGEX,
 )
 def process_react_exception(exc, match, mapping):
     error_id, qs = match.groups()
