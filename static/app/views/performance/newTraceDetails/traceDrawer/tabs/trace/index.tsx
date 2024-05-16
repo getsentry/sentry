@@ -14,10 +14,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
-import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {isTraceNode} from '../../../guards';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import type {TraceType} from '../../../traceType';
 import {IssueList} from '../../details/issues/issues';
 import {TraceDrawerComponents} from '../../details/styles';
 
