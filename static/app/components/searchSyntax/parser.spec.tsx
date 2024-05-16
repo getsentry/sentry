@@ -224,9 +224,7 @@ describe('searchSyntax/parser', function () {
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({
-          type: Token.PAREN,
-          left: true,
-          right: false,
+          type: Token.L_PAREN,
           value: '(',
         }),
         expect.objectContaining({type: Token.SPACES}),
@@ -246,18 +244,14 @@ describe('searchSyntax/parser', function () {
       expect(result).toEqual([
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({
-          type: Token.PAREN,
-          left: true,
-          right: false,
+          type: Token.L_PAREN,
           value: '(',
         }),
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({
-          type: Token.PAREN,
-          left: false,
-          right: true,
+          type: Token.R_PAREN,
           value: ')',
         }),
         expect.objectContaining({type: Token.SPACES}),
@@ -279,9 +273,7 @@ describe('searchSyntax/parser', function () {
         expect.objectContaining({type: Token.FREE_TEXT}),
         expect.objectContaining({type: Token.SPACES}),
         expect.objectContaining({
-          type: Token.PAREN,
-          left: true,
-          right: false,
+          type: Token.L_PAREN,
           value: '(',
         }),
         expect.objectContaining({type: Token.SPACES}),

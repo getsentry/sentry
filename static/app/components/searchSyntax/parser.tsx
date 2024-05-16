@@ -45,6 +45,8 @@ export enum Token {
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
+  L_PAREN = 'lParen',
+  R_PAREN = 'rParen',
   VALUE_ISO_8601_DATE = 'valueIso8601Date',
   VALUE_RELATIVE_DATE = 'valueRelativeDate',
   VALUE_DURATION = 'valueDuration',
@@ -55,7 +57,6 @@ export enum Token {
   VALUE_TEXT = 'valueText',
   VALUE_NUMBER_LIST = 'valueNumberList',
   VALUE_TEXT_LIST = 'valueTextList',
-  PAREN = 'paren',
 }
 
 /**
@@ -418,10 +419,8 @@ export class TokenConverter {
 
   tokenParen = (value: '(' | ')') => ({
     ...this.defaultTokenFields,
+    type: value === '(' ? (Token.L_PAREN as const) : (Token.R_PAREN as const),
     value,
-    left: value === '(',
-    right: value === ')',
-    type: Token.PAREN as const,
   });
 
   tokenFreeText = (value: string, quoted: boolean) => ({
@@ -1135,7 +1134,8 @@ export type ParseResultToken =
   | TokenResult<Token.FILTER>
   | TokenResult<Token.FREE_TEXT>
   | TokenResult<Token.SPACES>
-  | TokenResult<Token.PAREN>;
+  | TokenResult<Token.L_PAREN>
+  | TokenResult<Token.R_PAREN>;
 
 /**
  * Result from parsing a search query.

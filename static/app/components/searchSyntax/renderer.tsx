@@ -67,7 +67,8 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
     case Token.FREE_TEXT:
       return <FreeTextToken token={token} cursor={cursor} />;
 
-    case Token.PAREN:
+    case Token.L_PAREN:
+    case Token.R_PAREN:
       return <Paren>{token.text}</Paren>;
 
     default:
