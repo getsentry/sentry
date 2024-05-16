@@ -120,11 +120,11 @@ function QueuesLandingPage() {
               referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
-                <LatencyChart />
+                <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Half>
-                <ThroughputChart />
+                <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>
@@ -137,27 +137,6 @@ function QueuesLandingPage() {
                   <QueuesTable sort={sort} destination={wildCardDestinationFilter} />
                 </Flex>
               </ModuleLayout.Full>
-
-              <Fragment>
-                <ModuleLayout.Half>
-                  <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
-                </ModuleLayout.Half>
-
-                <ModuleLayout.Half>
-                  <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
-                </ModuleLayout.Half>
-
-                <ModuleLayout.Full>
-                  <Flex>
-                    <SearchBar
-                      query={query.destination}
-                      placeholder={t('Search for more destinations')}
-                      onSearch={handleSearch}
-                    />
-                    <QueuesTable sort={sort} destination={wildCardDestinationFilter} />
-                  </Flex>
-                </ModuleLayout.Full>
-              </Fragment>
             </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
