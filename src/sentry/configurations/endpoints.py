@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.configurations.storage import make_storage
 from sentry.models.project import Project
 
 
@@ -32,21 +33,10 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project) -> Response:
         """Get remote configuration from project options."""
-        remote_config = project.get_option("sentry:remote_config")
+        remote_config = make_storage(project).get()
         if remote_config is None:
             return Response("Not found.", status=404)
-
-        return Response(
-            {
-                "data": {
-                    "id": project.id,
-                    "sample_rate": remote_config["options"]["sample_rate"],
-                    "traces_sample_rate": remote_config["options"]["traces_sample_rate"],
-                    "user_config": remote_config["options"]["user_config"],
-                }
-            },
-            status=200,
-        )
+        return Response({"data": remote_config}, status=200)
 
     def post(self, request: Request, project: Project) -> Response:
         """Set remote configuration in project options."""
@@ -57,23 +47,12 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
         result = validator.validated_data["data"]
 
         # Propagate config to Relay.
-        project.update_option("sentry:remote_config", _to_protocol_format(result))
+        make_storage(project).set(result)
 
         result["id"] = project.id
         return Response({"data": result}, status=201)
 
     def delete(self, request: Request, project: Project) -> Response:
         """Delete remote configuration from project options."""
-        project.delete_option("sentry:remote_config")
+        make_storage(project).pop()
         return Response("", status=204)
-
-
-def _to_protocol_format(result):
-    return {
-        "options": {
-            "sample_rate": result["sample_rate"],
-            "traces_sample_rate": result["traces_sample_rate"],
-            "user_config": result["user_config"],
-        },
-        "version": 1,
-    }
