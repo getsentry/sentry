@@ -314,7 +314,12 @@ def __translated_payload(
     }
 
     agg_options = get_aggregation_options(payload["name"], payload["org_id"])
+
     if agg_options:
+        # Keep this assert for now to indicate that we only have maximum 1 aggregation
+        # option per metric bucket, regardless of the use case in the bucket
+        assert len(agg_options) == 1
+
         agg_option = agg_options.popitem()[0]
         payload["aggregation_option"] = agg_option
 
