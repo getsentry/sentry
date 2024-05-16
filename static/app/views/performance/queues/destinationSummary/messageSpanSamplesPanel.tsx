@@ -23,7 +23,7 @@ import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples'
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSpanSamplesTable';
+import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
   CONSUMER_QUERY_FILTER,
@@ -41,7 +41,7 @@ import {
 } from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
-export function MessageSamplesPanel() {
+export function MessageSpanSamplesPanel() {
   const router = useRouter();
   const query = useLocationQuery({
     fields: {
