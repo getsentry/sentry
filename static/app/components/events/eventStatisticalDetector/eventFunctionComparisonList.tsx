@@ -142,10 +142,10 @@ function EventComparisonListInner({
 
   const profilesQuery = useProfileEvents({
     datetime,
-    fields: ['id', 'transaction', 'profile.duration'],
-    query: `id:[${[...beforeProfileIds, ...afterProfileIds].join(', ')}]`,
+    fields: ['profile.id', 'transaction', 'transaction.duration'],
+    query: `profile.id:[${[...beforeProfileIds, ...afterProfileIds].join(', ')}]`,
     sort: {
-      key: 'profile.duration',
+      key: 'transaction.duration',
       order: 'desc',
     },
     projects: [project.id],
@@ -161,7 +161,7 @@ function EventComparisonListInner({
 
     return (
       (profilesQuery.data?.data?.filter(row =>
-        profileIds.has(row.id as string)
+        profileIds.has(row['profile.id'] as string)
       ) as ProfileItem[]) ?? []
     );
   }, [beforeProfilesQuery, profilesQuery]);
@@ -173,10 +173,12 @@ function EventComparisonListInner({
 
     return (
       (profilesQuery.data?.data?.filter(row =>
-        profileIds.has(row.id as string)
+        profileIds.has(row['profile.id'] as string)
       ) as ProfileItem[]) ?? []
     );
   }, [afterProfilesQuery, profilesQuery]);
+
+  const durationUnit = profilesQuery.data?.meta?.units?.['transaction.duration'] ?? '';
 
   return (
     <Wrapper>
@@ -187,6 +189,7 @@ function EventComparisonListInner({
           organization={organization}
           profiles={beforeProfiles}
           project={project}
+          unit={durationUnit}
         />
       </EventDataSection>
       <EventDataSection type="profiles-after" title={t('Example Profiles After')}>
@@ -196,6 +199,7 @@ function EventComparisonListInner({
           organization={organization}
           profiles={afterProfiles}
           project={project}
+          unit={durationUnit}
         />
       </EventDataSection>
     </Wrapper>
@@ -203,10 +207,10 @@ function EventComparisonListInner({
 }
 
 interface ProfileItem {
-  id: string;
-  'profile.duration': number;
+  'profile.id': string;
   timestamp: string;
   transaction: string;
+  'transaction.duration': number;
 }
 
 interface EventListProps {
@@ -215,6 +219,7 @@ interface EventListProps {
   organization: Organization;
   profiles: ProfileItem[];
   project: Project;
+  unit: string;
 }
 
 function EventList({
@@ -223,6 +228,7 @@ function EventList({
   organization,
   profiles,
   project,
+  unit,
 }: EventListProps) {
   return (
     <ListContainer>
@@ -240,7 +246,7 @@ function EventList({
         const target = generateProfileFlamechartRouteWithQuery({
           orgSlug: organization.slug,
           projectSlug: project.slug,
-          profileId: item.id,
+          profileId: item['profile.id'],
           query: {
             frameName,
             framePackage,
@@ -248,7 +254,7 @@ function EventList({
         });
 
         return (
-          <Fragment key={item.id}>
+          <Fragment key={item['profile.id']}>
             <Container>
               <Link
                 to={target}
@@ -259,12 +265,22 @@ function EventList({
                   });
                 }}
               >
-                {getShortEventId(item.id)}
+                {getShortEventId(item['profile.id'])}
               </Link>
             </Container>
             <Container>{item.transaction}</Container>
             <NumberContainer>
-              <PerformanceDuration nanoseconds={item['profile.duration']} abbreviation />
+              {unit === 'millisecond' ? (
+                <PerformanceDuration
+                  milliseconds={item['transaction.duration']}
+                  abbreviation
+                />
+              ) : (
+                <PerformanceDuration
+                  nanoseconds={item['transaction.duration']}
+                  abbreviation
+                />
+              )}
             </NumberContainer>
           </Fragment>
         );
