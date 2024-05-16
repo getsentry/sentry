@@ -9,16 +9,20 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {EventItem} from './traceTimelineTooltip';
 import {type TimelineEvent, useTraceTimelineEvents} from './useTraceTimelineEvents';
+
+const twoIssues = 2;
 
 interface TraceTimelineProps {
   event: Event;
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
+  const organization = useOrganization();
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
   const {isError, isLoading, traceEvents} = useTraceTimelineEvents({event});
@@ -28,9 +32,13 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   let timelineStatus: string | undefined;
   let issues: {id: number; project: string; title: string}[] = [];
   if (hasTraceId && !isLoading) {
-    timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
-    // XXX: Check if org has feature here
-    issues = getIssuesFromEvents(traceEvents);
+    if (organization.features.includes('related-issues-issue-details-page')) {
+      issues = getIssuesFromEvents(traceEvents);
+      // When we have more than 2 issues regardless of the number of events we skip the timeline
+      timelineStatus = issues.length > twoIssues ? 'shown' : 'empty';
+    } else {
+      timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
+    }
   } else if (!hasTraceId) {
     timelineStatus = 'no_trace_id';
   }
@@ -54,30 +62,36 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   return (
     <ErrorBoundary mini>
-      <TimelineWrapper>
-        <div ref={timelineRef}>
-          <TimelineEventsContainer>
-            <TimelineOutline />
-            {/* Sets a min width of 200 for testing */}
-            <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
-          </TimelineEventsContainer>
-        </div>
-        <QuestionTooltipWrapper>
-          <QuestionTooltip
-            size="sm"
-            title={t(
-              'This is a trace timeline showing all related events happening upstream and downstream of this event'
-            )}
-            position="bottom"
-          />
-        </QuestionTooltipWrapper>
+      {timelineStatus === 'shown' ? (
+        <TimelineWrapper>
+          <div ref={timelineRef}>
+            <TimelineEventsContainer>
+              <TimelineOutline />
+              {/* Sets a min width of 200 for testing */}
+              <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
+            </TimelineEventsContainer>
+          </div>
+          <QuestionTooltipWrapper>
+            <QuestionTooltip
+              size="sm"
+              title={t(
+                'This is a trace timeline showing all related events happening upstream and downstream of this event'
+              )}
+              position="bottom"
+            />
+          </QuestionTooltipWrapper>
+        </TimelineWrapper>
+      ) : (
         <Feature features="related-issues-issue-details-page">
-          {issues.length === 2 &&
-            traceEvents.map((traceEvent, index) => (
-              <EventItem key={index} timelineEvent={traceEvent} />
-            ))}
+          {issues.length === twoIssues && (
+            <div>
+              {traceEvents.map((traceEvent, index) => (
+                <EventItem key={index} timelineEvent={traceEvent} />
+              ))}
+            </div>
+          )}
         </Feature>
-      </TimelineWrapper>
+      )}
     </ErrorBoundary>
   );
 }
@@ -86,7 +100,11 @@ function getIssuesFromEvents(
   events: TimelineEvent[]
 ): {id: number; project: string; title: string}[] {
   return events
-    .filter(event => event['issue.id'] !== undefined)
+    .filter(
+      (event, index, self) =>
+        event['issue.id'] !== undefined &&
+        self.findIndex(e => e['issue.id'] === event['issue.id']) === index
+    )
     .map(event => ({
       id: event['issue.id'],
       title: event.title,
