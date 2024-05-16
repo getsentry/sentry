@@ -19,13 +19,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
-import {OnboardingContent} from 'sentry/views/performance/cache/onboardingContent';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
 import {
   BASE_FILTERS,
   BASE_URL,
   MODULE_TITLE,
+  ONBOARDING_CONTENT,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/cache/settings';
 import {
@@ -35,6 +35,7 @@ import {
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -171,7 +172,7 @@ export function CacheLandingPage() {
             </ModuleLayout.Full>
             <ModulesOnboarding
               moduleQueryFilter={MutableSearch.fromQueryObject(BASE_FILTERS)}
-              onboardingContent={<OnboardingContent />}
+              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
               referrer={Referrer.LANDING_CACHE_ONBOARDING}
             >
               <ModuleLayout.Half>

@@ -5,15 +5,18 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export function OnboardingContent() {
+type Props = {
+  description: string;
+  link: string;
+  title: string;
+};
+
+export function OnboardingContent({description, link, title}: Props) {
   return (
     <Fragment>
-      <Header>{t('Start collecting Insights about your Caches!')}</Header>
+      <Header>{title}</Header>
       <p>
-        {t('Our robot is waiting to collect your first cache hit.')}{' '}
-        <ExternalLink href="https://develop.sentry.dev/sdk/performance/modules/caches/">
-          {t('Learn more')}
-        </ExternalLink>
+        {description} <ExternalLink href={link}>{t('Learn more')}</ExternalLink>
       </p>
     </Fragment>
   );

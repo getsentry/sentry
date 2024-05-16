@@ -23,14 +23,15 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
-import {OnboardingContent} from 'sentry/views/performance/queues/onboardingContent';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
 import {
   BASE_URL,
   DEFAULT_QUERY_FILTER,
   MODULE_TITLE,
+  ONBOARDING_CONTENT,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -114,7 +115,7 @@ function QueuesLandingPage() {
             </ModuleLayout.Full>
             <ModulesOnboarding
               moduleQueryFilter={new MutableSearch(DEFAULT_QUERY_FILTER)}
-              onboardingContent={<OnboardingContent />}
+              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
               referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
