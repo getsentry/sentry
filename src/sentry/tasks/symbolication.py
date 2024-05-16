@@ -135,7 +135,7 @@ class SymbolicationTimeout(Exception):
 def _do_symbolicate_event(
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
-    start_time: int | None,
+    start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
     queue_switches: int = 0,
@@ -355,7 +355,7 @@ def submit_symbolicate(
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
     event_id: str | None,
-    start_time: int | None,
+    start_time: float | None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
@@ -403,7 +403,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
     )
     def symbolication_fn(
         cache_key: str,
-        start_time: int | None = None,
+        start_time: float | None = None,
         event_id: str | None = None,
         data: Event | None = None,
         queue_switches: int = 0,
