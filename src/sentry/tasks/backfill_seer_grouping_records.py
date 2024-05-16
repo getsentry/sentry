@@ -91,7 +91,7 @@ def backfill_seer_grouping_records(
         return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-    
+
     if last_processed_index is None:
         last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
 
@@ -124,9 +124,7 @@ def backfill_seer_grouping_records(
         .order_by("times_seen")
     )
     group_id_message_data_batch = group_id_message_data[
-        last_processed_index : min(
-            last_processed_index + BATCH_SIZE, len(group_id_message_data)
-        )
+        last_processed_index : min(last_processed_index + BATCH_SIZE, len(group_id_message_data))
     ]
     logger.info(
         "backfill_seer_grouping_records.batch",
@@ -136,7 +134,7 @@ def backfill_seer_grouping_records(
             "last_processed_id": last_processed_id,
         },
     )
-    
+
     if len(group_id_message_data_batch) == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
