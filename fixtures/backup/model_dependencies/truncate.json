@@ -93,7 +93,6 @@
   "sentry_appconnectbuild",
   "sentry_apikey",
   "sentry_apiapplication",
-  "sentry_activity",
   "replays_replayrecordingsegment",
   "hybridcloud_orgauthtokenreplica",
   "hybridcloud_organizationslugreservationreplica",
