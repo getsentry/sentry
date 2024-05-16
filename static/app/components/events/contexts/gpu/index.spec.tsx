@@ -43,7 +43,7 @@ const event = EventFixture({
 });
 
 // Flaky test https://github.com/getsentry/sentry/actions/runs/4465585304/jobs/7842795315?pr=45984
-// eslint-disable-next-line
+// biome-ignore lint/suspicious/noSkippedTests: Flaky test
 describe.skip('gpu event context', function () {
   it('display redacted data', async function () {
     render(<GPUEventContext event={event} data={gpuMockData} />, {

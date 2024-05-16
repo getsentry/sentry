@@ -59,6 +59,8 @@ describe('TeamStatsIssues', () => {
   const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
+    TeamStore.reset();
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/projects/`,
@@ -122,10 +124,6 @@ describe('TeamStatsIssues', () => {
         3: unresolvedStats,
       },
     });
-  });
-
-  beforeEach(() => {
-    TeamStore.reset();
   });
 
   afterEach(() => {

@@ -26,6 +26,10 @@ describe('OrganizationCrumb', function () {
   beforeEach(() => {
     OrganizationsStore.init();
     OrganizationsStore.load(organizations);
+
+    initialData = window.__initialData;
+    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(window.location.assign).mockReset();
   });
 
   const switchOrganization = async () => {
@@ -43,11 +47,6 @@ describe('OrganizationCrumb', function () {
       organization,
     });
 
-  beforeEach(function () {
-    initialData = window.__initialData;
-    jest.mocked(browserHistory.push).mockReset();
-    jest.mocked(window.location.assign).mockReset();
-  });
   afterEach(function () {
     window.__initialData = initialData;
   });

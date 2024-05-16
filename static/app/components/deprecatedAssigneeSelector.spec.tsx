@@ -105,16 +105,13 @@ describe('DeprecatedAssigneeSelector', () => {
     });
 
     MemberListStore.reset();
+    ProjectsStore.loadInitialData([PROJECT_1]);
   });
 
   // Doesn't need to always be async, but it was easier to prevent flakes this way
   const openMenu = async () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
-
-  beforeEach(() => {
-    ProjectsStore.loadInitialData([PROJECT_1]);
-  });
 
   afterEach(() => {
     ProjectsStore.reset();
