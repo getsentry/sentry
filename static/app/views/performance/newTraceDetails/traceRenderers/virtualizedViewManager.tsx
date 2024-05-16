@@ -87,6 +87,7 @@ export class VirtualizedViewManager {
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
+  reset_zoom_button: HTMLButtonElement | null = null;
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
   horizontal_scrollbar_container: HTMLElement | null = null;
@@ -157,6 +158,7 @@ export class VirtualizedViewManager {
       },
     };
 
+    this.registerResetZoomRef = this.registerResetZoomRef.bind(this);
     this.registerContainerRef = this.registerContainerRef.bind(this);
     this.registerHorizontalScrollBarContainerRef =
       this.registerHorizontalScrollBarContainerRef.bind(this);
@@ -332,6 +334,10 @@ export class VirtualizedViewManager {
     } else {
       this.teardown();
     }
+  }
+
+  registerResetZoomRef(ref: HTMLButtonElement | null) {
+    this.reset_zoom_button = ref;
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {
@@ -744,6 +750,7 @@ export class VirtualizedViewManager {
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
     this.enqueueFOVQueryParamSync();
+    this.syncResetZoomButton();
   }
 
   enqueueFOVQueryParamSync() {
@@ -775,6 +782,12 @@ export class VirtualizedViewManager {
       child.style.width =
         Math.round(max - this.scrollbar_width + this.ROW_PADDING_PX) + 'px';
     }
+  }
+
+  syncResetZoomButton() {
+    if (!this.reset_zoom_button) return;
+    this.reset_zoom_button.disabled =
+      this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
