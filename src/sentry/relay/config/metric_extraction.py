@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -42,6 +42,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpecVersioning,
     RuleCondition,
     SpecVersion,
+    TagMapping,
     are_specs_equal,
     should_use_on_demand_metrics,
 )
@@ -876,8 +877,6 @@ def get_metric_conditional_tagging_rules(
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
 
-    rules.extend(HISTOGRAM_OUTLIER_RULES)
-
     return rules
 
 
@@ -1395,8 +1394,8 @@ def _parse_percentiles(value: tuple[()] | tuple[str, str, str, str, str]) -> tup
     return p25, p75
 
 
-def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditionalTaggingRule]:
-    rules: list[MetricConditionalTaggingRule] = []
+def _produce_histogram_outliers(query_results: Any) -> Sequence[TagMapping]:
+    rules: list[TagMapping] = []
     for row in query_results:
         platform = row["platform"]
         op = row["op"]
@@ -1418,46 +1417,59 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
 
             rules.append(
                 {
-                    "condition": {
-                        "op": "and",
-                        "inner": [
-                            {"op": "eq", "name": "event.contexts.trace.op", "value": op},
-                            {"op": "eq", "name": "event.platform", "value": platform},
-                            # This is in line with https://github.com/getsentry/sentry/blob/63308b3f2256fe2f24da43a951154d0ef2218d19/src/sentry/snuba/discover.py#L1728-L1729=
-                            # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
-                            {
-                                "op": "gte",
-                                "name": "event.duration",
-                                "value": p75 + 3 * abs(p75 - p25),
+                    # TODO: One list of tags for every metric (while keeping the same order).
+                    "metrics": [_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric]],
+                    "tags": [
+                        {
+                            "condition": {
+                                "op": "and",
+                                "inner": [
+                                    {"op": "eq", "name": "event.contexts.trace.op", "value": op},
+                                    {"op": "eq", "name": "event.platform", "value": platform},
+                                    # This is in line with https://github.com/getsentry/sentry/blob/63308b3f2256fe2f24da43a951154d0ef2218d19/src/sentry/snuba/discover.py#L1728-L1729=
+                                    # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
+                                    {
+                                        "op": "gte",
+                                        "name": "event.duration",
+                                        "value": p75 + 3 * abs(p75 - p25),
+                                    },
+                                ],
                             },
-                        ],
-                    },
-                    "targetMetrics": [_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric]],
-                    "targetTag": "histogram_outlier",
-                    "tagValue": "outlier",
+                            "key": "histogram_outlier",
+                            "value": "outlier",
+                        }
+                    ],
                 }
             )
 
     rules.append(
         {
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "gte", "name": "event.duration", "value": 0},
-                ],
-            },
-            "targetMetrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
-            "targetTag": "histogram_outlier",
-            "tagValue": "inlier",
+            "metrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
+            "tags": [
+                {
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "gte", "name": "event.duration", "value": 0},
+                        ],
+                    },
+                    "key": "histogram_outlier",
+                    "value": "inlier",
+                },
+            ],
         }
     )
 
     rules.append(
         {
-            "condition": {"op": "and", "inner": []},
-            "targetMetrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
-            "targetTag": "histogram_outlier",
-            "tagValue": "outlier",
+            "metrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
+            "tags": [
+                {
+                    "condition": {"op": "and", "inner": []},
+                    "key": "histogram_outlier",
+                    "value": "outlier",
+                }
+            ],
         }
     )
 
@@ -1492,3 +1504,28 @@ def widget_exceeds_max_specs(
 
 
 HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
+
+
+class MetricExtractionGroup(TypedDict):
+    #: Whether a group of globally defined metrics and/or tags is enabled by default for every project.
+    #: This can be overridden in project configs.
+    isEnabled: bool
+    #: List of metrics to extract.
+    metrics: NotRequired[list[MetricSpec]]
+    #: List of tags to apply to previously extracted metrics.
+    tags: NotRequired[list[TagMapping]]
+
+
+class MetricExtractionGroups(TypedDict):
+    groups: dict[str, MetricExtractionGroup]
+
+
+def global_metric_extraction_groups() -> MetricExtractionGroups:
+    return {
+        "groups": {
+            "histogram_outliers": {
+                "isEnabled": True,  # enabled by default
+                "tags": HISTOGRAM_OUTLIER_RULES,
+            }
+        }
+    }
