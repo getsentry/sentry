@@ -1496,7 +1496,7 @@ def _save_aggregate(
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
-                    result="new_group",
+                    result="no_match",
                 )
 
                 metrics.incr(
@@ -1639,7 +1639,7 @@ def _save_aggregate_new(
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
-            result = "new_group"
+            result = "no_match"
 
     # From here on out, we're just doing housekeeping
 
