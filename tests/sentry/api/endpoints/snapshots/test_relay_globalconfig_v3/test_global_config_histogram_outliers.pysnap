@@ -1,5 +1,5 @@
 ---
-created: '2024-05-16T11:37:54.138257+00:00'
+created: '2024-05-16T13:23:17.681110+00:00'
 creator: sentry
 source: tests/sentry/api/endpoints/test_relay_globalconfig_v3.py
 ---
@@ -707,7 +707,7 @@ groups:
           - name: event.platform
             op: eq
             value: javascript
-          - name: event.duration
+          - name: event.measurements.lcp.value
             op: gte
             value: 7941.899538040161
           op: and
@@ -721,7 +721,7 @@ groups:
           - name: event.platform
             op: eq
             value: other
-          - name: event.duration
+          - name: event.measurements.lcp.value
             op: gte
             value: 4589.822045672948
           op: and
@@ -738,7 +738,7 @@ groups:
           - name: event.platform
             op: eq
             value: javascript
-          - name: event.duration
+          - name: event.measurements.fcp.value
             op: gte
             value: 5897.500002294778
           op: and
@@ -752,7 +752,7 @@ groups:
           - name: event.platform
             op: eq
             value: other
-          - name: event.duration
+          - name: event.measurements.fcp.value
             op: gte
             value: 3384.3555060724457
           op: and
