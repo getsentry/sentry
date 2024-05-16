@@ -249,10 +249,7 @@ function renderBodyCell(
   if (column.key === 'ai_total_tokens_used(c:spans/ai.total_cost@usd)') {
     const cost = row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
     if (cost) {
-      if (cost < 0.01) {
-        return <span>US {cost * 100}¢</span>;
-      }
-      return <span>US${cost}</span>;
+      return <span>US ${cost.toFixed(3)}</span>;
     }
     return (
       <span>
