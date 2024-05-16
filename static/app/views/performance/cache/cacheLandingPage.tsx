@@ -215,7 +215,7 @@ function PageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
       baseURL={`/performance/${BASE_URL}`}
-      features=""
+      features="performance-cache-view"
     >
       <CacheLandingPage />
     </ModulePageProviders>
