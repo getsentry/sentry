@@ -73,7 +73,7 @@ describe('TransactionProfileIdProvider', () => {
       body: {
         data: [
           {
-            id: MOCK_PROFILE_ID,
+            'profile.id': MOCK_PROFILE_ID,
           },
         ],
       },
