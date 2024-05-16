@@ -61,7 +61,7 @@ describe('queuesLandingPage', () => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {data: []},
+      body: {data: [{'count()': 1}]},
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
