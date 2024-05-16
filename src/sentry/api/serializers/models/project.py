@@ -27,6 +27,7 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
+from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
@@ -685,9 +686,14 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                project_id=item.id, emit_metrics=False
-            )
+            # TODO: Arguably the value of `"symbolication_degraded"` should be a list
+            # or there should be separate keys for each platform
+            degraded = False
+            for platform in SymbolicatorPlatform:
+                degraded |= should_demote_symbolication(
+                    platform, project_id=item.id, emit_metrics=False
+                )
+            attrs[item]["symbolication_degraded"] = degraded
 
         return attrs
 
