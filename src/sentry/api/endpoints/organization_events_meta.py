@@ -134,6 +134,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             "timestamp",
             "span_id",
             "profile_id",
+            "trace",
         ]
 
         if lower_bound is None or upper_bound is None:
