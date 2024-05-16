@@ -59,8 +59,43 @@ describe('messageSamplesPanel', () => {
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
-        data: [],
-        meta: {},
+        data: [
+          {
+            'sum(span.duration)': 10.0,
+            'trace_status_rate(ok)': 0.8,
+            'count_op(queue.publish)': 222,
+            'count_op(queue.process)': 333,
+            'avg_if(span.duration,span.op,queue.publish)': 3.0,
+            'avg_if(span.duration,span.op,queue.process)': 4.0,
+            'count()': 555,
+            'avg(messaging.message.receive.latency)': 2.0,
+            'avg(span.duration)': 3.5,
+          },
+        ],
+        meta: {
+          fields: {
+            'sum(span.duration)': 'duration',
+            'trace_status_rate(ok)': 'percentage',
+            'count_op(queue.publish)': 'integer',
+            'count_op(queue.process)': 'integer',
+            'avg_if(span.duration,span.op,queue.publish)': 'duration',
+            'avg_if(span.duration,span.op,queue.process)': 'duration',
+            'count()': 'integer',
+            'avg(messaging.message.receive.latency)': 'number',
+            'avg(span.duration)': 'duration',
+          },
+          units: {
+            'sum(span.duration)': 'millisecond',
+            'trace_status_rate(ok)': null,
+            'count_op(queue.publish)': null,
+            'count_op(queue.process)': null,
+            'avg_if(span.duration,span.op,queue.publish)': 'millisecond',
+            'avg_if(span.duration,span.op,queue.process)': 'millisecond',
+            'count()': null,
+            'avg(messaging.message.receive.latency)': null,
+            'avg(span.duration)': 'millisecond',
+          },
+        },
       },
     });
 
@@ -118,6 +153,7 @@ describe('messageSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
+            'trace_status_rate(ok)',
             'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
@@ -156,6 +192,16 @@ describe('messageSamplesPanel', () => {
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
+    expect(screen.getByText('Consumer')).toBeInTheDocument();
+    // Metrics Ribbon
+    expect(screen.getByText('Processed')).toBeInTheDocument();
+    expect(screen.getByText('Error Rate')).toBeInTheDocument();
+    expect(screen.getByText('Avg Time In Queue')).toBeInTheDocument();
+    expect(screen.getByText('Avg Processing Time')).toBeInTheDocument();
+    expect(screen.getByText('333')).toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
+    expect(screen.getByText('2.00ms')).toBeInTheDocument();
+    expect(screen.getByText('4.00ms')).toBeInTheDocument();
   });
 
   it('renders producer panel', async () => {
@@ -191,6 +237,7 @@ describe('messageSamplesPanel', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
+            'trace_status_rate(ok)',
             'time_spent_percentage(app,span.duration)',
           ],
           per_page: 10,
@@ -229,5 +276,11 @@ describe('messageSamplesPanel', () => {
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
+    expect(screen.getByText('Producer')).toBeInTheDocument();
+    // Metrics Ribbon
+    expect(screen.getByText('Published')).toBeInTheDocument();
+    expect(screen.getByText('Error Rate')).toBeInTheDocument();
+    expect(screen.getByText('222')).toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
   });
 });

@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -34,6 +35,7 @@ import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   MetricsFields,
   type MetricsQueryFilters,
+  ModuleName,
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
@@ -346,7 +348,17 @@ export function CacheSamplePanel() {
 
           <Fragment>
             <ModuleLayout.Full>
-              <Button onClick={handleRefetch}>{t('Try Different Samples')}</Button>
+              <Button
+                onClick={() => {
+                  trackAnalytics(
+                    'performance_views.sample_spans.try_different_samples_clicked',
+                    {organization, source: ModuleName.CACHE}
+                  );
+                  handleRefetch();
+                }}
+              >
+                {t('Try Different Samples')}
+              </Button>
             </ModuleLayout.Full>
           </Fragment>
         </ModuleLayout.Layout>

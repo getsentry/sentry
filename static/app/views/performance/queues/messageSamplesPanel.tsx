@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,7 +34,11 @@ import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {SpanIndexedField, type SpanMetricsResponse} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 export function MessageSamplesPanel() {
@@ -254,7 +259,15 @@ export function MessageSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <Button onClick={() => refetchDurationSpanSamples()}>
+            <Button
+              onClick={() => {
+                trackAnalytics(
+                  'performance_views.sample_spans.try_different_samples_clicked',
+                  {organization, source: ModuleName.QUEUE}
+                );
+                refetchDurationSpanSamples();
+              }}
+            >
               {t('Try Different Samples')}
             </Button>
           </ModuleLayout.Full>
@@ -271,19 +284,20 @@ function ProducerMetricsRibbon({
   isLoading: boolean;
   metrics: Partial<SpanMetricsResponse>[];
 }) {
+  const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
       <MetricReadout
         align="left"
         title={t('Published')}
-        value={metrics?.[0]?.['count()']}
+        value={metrics?.[0]?.['count_op(queue.publish)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
         align="left"
         title={t('Error Rate')}
-        value={undefined}
+        value={errorRate}
         unit={'percentage'}
         isLoading={isLoading}
       />
@@ -298,19 +312,20 @@ function ConsumerMetricsRibbon({
   isLoading: boolean;
   metrics: Partial<SpanMetricsResponse>[];
 }) {
+  const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
       <MetricReadout
         align="left"
         title={t('Processed')}
-        value={metrics?.[0]?.['count()']}
+        value={metrics?.[0]?.['count_op(queue.process)']}
         unit={'count'}
         isLoading={isLoading}
       />
       <MetricReadout
         align="left"
         title={t('Error Rate')}
-        value={undefined}
+        value={errorRate}
         unit={'percentage'}
         isLoading={isLoading}
       />
@@ -321,7 +336,7 @@ function ConsumerMetricsRibbon({
         isLoading={false}
       />
       <MetricReadout
-        title={t('Avg Processing Latency')}
+        title={t('Avg Processing Time')}
         value={metrics[0]?.['avg_if(span.duration,span.op,queue.process)']}
         unit={DurationUnit.MILLISECOND}
         isLoading={false}

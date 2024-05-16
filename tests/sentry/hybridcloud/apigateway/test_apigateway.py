@@ -18,7 +18,7 @@ from sentry.utils import json
 @control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ApiGatewayTest(ApiGatewayTestCase):
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         query_params = dict(foo="test", bar=["one", "two"])
         headers = dict(example="this")
         responses.add_callback(
@@ -42,7 +42,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["proxy"] is True
 
     @responses.activate
-    def test_proxy_does_not_resolve_redirect(self):
+    def test_proxy_does_not_resolve_redirect(self) -> None:
         responses.add(
             responses.POST,
             f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
@@ -63,7 +63,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert response_payload == b""
 
     @responses.activate
-    def test_region_pinned_urls_are_defined(self):
+    def test_region_pinned_urls_are_defined(self) -> None:
         resolver = get_resolver()
         # Ensure that all urls in REGION_PINNED_URL_NAMES exist in api/urls.py
         for name in settings.REGION_PINNED_URL_NAMES:
@@ -75,7 +75,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             ), f"REGION_PINNED_URL_NAMES contains {name}, but no route is registered with that name"
 
     @responses.activate
-    def test_proxy_check_org_slug_url(self):
+    def test_proxy_check_org_slug_url(self) -> None:
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
@@ -112,7 +112,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
 
     @responses.activate
     @override_options({"api.id-or-slug-enabled": True})
-    def test_proxy_check_org_id_or_slug_url_with_params(self):
+    def test_proxy_check_org_id_or_slug_url_with_params(self) -> None:
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
@@ -181,7 +181,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.data["proxy"] is False
 
     @responses.activate
-    def test_proxy_check_region_pinned_url(self):
+    def test_proxy_check_region_pinned_url(self) -> None:
         responses.add(
             responses.GET,
             f"{self.REGION.address}/builtin-symbol-sources/",
@@ -206,7 +206,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.data["proxy"] is False
 
     @responses.activate
-    def test_proxy_check_region_pinned_url_with_params(self):
+    def test_proxy_check_region_pinned_url_with_params(self) -> None:
         responses.add(
             responses.GET,
             f"{self.REGION.address}/relays/register/",
@@ -231,7 +231,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["details"] is True
 
     @responses.activate
-    def test_proxy_check_region_pinned_issue_urls(self):
+    def test_proxy_check_region_pinned_issue_urls(self) -> None:
         issue = self.create_group()
         responses.add(
             responses.GET,
@@ -263,7 +263,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["events"]
 
     @responses.activate
-    def test_proxy_error_embed_dsn(self):
+    def test_proxy_error_embed_dsn(self) -> None:
         responses.add(
             responses.GET,
             f"{self.REGION.address}/api/embed/error-page/",
@@ -324,7 +324,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         assert resp_json["name"] == expected_name
 
     @responses.activate
-    def test_proxy_sentryapp_installation_path(self):
+    def test_proxy_sentryapp_installation_path(self) -> None:
         sentry_app = self.create_sentry_app()
         install = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
@@ -359,7 +359,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             self._check_response(resp, "external-issue-actions")
 
     @responses.activate
-    def test_proxy_sentryapp_path(self):
+    def test_proxy_sentryapp_path(self) -> None:
         sentry_app = self.create_sentry_app()
 
         responses.add(
@@ -397,7 +397,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             self._check_response(resp, "requests")
 
     @responses.activate
-    def test_proxy_sentryapp_installation_path_invalid(self):
+    def test_proxy_sentryapp_installation_path_invalid(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return
 

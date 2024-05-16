@@ -171,6 +171,8 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
 
 type MonitorCreatedCallback = (organization: Organization) => void;
 
+type CronsOnboardingPanelProps = {children: React.ReactNode};
+
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
@@ -190,6 +192,7 @@ export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
+  'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
