@@ -8,6 +8,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
+import {CronServiceIncidents} from './serviceIncidents';
 import {useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
@@ -23,6 +24,10 @@ interface Props {
    * Enable the timeline cursor
    */
   showCursor?: boolean;
+  /**
+   * Render sentry service incidents as an overlay
+   */
+  showIncidents?: boolean;
   /**
    * Enabling causes the cursor tooltip to stick to the top of the viewport.
    */
@@ -116,6 +121,7 @@ export function GridLineLabels({timeWindowConfig, className}: Props) {
 export function GridLineOverlay({
   timeWindowConfig,
   showCursor,
+  showIncidents,
   stickyCursor,
   allowZoom,
   className,
@@ -170,6 +176,7 @@ export function GridLineOverlay({
     <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
+      {showIncidents && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
       <GridLineContainer>
         {markers.map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
@@ -183,13 +190,13 @@ const Overlay = styled('div')`
   height: 100%;
   width: 100%;
   position: absolute;
-  pointer-events: none;
 `;
 
 const GridLineContainer = styled('div')`
   position: relative;
   height: 100%;
   z-index: 1;
+  pointer-events: none;
 `;
 
 const LabelsContainer = styled('div')`
