@@ -2506,7 +2506,8 @@ register(
 register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# Disable
+# Hide percentile operations from appearing in the metrics/meta endpoint in the Metrics API, thereby also hiding those
+# operations from view in the Metrics UI.
 register(
     "sentry-metrics.metrics-api.hide-percentile-operations",
     type=Bool,

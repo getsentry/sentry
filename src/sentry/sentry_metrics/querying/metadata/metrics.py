@@ -10,7 +10,13 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.datasource import get_metrics_blocking_state_of_projects
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, get_available_operations
-from sentry.snuba.metrics.utils import BlockedMetric, MetricMeta, MetricOperationType, MetricUnit
+from sentry.snuba.metrics.utils import (
+    BlockedMetric,
+    MetricMeta,
+    MetricOperationType,
+    MetricType,
+    MetricUnit,
+)
 from sentry.snuba.metrics_layer.query import fetch_metric_mris
 
 
@@ -111,7 +117,7 @@ def _build_metric_meta(
         ]
 
     return MetricMeta(
-        type=parsed_mri.entity,
+        type=cast(MetricType, parsed_mri.entity),
         name=parsed_mri.name,
         unit=cast(MetricUnit, parsed_mri.unit),
         mri=parsed_mri.mri_string,
