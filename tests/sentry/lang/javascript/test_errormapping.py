@@ -69,7 +69,7 @@ class ErrorMappingTest(unittest.TestCase):
             )
 
     @responses.activate
-    def test_react_error_mapping_resolving_short_url(self):
+    def test_react_error_mapping_resolving_no_query(self):
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
