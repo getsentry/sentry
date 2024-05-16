@@ -103,6 +103,7 @@ def backfill_seer_grouping_records(
         delete_grouping_records(project_id)
         redis_client.delete(make_backfill_redis_key(project_id))
 
+    if last_processed_index == 0:
         # Set the metadata of groups where times_seen = 1
         # Do not set the version number, so we can consider it for future backfills later
         groups_seen_once = Group.objects.filter(
@@ -131,7 +132,7 @@ def backfill_seer_grouping_records(
         extra={
             "project_id": project.id,
             "batch_len": len(group_id_message_data_batch),
-            "last_processed_id": last_processed_id,
+            "last_processed_index": last_processed_index,
         },
     )
 
@@ -227,20 +228,25 @@ def backfill_seer_grouping_records(
                                 )
                             )
                         ]
-                    except (IncompleteSeerDataError, SimilarGroupNotFoundError) as e:
+                    # TODO: if we reach this exception, we need to delete the record from seer or this will always happen
+                    # we should not update the similarity data for this group cause we'd want to try again once we delete it
+                    except (IncompleteSeerDataError, SimilarGroupNotFoundError):
                         logger.exception(
-                            str(e),
+                            "tasks.backfill_seer_grouping_records.invalid_parent_group",
                             extra={
                                 "project_id": project_id,
                                 "group_id": group.id,
-                                "hash": group_hashes_dict[group.id],
+                                "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
                             },
                         )
+                        seer_similarity = {}
 
-                if group.data.get("metadata"):
-                    group.data["metadata"]["seer_similarity"] = seer_similarity
-                else:
-                    group.data["metadata"] = {"seer_similarity": seer_similarity}
+                if seer_similarity:
+                    if group.data.get("metadata"):
+                        group.data["metadata"]["seer_similarity"] = seer_similarity
+                    else:
+                        group.data["metadata"] = {"seer_similarity": seer_similarity}
+
             if not dry_run:
                 num_updated = Group.objects.bulk_update(groups, ["data"])
                 logger.info(
