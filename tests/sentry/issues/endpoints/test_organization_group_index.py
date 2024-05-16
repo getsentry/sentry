@@ -3561,6 +3561,64 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_heavy_sdk_name_with_negations_and_positive_checks(self) -> None:
+        # Store an event with sdk.name as sentry.python
+        event_python = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "sentry.python", "version": "0.13.19"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store another event with sdk.name as sentry.javascript
+        event_javascript = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=400)),
+                "fingerprint": ["group-2"],
+                "sdk": {"name": "sentry.javascript", "version": "2.1.1"},
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        # Query for events not using sentry.javascript SDK
+        response_negation = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="!sdk.name:sentry.javascript",
+            useGroupSnubaDataset=1,
+        )
+        assert response_negation.status_code == 200
+        assert len(response_negation.data) == 1
+        assert [int(r["id"]) for r in response_negation.data] == [event_python.group.id]
+
+        # Query for events specifically using sentry.python SDK
+        response_positive = self.get_response(
+            sort_by="date",
+            query="sdk.name:sentry.javascript",
+            useGroupSnubaDataset=1,
+        )
+        assert response_positive.status_code == 200
+        assert len(response_negation.data) == 1
+        assert [int(r["id"]) for r in response_positive.data] == [event_javascript.group.id]
+
+        # Query for events specifically using sentry.python SDK
+        response_positive = self.get_response(
+            sort_by="date",
+            query="sdk.name:sentry.*",
+            useGroupSnubaDataset=1,
+        )
+        assert response_positive.status_code == 200
+        assert len(response_positive.data) == 2
+        assert {int(r["id"]) for r in response_positive.data} == {
+            event_python.group.id,
+            event_javascript.group.id,
+        }
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
