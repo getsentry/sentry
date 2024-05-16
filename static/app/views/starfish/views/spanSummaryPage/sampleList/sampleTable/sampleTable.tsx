@@ -17,7 +17,7 @@ import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -96,7 +96,7 @@ function SampleTable({
     transactionMethod,
     release,
     query,
-    additionalFields,
+    additionalFields: [...(additionalFields ?? []), SpanIndexedField.TRACE],
   });
 
   const {
