@@ -22,7 +22,7 @@ function ServiceIncidents({
   collapsed,
   orientation,
 }: Props) {
-  const {data: incidents} = useServiceIncidents({statusFilter: 'resolved'});
+  const {data: incidents} = useServiceIncidents({statusFilter: 'unresolved'});
 
   if (!incidents) {
     return null;
