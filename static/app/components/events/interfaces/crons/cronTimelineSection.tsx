@@ -102,15 +102,8 @@ export function CronTimelineSection({event, organization, project}: Props) {
     >
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
-        <StyledGridLineTimeLabels
-          timeWindowConfig={timeWindowConfig}
-          width={timelineWidth}
-        />
-        <GridLineOverlay
-          showCursor={!isLoading}
-          timeWindowConfig={timeWindowConfig}
-          width={timelineWidth}
-        />
+        <StyledGridLineTimeLabels timeWindowConfig={timeWindowConfig} />
+        <GridLineOverlay showCursor={!isLoading} timeWindowConfig={timeWindowConfig} />
         {monitorStats && !isLoading ? (
           <Fragment>
             <EventLineTick left={eventTickLeft} />
@@ -119,7 +112,6 @@ export function CronTimelineSection({event, organization, project}: Props) {
             </EventLineLabel>
             <FadeInContainer>
               <CheckInTimeline
-                width={timelineWidth}
                 bucketedData={monitorStats[monitorId]}
                 timeWindowConfig={timeWindowConfig}
                 environment={environment ?? DEFAULT_ENVIRONMENT}
