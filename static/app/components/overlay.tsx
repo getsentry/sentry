@@ -3,7 +3,7 @@ import type {PopperProps} from 'react-popper';
 import type {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
-import {motion} from 'framer-motion';
+import {motion, useIsPresent} from 'framer-motion';
 
 import type {OverlayArrowProps} from 'sentry/components/overlayArrow';
 import {OverlayArrow} from 'sentry/components/overlayArrow';
@@ -186,15 +186,16 @@ const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
       ...props
     },
     ref
-  ) => (
-    <motion.div
-      {...props}
-      ref={ref}
-      style={{...style, zIndex}}
-      initial={{pointerEvents: 'auto'}}
-      exit={{pointerEvents: 'none'}}
-    />
-  )
+  ) => {
+    const isPresent = useIsPresent();
+    return (
+      <motion.div
+        {...props}
+        ref={ref}
+        style={{...style, zIndex, pointerEvents: isPresent ? 'auto' : 'none'}}
+      />
+    );
+  }
 );
 
 export {Overlay, PositionWrapper};
