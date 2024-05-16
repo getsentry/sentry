@@ -94,15 +94,8 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type MetricsSubscriptionCTAProps = {
-  children: (
-    props: {
-      cta: string;
-      description: string;
-      href: string;
-      type: 'info' | 'warning';
-    } | null
-  ) => React.ReactNode;
   organization: Organization;
+  children?: React.ReactNode;
 };
 
 type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
@@ -213,7 +206,8 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
-  'component:metrics-subscription-cta': () => React.ComponentType<MetricsSubscriptionCTAProps>;
+  'component:metrics-onboarding-panel-primary-action': () => React.ComponentType<MetricsSubscriptionCTAProps>;
+  'component:metrics-subscription-alert': () => React.ComponentType<MetricsSubscriptionCTAProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;

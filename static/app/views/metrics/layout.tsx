@@ -26,8 +26,8 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  OnboardingPanelPrimaryActionButtons,
-  TopBanner,
+  MetricsOnboardingPanelPrimaryAction,
+  MetricsSubscriptionAlert,
 } from 'sentry/views/metrics/billing';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
@@ -83,7 +83,7 @@ export const MetricsLayout = memo(() => {
 
   return (
     <Fragment>
-      <TopBanner />
+      <MetricsSubscriptionAlert organization={organization} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -131,7 +131,7 @@ export const MetricsLayout = memo(() => {
                   "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
-              <OnboardingPanelPrimaryActionButtons>
+              <MetricsOnboardingPanelPrimaryAction organization={organization}>
                 <ButtonList gap={1}>
                   <Button
                     priority="primary"
@@ -145,7 +145,7 @@ export const MetricsLayout = memo(() => {
                     </Button>
                   )}
                 </ButtonList>
-              </OnboardingPanelPrimaryActionButtons>
+              </MetricsOnboardingPanelPrimaryAction>
             </OnboardingPanel>
           )}
         </Layout.Main>
