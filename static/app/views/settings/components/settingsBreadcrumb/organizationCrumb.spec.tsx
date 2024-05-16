@@ -6,8 +6,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
+import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
