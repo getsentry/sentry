@@ -247,8 +247,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
 
     @responses.activate
-    @mock.patch.object(app_service, "get_many")
-    def test_with_sentryapp_multiple_installations_filters_by_org(self, mock_get_many):
+    def test_with_sentryapp_multiple_installations_filters_by_org(self):
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
         self.login_as(user=self.superuser)
         self.create_team(organization=self.organization, members=[self.superuser])
@@ -268,6 +267,11 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=org2, user=self.superuser
         )
+
+        getmany_response = app_service.get_many(
+            filter=dict(app_ids=[sentry_app.id], organization_id=self.organization.id)
+        )
+
         rule = self.create_alert_rule()
         trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
         self.create_alert_rule_trigger_action(
@@ -294,15 +298,26 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             status=200,
         )
         with self.feature("organizations:incidents"):
-            self.get_response(self.organization.slug, rule.id)
+            with mock.patch.object(app_service, "get_many") as mock_get_many:
+                mock_get_many.return_value = getmany_response
+                resp = self.get_response(self.organization.slug, rule.id)
 
-        assert mock_get_many.call_count == 1
-        mock_get_many.assert_called_with(
-            filter={
-                "app_ids": [sentry_app.id],
-                "organization_id": self.organization.id,
-            },
-        )
+                assert mock_get_many.call_count == 1
+                mock_get_many.assert_called_with(
+                    filter={
+                        "app_ids": [sentry_app.id],
+                        "organization_id": self.organization.id,
+                    },
+                )
+
+        assert resp.status_code == 200
+        assert len(responses.calls) == 1
+        assert "errors" not in resp.data
+
+        action = resp.data["triggers"][0]["actions"][0]
+        assert "select" == action["formFields"]["optional_fields"][-1]["type"]
+        assert "sentry/members" in action["formFields"]["optional_fields"][-1]["uri"]
+        assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
