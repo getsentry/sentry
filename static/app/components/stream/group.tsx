@@ -38,6 +38,7 @@ import type {
   NewQuery,
   Organization,
   PriorityLevel,
+  TimeseriesValue,
   User,
 } from 'sentry/types';
 import {IssueCategory} from 'sentry/types/group';
@@ -438,6 +439,14 @@ function BaseGroupRow({
     <GuideAnchor target="issue_stream" />
   );
 
+  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
+    ? group.filtered.stats?.[statsPeriod]
+    : group.stats?.[statsPeriod];
+
+  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
+    ? group.stats?.[statsPeriod]
+    : [];
+
   return (
     <Wrapper
       data-test-id="group"
@@ -472,8 +481,8 @@ function BaseGroupRow({
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
           <GroupChart
-            statsPeriod={statsPeriod!}
-            data={group}
+            stats={groupStats}
+            secondaryStats={groupSecondaryStats}
             showSecondaryPoints={showSecondaryPoints}
             showMarkLine
           />
