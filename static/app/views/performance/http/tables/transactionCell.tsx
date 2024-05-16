@@ -51,7 +51,7 @@ export function TransactionCell({
         onClick={() =>
           trackAnalytics('performance_views.sample_spans.opened', {
             organization,
-            source: ModuleName.HTTP,
+            source: ModuleName.QUEUE,
           })
         }
         to={`${pathname}?${qs.stringify(query)}`}

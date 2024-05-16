@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
-import {TraceType} from '../traceDetails/newTraceDetailsContent';
+import {TraceType} from './traceType';
 
 type TraceWarningsProps = {
   type: TraceType;

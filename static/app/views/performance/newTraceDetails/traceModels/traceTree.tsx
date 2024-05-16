@@ -23,7 +23,6 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 
-import {TraceType} from '../../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../../traceDetails/utils';
 import {
   isAutogroupedNode,
@@ -38,6 +37,7 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from '../guards';
+import {TraceType} from '../traceType';
 
 /**
  *
