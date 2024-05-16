@@ -44,10 +44,6 @@ function UserStats({
   transactionName,
   eventView,
 }: Props) {
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
-
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
@@ -121,22 +117,17 @@ function UserStats({
           <SidebarSpacer />
         </Fragment>
       )}
-      {!hasTransactionSummaryCleanupFlag && (
-        <Fragment>
-          <GuideAnchor target="user_misery" position="left">
-            <SectionHeading>
-              {t('User Misery')}
-              <QuestionTooltip
-                position="top"
-                title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
-                size="sm"
-              />
-            </SectionHeading>
-          </GuideAnchor>
-          {userMisery}
-        </Fragment>
-      )}
-
+      <GuideAnchor target="user_misery" position="left">
+        <SectionHeading>
+          {t('User Misery')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+            size="sm"
+          />
+        </SectionHeading>
+      </GuideAnchor>
+      {userMisery}
       <SidebarSpacer />
     </Fragment>
   );

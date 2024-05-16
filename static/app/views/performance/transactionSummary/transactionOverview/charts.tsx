@@ -174,16 +174,6 @@ function TransactionSummaryCharts({
     organization
   );
 
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
-
-  const displayOptions = generateDisplayOptions(currentFilter).filter(
-    option =>
-      (hasTransactionSummaryCleanupFlag && option.value !== DisplayModes.USER_MISERY) ||
-      !hasTransactionSummaryCleanupFlag
-  );
-
   return (
     <Panel>
       <ChartContainer data-test-id="transaction-summary-charts">
@@ -301,7 +291,7 @@ function TransactionSummaryCharts({
           <OptionSelector
             title={t('Display')}
             selected={display}
-            options={displayOptions}
+            options={generateDisplayOptions(currentFilter)}
             onChange={handleDisplayChange}
           />
         </InlineContainer>
