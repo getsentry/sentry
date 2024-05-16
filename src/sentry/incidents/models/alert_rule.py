@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Protocol, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
@@ -36,6 +36,7 @@ from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -89,18 +90,12 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
         if projects is not None:
-            # TODO - Cleanup Subscription Project Mapping
-            queryset = queryset.filter(
-                Q(snuba_query__subscriptions__project__in=projects) | Q(projects__in=projects)
-            ).distinct()
+            queryset = queryset.filter(projects__in=projects).distinct()
 
         return queryset
 
     def fetch_for_project(self, project):
-        # TODO - Cleanup Subscription Project Mapping
-        return self.filter(
-            Q(snuba_query__subscriptions__project=project) | Q(projects=project)
-        ).distinct()
+        return self.filter(projects=project).distinct()
 
     @classmethod
     def __build_subscription_cache_key(cls, subscription_id):
@@ -293,6 +288,21 @@ class AlertRule(Model):
             pass
         return None
 
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        self.team_id = None
+        self.user_id = None
+        if actor and actor.is_user:
+            self.user_id = actor.id
+        if actor and actor.is_team:
+            self.team_id = actor.id
+
     def get_audit_log_data(self):
         return {"label": self.name}
 
@@ -326,7 +336,7 @@ class AlertRule(Model):
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 self.snuba_query,
-                query_extra,
+                query_extra=query_extra,
             )
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed

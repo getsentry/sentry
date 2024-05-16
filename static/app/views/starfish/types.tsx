@@ -13,7 +13,14 @@ export enum StarfishType {
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
+  CACHE = 'cache',
+  VITAL = 'vital',
+  QUEUE = 'queue',
+  SCREEN_LOAD = 'screen_load',
+  APP_START = 'app_start',
   RESOURCE = 'resource',
+  AI = 'ai',
+  MOBILE_UI = 'mobile-ui',
   ALL = '',
   OTHER = 'other',
 }
@@ -39,7 +46,7 @@ export enum SpanMetricsField {
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
   CACHE_HIT = 'cache.hit',
-  CACHE_ITEM_SIZE = 'cahce.item_size',
+  CACHE_ITEM_SIZE = 'cache.item_size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'messaging.message.receive.latency',
 }
 
@@ -49,7 +56,8 @@ export type SpanNumberFields =
   | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH
   | SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE
-  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY;
+  | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
+  | SpanMetricsField.CACHE_ITEM_SIZE;
 
 export type SpanStringFields =
   | 'span.op'
@@ -89,7 +97,11 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
-export type ConditionalAggregate = `avg_if` | `count_op`;
+export type ConditionalAggregate =
+  | `avg_if`
+  | `count_op`
+  | 'trace_status_rate'
+  | 'time_spent_percentage';
 
 export const SPAN_FUNCTIONS = [
   'sps',
@@ -131,6 +143,8 @@ export type SpanMetricsResponse = {
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
 } & {
+  'ai_total_tokens_used(c:spans/ai.total_cost@usd)': number;
+} & {
   ['project']: string;
   ['project.id']: number;
 } & {
@@ -151,8 +165,10 @@ export type MetricsFilters = {
 export type SpanMetricsProperty = keyof SpanMetricsResponse;
 
 export enum SpanIndexedField {
+  ENVIRONMENT = 'environment',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  SPAN_CATEGORY = 'span.category',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
@@ -162,6 +178,7 @@ export enum SpanIndexedField {
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
+  SDK_NAME = 'sdk.name',
   TRACE = 'trace',
   TRANSACTION_ID = 'transaction.id',
   TRANSACTION_METHOD = 'transaction.method',
@@ -172,6 +189,7 @@ export enum SpanIndexedField {
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
+  RELEASE = 'release',
   TRANSACTION = 'transaction',
   ORIGIN_TRANSACTION = 'origin.transaction',
   REPLAY_ID = 'replay.id',
@@ -184,12 +202,19 @@ export enum SpanIndexedField {
   RESPONSE_CODE = 'span.status_code',
   CACHE_HIT = 'cache.hit',
   CACHE_ITEM_SIZE = 'measurements.cache.item_size',
-  MESSAGE_ID = 'message.id',
-  MESSAGE_SIZE = 'message.size',
-  MESSAGE_STATUS = 'message.status',
+  TRACE_STATUS = 'trace.status',
+  MESSAGING_MESSAGE_ID = 'messaging.message.id',
+  MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
+  MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
+  MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
+  MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 }
 
 export type IndexedResponse = {
+  [SpanIndexedField.ENVIRONMENT]: string;
+  [SpanIndexedField.RELEASE]: string;
+  [SpanIndexedField.SDK_NAME]: string;
+  [SpanIndexedField.SPAN_CATEGORY]: string;
   [SpanIndexedField.SPAN_DURATION]: number;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
@@ -223,9 +248,12 @@ export type IndexedResponse = {
   [SpanIndexedField.RESPONSE_CODE]: string;
   [SpanIndexedField.CACHE_HIT]: '' | 'true' | 'false';
   [SpanIndexedField.CACHE_ITEM_SIZE]: number;
-  [SpanIndexedField.MESSAGE_ID]: string;
-  [SpanIndexedField.MESSAGE_SIZE]: number;
-  [SpanIndexedField.MESSAGE_STATUS]: string;
+  [SpanIndexedField.TRACE_STATUS]: string;
+  [SpanIndexedField.MESSAGING_MESSAGE_ID]: string;
+  [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
@@ -243,6 +271,8 @@ export enum SpanFunction {
   HTTP_RESPONSE_RATE = 'http_response_rate',
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
+  COUNT_OP = 'count_op',
+  TRACE_STATUS_RATE = 'trace_status_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -296,6 +326,18 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+  [SpanFunction.COUNT_OP]: {
+    desc: t('Count of spans with matching operation'),
+    defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.TRACE_STATUS_RATE]: {
+    desc: t('Percentage of spans with matching trace status'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
 };
 
 // TODO - add more functions and fields, combine shared ones, etc
@@ -315,6 +357,8 @@ export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in MetricsStringFields as `${Property}`]: string;
 };
 
 export type MetricsProperty = keyof MetricsResponse;

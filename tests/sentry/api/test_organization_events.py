@@ -37,7 +37,7 @@ class OrganizationEventsEndpointTest(APITestCase):
     def reverse_url(self):
         return reverse(
             self.viewname,
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def do_request(self, query, features=None, **kwargs):

@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+import orjson
+from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
@@ -41,25 +43,23 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
+from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -102,16 +102,16 @@ logger = logging.getLogger(__name__)
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
-    actor = ActorTuple.from_actor_identifier(assignee)
+    actor = Actor.from_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
-    except actor.type.DoesNotExist:
+    except ObjectDoesNotExist:
         return None
 
-    if actor.type == Team:
+    if actor.is_team:
         assignee_text = f"#{assigned_actor.slug}"
-    elif actor.type == User:
+    elif actor.is_user:
         assignee_identity = identity_service.get_identity(
             filter={
                 "provider_id": identity.idp_id,
@@ -173,8 +173,7 @@ def format_release_tag(value: str, event: GroupEvent | Group):
     """Format the release tag using the short version and make it a link"""
     path = f"/releases/{value}/"
     url = event.project.organization.absolute_url(path)
-    json_loads, _ = json.methods_for_experiment("relay.enable-orjson")
-    release_description = parse_release(value, json_loads=json_loads).get("description")
+    release_description = parse_release(value, json_loads=orjson.loads).get("description")
     return f"<{url}|{release_description}>"
 
 
@@ -291,10 +290,9 @@ def get_suggested_assignees(
     if (
         issue_owners != ProjectOwnership.Everyone
     ):  # we don't want every user in the project to be a suggested assignee
-        resolved_owners = ActorTuple.resolve_many(issue_owners)
-        suggested_assignees = RpcActor.many_from_object(resolved_owners)
+        suggested_assignees = issue_owners
     try:
-        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
     except (Release.DoesNotExist, Commit.DoesNotExist):
         logger.info("Skipping suspect committers because release does not exist.")
@@ -305,12 +303,12 @@ def get_suggested_assignees(
         assignee_texts = []
         for assignee in suggested_assignees:
             # skip over any suggested assignees that are the current assignee of the issue, if there is any
-            if assignee.actor_type == ActorType.USER and not (
+            if assignee.is_user and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
                 assignee_as_user = assignee.resolve()
                 assignee_texts.append(assignee_as_user.get_display_name())
-            elif assignee.actor_type == ActorType.TEAM and not (
+            elif assignee.is_team and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):
                 assignee_texts.append(f"#{assignee.slug}")
@@ -318,31 +316,28 @@ def get_suggested_assignees(
     return []
 
 
-def get_suspect_commit_text(
-    project: Project, event: GroupEvent, commits: Sequence[Mapping[str, Any]] | None = None
-) -> SlackBlock:
+def get_suspect_commit_text(group: Group) -> str | None:
     """Build up the suspect commit text for the given event"""
 
-    # commits is passed from context when the rule initially fires
-    # we may not have that data if the message is being built after an action is taken, for example
-    if not commits:
-        commits = get_commits(project, event)
-    if not commits:
+    commit = group.get_suspect_commit()
+    if not commit:
         return None
 
-    commit = commits[0]  # get the most recent commit
     suspect_commit_text = "Suspect Commit: "
-    pull_request = commit.get("pull_request")
-    author = commit.get("author")
-    commit_id = commit.get("id")
+
+    author = commit.author
+    commit_id = commit.key
     if not (author and commit_id):  # we need both the author and commit id to continue
         return None
 
-    author_display = author.get("name") if author.get("name") is not None else author.get("email")
+    author_display = author.name if author.name else author.email
+    pull_request = PullRequest.objects.filter(
+        merge_commit_sha=commit.key, organization_id=group.project.organization_id
+    ).first()
     if pull_request:
-        repo = pull_request.get("repository", {})
-        repo_base = repo.get("url")
-        provider = repo.get("provider", {}).get("id")
+        repo = Repository.objects.get(id=pull_request.repository_id)
+        repo_base = repo.url
+        provider = repo.provider
         if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
             if "bitbucket" in provider:
                 commit_link = f"<{repo_base}/commits/{commit_id}"
@@ -353,12 +348,12 @@ def get_suspect_commit_text(
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
-        pr_date = pull_request.get("dateCreated")
+        pr_date = pull_request.date_added
         if pr_date:
             pr_date = time_since(pr_date)
-        pr_id = pull_request.get("id")
-        pr_title = pull_request.get("title")
-        pr_link = pull_request.get("externalUrl")
+        pr_id = pull_request.key
+        pr_title = pull_request.title
+        pr_link = pull_request.get_external_url()
         if pr_date and pr_id and pr_title and pr_link:
             suspect_commit_text += (
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
@@ -389,7 +384,7 @@ def build_actions(
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
         text = get_action_text(actions, identity)
-        if features.has("organizations:slack-improvements", project.organization):
+        if features.has("organizations:slack-thread-issue-alert", project.organization):
             # if actions are taken, return True at the end to show the white circle emoji
             return [], text, True
         return [], text, False
@@ -456,11 +451,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
-        recipient: RpcActor | None = None,
+        recipient: Actor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
-        commits: Sequence[Mapping[str, Any]] | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -476,7 +470,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
-        self.commits = commits
 
     @property
     def escape_text(self) -> bool:
@@ -592,9 +585,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         obj = self.event if self.event is not None else self.group
         action_text = ""
 
-        if not self.issue_details or (
-            self.recipient and self.recipient.actor_type == ActorType.TEAM
-        ):
+        if not self.issue_details or (self.recipient and self.recipient.is_team):
             payload_actions, action_text, has_action = build_actions(
                 self.group, project, text, self.actions, self.identity
             )
@@ -610,7 +601,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions and self.identity and not action_text:
             # this means somebody is interacting with the message
             action_text = get_action_text(self.actions, self.identity)
-            if features.has("organizations:slack-improvements", self.group.project.organization):
+            if features.has(
+                "organizations:slack-thread-issue-alert", self.group.project.organization
+            ):
                 has_action = True
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
@@ -669,10 +662,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
         # add suspect commit info
-        if event_for_tags:
-            suspect_commit_text = get_suspect_commit_text(project, event_for_tags, self.commits)
-            if suspect_commit_text:
-                blocks.append(self.get_context_block(suspect_commit_text))
+        suspect_commit_text = get_suspect_commit_text(self.group)
+        if suspect_commit_text:
+            blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
@@ -694,6 +686,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps_experimental("integrations.slack.enable-orjson", block_id),
+            block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )

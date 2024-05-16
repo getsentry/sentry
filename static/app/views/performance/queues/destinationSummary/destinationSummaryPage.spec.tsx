@@ -6,7 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import DestinationSummaryPageWithProviders from 'sentry/views/performance/queues/destinationSummary/destinationSummaryPage';
+import PageWithProviders from 'sentry/views/performance/queues/destinationSummary/destinationSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -72,10 +72,9 @@ describe('destinationSummaryPage', () => {
   });
 
   it('renders', async () => {
-    render(<DestinationSummaryPageWithProviders />);
+    render(<PageWithProviders />);
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    screen.getByPlaceholderText('Search for events, users, tags, and more');
     screen.getByText('Avg Latency');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();

@@ -62,7 +62,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase, SpanTestCas
     def reverse_url(self):
         return reverse(
             self.viewname,
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def do_request(self, query, features=None, **kwargs):
@@ -958,7 +958,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         for event in events:
             prototype["event_id"] = event[0]
-            prototype["message"] = event[1]
+            prototype["logentry"] = {"formatted": event[1]}
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             prototype["timestamp"] = self.ten_mins_ago_iso
@@ -996,7 +996,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         for event in events:
             prototype["event_id"] = event[0]
-            prototype["message"] = event[1]
+            prototype["logentry"] = {"formatted": event[1]}
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             prototype["timestamp"] = self.ten_mins_ago_iso
@@ -1037,7 +1037,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         for event in events:
             prototype["event_id"] = event[0]
-            prototype["message"] = event[1]
+            prototype["logentry"] = {"formatted": event[1]}
             prototype["exception"]["values"][0]["value"] = event[1]
             prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             prototype["timestamp"] = self.ten_mins_ago_iso

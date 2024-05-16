@@ -2,6 +2,7 @@ from functools import cached_property
 from typing import cast
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.test import RequestFactory
 
@@ -11,7 +12,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 
 class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
@@ -155,7 +155,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
             request = responses.calls[1].request
             assert request.headers["Authorization"] == "Bearer token_1"
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             assert payload == {
                 "body": "This is the description",
                 "assignee": None,
@@ -265,7 +265,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
             request = responses.calls[1].request
             assert request.headers["Authorization"] == "Bearer token_1"
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             assert payload == {"body": "hello"}
         else:
             self._check_proxying()

@@ -23,19 +23,21 @@ describe('latencyChart', () => {
     });
   });
   it('renders', async () => {
-    render(<LatencyChart />);
+    render(<LatencyChart destination="events" />);
     screen.getByText('Avg Latency');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
           yAxis: [
-            'avg_if(span.self_time,span.op,queue.publish)',
-            'avg_if(span.self_time,span.op,queue.process)',
+            'avg_if(span.duration,span.op,queue.publish)',
+            'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'count_op(queue.publish)',
             'count_op(queue.process)',
           ],
+          query:
+            'span.op:[queue.process,queue.publish] messaging.destination.name:events',
         }),
       })
     );

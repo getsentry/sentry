@@ -13,6 +13,7 @@ import logoArm from 'sentry-logos/logo-arm.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
 import logoCrystal from 'sentry-logos/logo-crystal.svg';
+import logoDeno from 'sentry-logos/logo-deno.svg';
 import logoDotnet from 'sentry-logos/logo-dotnet.svg';
 import logoEdgeNew from 'sentry-logos/logo-edge-new.svg';
 import logoEdgeOld from 'sentry-logos/logo-edge-old.svg';
@@ -60,7 +61,7 @@ const LOGO_MAPPING = {
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
-  nintendo: logoNintendo,
+  'nintendo-os': logoNintendo,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
@@ -72,6 +73,7 @@ const LOGO_MAPPING = {
   cpython: logoPython,
   crystal: logoCrystal,
   darwin: logoApple,
+  deno: logoDeno,
   edge: logoEdgeNew,
   electron: logoElectron,
   firefox: logoFirefox,

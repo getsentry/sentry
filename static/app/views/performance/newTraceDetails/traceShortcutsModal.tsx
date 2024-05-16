@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import tracingKeyboardIllustration from 'sentry-images/tracing/tracing-keyboard.jpg';
+import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -61,7 +61,7 @@ function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
             </Shortcuts>
           </div>
           <div>
-            <img src={tracingKeyboardIllustration} alt="Sentry cant fix this" />
+            <img src={tracingKeyboardShortcuts} alt={t('Sentry cant fix this')} />
           </div>
         </ShortcutsLayout>
       </Body>

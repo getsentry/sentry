@@ -24,8 +24,12 @@ from sentry.monitors.models import (
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.base import instrumented_task
+from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
+from sentry.utils.email.manager import get_email_addresses
 from sentry.utils.http import absolute_uri
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -84,18 +88,16 @@ def update_user_monitor_dictionary(
         user_monitor_entry["environment_names"].append(environment_name)
 
 
-def get_user_emails_from_monitor(
-    monitor: Monitor,
-):
+def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project):
     try:
         if monitor.owner_user_id:
             organization_member = OrganizationMember.objects.get(
                 user_id=monitor.owner_user_id, organization_id=monitor.organization_id
             )
-            return [organization_member.user_email]
+            return [organization_member.user_id]
         elif monitor.owner_team_id:
             team = Team.objects.get_from_cache(id=monitor.owner_team_id)
-            return team.member_set.values_list("user_email", flat=True)
+            return team.member_set.values_list("user_id", flat=True)
     except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
         logger.info(
             "monitors.broken_detection.invalid_owner",
@@ -107,7 +109,21 @@ def get_user_emails_from_monitor(
         )
 
     project = Project.objects.get_from_cache(id=monitor.project_id)
-    return project.member_set.values_list("user_email", flat=True)
+    return project.member_set.values_list("user_id", flat=True)
+
+
+def get_user_emails_from_monitor(monitor: Monitor, project: Project):
+    user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
+    actors = [Actor.from_id(user_id=id) for id in user_ids]
+    recipients = notifications_service.get_notification_recipients(
+        type=NotificationSettingEnum.APPROVAL,
+        recipients=actors,
+        organization_id=project.organization_id,
+        project_ids=[project.id],
+    )
+    filtered_user_ids = [recipient.id for recipient in (recipients.get("email") or [])]
+
+    return get_email_addresses(filtered_user_ids, project, only_verified=True).values()
 
 
 def generate_monitor_email_context(
@@ -217,7 +233,7 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             environment_name = open_incident.monitor_environment.get_environment().name
             project = Project.objects.get_from_cache(id=open_incident.monitor.project_id)
 
-            for email in get_user_emails_from_monitor(open_incident.monitor):
+            for email in get_user_emails_from_monitor(open_incident.monitor, project):
                 if not email:
                     continue
 
@@ -236,7 +252,7 @@ def detect_broken_monitor_envs_for_org(org_id: int):
                 open_incident.monitor_environment.update(is_muted=True)
                 detection.update(env_muted_timestamp=django_timezone.now())
 
-            for email in get_user_emails_from_monitor(open_incident.monitor):
+            for email in get_user_emails_from_monitor(open_incident.monitor, project):
                 if not email:
                     continue
 

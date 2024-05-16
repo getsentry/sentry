@@ -56,7 +56,6 @@ import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -67,9 +66,9 @@ import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {searchInTraceTree} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
-import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
+import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
@@ -132,14 +131,34 @@ export function TraceView() {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
+    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-    return {start, end, statsPeriod, useSpans: 1};
+    return {start, end, statsPeriod, timestamp, useSpans: 1};
   }, []);
 
   const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod} = queryParams;
+    const {start, end, statsPeriod, timestamp} = queryParams;
+
+    let startTimeStamp = start;
+    let endTimeStamp = end;
+
+    // If timestamp exists in the query params, we want to use it to set the start and end time
+    // with a buffer of 1.5 days, for retrieving events belonging to the trace.
+    if (timestamp) {
+      const parsedTimeStamp = Number(timestamp);
+
+      if (isNaN(parsedTimeStamp)) {
+        throw new Error('Invalid timestamp');
+      }
+
+      const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
+      const dateFromTimestamp = new Date(parsedTimeStamp * 1000);
+
+      startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
+      endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
+    }
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -149,9 +168,9 @@ export function TraceView() {
       query: `trace:${traceSlug}`,
       projects: [ALL_ACCESS_PROJECTS],
       version: 2,
-      start,
-      end,
-      range: statsPeriod,
+      start: startTimeStamp,
+      end: endTimeStamp,
+      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
     });
   }, [queryParams, traceSlug]);
 
@@ -782,14 +801,6 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
       />
-      <TraceHeader
-        tree={tree}
-        rootEventResults={rootEvent}
-        metaResults={props.metaResults}
-        organization={props.organization}
-        traces={props.trace}
-        traceID={props.traceSlug}
-      />
       <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
@@ -825,6 +836,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            metaResults={props.metaResults}
             traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
@@ -886,7 +898,8 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: 0 ${space(2)} 0 ${space(2)};
+  padding: ${space(2)};
+
   background-color: ${p => p.theme.background};
 
   --info: ${p => p.theme.purple400};
@@ -913,8 +926,7 @@ const TraceGrid = styled('div')<{
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */

@@ -29,24 +29,32 @@ def dispatch_check_timeout(ts: datetime):
 
     This will dispatch MarkTimeout messages into monitors-clock-tasks.
     """
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts)[
-        :CHECKINS_LIMIT
-    ]
-    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=0)
+    missed_checkins = list(
+        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts,).values(
+            "id", "monitor_environment_id"
+        )[:CHECKINS_LIMIT]
+    )
+
+    metrics.gauge(
+        "sentry.monitors.tasks.check_timeout.count",
+        len(missed_checkins),
+        sample_rate=1.0,
+    )
+
     # check for any monitors which are still running and have exceeded their maximum runtime
-    for checkin in qs:
+    for checkin in missed_checkins:
         message: MarkTimeout = {
             "type": "mark_timeout",
             "ts": ts.timestamp(),
-            "monitor_environment_id": checkin.monitor_environment_id,
-            "checkin_id": checkin.id,
+            "monitor_environment_id": checkin["monitor_environment_id"],
+            "checkin_id": checkin["id"],
         }
         # XXX(epurkhiser): Partitioning by monitor_environment.id is important
         # here as these task messages will be consumed in a multi-consumer
         # setup. If we backlogged clock-ticks we may produce multiple timeout
         # tasks for the same monitor_environment. These MUST happen in-order.
         payload = KafkaPayload(
-            str(checkin.monitor_environment_id).encode(),
+            str(checkin["monitor_environment_id"]).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -56,11 +64,17 @@ def dispatch_check_timeout(ts: datetime):
 def mark_checkin_timeout(checkin_id: int, ts: datetime):
     logger.info("checkin_timeout", extra={"checkin_id": checkin_id})
 
-    checkin = (
-        MonitorCheckIn.objects.select_related("monitor_environment")
-        .select_related("monitor_environment__monitor")
-        .get(id=checkin_id)
-    )
+    try:
+        checkin = (
+            MonitorCheckIn.objects.select_related("monitor_environment")
+            .select_related("monitor_environment__monitor")
+            .get(id=checkin_id)
+        )
+    except MonitorCheckIn.DoesNotExist:
+        # The monitor may have been deleted or the timeout may have reached
+        # it's retention period (less likely)
+        metrics.incr("sentry.monitors.tasks.check_timeout.not_found")
+        return
 
     monitor_environment = checkin.monitor_environment
     monitor = monitor_environment.monitor

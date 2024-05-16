@@ -102,8 +102,15 @@ const HTTP_ACTION_OPTIONS = [
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
+  cache: t('Action'),
+  vital: t('Action'),
+  queue: t('Action'),
+  screen_load: t('Action'),
+  app_start: t('Action'),
   resource: t('Resource'),
   other: t('Action'),
+  'mobile-ui': t('Action'),
+  ai: 'Action',
   '': t('Action'),
 };
 

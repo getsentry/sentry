@@ -947,7 +947,7 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
     def test_fetch_metric_tag_values(self) -> None:
         tag_values = fetch_metric_tag_values(
             self.org_id,
-            self.project.id,
+            [self.project.id],
             UseCaseID.TRANSACTIONS,
             "g:transactions/test_gauge@none",
             "transaction",
@@ -958,7 +958,7 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
     def test_fetch_metric_tag_values_with_prefix(self) -> None:
         tag_values = fetch_metric_tag_values(
             self.org_id,
-            self.project.id,
+            [self.project.id],
             UseCaseID.TRANSACTIONS,
             "g:transactions/test_gauge@none",
             "status_code",
@@ -966,3 +966,27 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         )
         assert len(tag_values) == 1
         assert tag_values == ["500"]
+
+    def test_fetch_metric_tag_values_for_multiple_projects(self) -> None:
+        new_project = self.create_project(name="New Project")
+        self.store_metric(
+            self.org_id,
+            new_project.id,
+            "gauge",
+            "g:transactions/test_gauge@none",
+            {"status_code": "524"},
+            self.ts(self.hour_ago + timedelta(minutes=10)),
+            10,
+            UseCaseID.TRANSACTIONS,
+        )
+
+        tag_values = fetch_metric_tag_values(
+            self.org_id,
+            [self.project.id, new_project.id],
+            UseCaseID.TRANSACTIONS,
+            "g:transactions/test_gauge@none",
+            "status_code",
+            "5",
+        )
+        assert len(tag_values) == 2
+        assert tag_values == ["500", "524"]

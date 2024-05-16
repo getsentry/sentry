@@ -451,6 +451,36 @@ class Referrer(Enum):
     API_PERFORMANCE_MOBILE_UI_SERIES = "api.performance.mobile.ui.series"
     API_PERFORMANCE_MOBILE_UI_SPAN_TABLE = "api.performance.mobile.ui.span-table"
 
+    # Performance Cache Module
+    API_PERFORMANCE_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
+        "api.performance.cache.landing-cache-throughput-chart",
+    )
+    API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
+        "api.performance.cache.landing-cache-transaction-list",
+    )
+    API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
+        "api.performance.cache.landing-cache-transaction-duration",
+    )
+
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
+        "api.performance.cache.samples-cache-metrics-ribbon",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
+        "api.performance.cache.samples-cache-transaction-duration-chart",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
+        "api.performance.cache.samples-cache-transaction-duration",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = (
+        "api.performance.cache.samples-cache-span-samples",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
+        "api.performance.cache.samples-cache-span-samples-transaction-duration",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
+        "api.performance.cache.samples-cache-hit-miss-chart",
+    )
+
     # Performance Requests Module
     API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
     API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"
@@ -487,6 +517,15 @@ class Referrer(Enum):
     )
     API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = (
         "api.performance.http.samples-panel-response-code-samples"
+    )
+
+    # Performance Span Summary Page and Span Metrics
+    API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA = "api.performance.span-summary-header-data"
+    API_PERFORMANCE_SPAN_SUMMARY_TABLE = "api.performance.span-summary-table"
+    API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART = "api.performance.span-summary-duration-chart"
+    API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART = "api.performance.span-summary-throughput-chart"
+    API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART = (
+        "api.performance.span-summary-transaction-throughput-chart"
     )
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
@@ -578,6 +617,7 @@ class Referrer(Enum):
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
+    GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"

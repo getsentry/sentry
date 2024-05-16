@@ -13,6 +13,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import type {
   TraceFullDetailed,
+  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -20,7 +21,7 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,19 +43,20 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {
   makeTraceNodeBarColor,
   type TraceTree,
   type TraceTreeNode,
 } from '../traceModels/traceTree';
+import type {TraceType} from '../traceType';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
+  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -89,8 +91,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tagsQueryResults = useApiQuery<Tag[]>(
-    [
+  const tagsInfiniteQueryResults = useInfiniteApiQuery<Tag[]>({
+    queryKey: [
       `/organizations/${organization.slug}/events-facets/`,
       {
         query: {
@@ -100,10 +102,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  });
 
   const traceStateRef = useRef(props.trace_state);
   traceStateRef.current = props.trace_state;
@@ -433,12 +432,13 @@ export function TraceDrawer(props: TraceDrawerProps) {
             {props.trace_state.tabs.current_tab ? (
               props.trace_state.tabs.current_tab.node === 'trace' ? (
                 <TraceDetails
+                  metaResults={props.metaResults}
                   traceType={props.traceType}
                   tree={props.trace}
                   node={props.trace.root.children[0]}
                   rootEventResults={props.rootEventResults}
                   traces={props.traces}
-                  tagsQueryResults={tagsQueryResults}
+                  tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                   traceEventView={props.traceEventView}
                 />
               ) : props.trace_state.tabs.current_tab.node === 'vitals' ? (

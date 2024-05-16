@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_upsert_stale_user_id(self):
+    def test_upsert_stale_user_id(self) -> None:
         organizationmember_mapping_service.upsert_mapping(
             organization_id=self.organization.id,
             organizationmember_id=111111,
@@ -34,7 +34,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         assert omm.user_id is None
         assert omm.inviter_id == self.user.id
 
-    def test_upsert_stale_inviter_id(self):
+    def test_upsert_stale_inviter_id(self) -> None:
         self.user
         self.organization
 
@@ -57,7 +57,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             assert omm.user_id == self.user.id
             assert omm.inviter_id is None
 
-    def test_upsert_email_invite(self):
+    def test_upsert_email_invite(self) -> None:
         om = OrganizationMember(
             role="member",
             email="foo@example.com",
@@ -86,7 +86,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         assert rpc_orgmember_mapping is not None
         assert rpc_orgmember_mapping.user_id == om.user_id
 
-    def test_upsert_happy_path(self):
+    def test_upsert_happy_path(self) -> None:
         inviter = self.create_user("foo@example.com")
         with assume_test_silo_mode(SiloMode.REGION):
             om_id = OrganizationMember.objects.get(
@@ -128,7 +128,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             == InviteStatus.REQUESTED_TO_BE_INVITED.value
         )
 
-    def test_create_mapping_updates_org_members(self):
+    def test_create_mapping_updates_org_members(self) -> None:
         assert self.user.is_active
         self.user.is_active = False
         self.user.save()
@@ -139,7 +139,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert not om.user_is_active
 
-    def test_save_user_pushes_is_active(self):
+    def test_save_user_pushes_is_active(self) -> None:
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -154,7 +154,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             om.refresh_from_db()
         assert not om.user_is_active
 
-    def test_update_user_pushes_is_active(self):
+    def test_update_user_pushes_is_active(self) -> None:
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -169,7 +169,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
 
 
 class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_process_organization_member_update_receiver(self):
+    def test_process_organization_member_update_receiver(self) -> None:
         inviter = self.create_user("foo@example.com")
         assert OrganizationMember.objects.all().count() == 0
 
@@ -205,7 +205,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
         for org_member in OrganizationMember.objects.all().iterator():
             self.assert_org_member_mapping(org_member=org_member)
 
-    def test_process_organization_member_deletes_receiver(self):
+    def test_process_organization_member_deletes_receiver(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             inviter = self.create_user("foo@example.com")
             assert OrganizationMemberMapping.objects.all().count() == 0

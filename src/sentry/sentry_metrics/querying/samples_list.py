@@ -258,7 +258,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             # This also means we cannot order by any columns or paginate.
             orderby=None,
             limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", 1),
+            limitby=("trace", max_spans_per_trace),
         )
 
         trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
@@ -609,7 +609,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
             # This also means we cannot order by any columns or paginate.
             orderby=None,
             limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", 1),
+            limitby=("trace", max_spans_per_trace),
         )
 
         trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
@@ -826,6 +826,13 @@ class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
         SpanMRI.RESPONSE_CONTENT_LENGTH.value: "http.response_content_length",
         SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: "http.decoded_response_content_length",
         SpanMRI.RESPONSE_TRANSFER_SIZE.value: "http.response_transfer_size",
+        SpanMRI.AI_TOTAL_TOKENS.value: "ai_total_tokens_used",
+        SpanMRI.CACHE_ITEM_SIZE.value: "cache.item_size",
+        SpanMRI.MOBILE_SLOW_FRAMES.value: "frames.slow",
+        SpanMRI.MOBILE_FROZEN_FRAMES.value: "frames.frozen",
+        SpanMRI.MOBILE_TOTAL_FRAMES.value: "frames.total",
+        SpanMRI.MOBILE_FRAMES_DELAY.value: "frames.delay",
+        SpanMRI.MESSAGE_RECEIVE_LATENCY.value: "messaging.message.receive.latency",
     }
 
     @classmethod
@@ -943,12 +950,19 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             # This also means we cannot order by any columns or paginate.
             orderby=None,
             limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", 1),
+            limitby=("trace", max_spans_per_trace),
         )
 
+        trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
         additional_conditions = self.get_additional_conditions(builder)
         min_max_conditions = self.get_min_max_conditions(builder)
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
+        builder.add_conditions(
+            [
+                trace_id_condition,
+                *additional_conditions,
+                *min_max_conditions,
+            ]
+        )
 
         query_results = builder.run_query(self.referrer.value)
         results = builder.process_results(query_results)

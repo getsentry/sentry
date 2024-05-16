@@ -51,6 +51,7 @@ UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
 SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
 SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
+SPAN_STATUS = "span.status"
 
 
 class ThresholdDict(TypedDict):

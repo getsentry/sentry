@@ -340,6 +340,10 @@ export function isSpanSelfTime({mri}: {mri: MRI}) {
   );
 }
 
+export function isGaugeMetric({mri}: {mri: MRI}) {
+  return parseMRI(mri)?.type === 'g';
+}
+
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
     return MRIToField(metricsQuery.mri, metricsQuery.op);
@@ -415,6 +419,7 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   return {start: startObj.toISOString(), end: now.toISOString()};
 }
 
+// TODO(metrics): remove this when we switch tags to the new meta
 export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
   if (datetime?.period) {
     if (statsPeriodToDays(datetime.period) < 14) {
@@ -436,4 +441,8 @@ export function areResultsLimited(response: MetricsQueryApiResponse) {
   return response.meta.some(
     meta => (meta[meta.length - 1] as MetricsQueryApiResponseLastMeta).has_more
   );
+}
+
+export function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
+  return !('isQueryOnly' in query) || !query.isQueryOnly;
 }

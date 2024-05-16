@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import IO
+from typing import IO, Any
 from uuid import uuid4
 
+import orjson
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
@@ -73,6 +74,10 @@ DELETED_FIELDS: dict[str, set[str]] = {
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
     "sentry.grouphistory": {"actor"},
 }
+
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+DELETED_MODELS = {"sentry.actor"}
 
 # The maximum number of models that may be sent at a time.
 MAX_BATCH_SIZE = 20
@@ -163,25 +168,29 @@ def _import(
     # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
-    content = (
+    content: bytes | str = (
         decrypt_encrypted_tarball(src, decryptor)
         if decryptor is not None
         else src.read().decode("utf-8")
     )
 
-    if len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove and fields that we have marked for deletion in the
+    if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
+        # Parse the content JSON and remove fields and models that we have marked for deletion in the
         # function.
+        content_as_json = orjson.loads(content)
+
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads_experimental("backup.enable-orjson", content)  # type: ignore[arg-type]
-        for json_model in content_as_json:
+        for i, json_model in enumerate(content_as_json):
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
                 for field in fields_to_remove:
                     json_model["fields"].pop(field, None)
 
+            if json_model["model"] in DELETED_MODELS:
+                del content_as_json[i]
+
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = json.dumps_experimental("backup.enable-orjson", content_as_json)
+        content = orjson.dumps(content_as_json)
 
     filters = []
     if filter_by is not None:
@@ -199,7 +208,7 @@ def _import(
             # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
             filtered_org_pks = set()
             seen_first_org_member_model = False
-            user_filter: Filter[int] = Filter(model=User, field="pk")
+            user_filter: Filter[int] = Filter[int](model=User, field="pk")
             filters.append(user_filter)
 
             # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
@@ -246,7 +255,7 @@ def _import(
             raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
 
         user_filter = next(f for f in filters if f.model == User)
-        email_filter = Filter(
+        email_filter = Filter[str](
             model=Email,
             field="email",
             values={v for k, v in user_to_email.items() if k in user_filter.values},
@@ -263,7 +272,7 @@ def _import(
     # NOT including the current instance.
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.loads_experimental("backup.enable-orjson", content)
+        models = orjson.loads(content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
         num_current_model_instances_yielded = 0
@@ -273,7 +282,7 @@ def _import(
                 if last_seen_model_name is not None and len(batch) > 0:
                     yield (
                         last_seen_model_name,
-                        json.dumps_experimental("backup.enable-orjson", batch),
+                        orjson.dumps(batch).decode(),
                         num_current_model_instances_yielded,
                     )
 
@@ -290,7 +299,7 @@ def _import(
         if last_seen_model_name is not None and batch:
             yield (
                 last_seen_model_name,
-                json.dumps_experimental("backup.enable-orjson", batch),
+                orjson.dumps(batch).decode(),
                 num_current_model_instances_yielded,
             )
 
@@ -307,7 +316,7 @@ def _import(
         import_write_context: ImportWriteContext,
         pk_map: PrimaryKeyMap,
         model_name: NormalizedModelName,
-        json_data: json.JSONData,
+        json_data: Any,
         offset: int,
     ) -> None:
         model_relations = import_write_context.dependencies.get(model_name)
@@ -481,7 +490,7 @@ def import_in_user_scope(
         ImportScope.User,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
@@ -512,7 +521,7 @@ def import_in_organization_scope(
         ImportScope.Organization,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        filter_by=Filter[str](Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
     )
 
@@ -544,7 +553,7 @@ def import_in_config_scope(
         ImportScope.Config,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 

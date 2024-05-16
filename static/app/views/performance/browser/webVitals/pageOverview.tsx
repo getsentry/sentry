@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment';
@@ -6,6 +6,7 @@ import moment from 'moment';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -36,6 +37,7 @@ import {
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
+import {BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -46,6 +48,7 @@ import {
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useWebVitalsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -73,7 +76,8 @@ function getCurrentTabSelection(selectedTab) {
   return LandingDisplayField.OVERVIEW;
 }
 
-export default function PageOverview() {
+export function PageOverview() {
+  const moduleURL = useWebVitalsModuleURL();
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -111,9 +115,7 @@ export default function PageOverview() {
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
-    window.location.href = normalizeUrl(
-      `/organizations/${organization.slug}/performance/browser/pageloads/`
-    );
+    window.location.href = moduleURL;
     return null;
   }
 
@@ -137,11 +139,7 @@ export default function PageOverview() {
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL="/performance/browser/pageloads"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Tabs
         value={tab}
         onChange={value => {
@@ -165,9 +163,7 @@ export default function PageOverview() {
                 },
                 {
                   label: 'Web Vitals',
-                  to: normalizeUrl(
-                    `/organizations/${organization.slug}/performance/browser/pageloads/`
-                  ),
+                  to: moduleURL,
                   preservePageFilters: true,
                 },
                 ...(transaction ? [{label: 'Page Overview'}] : []),
@@ -179,12 +175,14 @@ export default function PageOverview() {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <FeedbackWidgetButton />
-            {transactionSummaryTarget && (
-              <LinkButton to={transactionSummaryTarget} size="sm">
-                {t('View Transaction Summary')}
-              </LinkButton>
-            )}
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+              {transactionSummaryTarget && (
+                <LinkButton to={transactionSummaryTarget} size="sm">
+                  {t('View Transaction Summary')}
+                </LinkButton>
+              )}
+            </ButtonBar>
           </Layout.HeaderActions>
           <TabList hideBorder>
             {LANDING_DISPLAYS.map(({label, field}) => (
@@ -300,9 +298,23 @@ export default function PageOverview() {
           }}
         />
       </Tabs>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL={`/performance/${BASE_URL}`}
+      features="spans-first-ui"
+    >
+      <PageOverview />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const ViewAllPagesButton = styled(LinkButton)`
   margin-right: ${space(1)};

@@ -6,13 +6,6 @@ from django.conf import settings
 
 from sentry.constants import DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager
-from sentry.testutils.helpers import override_options
-
-
-@pytest.fixture(autouse=True)
-def run_before_each():
-    with override_options({"relay.enable-orjson": 0.0}):
-        yield
 
 
 def make_event(**kwargs):
@@ -206,13 +199,13 @@ def test_deprecated_attrs(key):
     assert not data.get("errors")
 
 
-def test_returns_canonical_dict():
+def test_returns_canonical_dict_after_normalization():
     from sentry.utils.canonical import CanonicalKeyDict
 
     event = make_event()
 
     manager = EventManager(event)
-    assert isinstance(manager.get_data(), CanonicalKeyDict)
+    assert not isinstance(manager.get_data(), CanonicalKeyDict)
     manager.normalize()
     assert isinstance(manager.get_data(), CanonicalKeyDict)
 

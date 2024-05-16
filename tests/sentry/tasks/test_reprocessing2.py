@@ -25,7 +25,7 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
-from sentry.testutils.helpers import Feature
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -61,8 +61,7 @@ def _create_user_report(evt):
 def reprocessing_feature(settings):
     settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
 
-    with Feature({"organizations:reprocessing-v2": True}):
-        yield
+    yield
 
 
 @pytest.fixture
@@ -639,3 +638,27 @@ def test_finish_reprocessing(default_project):
     old_group.activity_set.create(project=default_project, type=ActivityType.NOTE.value)
 
     finish_reprocessing(old_group.project_id, old_group.id)
+
+
+class LegacyReprocessingTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.owner = self.create_user(is_superuser=False)
+        self.organization = self.create_organization(owner=self.owner)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization)
+
+    @django_db_all
+    def test_reprocessing_disabled(self):
+        # Asserts that reprocessing.is_active is not the
+        # same as checking for the existence ofthe option key.
+        # See https://github.com/getsentry/sentry/pull/68170.
+        from sentry.models.options.project_option import ProjectOption
+        from sentry.reprocessing import REPROCESSING_OPTION, is_active
+
+        ProjectOption.objects.set_value(self.project, REPROCESSING_OPTION, False)
+
+        assert ProjectOption.objects.filter(
+            project_id=self.project, key=REPROCESSING_OPTION
+        ).exists()
+        assert not is_active(self.project)

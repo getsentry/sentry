@@ -88,7 +88,7 @@ class GithubCommentTestCase(IntegrationTestCase):
         self.pr_key = 1
         self.commit_sha = 1
         self.fingerprint = 1
-        patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1").start()
+        patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1").start()
 
     def add_commit_to_repo(self, repo, user, project):
         if user not in self.user_to_commit_author_map:
@@ -636,6 +636,17 @@ class TestCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with(
             "github_pr_comment.error", tags={"type": "missing_integration"}
         )
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @responses.activate
+    def test_comment_workflow_no_issues(self, mock_format_comment, mock_issues):
+        mock_issues.return_value = []
+
+        github_comment_workflow(self.pr.id, self.project.id)
+
+        assert mock_issues.called
+        assert not mock_format_comment.called
 
 
 class TestCommentReactionsTask(GithubCommentTestCase):

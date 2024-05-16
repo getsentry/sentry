@@ -16,9 +16,9 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
-    SimilarIssuesEmbeddingsData,
+    SeerSimilarIssueData,
     SimilarIssuesEmbeddingsRequest,
-    get_similar_issues_embeddings,
+    get_similarity_data_from_seer,
 )
 from sentry.utils.safe import get_path
 
@@ -108,7 +108,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
     def get_formatted_results(
         self,
-        similar_issues_data: Sequence[SimilarIssuesEmbeddingsData],
+        similar_issues_data: Sequence[SeerSimilarIssueData],
         user: User | AnonymousUser,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
@@ -118,11 +118,11 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         group_data = {}
         for similar_issue_data in similar_issues_data:
             formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                "message": 1 - similar_issue_data["message_distance"],
-                "exception": 1 - similar_issue_data["stacktrace_distance"],
-                "shouldBeGrouped": "Yes" if similar_issue_data["should_group"] else "No",
+                "message": 1 - similar_issue_data.message_distance,
+                "exception": 1 - similar_issue_data.stacktrace_distance,
+                "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
             }
-            group_data[similar_issue_data["parent_group_id"]] = formatted_response
+            group_data[similar_issue_data.parent_group_id] = formatted_response
 
         serialized_groups = {
             int(g["id"]): g
@@ -131,21 +131,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             )
         }
 
-        result = []
-        for group_id in group_data:
-            try:
-                result.append((serialized_groups[group_id], group_data[group_id]))
-            except KeyError:
-                # KeyErrors may occur if seer API returns a deleted/merged group, which means it
-                # will be missing from `serialized_groups`
-                #
-                # TODO: This shouldn't be an issue for merged groups once we only use hashes (since
-                # merging leaves the hashes intact), but it will still be an error for deleted
-                # groups/hashes.
-                #
-                # TODO: Report back to seer that the hash has been deleted.
-                continue
-        return result
+        return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
     def get(self, request: Request, group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
@@ -162,6 +148,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
+            "hash": latest_event.get_primary_hash(),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
@@ -176,25 +163,26 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         extra["group_message"] = extra.pop("message")
         logger.info("Similar issues embeddings parameters", extra=extra)
 
-        results = get_similar_issues_embeddings(similar_issues_params)
+        results = get_similarity_data_from_seer(similar_issues_params)
 
         analytics.record(
             "group_similar_issues_embeddings.count",
             organization_id=group.organization.id,
             project_id=group.project.id,
             group_id=group.id,
+            hash=latest_event.get_primary_hash(),
             count_over_threshold=len(
                 [
-                    result["stacktrace_distance"]
-                    for result in (results.get("responses") or [])
-                    if result["stacktrace_distance"] <= 0.01
+                    result.stacktrace_distance
+                    for result in results
+                    if result.stacktrace_distance <= 0.01
                 ]
             ),
             user_id=request.user.id,
         )
 
-        if not results["responses"]:
+        if not results:
             return Response([])
-        formatted_results = self.get_formatted_results(results["responses"], request.user)
+        formatted_results = self.get_formatted_results(results, request.user)
 
         return Response(formatted_results)

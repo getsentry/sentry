@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
@@ -51,7 +52,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links_control
-from sentry.utils import auth, json, metrics
+from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -433,9 +434,9 @@ class AuthIdentityHandler:
             # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
-                "frontend_events": json.dumps_experimental(
-                    "auth.enable-orjson", {"event_name": "Sign Up", "event_label": provider}
-                )
+                "frontend_events": orjson.dumps(
+                    {"event_name": "Sign Up", "event_label": provider}
+                ).decode()
             }
             url = add_params_to_url(url, params)
         response = HttpResponseRedirect(url)

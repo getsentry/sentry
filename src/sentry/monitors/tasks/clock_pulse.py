@@ -10,11 +10,10 @@ from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
-from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse, IngestMonitorMessage
 
-from sentry.conf.types.kafka_definition import Topic
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -27,7 +26,7 @@ from sentry.utils.kafka_config import (
 
 logger = logging.getLogger("sentry")
 
-MONITOR_CODEC: Codec[IngestMonitorMessage] = get_codec("ingest-monitors")
+MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
 
 
 def _get_producer() -> KafkaProducer:

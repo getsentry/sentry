@@ -4,7 +4,6 @@ import datetime
 import logging
 import re
 import sys
-import time
 import traceback
 from collections.abc import Generator, Mapping, MutableMapping
 from contextlib import contextmanager
@@ -467,39 +466,22 @@ def handle_query_errors() -> Generator[None, None, None]:
         raise APIException(detail=message)
 
 
-class Timer:
-    def __enter__(self):
-        self._start = time.time()
-        self._duration = None
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._end = time.time()
-        self._duration = self._end - self._start
-
-    @property
-    def duration(self):
-        # If _duration is set, return it; otherwise, calculate ongoing duration
-        if self._duration is not None:
-            return self._duration
-        else:
-            return time.time() - self._start
-
-
 def id_or_slug_path_params_enabled(
-    convert_args_class: str | None = None, organization_slug: str | None = None
+    convert_args_class: str | None = None, organization_id_or_slug: str | None = None
 ) -> bool:
     # GA option
     if options.get("api.id-or-slug-enabled"):
         return True
 
     # Apigateway
-    if not convert_args_class and organization_slug:
+    if not convert_args_class and organization_id_or_slug:
         # Return True if the organization is in the list of enabled organizations and the apigateway option is enabled
-        return organization_slug in options.get("api.id-or-slug-enabled-ea-org")
+        return organization_id_or_slug in options.get("api.id-or-slug-enabled-ea-org")
 
     # EA option for endpoints where organization is available
-    if organization_slug and organization_slug not in options.get("api.id-or-slug-enabled-ea-org"):
+    if organization_id_or_slug and organization_id_or_slug not in options.get(
+        "api.id-or-slug-enabled-ea-org"
+    ):
         return False
 
     # EA option for endpoints where organization is not available

@@ -47,6 +47,7 @@ export type QueryKeyEndpointOptions<
 > = {
   data?: Data;
   headers?: Headers;
+  host?: string;
   method?: APIRequestMethod;
   query?: Query;
 };
@@ -184,6 +185,7 @@ export function fetchDataQuery(api: Client) {
 
     return api.requestPromise(url, {
       includeAllArgs: true,
+      host: opts?.host,
       method: opts?.method ?? 'GET',
       data: opts?.data,
       query: opts?.query,
@@ -266,7 +268,7 @@ export function fetchInfiniteQuery<TResponseData>(api: Client) {
 function parsePageParam(dir: 'previous' | 'next') {
   return ([, , resp]: ApiResult<unknown>) => {
     const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
-    return parsed[dir].results ? parsed[dir] : null;
+    return parsed[dir]?.results ? parsed[dir] : null;
   };
 }
 
