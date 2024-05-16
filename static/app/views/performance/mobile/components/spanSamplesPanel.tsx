@@ -63,7 +63,6 @@ export function SpanSamplesPanel({
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
-      trackAnalytics('starfish.panel.open', {organization});
       trackAnalytics('performance_views.sample_spans.opened', {
         organization,
         source: moduleName,
