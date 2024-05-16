@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
@@ -164,7 +165,11 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
+            <TabList.Item key={Tab.SAMPLES}>
+              <GuideAnchor target="metrics_table" position="top">
+                {t('Span Samples')}
+              </GuideAnchor>
+            </TabList.Item>
             <TabList.Item
               textValue={t('Code Location')}
               key={Tab.CODE_LOCATIONS}

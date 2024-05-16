@@ -124,6 +124,7 @@ export function Queries({
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
               <QueryBuilder
+                index={index}
                 onChange={data => onQueryChange(data, index)}
                 metricsQuery={query}
                 projects={selection.projects}
