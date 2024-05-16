@@ -16,8 +16,8 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-backfill-similar-embeddings-records",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
