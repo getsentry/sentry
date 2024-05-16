@@ -20,8 +20,13 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {StatuspageIncident, StatusPageServiceStatus} from 'sentry/types';
+import type {
+  StatuspageIncident,
+  StatusPageIncidentUpdate,
+  StatusPageServiceStatus,
+} from 'sentry/types';
 import marked from 'sentry/utils/marked';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 interface Props {
   incident: StatuspageIncident;
@@ -72,7 +77,7 @@ export function ServiceIncidentDetails({incident}: Props) {
       <UpdatesList>
         {incident.incident_updates.map(({status, body, updated_at}, key) => (
           <ListItem key={key}>
-            <UpdateHeading>
+            <UpdateHeading status={status}>
               <StatusTitle>{startCase(status)}</StatusTitle>
               <StatusDate>
                 {tct('([time])', {time: <TimeSince date={updated_at} />})}
@@ -144,7 +149,15 @@ const UpdatesList = styled(List)`
   }
 `;
 
-const UpdateHeading = styled('div')`
+type UpdateStatus = StatusPageIncidentUpdate['status'];
+
+const indicatorColor: Record<UpdateStatus, ColorOrAlias> = {
+  investigating: 'red200',
+  monitoring: 'yellow200',
+  resolved: 'green200',
+};
+
+const UpdateHeading = styled('div')<{status: UpdateStatus}>`
   margin-bottom: ${space(0.5)};
   display: flex;
   align-items: center;
@@ -159,7 +172,7 @@ const UpdateHeading = styled('div')`
     width: 8px;
     margin-left: -15px;
     border-radius: 50%;
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme[indicatorColor[p.status]]};
   }
 `;
 
