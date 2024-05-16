@@ -10,7 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
-} from 'sentry/views/aiMonitoring/aiMonitoringCharts';
+} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {type IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
@@ -20,7 +20,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function AIMonitoringSection({event, organization}: Props) {
+export default function LLMMonitoringSection({event, organization}: Props) {
   const traceId = event.contexts.trace?.trace_id;
   const spanId = event.contexts.trace?.span_id;
   const {data, error, isLoading} = useIndexedSpans({
@@ -37,17 +37,17 @@ export default function AIMonitoringSection({event, organization}: Props) {
       <LinkButton
         size="xs"
         icon={<IconOpen />}
-        to={`/organizations/${organization.slug}/ai-monitoring/`}
+        to={`/organizations/${organization.slug}/llm-monitoring/`}
       >
-        {t('View in AI Monitoring')}
+        {t('View in LLM Monitoring')}
       </LinkButton>
     </ButtonBar>
   );
 
   return (
     <EventDataSection
-      title={t('AI monitoring')}
-      type="ai-monitoring"
+      title={t('LLM monitoring')}
+      type="llm-monitoring"
       help={t('Charts showing how many tokens are being used')}
       actions={actions}
     >

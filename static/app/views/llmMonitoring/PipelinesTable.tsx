@@ -239,9 +239,7 @@ function renderBodyCell(
     };
 
     return (
-      <Link
-        to={`${moduleURL}/pipeline-type/${row['span.group']}?${qs.stringify(queryString)}`}
-      >
+      <Link to={`${moduleURL}/pipeline-type/${row['span.group']}?${qs.stringify(queryString)}`}>
         {row['span.description']}
       </Link>
     );

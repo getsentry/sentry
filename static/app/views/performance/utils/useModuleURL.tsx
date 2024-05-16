@@ -2,7 +2,7 @@ import partial from 'lodash/partial';
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {BASE_URL as AI_BASE_URL} from 'sentry/views/aiMonitoring/settings';
+import {BASE_URL as AI_BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';

@@ -14,15 +14,15 @@ import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
-} from 'sentry/views/aiMonitoring/aiMonitoringCharts';
-import {AIMonitoringOnboarding} from 'sentry/views/aiMonitoring/onboarding';
-import {PipelinesTable} from 'sentry/views/aiMonitoring/PipelinesTable';
-import {BASE_URL} from 'sentry/views/aiMonitoring/settings';
+} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
+import {LLMMonitoringOnboarding} from 'sentry/views/llmMonitoring/onboarding';
+import {PipelinesTable} from 'sentry/views/llmMonitoring/PipelinesTable';
+import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
-export function AiMonitoringPage() {
+export function LLMMonitoringPage() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const isOnboarding = !!onboardingProject;
@@ -38,15 +38,15 @@ export function AiMonitoringPage() {
                   label: t('Dashboard'),
                 },
                 {
-                  label: t('AI Monitoring'),
+                  label: t('LLM Monitoring'),
                 },
               ]}
             />
             <Layout.Title>
-              {t('AI Monitoring')}
+              {t('LLM Monitoring')}
               <PageHeadingQuestionTooltip
                 title={t('View analytics and information about your AI pipelines')}
-                docsUrl="https://docs.sentry.io/product/ai-monitoring/"
+                docsUrl="https://docs.sentry.io/product/llm-monitoring/"
               />
             </Layout.Title>
           </Layout.HeaderContent>
@@ -63,7 +63,7 @@ export function AiMonitoringPage() {
               </ModuleLayout.Full>
               {isOnboarding ? (
                 <ModuleLayout.Full>
-                  <AIMonitoringOnboarding />
+                  <LLMMonitoringOnboarding />
                 </ModuleLayout.Full>
               ) : (
                 <Fragment>
@@ -92,11 +92,11 @@ export function AiMonitoringPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={t('AI Monitoring')}
+      title={t('LLM Monitoring')}
       baseURL={BASE_URL}
       features="ai-analytics"
     >
-      <AiMonitoringPage />
+      <LLMMonitoringPage />
     </ModulePageProviders>
   );
 }
