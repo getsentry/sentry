@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
@@ -148,6 +149,7 @@ export const MetricsLayout = memo(() => {
             <LoadingIndicator />
           ) : hasCustomMetrics || isEmptyStateDismissed ? (
             <Fragment>
+              <GuideAnchor target="metrics_onboarding" />
               <Queries />
               <MetricScratchpad />
               <WidgetDetails />
