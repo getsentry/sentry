@@ -92,9 +92,11 @@ export default function SpanMetricsTable(props: Props) {
 
   const location = useLocation();
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+  const spanOp = decodeScalar(location.query?.spanOp);
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
+    ['span.op']: spanOp,
   };
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
@@ -178,6 +180,7 @@ function renderBodyCell(
         spanSlug: {op: dataRow['span.op'], group: dataRow['span.group']},
         projectID: project?.id,
       });
+
       return (
         <TableCellContainer>
           <Link to={target}>{dataRow[column.key] ?? t('(unnamed span)')}</Link>
