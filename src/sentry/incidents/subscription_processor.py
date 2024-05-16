@@ -235,6 +235,7 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
             return None
 
+        # TODO: logger for investigation. should be removed
         logger.info(
             "get_comparison_aggregation_value",
             extra={
@@ -430,6 +431,7 @@ class SubscriptionProcessor:
                 aggregation_value = self.get_comparison_aggregation_value(
                     subscription_update, aggregation_value
                 )
+                # TODO: logger for investigation. should be removed
                 logger.info(
                     "Received a comparison alert rule update",
                     extra={
