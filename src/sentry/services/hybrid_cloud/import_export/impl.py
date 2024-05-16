@@ -29,6 +29,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
@@ -189,8 +190,12 @@ class UniversalImportExportService(ImportExportService):
                 logger.info("import_by_model.already_imported", extra=extra)
                 return existing_import_chunk
 
+            # We don't need the control and region silo synced into the correct `*Replica` tables
+            # immediately. The locally silo-ed versions of the models are written by the scripts
+            # themselves, and the remote versions will be synced a few minutes later, well before
+            # any users are likely ot need to get ahold of them to view actual data in the UI.
             using = router.db_for_write(model)
-            with transaction.atomic(using=using):
+            with outbox_context(transaction.atomic(using=using), flush=False):
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
