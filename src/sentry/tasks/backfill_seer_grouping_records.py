@@ -124,9 +124,9 @@ def backfill_seer_grouping_records(
         .values_list("id", "message", "data")
         .order_by("times_seen")
     )
-    group_id_message_data_batch = group_id_message_data[
-        last_processed_index : min(last_processed_index + BATCH_SIZE, len(group_id_message_data))
-    ]
+    batch_end_index = min(last_processed_index + BATCH_SIZE, len(group_id_message_data))
+    group_id_message_data_batch = group_id_message_data[last_processed_index:batch_end_index]
+
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
@@ -202,6 +202,10 @@ def backfill_seer_grouping_records(
             project, rows, group_id_message_batch_filtered, group_hashes_dict
         )
 
+        # If nodestore is down, we should stop
+        if data["data"] == [] and data["stacktrace_list"] == []:
+            return
+
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
@@ -210,7 +214,8 @@ def backfill_seer_grouping_records(
                     stacktrace_list=data["stacktrace_list"],
                 )
             )
-        if response["success"]:
+
+        if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
             groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
             for group in groups:
@@ -254,24 +259,31 @@ def backfill_seer_grouping_records(
                     extra={"project_id": project.id, "num_updated": num_updated},
                 )
 
-        last_processed_index = last_processed_index + BATCH_SIZE + 1
-        redis_client.set(
-            f"{make_backfill_redis_key(project_id)}",
-            last_processed_index if last_processed_index is not None else 0,
-            ex=60 * 60 * 24 * 7,
-        )
+            last_processed_index = batch_end_index
+            redis_client.set(
+                f"{make_backfill_redis_key(project_id)}",
+                last_processed_index if last_processed_index is not None else 0,
+                ex=60 * 60 * 24 * 7,
+            )
 
-        logger.info(
-            "calling next backfill task",
-            extra={
-                "project_id": project.id,
-                "last_processed_index": last_processed_index,
-                "dry_run": dry_run,
-            },
-        )
-        backfill_seer_grouping_records.apply_async(
-            args=[project.id, last_processed_index, dry_run],
-        )
+            if last_processed_index <= len(group_id_message_data):
+                logger.info(
+                    "calling next backfill task",
+                    extra={
+                        "project_id": project.id,
+                        "last_processed_index": last_processed_index,
+                        "dry_run": dry_run,
+                    },
+                )
+                backfill_seer_grouping_records.apply_async(
+                    args=[project.id, last_processed_index, dry_run],
+                )
+        else:
+            # If seer is down, we should stop
+            logger.info(
+                "backfill_seer_bulk_insert_returned_invald_result",
+                extra={"project_id": project.id},
+            )
     else:
         logger.info(
             "backfill_seer_snuba_returned_empty_result",

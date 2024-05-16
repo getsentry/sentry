@@ -248,9 +248,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
 
+    @patch("time.sleep", return_value=None)
     @patch("sentry.nodestore.backend.get_multi")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    def test_lookup_group_data_stacktrace_bulk_exceptions(self, mock_logger, mock_get_multi):
+    def test_lookup_group_data_stacktrace_bulk_exceptions(
+        self, mock_logger, mock_get_multi, mock_sleep
+    ):
         """
         Test cases where ServiceUnavailable or DeadlineExceeded exceptions occur in bulk data
         lookup
@@ -606,21 +609,27 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
 
-        for group in Group.objects.filter(project_id=self.project.id):
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
             assert group.data["metadata"].get("seer_similarity") == {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "request_hash": self.group_hashes[group.id],
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index != 0
+        assert last_processed_index == len(groups)
 
     @django_db_all
+    @patch("time.sleep", return_value=None)
     @patch("sentry.nodestore.backend.get_multi")
-    def test_backfill_seer_grouping_records_failure(self, mock_get_multi):
+    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_event")
+    def test_backfill_seer_grouping_records_failure(
+        self, mock_lookup_event, mock_get_multi, mock_sleep
+    ):
         """
         Test that the group metadata and redis last processed id aren't updated on a failure.
         """
+        mock_lookup_event.side_effect = ServiceUnavailable(message="Service Unavailable")
         mock_get_multi.side_effect = ServiceUnavailable(message="Service Unavailable")
 
         with TaskRunner():
@@ -661,14 +670,15 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, 0, dry_run=True)
 
-        for group in Group.objects.filter(project_id=self.project.id):
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
             assert not group.data["metadata"].get("seer_similarity") == {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "request_hash": self.group_hashes[group.id],
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index != 0
+        assert last_processed_index == len(groups)
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -707,7 +717,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index != 0
+        assert last_processed_index == len(
+            Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
+        )
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -753,7 +765,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
 
-        for group in Group.objects.filter(project_id=self.project.id, times_seen__gt=1):
+        groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
+        for group in groups:
             if str(group.id) not in groups_with_neighbor:
                 assert group.data["metadata"].get("seer_similarity") == {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
@@ -779,7 +792,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index != 0
+        assert last_processed_index == len(groups)
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
@@ -817,7 +830,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
 
-        for group in Group.objects.filter(project_id=self.project.id, times_seen__gt=1):
+        groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
+        for group in groups:
             if str(group.id) not in group_with_neighbor:
                 assert group.data["metadata"].get("seer_similarity") == {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
@@ -836,4 +850,38 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index != 0
+        assert last_processed_index == len(groups)
+
+    @django_db_all
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_multiple_batches(self, mock_post_bulk_grouping_records):
+        """
+        Test that the metadata is set for all 21 groups showing that the record has been created,
+        where 21 > the batch size, 20.
+        """
+        function_names = [f"another_function_{str(i)}" for i in range(10)]
+        type_names = [f"AnotherError{str(i)}" for i in range(10)]
+        value_names = ["error with value" for _ in range(10)]
+        for i in range(10):
+            data = {
+                "exception": self.create_exception_values(
+                    function_names[i], type_names[i], value_names[i]
+                )
+            }
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+            event.group.times_seen = 2
+            event.group.save()
+
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") is not None
+
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
+        assert last_processed_index == len(groups)
