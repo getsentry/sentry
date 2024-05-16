@@ -6,7 +6,6 @@ import type {Location} from '@sentry/react/types/types';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,6 +16,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useWebVitalsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {ORDER_WITH_INP} from '../performanceScoreChart';
 
@@ -69,14 +69,12 @@ type WebVitalLabelProps = {
   location: Location;
   onHover: (webVital: WebVitals) => void;
   onUnHover: () => void;
-  organization: Organization;
   webVital: WebVitals;
   projectData?: TableData;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
 };
 
 function WebVitalLabel({
-  organization,
   location,
   webVital,
   coordinates,
@@ -86,6 +84,7 @@ function WebVitalLabel({
   inPerformanceWidget,
   projectData,
 }: WebVitalLabelProps) {
+  const moduleURL = useWebVitalsModuleURL();
   const xOffset = webVitalLabelCoordinates?.[webVital]?.x ?? 0;
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
@@ -99,7 +98,7 @@ function WebVitalLabel({
   return (
     <Link
       to={{
-        pathname: `/organizations/${organization.slug}/performance/browser/pageloads/`,
+        pathname: moduleURL,
         query: {
           ...location.query,
           webVital,

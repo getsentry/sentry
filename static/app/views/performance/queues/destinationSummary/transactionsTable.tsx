@@ -20,8 +20,8 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
+import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -232,7 +232,7 @@ function renderBodyCell(
 }
 
 function TransactionCell({transaction, op}: {op: string; transaction: string}) {
-  const organization = useOrganization();
+  const moduleURL = useQueueModuleURL();
   const {query} = useLocation();
   const queryString = {
     ...query,
@@ -241,11 +241,7 @@ function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   };
   return (
     <NoOverflow>
-      <Link
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/performance/queues/destination/?${qs.stringify(queryString)}`
-        )}
-      >
+      <Link to={`${moduleURL}/destination/?${qs.stringify(queryString)}`}>
         {transaction}
       </Link>
     </NoOverflow>

@@ -19,8 +19,8 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
+import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
   SpanFunction,
@@ -203,7 +203,7 @@ function renderBodyCell(
 }
 
 function DestinationCell({destination}: {destination: string}) {
-  const organization = useOrganization();
+  const moduleURL = useQueueModuleURL();
   const {query} = useLocation();
   const queryString = {
     ...query,
@@ -211,11 +211,7 @@ function DestinationCell({destination}: {destination: string}) {
   };
   return (
     <NoOverflow>
-      <Link
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/performance/queues/destination/?${qs.stringify(queryString)}`
-        )}
-      >
+      <Link to={`${moduleURL}/destination/?${qs.stringify(queryString)}`}>
         {destination}
       </Link>
     </NoOverflow>
