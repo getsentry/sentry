@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -24,13 +25,13 @@ type Params = DocsParams;
 const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
-const { createServer } = require('node:http');
+const { createServer } = require("node:http");
 
 const server = createServer((req, res) => {
   // server code
 });
 
-server.listen(3000, '127.0.0.1');
+server.listen(3000, "127.0.0.1");
 `;
 
 const onboarding: OnboardingConfig = {
@@ -63,10 +64,17 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        // https://docs.sentry.io/platforms/javascript/guides/node/install
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)].",
-            {code1: <code />, code2: <code />}
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you are unable to import an external file, read about [docs:alternative installation methods in our docs].",
+            {
+              code1: <code />,
+              code2: <code />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/install/" />
+              ),
+            }
           ),
           code: [
             {
