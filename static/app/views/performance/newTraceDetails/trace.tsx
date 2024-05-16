@@ -207,24 +207,28 @@ export function Trace({
   const traceStateRef = useRef<TraceReducerState>(trace_state);
   traceStateRef.current = trace_state;
 
-  if (
-    trace.root.space &&
-    (trace.root.space[0] !== manager.to_origin ||
-      trace.root.space[1] !== manager.trace_space.width)
-  ) {
-    manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    const queryParams = qs.parse(location.search);
-    const maybeQueue = decodeScrollQueue(queryParams.node);
-
-    if (maybeQueue || queryParams.eventId) {
-      scrollQueueRef.current = {
-        eventId: queryParams.eventId as string,
-        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
-      };
-    }
-  }
-
   const loadedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (
+      !loadedRef.current &&
+      trace.root.space &&
+      (trace.root.space[0] !== manager.to_origin ||
+        trace.root.space[1] !== manager.trace_space.width)
+    ) {
+      manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
+      const queryParams = qs.parse(location.search);
+      const maybeQueue = decodeScrollQueue(queryParams.node);
+
+      if (maybeQueue || queryParams.eventId) {
+        scrollQueueRef.current = {
+          eventId: queryParams.eventId as string,
+          path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+        };
+      }
+    }
+  }, [manager, trace, scrollQueueRef]);
+
   useLayoutEffect(() => {
     if (loadedRef.current) {
       return;

@@ -652,6 +652,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      scrollQueueRef.current = null;
       const query = qs.parse(location.search);
 
       if (query.fov && typeof query.fov === 'string') {
