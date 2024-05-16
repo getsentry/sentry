@@ -9,7 +9,7 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.post_process import generate_normalized_output
-from sentry.replays.query import query_replays_collection, replay_url_parser_config
+from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replay_recording_async
 
 logger = logging.getLogger()
@@ -28,23 +28,21 @@ def delete_replays(
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
     offset = 0
 
-    while True:
-        replays = list(
-            generate_normalized_output(
-                query_replays_collection(
-                    project_ids=[project_id],
-                    start=start_utc,
-                    end=end_utc,
-                    fields=["id"],
-                    limit=batch_size,
-                    environment=environment,
-                    offset=offset,
-                    search_filters=search_filters,
-                    sort="started_at",
-                    organization=Organization.objects.filter(project__id=project_id).get(),
-                )
-            )
+    has_more = True
+    while has_more:
+        query_results, has_more = query_replays_collection_paginated(
+            project_ids=[project_id],
+            start=start_utc,
+            end=end_utc,
+            fields=["id"],
+            limit=batch_size,
+            environment=environment,
+            offset=offset,
+            search_filters=search_filters,
+            sort="started_at",
+            organization=Organization.objects.filter(project__id=project_id).get(),
         )
+        replays = list(generate_normalized_output(query_results))
 
         # Exit early if no replays were found.
         if not replays:
