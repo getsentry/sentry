@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -547,16 +548,18 @@ const MetricWidgetBody = memo(
           </LimitAlert>
         )}
         <TransparentLoadingMask visible={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
-          displayType={displayType}
-          height={chartHeight}
-          samples={samplesProp}
-          focusArea={focusArea}
-          releases={releasesProp}
-          group={chartGroup}
-        />
+        <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
+          <MetricChart
+            ref={chartRef}
+            series={chartSeries}
+            displayType={displayType}
+            height={chartHeight}
+            samples={samplesProp}
+            focusArea={focusArea}
+            releases={releasesProp}
+            group={chartGroup}
+          />
+        </GuideAnchor>
         <SummaryTable
           series={chartSeries}
           onSortChange={handleSortChange}

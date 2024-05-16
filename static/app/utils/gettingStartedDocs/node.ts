@@ -137,9 +137,9 @@ export function getDefaultServerlessImports({
 }
 
 export function getImportInstrumentSnippet(): string {
-  return `// IMPORTANT: Make sure to import \`instrument.js'\` at the top of your file.
-  // If you're using ECMAScript Modules (ESM) syntax, use \`import './instrument.js';\`
-  require('./instrument.js');`;
+  return `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
+  // If you're using ECMAScript Modules (ESM) syntax, use \`import "./instrument.js";\`
+  require("./instrument.js");`;
 }
 
 export const getSdkInitSnippet = (

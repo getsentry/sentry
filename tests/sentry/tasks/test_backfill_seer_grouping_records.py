@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from random import choice
 from string import ascii_uppercase
 from typing import Any
-from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -26,7 +25,7 @@ from sentry.tasks.backfill_seer_grouping_records import (
     lookup_group_data_stacktrace_single,
     make_backfill_redis_key,
 )
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -58,7 +57,7 @@ EXCEPTION_STACKTRACE_STRING = (
 
 
 @django_db_all
-class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
+class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def create_exception_values(self, function_name: str, type: str, value: str):
         return {
             "values": [

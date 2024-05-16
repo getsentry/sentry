@@ -5,13 +5,13 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
+import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
-describe('messageSamplesPanel', () => {
+describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
   let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock;
@@ -134,7 +134,7 @@ describe('messageSamplesPanel', () => {
       action: 'PUSH',
       key: '',
     });
-    render(<MessageSamplesPanel />);
+    render(<MessageSpanSamplesPanel />);
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
@@ -218,7 +218,7 @@ describe('messageSamplesPanel', () => {
       action: 'PUSH',
       key: '',
     });
-    render(<MessageSamplesPanel />);
+    render(<MessageSpanSamplesPanel />);
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(

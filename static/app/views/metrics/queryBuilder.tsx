@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -35,6 +36,7 @@ import {MetricListItemDetails} from 'sentry/views/metrics/metricListItemDetails'
 import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
 
 type QueryBuilderProps = {
+  index: number;
   metricsQuery: MetricsQuery;
   onChange: (data: Partial<MetricsQuery>) => void;
   projects: number[];
@@ -73,6 +75,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
   projects: projectIds,
   onChange,
+  index,
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -248,54 +251,64 @@ export const QueryBuilder = memo(function QueryBuilder({
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
-        <MetricComboBox
-          aria-label={t('Metric')}
-          placeholder={t('Select a metric')}
-          loadingMessage={t('Loading metrics...')}
-          sizeLimit={100}
-          size="md"
-          menuSize="sm"
-          isLoading={isMetaLoading}
-          onOpenChange={handleOpenMetricsMenu}
-          options={mriOptions}
-          value={metricsQuery.mri}
-          onChange={handleMRIChange}
-          growingInput
-          menuWidth="450px"
-        />
+        <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+          <MetricComboBox
+            aria-label={t('Metric')}
+            placeholder={t('Select a metric')}
+            loadingMessage={t('Loading metrics...')}
+            sizeLimit={100}
+            size="md"
+            menuSize="sm"
+            isLoading={isMetaLoading}
+            onOpenChange={handleOpenMetricsMenu}
+            options={mriOptions}
+            value={metricsQuery.mri}
+            onChange={handleMRIChange}
+            growingInput
+            menuWidth="450px"
+          />
+        </GuideAnchor>
         <FlexBlock>
-          <OpSelect
-            size="md"
-            triggerProps={{prefix: t('Agg')}}
-            options={
-              selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                label: op,
-                value: op,
-              })) ?? []
-            }
-            triggerLabel={metricsQuery.op}
-            disabled={!selectedMeta}
-            value={metricsQuery.op}
-            onChange={handleOpChange}
-          />
-          <CompactSelect
-            multiple
-            size="md"
-            triggerProps={{prefix: t('Group by')}}
-            options={groupByOptions.map(tag => ({
-              label: tag.key,
-              value: tag.key,
-              trailingItems: tag.trailingItems ?? (
-                <Fragment>
-                  {tag.key === 'release' && <IconReleases size="xs" />}
-                  {tag.key === 'transaction' && <IconLightning size="xs" />}
-                </Fragment>
-              ),
-            }))}
-            disabled={!metricsQuery.mri || tagsIsLoading}
-            value={metricsQuery.groupBy}
-            onChange={handleGroupByChange}
-          />
+          <GuideAnchor
+            target="metrics_aggregate"
+            position="bottom"
+            disabled={index !== 0}
+          >
+            <OpSelect
+              size="md"
+              triggerProps={{prefix: t('Agg')}}
+              options={
+                selectedMeta?.operations.filter(isAllowedOp).map(op => ({
+                  label: op,
+                  value: op,
+                })) ?? []
+              }
+              triggerLabel={metricsQuery.op}
+              disabled={!selectedMeta}
+              value={metricsQuery.op}
+              onChange={handleOpChange}
+            />
+          </GuideAnchor>
+          <GuideAnchor target="metrics_groupby" position="bottom" disabled={index !== 0}>
+            <CompactSelect
+              multiple
+              size="md"
+              triggerProps={{prefix: t('Group by')}}
+              options={groupByOptions.map(tag => ({
+                label: tag.key,
+                value: tag.key,
+                trailingItems: tag.trailingItems ?? (
+                  <Fragment>
+                    {tag.key === 'release' && <IconReleases size="xs" />}
+                    {tag.key === 'transaction' && <IconLightning size="xs" />}
+                  </Fragment>
+                ),
+              }))}
+              disabled={!metricsQuery.mri || tagsIsLoading}
+              value={metricsQuery.groupBy}
+              onChange={handleGroupByChange}
+            />
+          </GuideAnchor>
         </FlexBlock>
       </FlexBlock>
       <SearchBarWrapper>

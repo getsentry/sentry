@@ -1,3 +1,4 @@
+import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -11,11 +12,12 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project, StatuspageIncident} from 'sentry/types';
+import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 import {generateDocKeys} from './utils';
 
-jest.mock('sentry/actionCreators/serviceIncidents');
+jest.mock('sentry/utils/useServiceIncidents');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
   const {organization, routerContext, router} = initializeOrg({
@@ -53,6 +55,13 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [broadcast],
     });
+
+    const statusPageData: StatuspageIncident[] = [];
+    jest
+      .spyOn(incidentsHook, 'useServiceIncidents')
+      .mockImplementation(
+        () => ({data: statusPageData}) as UseQueryResult<StatuspageIncident[]>
+      );
   });
 
   afterEach(() => {

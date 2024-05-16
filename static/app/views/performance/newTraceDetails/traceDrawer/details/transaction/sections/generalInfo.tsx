@@ -133,7 +133,7 @@ function GeneralInfo({
     key: 'description',
     subject: t('Description'),
     value: (
-      <TraceDrawerComponents.CardValueWithCopy
+      <TraceDrawerComponents.CopyableCardValueWithLink
         value={node.value.transaction}
         linkTarget={transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
