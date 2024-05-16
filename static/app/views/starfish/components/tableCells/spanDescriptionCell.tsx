@@ -42,6 +42,7 @@ export function SpanDescriptionCell({
 
   const descriptionLink = (
     <SpanGroupDetailsLink
+      moduleName={moduleName}
       group={group}
       projectId={projectId}
       spanOp={spanOp}

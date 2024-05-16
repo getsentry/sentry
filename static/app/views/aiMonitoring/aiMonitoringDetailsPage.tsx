@@ -14,7 +14,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
@@ -25,6 +24,7 @@ import {BASE_URL} from 'sentry/views/aiMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
@@ -43,6 +43,7 @@ type Query = {
 };
 
 export function AiMonitoringPage({params}: Props) {
+  const moduleURL = useAIModuleURL();
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -101,7 +102,7 @@ export function AiMonitoringPage({params}: Props) {
                 },
                 {
                   label: spanDescription ?? t('(no name)'),
-                  to: normalizeUrl(`/organizations/${organization.slug}/ai-monitoring`),
+                  to: moduleURL,
                 },
               ]}
             />
