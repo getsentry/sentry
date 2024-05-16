@@ -92,6 +92,10 @@ export interface AssigneeSelectorDropdownProps {
    */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
   /**
+   * Maximum number of teams/users to display in the dropdown
+   */
+  sizeLimit?: number;
+  /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
    */
@@ -204,6 +208,7 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  sizeLimit = 150,
   trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
@@ -438,18 +443,6 @@ export default function AssigneeSelectorDropdown({
       }
     }
 
-    // Remove suggested assignees from the member list and team list to avoid duplicates
-    for (let i = 0; i < suggestedAssignees.length; i++) {
-      const suggestedAssignee = suggestedAssignees[i];
-      if (suggestedAssignee.type === 'user') {
-        memList = memList.filter(user => user.id !== suggestedAssignee.id);
-      } else {
-        assignableTeamList = assignableTeamList.filter(
-          assignableTeam => assignableTeam.team.id !== suggestedAssignee.id
-        );
-      }
-    }
-
     // Only bubble the current user to the top if they are not already assigned or suggested
     const isUserAssignedOrSuggested =
       assignedUser?.id === sessionUser.id ||
@@ -466,6 +459,22 @@ export default function AssigneeSelectorDropdown({
       }
     }
 
+    const suggestedUsers = suggestedAssignees?.filter(
+      assignee => assignee.type === 'user'
+    );
+    const suggestedTeams = suggestedAssignees?.filter(
+      assignee => assignee.type === 'team'
+    );
+
+    // Remove suggested assignees from the member list and team list to avoid duplicates
+    memList = memList.filter(
+      user => !suggestedUsers.find(suggested => suggested.id === user.id)
+    );
+    assignableTeamList = assignableTeamList.filter(
+      assignableTeam =>
+        !suggestedTeams.find(suggested => suggested.id === assignableTeam.team.id)
+    );
+
     const memberOptions = {
       value: '_members',
       label: t('Members'),
@@ -477,13 +486,6 @@ export default function AssigneeSelectorDropdown({
       label: t('Teams'),
       options: assignableTeamList?.map(makeTeamOption) ?? [],
     };
-
-    const suggestedUsers = suggestedAssignees?.filter(
-      assignee => assignee.type === 'user'
-    );
-    const suggestedTeams = suggestedAssignees?.filter(
-      assignee => assignee.type === 'team'
-    );
 
     const suggestedOptions = {
       value: '_suggested_assignees',
@@ -562,7 +564,7 @@ export default function AssigneeSelectorDropdown({
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
         menuFooter={footerInviteButton}
-        sizeLimit={150}
+        sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
       />
     </AssigneeWrapper>
