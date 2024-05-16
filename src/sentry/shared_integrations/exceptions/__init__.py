@@ -175,9 +175,9 @@ class IntegrationFormError(IntegrationError):
         if field_errors:
             error = str(field_errors)
 
-        self.field_errors = field_errors
-
         super().__init__(error)
+
+        self.field_errors = field_errors
 
 
 class ClientError(RequestException):
