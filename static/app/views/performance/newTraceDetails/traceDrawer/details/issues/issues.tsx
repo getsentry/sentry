@@ -80,8 +80,12 @@ function Issue(props: IssueProps) {
       </IssueSummaryWrapper>
       <ChartWrapper>
         <GroupChart
-          statsPeriod={'24h'}
-          data={fetchedIssue}
+          stats={
+            fetchedIssue.filtered
+              ? fetchedIssue.filtered.stats?.['24h']
+              : fetchedIssue.stats?.['24h']
+          }
+          secondaryStats={fetchedIssue.filtered ? fetchedIssue.stats?.['24h'] : []}
           showSecondaryPoints
           showMarkLine
         />

@@ -12,6 +12,7 @@ import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TimeseriesValue} from 'sentry/types';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -50,6 +51,14 @@ function LinkedIssue({eventId, groupId}: Props) {
 
   const issueUrl = `${group.permalink}events/${eventId}/`;
 
+  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
+    ? group.filtered.stats?.['30d']
+    : group.stats?.['30d'];
+
+  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
+    ? group.stats?.['30d']
+    : [];
+
   return (
     <Section>
       <SectionHeading>{t('Event Issue')}</SectionHeading>
@@ -71,7 +80,11 @@ function LinkedIssue({eventId, groupId}: Props) {
           <SeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
         </IssueCardHeader>
         <IssueCardBody>
-          <GroupChart statsPeriod="30d" data={group} height={56} />
+          <GroupChart
+            stats={groupStats}
+            secondaryStats={groupSecondaryStats}
+            height={56}
+          />
         </IssueCardBody>
         <IssueCardFooter>
           <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
