@@ -31,7 +31,8 @@
         "noUselessLoneBlockStatements": "error",
         "noUselessEmptyExport": "error",
         "noUselessConstructor": "error",
-        "noUselessTypeConstraint": "error"
+        "noUselessTypeConstraint": "error",
+        "noExcessiveNestedTestSuites": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
@@ -59,7 +60,10 @@
         "noApproximativeNumericConstant": "error",
         "noMisrefactoredShorthandAssign": "error",
         "useAwait": "error",
-        "useNamespaceKeyword": "error"
+        "useNamespaceKeyword": "error",
+        "noSkippedTests": "error",
+        "noFocusedTests": "error",
+        "noDuplicateTestHooks": "error"
       },
       "style": {
         "noCommaOperator": "error",
