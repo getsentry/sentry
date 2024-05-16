@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
@@ -67,8 +68,6 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
   );
 }
 
-export default SettingsBreadcrumb;
-
 const CrumbLink = styled(Link)`
   display: block;
 
@@ -78,9 +77,12 @@ const CrumbLink = styled(Link)`
   }
 `;
 
-export {CrumbLink};
-
 const Breadcrumbs = styled('nav')`
   display: flex;
+  gap: ${space(0.75)};
   align-items: center;
 `;
+
+export {CrumbLink};
+
+export default SettingsBreadcrumb;

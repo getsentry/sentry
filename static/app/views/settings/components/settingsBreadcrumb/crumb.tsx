@@ -4,10 +4,10 @@ import {space} from 'sentry/styles/space';
 
 const Crumb = styled('div')`
   display: flex;
+  gap: ${space(0.75)};
   align-items: center;
   position: relative;
   color: ${p => p.theme.subText};
-  padding-right: ${space(1)};
   cursor: pointer;
   white-space: nowrap;
 
