@@ -1,23 +1,23 @@
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
 
 
-class ConfigurationValidator(CamelSnakeSerializer):
+class ConfigurationValidator(Serializer):
     id = serializers.IntegerField(read_only=True)
     sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     traces_sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     user_config = serializers.JSONField(required=True)
 
 
-class ConfigurationContainerValidator(CamelSnakeSerializer):
+class ConfigurationContainerValidator(Serializer):
     data = ConfigurationValidator()
 
 
