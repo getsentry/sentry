@@ -287,11 +287,6 @@ class _TransactionsList extends Component<Props> {
     const cursorOffset = parseCursor(cursor)?.offset ?? 0;
     numSamples = numSamples ?? null;
     const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
-
-    const hasTransactionSummaryCleanupFlag = organization.features.includes(
-      'performance-transaction-summary-cleanup'
-    );
-
     return (
       <Fragment>
         <div>
@@ -302,7 +297,7 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        {supportsInvestigationRule && !hasTransactionSummaryCleanupFlag && (
+        {supportsInvestigationRule && (
           <InvestigationRuleWrapper>
             <InvestigationRuleCreation
               buttonProps={{size: 'xs'}}
