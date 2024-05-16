@@ -7,15 +7,15 @@ import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
-const docsSetupURL = 'https://docs.sentry.io/product/ai-monitoring/getting-started/';
+const docsSetupURL = 'https://docs.sentry.io/product/llm-monitoring/getting-started/';
 
-export function AIMonitoringOnboarding() {
+export function LLMMonitoringOnboarding() {
   return (
     <OnboardingPanel image={<PerfImage src={emptyStateImg} />}>
       <h3>{t('Understand your AI pipelines')}</h3>
       <p>
         {t(
-          `Trying to productionize AI? Sentry's AI monitoring features help you understand the price, performance, and quality of your AI pipelines.`
+          `Trying to productionize AI? Sentry's LLM monitoring features help you understand the price, performance, and quality of your AI pipelines.`
         )}
       </p>
       <ButtonList gap={1}>

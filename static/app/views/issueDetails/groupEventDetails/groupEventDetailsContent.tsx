@@ -55,8 +55,8 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
-const AIMonitoringSection = lazy(
-  () => import('sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection')
+const LLMMonitoringSection = lazy(
+  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
 
 type GroupEventDetailsContentProps = {
@@ -154,7 +154,7 @@ function DefaultGroupEventDetailsContent({
           );
         }) ? (
         <LazyLoad
-          LazyComponent={AIMonitoringSection}
+          LazyComponent={LLMMonitoringSection}
           event={event}
           organization={organization}
         />
