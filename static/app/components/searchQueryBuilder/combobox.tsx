@@ -29,6 +29,7 @@ type SearchQueryBuilderComboboxProps = {
   token: TokenResult<Token>;
   autoFocus?: boolean;
   filterValue?: string;
+  maxOptions?: number;
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -50,6 +51,7 @@ export function SearchQueryBuilderCombobox({
   onInputChange,
   autoFocus,
   tabIndex = -1,
+  maxOptions,
 }: SearchQueryBuilderComboboxProps) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
@@ -57,8 +59,8 @@ export function SearchQueryBuilderCombobox({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const hiddenOptions = useMemo(() => {
-    return getHiddenOptions(items, filterValue, 10);
-  }, [items, filterValue]);
+    return getHiddenOptions(items, filterValue, maxOptions);
+  }, [items, filterValue, maxOptions]);
 
   const disabledKeys = useMemo(
     () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
@@ -171,7 +173,7 @@ export function SearchQueryBuilderCombobox({
         zIndex={theme.zIndex?.tooltip}
         visible={isOpen}
       >
-        <Overlay ref={popoverRef}>
+        <StyledOverlay ref={popoverRef}>
           <ListBox
             {...listBoxProps}
             ref={listBoxRef}
@@ -182,7 +184,7 @@ export function SearchQueryBuilderCombobox({
             overlayIsOpen={isOpen}
             size="md"
           />
-        </Overlay>
+        </StyledOverlay>
       </StyledPositionWrapper>
     </Wrapper>
   );
@@ -219,4 +221,9 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 })<{visible?: boolean}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
+`;
+
+const StyledOverlay = styled(Overlay)`
+  max-height: 400px;
+  overflow-y: auto;
 `;
