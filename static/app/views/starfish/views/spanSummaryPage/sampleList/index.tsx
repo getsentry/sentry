@@ -114,7 +114,6 @@ export function SampleList({
   const additionalFields: SpanIndexedField[] = [
     SpanIndexedField.TRACE,
     SpanIndexedField.TRANSACTION_ID,
-    SpanIndexedField.SPAN_DESCRIPTION,
   ];
 
   if (moduleName === ModuleName.RESOURCE) {
