@@ -184,9 +184,7 @@ function renderBodyCell(
 
       return (
         <TableCellContainer>
-          <Link to={target} disabled={!dataRow['span.group']}>
-            {dataRow[column.key] || t('(unnamed span)')}
-          </Link>
+          <Link to={target}>{dataRow[column.key] || t('(unnamed span)')}</Link>
         </TableCellContainer>
       );
     }
