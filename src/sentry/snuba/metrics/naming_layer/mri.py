@@ -165,10 +165,22 @@ class SpanMRI(Enum):
     DURATION = "d:spans/duration@millisecond"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
-    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
-    DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+
+    # Measurement-based metrics
+    AI_TOTAL_TOKENS = "c:spans/ai.total_tokens@none"
     CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
+    DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
+    MOBILE_FRAMES_DELAY = "g:spans/mobile.frames_delay@second"
+    MOBILE_FROZEN_FRAMES = "g:spans/mobile.frozen_frames@none"
+    MOBILE_SLOW_FRAMES = "g:spans/mobile.slow_frames@none"
+    MOBILE_TOTAL_FRAMES = "g:spans/mobile.total_frames@none"
+    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
+    WEB_VITALS_INP = "d:spans/webvital.inp@millisecond"
+    WEB_VITALS_SCORE_INP = "d:spans/webvital.score.inp@ratio"
+    WEB_VITALS_SCORE_TOTAL = "d:spans/webvital.score.total@ratio"
+    WEB_VITALS_SCORE_WEIGHT = "d:spans/webvital.score.weight.inp@ratio"
 
     # Derived
     ALL = "e:spans/all@none"
