@@ -1,11 +1,9 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
-import {loadIncidents} from 'sentry/actionCreators/serviceIncidents';
 import {LinkButton} from 'sentry/components/button';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -22,8 +20,9 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SentryServiceStatus} from 'sentry/types';
+import type {StatusPageServiceStatus} from 'sentry/types';
 import marked from 'sentry/utils/marked';
+import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
@@ -34,10 +33,7 @@ import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps;
 
-type Status =
-  SentryServiceStatus['incidents'][number]['affectedComponents'][number]['status'];
-
-const COMPONENT_STATUS_SORT: Status[] = [
+const COMPONENT_STATUS_SORT: StatusPageServiceStatus[] = [
   'operational',
   'degraded_performance',
   'partial_outage',
@@ -51,28 +47,14 @@ function ServiceIncidents({
   collapsed,
   orientation,
 }: Props) {
-  const [serviceStatus, setServiceStatus] = useState<SentryServiceStatus | null>(null);
+  const {data: incidents} = useServiceIncidents({statusFilter: 'unresolved'});
 
-  async function fetchData() {
-    try {
-      setServiceStatus(await loadIncidents());
-    } catch (e) {
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        scope.setFingerprint(['ServiceIncidents-fetchData']);
-        Sentry.captureException(e);
-      });
-    }
-  }
-
-  useEffect(() => void fetchData(), []);
-
-  if (!serviceStatus) {
+  if (!incidents) {
     return null;
   }
 
   const active = currentPanel === SidebarPanelKey.SERVICE_INCIDENTS;
-  const isEmpty = !serviceStatus.incidents || serviceStatus.incidents.length === 0;
+  const isEmpty = !incidents || incidents.length === 0;
 
   if (isEmpty) {
     return null;
@@ -89,7 +71,7 @@ function ServiceIncidents({
         label={t('Service status')}
         onClick={onShowPanel}
       />
-      {active && serviceStatus && (
+      {active && incidents && (
         <SidebarPanel
           orientation={orientation}
           title={t('Recent service updates')}
@@ -99,13 +81,13 @@ function ServiceIncidents({
           {isEmpty && (
             <SidebarPanelEmpty>{t('There are no incidents to report')}</SidebarPanelEmpty>
           )}
-          {serviceStatus.incidents.map(incident => (
+          {incidents.map(incident => (
             <SidebarPanelItem title={incident.name} key={incident.id}>
               <LinkButton
                 size="xs"
                 icon={<IconOpen />}
                 priority="link"
-                href={incident.url}
+                href={incident.shortlink}
                 external
               >
                 {t('Full Incident Details')}
@@ -116,13 +98,13 @@ function ServiceIncidents({
                   {
                     timeAgo: (
                       <strong>
-                        <TimeSince date={incident.createdAt} />
+                        <TimeSince date={incident.created_at} />
                       </strong>
                     ),
                   }
                 )}
                 <ComponentList>
-                  {sortBy(incident.affectedComponents, i =>
+                  {sortBy(incident.components, i =>
                     COMPONENT_STATUS_SORT.indexOf(i.status)
                   ).map(({name, status}, key) => (
                     <ComponentStatus
@@ -137,12 +119,12 @@ function ServiceIncidents({
               </AffectedServices>
 
               <UpdatesList>
-                {incident.updates.map(({status, body, updatedAt}, key) => (
+                {incident.incident_updates.map(({status, body, updated_at}, key) => (
                   <ListItem key={key}>
                     <UpdateHeading>
                       <StatusTitle>{startCase(status)}</StatusTitle>
                       <StatusDate>
-                        {tct('([time])', {time: <TimeSince date={updatedAt} />})}
+                        {tct('([time])', {time: <TimeSince date={updated_at} />})}
                       </StatusDate>
                     </UpdateHeading>
                     <Text dangerouslySetInnerHTML={{__html: marked(body)}} />
@@ -157,7 +139,7 @@ function ServiceIncidents({
   );
 }
 
-function getStatusSymbol(status: Status) {
+function getStatusSymbol(status: StatusPageServiceStatus) {
   return (
     <Tooltip skipWrapper title={startCase(status)}>
       {status === 'operational' ? (
