@@ -549,6 +549,7 @@ export default function AssigneeSelectorDropdown({
         clearable
         className={className}
         menuWidth={275}
+        position="bottom-end"
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
