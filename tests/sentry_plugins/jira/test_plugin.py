@@ -3,13 +3,13 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Any
 
+import orjson
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 from sentry_plugins.jira.plugin import JiraPlugin
 
 create_meta_response = {
@@ -273,7 +273,7 @@ class JiraPluginTest(TestCase):
             "sentry-api-0-project-plugin-details", args=[self.org.slug, self.project.slug, "jira"]
         )
         res = self.client.get(url)
-        config = json.loads(res.content)["config"]
+        config = orjson.loads(res.content)["config"]
         password_config = [item for item in config if item["name"] == "password"][0]
         assert password_config.get("type") == "secret"
         assert password_config.get("value") is None

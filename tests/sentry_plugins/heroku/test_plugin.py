@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from django.utils import timezone
 
@@ -17,7 +18,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 
@@ -146,7 +146,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = json.dumps(body).encode()
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -167,7 +167,7 @@ class HookHandleTest(TestCase):
             },
             "action": "create",
         }
-        req.body = json.dumps(body).encode()
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert not Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 0
@@ -188,7 +188,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = json.dumps(body).encode()
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -208,7 +208,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = json.dumps(body).encode()
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
@@ -226,6 +226,6 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = json.dumps(body).encode()
+        req.body = orjson.dumps(body)
         with pytest.raises(HookValidationError):
             hook.handle(req)
