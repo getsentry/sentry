@@ -221,7 +221,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           mutableSearch.addFilterValue('span.module', 'http');
           eventView.query = mutableSearch.formatString();
         } else if (
-          props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
+          props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS
         ) {
           // Set fields
           eventView.fields = [
@@ -289,7 +289,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         if (
           ![
             PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
-            PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+            PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS,
             PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
             PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
           ].includes(props.chartSetting)
@@ -380,8 +380,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.query = mutableSearch.formatString();
           } else if (
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES ||
-            props.chartSetting ===
-              PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES ||
+            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS ||
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
@@ -641,7 +640,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 </RoutingContextProvider>
               );
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-            case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
+            case PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS:
               const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
               const group: string = listItem[SpanMetricsField.SPAN_GROUP];
               const projectID: number = listItem['project.id'];
@@ -806,7 +805,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     const route =
       {
         [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: 'performance/database/',
-        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS]:
           'performance/browser/resources/',
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: 'performance/http/',
         [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
@@ -815,7 +814,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
     return [
       PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
-      PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+      PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
       PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
     ].includes(props.chartSetting) ? (

@@ -65,7 +65,7 @@ export enum PerformanceWidgetSetting {
   TIME_TO_INITIAL_DISPLAY = 'time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'time_to_full_display',
   OVERALL_PERFORMANCE_SCORE = 'overall_performance_score',
-  MOST_TIME_CONSUMING_RESOURCES = 'most_time_consuming_resources',
+  MOST_TIME_CONSUMING_ASSETS = 'most_time_consuming_assets',
   MOST_TIME_CONSUMING_DOMAINS = 'most_time_consuming_domains',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
   SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
@@ -277,8 +277,8 @@ export const WIDGET_DEFINITIONS: ({
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },
-  [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
-    title: t('Most Time Consuming Resources'),
+  [PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS]: {
+    title: t('Most Time Consuming Assets'),
     subTitle: t('Render blocking for pages'),
     titleTooltip: getTermHelp(
       organization,

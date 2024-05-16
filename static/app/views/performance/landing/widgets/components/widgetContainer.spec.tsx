@@ -941,13 +941,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
       <MEPSettingProvider forceTransactions>
         <WrappedComponent
           data={data}
-          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS}
         />
       </MEPSettingProvider>
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Time Consuming Resources'
+      'Most Time Consuming Assets'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
