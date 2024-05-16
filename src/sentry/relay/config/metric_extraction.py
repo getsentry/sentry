@@ -833,6 +833,12 @@ _HISTOGRAM_OUTLIERS_TARGET_METRICS = {
     "fcp": "d:transactions/measurements.fcp@millisecond",
 }
 
+_HISTOGRAM_OUTLIERS_SOURCE_FIELDS = {
+    "duration": "event.duration",
+    "lcp": "event.measurements.lcp.value",
+    "fcp": "event.measurements.fcp.value",
+}
+
 
 @dataclass
 class _DefaultThreshold:
@@ -1427,7 +1433,7 @@ def _produce_histogram_outliers(query_results: Any) -> list[TagMapping]:
                             # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
                             {
                                 "op": "gte",
-                                "name": "event.duration",
+                                "name": _HISTOGRAM_OUTLIERS_SOURCE_FIELDS[metric],
                                 "value": p75 + 3 * abs(p75 - p25),
                             },
                         ],
