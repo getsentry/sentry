@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from sentry.configurations.storage import StorageBackend
 from sentry.testutils.cases import APITestCase
 
 
@@ -11,16 +12,17 @@ class ConfiguratioAPITestCase(APITestCase):
         self.login_as(self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug))
 
+    @property
+    def storage(self):
+        return StorageBackend(self.project)
+
     def test_get_configuration(self):
-        self.project.update_option(
-            "sentry:remote_config",
+        self.storage.set(
             {
-                "options": {
-                    "sample_rate": 0.5,
-                    "traces_sample_rate": 0,
-                    "user_config": {"abc": "def"},
-                },
-                "version": 1,
+                "id": 1,
+                "sample_rate": 0.5,
+                "traces_sample_rate": 0,
+                "user_config": {"abc": "def"},
             },
         )
 
@@ -65,18 +67,8 @@ class ConfiguratioAPITestCase(APITestCase):
             }
         }
 
-        # Assert the project option was written.
-        opt = self.project.get_option("sentry:remote_config")
-        assert opt == {
-            "options": {
-                "sample_rate": 1.0,
-                "traces_sample_rate": 0.2,
-                "user_config": {
-                    "hello": "world",
-                },
-            },
-            "version": 1,
-        }
+        # Assert the configuration was stored successfully.
+        assert self.storage.get() == response.json()["data"]
 
     def test_post_configuration_validation_error(self):
         response = self.client.post(
@@ -93,19 +85,18 @@ class ConfiguratioAPITestCase(APITestCase):
         assert result["data"]["user_config"] is not None
 
     def test_delete_configuration(self):
-        self.project.update_option("sentry:remote_config", "test")
-        opt = self.project.get_option("sentry:remote_config")
-        assert opt == "test"
+        self.storage.set(
+            {"id": 1, "sample_rate": 1.0, "traces_sample_rate": 1.0, "user_config": None}
+        )
+        assert self.storage.get() is not None
 
         response = self.client.delete(self.url)
         assert response.status_code == 204
-
-        opt = self.project.get_option("sentry:remote_config")
-        assert opt is None
+        assert self.storage.get() is None
 
     def test_delete_configuration_not_found(self):
         # Eagerly delete option if one exists.
-        self.project.delete_option("sentry:remote_config")
+        self.storage.pop()
 
         response = self.client.delete(self.url)
         assert response.status_code == 204
