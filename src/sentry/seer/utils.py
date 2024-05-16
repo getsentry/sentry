@@ -133,7 +133,6 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
-    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
     # TODO: See if we end up needing the hash here
     parent_hash: str | None = None
 
@@ -201,6 +200,13 @@ class SeerSimilarIssueData:
             }
 
         return cls(**similar_issue_data)
+
+
+@dataclass
+class SeerSimilarIssuesMetadata:
+    request_hash: str
+    results: list[SeerSimilarIssueData]
+    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
 
 
 class CreateGroupingRecordData(TypedDict):
