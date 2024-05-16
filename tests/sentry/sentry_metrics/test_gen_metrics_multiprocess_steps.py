@@ -40,6 +40,8 @@ MESSAGE_PROCESSOR = MessageProcessor(
 
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 
+# Insert random comment
+
 
 @pytest.fixture(autouse=True)
 def update_sentry_settings(settings: Any) -> None:
