@@ -3,6 +3,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 
 
@@ -65,7 +66,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, key: str, features=None, **kwargs):
+    def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
@@ -74,6 +75,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                     self.view,
                     kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
                 ),
+                query,
                 format="json",
                 **kwargs,
             )
@@ -134,3 +136,88 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
             },
         ]
+
+    def test_tags_keys_autocomplete(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction=tag,
+                duration=100,
+                exclusive_time=100,
+                tags={"tag": tag},
+            )
+
+        with override_options({"performance.spans-tags-values.search": True}):
+            for key in ["tag", "transaction"]:
+                query = {
+                    "project": [self.project.id],
+                    "query": "b",
+                }
+                response = self.do_request(key, query=query)
+                assert response.status_code == 200, response.data
+                assert response.data == [
+                    {
+                        "count": 1,
+                        "key": key,
+                        "value": "bar",
+                        "name": "bar",
+                        "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    },
+                    {
+                        "count": 1,
+                        "key": key,
+                        "value": "baz",
+                        "name": "baz",
+                        "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                        "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    },
+                ]
+
+    def test_non_string_fields(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction=tag,
+                duration=100,
+                exclusive_time=100,
+                tags={"tag": tag},
+            )
+
+        for key in [
+            "span.duration",
+            "span.self_time",
+            "timestamp",
+            "id",
+            "span_id",
+            "parent_span",
+            "parent_span_id",
+            "trace",
+            "trace_id",
+            "transaction.id",
+            "transaction_id",
+            "segment.id",
+            "segment_id",
+            "profile.id",
+            "profile_id",
+            "replay.id",
+            "replay_id",
+        ]:
+            query = {
+                "project": [self.project.id],
+            }
+            response = self.do_request(key, query=query)
+            assert response.status_code == 200, response.data
+            assert response.data == [], key

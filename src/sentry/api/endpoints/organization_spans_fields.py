@@ -88,11 +88,36 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
     }
     owner = ApiOwner.PERFORMANCE
 
+    ID_KEYS = {
+        "id",
+        "span_id",
+        "parent_span",
+        "parent_span_id",
+        "trace",
+        "trace_id",
+        "transaction.id",
+        "transaction_id",
+        "segment.id",
+        "segment_id",
+        "profile.id",
+        "profile_id",
+        "replay.id",
+        "replay_id",
+    }
+    NUMERIC_KEYS = {"span.duration", "span.self_time"}
+    TIMESTAMP_KEYS = {"timestamp"}
+
     def get(self, request: Request, organization, key: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
         ):
             return Response(status=404)
+
+        if key in self.NUMERIC_KEYS or key in self.ID_KEYS or key in self.TIMESTAMP_KEYS:
+            return self.paginate(
+                request=request,
+                paginator=SequencePaginator([]),
+            )
 
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
@@ -104,6 +129,11 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("query.tag_key", key)
 
+        if options.get("performance.spans-tags-values.search"):
+            user_query = request.GET.get("query")
+        else:
+            user_query = None
+
         max_span_tags = options.get("performance.spans-tags-values.max")
 
         with handle_query_errors():
@@ -111,7 +141,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
                 Dataset.SpansIndexed,
                 params=cast(ParamsType, params),
                 snuba_params=snuba_params,
-                query=None,
+                query=f"{key}:*{user_query}*" if user_query else None,
                 selected_columns=[key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
                 limit=max_span_tags,
@@ -120,7 +150,6 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
                     transform_alias_to_input_format=True,
                 ),
             )
-
             results = builder.process_results(builder.run_query(Referrer.API_SPANS_TAG_KEYS.value))
 
         paginator = SequencePaginator(
