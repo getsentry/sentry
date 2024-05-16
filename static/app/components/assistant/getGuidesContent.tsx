@@ -3,7 +3,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 export default function getGuidesContent(
   organization: Organization | null
