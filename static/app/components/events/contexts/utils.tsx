@@ -46,6 +46,11 @@ import {
 } from './profile';
 import {getReduxContextData, ReduxContext} from './redux';
 import {
+  getKnownReplayContextData,
+  getUnknownReplayContextData,
+  ReplayEventContext,
+} from './replay';
+import {
   getKnownRuntimeContextData,
   getUnknownRuntimeContextData,
   RuntimeEventContext,
@@ -91,7 +96,7 @@ const CONTEXT_TYPES = {
   threadpool_info: ThreadPoolInfoEventContext,
   state: StateEventContext,
   profile: ProfileEventContext,
-
+  replay: ReplayEventContext,
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': ReduxContext,
   // 'ThreadPool Info' will be replaced with 'threadpool_info' but
@@ -382,6 +387,11 @@ export function getFormattedContextData({
       return [
         ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
         ...getUnknownProfileContextData({data: contextValue, meta}),
+      ];
+    case 'replay':
+      return [
+        ...getKnownReplayContextData({data: contextValue, meta, organization}),
+        ...getUnknownReplayContextData({data: contextValue, meta}),
       ];
     default:
       return getDefaultContextData(contextValue);
