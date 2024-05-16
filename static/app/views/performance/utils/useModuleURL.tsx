@@ -20,8 +20,8 @@ const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.HTTP]: HTTP_BASE_URL,
   [ModuleName.CACHE]: CACHE_BASE_URL,
   [ModuleName.QUEUE]: QUEUE_BASE_URL,
-  [ModuleName.SCREEN]: SCREEN_LOADS_BASE_URL,
-  [ModuleName.STARTUP]: APP_STARTS_BASE_URL,
+  [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_BASE_URL,
+  [ModuleName.APP_START]: APP_STARTS_BASE_URL,
   [ModuleName.VITAL]: VITALS_BASE_URL,
   [ModuleName.RESOURCE]: RESOURCES_BASE_URL,
   [ModuleName.AI]: AI_BASE_URL,
@@ -47,8 +47,8 @@ export const useDatabaseModuleURL = partial(useModuleURL, ModuleName.DB);
 export const useRequestsModuleURL = partial(useModuleURL, ModuleName.HTTP);
 export const useCacheModuleURL = partial(useModuleURL, ModuleName.CACHE);
 export const useQueueModuleURL = partial(useModuleURL, ModuleName.QUEUE);
-export const useScreenLoadsModuleURL = partial(useModuleURL, ModuleName.SCREEN);
-export const useAppStartupsModuleURL = partial(useModuleURL, ModuleName.STARTUP);
+export const useScreenLoadsModuleURL = partial(useModuleURL, ModuleName.SCREEN_LOAD);
+export const useAppStartupsModuleURL = partial(useModuleURL, ModuleName.APP_START);
 export const useWebVitalsModuleURL = partial(useModuleURL, ModuleName.VITAL);
 export const useResourceModuleURL = partial(useModuleURL, ModuleName.RESOURCE);
 export const useAIModuleURL = partial(useModuleURL, ModuleName.AI);
