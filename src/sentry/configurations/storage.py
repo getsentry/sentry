@@ -68,7 +68,7 @@ class BlobDriver:
 
     @property
     def key(self):
-        return f"{self.project.organization_id}/{self.project.id}/production"
+        return f"configurations/{self.project.id}/production"
 
     @property
     def storage(self):
