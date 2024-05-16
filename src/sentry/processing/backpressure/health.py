@@ -68,6 +68,15 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
                     "reason": reason,
                 },
             )
+            metrics.event(
+                f"{consumer_name}: backpressure.consumer.unhealthy",
+                message=reason,
+                alert_type="error",
+                tags={
+                    "consumer": consumer_name,
+                    "reason": reason,
+                },
+            )
             with sentry_sdk.push_scope():
                 sentry_sdk.set_tag("consumer", consumer_name)
                 sentry_sdk.set_tag("reason", reason)
@@ -84,6 +93,12 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
 
         metrics.incr(
             "backpressure.consumer.unhealthy", tags={"consumer": consumer_name, "reason": "error"}
+        )
+        metrics.event(
+            f"{consumer_name}: backpressure.consumer.unhealthy",
+            message="error",
+            alert_type="error",
+            tags={"consumer": consumer_name, "reason": "error"},
         )
         with sentry_sdk.push_scope():
             sentry_sdk.set_tag("consumer", consumer_name)
@@ -113,6 +128,12 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                         }
 
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
+                metrics.event(
+                    f"{name}: backpressure.monitor.service.unhealthy",
+                    message=str(unhealthy_reasons),
+                    alert_type="error" if isinstance(unhealthy_reasons, Exception) else "info",
+                    tags={"service": name},
+                )
                 with sentry_sdk.push_scope():
                     sentry_sdk.set_tag("service", name)
                     logger.error("Service `%s` marked as unhealthy", name, extra=extra)
@@ -129,6 +150,12 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
 
             if unhealthy_dependencies:
                 metrics.incr("backpressure.monitor.consumer.unhealthy", tags={"consumer": name})
+                metrics.event(
+                    f"{name}: backpressure.monitor.consumer.unhealthy",
+                    message="error",
+                    alert_type="error",
+                    tags={"consumer": name},
+                )
                 with sentry_sdk.push_scope():
                     sentry_sdk.set_tag("consumer", name)
                     logger.error(
