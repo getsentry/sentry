@@ -55,7 +55,7 @@ export function MissingInstrumentationNodeDetails({
       key: 'profile_id',
       subject: 'Profile ID',
       value: (
-        <TraceDrawerComponents.CardValueWithCopy
+        <TraceDrawerComponents.CopyableCardValueWithLink
           value={profileId}
           linkTarget={generateProfileFlamechartRouteWithQuery({
             orgSlug: organization.slug,

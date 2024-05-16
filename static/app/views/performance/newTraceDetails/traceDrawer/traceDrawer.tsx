@@ -43,13 +43,13 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {
   makeTraceNodeBarColor,
   type TraceTree,
   type TraceTreeNode,
 } from '../traceModels/traceTree';
+import type {TraceType} from '../traceType';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
