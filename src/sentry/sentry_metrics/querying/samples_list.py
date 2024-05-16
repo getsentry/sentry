@@ -826,6 +826,13 @@ class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
         SpanMRI.RESPONSE_CONTENT_LENGTH.value: "http.response_content_length",
         SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: "http.decoded_response_content_length",
         SpanMRI.RESPONSE_TRANSFER_SIZE.value: "http.response_transfer_size",
+        SpanMRI.AI_TOTAL_TOKENS.value: "ai_total_tokens_used",
+        SpanMRI.CACHE_ITEM_SIZE.value: "cache.item_size",
+        SpanMRI.MOBILE_SLOW_FRAMES.value: "frames.slow",
+        SpanMRI.MOBILE_FROZEN_FRAMES.value: "frames.frozen",
+        SpanMRI.MOBILE_TOTAL_FRAMES.value: "frames.total",
+        SpanMRI.MOBILE_FRAMES_DELAY.value: "frames.delay",
+        SpanMRI.MESSAGE_RECEIVE_LATENCY.value: "messaging.message.receive.latency",
     }
 
     @classmethod
