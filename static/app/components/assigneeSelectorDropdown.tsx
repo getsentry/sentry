@@ -6,12 +6,12 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/compactSelect';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -517,10 +517,15 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <DropdownButton data-test-id="assignee-selector" {...props}>
+          <AssigneeDropdownButton
+            borderless
+            size="sm"
+            isOpen={isOpen}
+            data-test-id="assignee-selector"
+            {...props}
+          >
             {avatarElement}
-            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
-          </DropdownButton>
+          </AssigneeDropdownButton>
         )}
         {!loading && noDropdown && avatarElement}
       </Fragment>
@@ -577,14 +582,9 @@ const AssigneeWrapper = styled('div')`
   justify-content: flex-end;
 `;
 
-const DropdownButton = styled('button')`
-  appearance: none;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  font-size: 20px;
-  gap: ${space(0.5)};
+const AssigneeDropdownButton = styled(DropdownButton)`
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
 `;
 
 const StyledIconUser = styled(IconUser)`
