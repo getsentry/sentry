@@ -268,6 +268,12 @@ class OptionsManager:
             if result is not None:
                 return True
 
+        return self.is_set_on_disk(key)
+
+    def is_set_on_disk(self, key: str) -> bool:
+        """
+        Check if a key is set on disk.
+        """
         return key in settings.SENTRY_OPTIONS
 
     def get(self, key: str, silent=False):
