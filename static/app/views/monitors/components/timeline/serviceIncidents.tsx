@@ -140,19 +140,20 @@ const IncidentIndicator = styled('div')`
   left: var(--incidentOverlayStart);
   width: calc(var(--incidentOverlayEnd) - var(--incidentOverlayStart));
   transform: translateY(-50%);
-  display: grid;
+  display: flex;
   align-items: center;
   z-index: 2;
+  height: 20px;
 
   > svg,
   &:before {
     background: ${p => p.theme.yellow300};
-    grid-row: 1;
-    grid-column: 1;
   }
 
   > svg {
-    margin: 0 auto;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     border-radius: 50%;
     height: 16px;
     width: 16px;
