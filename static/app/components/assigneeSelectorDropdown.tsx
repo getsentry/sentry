@@ -438,6 +438,18 @@ export default function AssigneeSelectorDropdown({
       }
     }
 
+    // Remove suggested assignees from the member list and team list to avoid duplicates
+    for (let i = 0; i < suggestedAssignees.length; i++) {
+      const suggestedAssignee = suggestedAssignees[i];
+      if (suggestedAssignee.type === 'user') {
+        memList = memList.filter(user => user.id !== suggestedAssignee.id);
+      } else {
+        assignableTeamList = assignableTeamList.filter(
+          assignableTeam => assignableTeam.team.id !== suggestedAssignee.id
+        );
+      }
+    }
+
     // Only bubble the current user to the top if they are not already assigned or suggested
     const isUserAssignedOrSuggested =
       assignedUser?.id === sessionUser.id ||
