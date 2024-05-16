@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from random import choice
 from string import ascii_uppercase
 from typing import Any
-from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
@@ -17,15 +16,15 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.utils import CreateGroupingRecordData
 from sentry.tasks.backfill_seer_grouping_records import (
-    LAST_PROCESSED_REDIS_KEY,
     GroupStacktraceData,
     backfill_seer_grouping_records,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
     lookup_group_data_stacktrace_bulk_with_fallback,
     lookup_group_data_stacktrace_single,
+    make_backfill_redis_key,
 )
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -57,7 +56,7 @@ EXCEPTION_STACKTRACE_STRING = (
 
 
 @django_db_all
-class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
+class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def create_exception_values(self, function_name: str, type: str, value: str):
         return {
             "values": [
@@ -126,7 +125,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
     def tearDown(self):
         super().tearDown()
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        redis_client.set(f"{LAST_PROCESSED_REDIS_KEY}", 0, ex=60 * 60 * 24 * 7)
+        redis_client.set(f"{make_backfill_redis_key(self.project.id)}", 0, ex=60 * 60 * 24 * 7)
 
     def test_lookup_event_success(self):
         """Test single event lookup is successful"""
@@ -578,7 +577,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
                 "group_hash": json.dumps([self.group_hashes[group.id]]),
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        last_processed_id = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_id != 0
 
     @django_db_all
@@ -599,7 +598,7 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
             backfill_seer_grouping_records(self.project.id, 0)
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        last_processed_id = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_id == 0
 
         for group in Group.objects.filter(project_id=self.project.id):
@@ -639,5 +638,5 @@ class TestBackfillSeerGroupingRecords(BaseMetricsTestCase, TestCase):
                 "group_hash": json.dumps([self.group_hashes[group.id]]),
             }
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_id = int(redis_client.get(LAST_PROCESSED_REDIS_KEY) or 0)
+        last_processed_id = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_id != 0

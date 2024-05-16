@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -22,7 +23,7 @@ import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples'
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSpanSamplesTable';
+import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
   CONSUMER_QUERY_FILTER,
@@ -33,10 +34,14 @@ import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {SpanIndexedField, type SpanMetricsResponse} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
-export function MessageSamplesPanel() {
+export function MessageSpanSamplesPanel() {
   const router = useRouter();
   const query = useLocationQuery({
     fields: {
@@ -148,9 +153,18 @@ export function MessageSamplesPanel() {
     });
   };
 
+  const handleOpen = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: ModuleName.QUEUE,
+      });
+    }
+  }, [organization, query.transaction]);
+
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose}>
+      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>
@@ -254,7 +268,15 @@ export function MessageSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <Button onClick={() => refetchDurationSpanSamples()}>
+            <Button
+              onClick={() => {
+                trackAnalytics(
+                  'performance_views.sample_spans.try_different_samples_clicked',
+                  {organization, source: ModuleName.QUEUE}
+                );
+                refetchDurationSpanSamples();
+              }}
+            >
               {t('Try Different Samples')}
             </Button>
           </ModuleLayout.Full>

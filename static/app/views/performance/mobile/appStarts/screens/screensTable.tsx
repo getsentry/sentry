@@ -7,13 +7,12 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import {useAppStartupsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colors';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -30,8 +29,8 @@ type Props = {
 };
 
 export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) {
+  const moduleURL = useAppStartupsModuleURL();
   const location = useLocation();
-  const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   const startType =
@@ -78,17 +77,13 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={normalizeUrl(
-              `/organizations/${
-                organization.slug
-              }/performance/mobile/app-startup/spans/?${qs.stringify({
-                ...location.query,
-                project: row['project.id'],
-                transaction: row.transaction,
-                primaryRelease,
-                secondaryRelease,
-              })}`
-            )}
+            to={`${moduleURL}/spans/?${qs.stringify({
+              ...location.query,
+              project: row['project.id'],
+              transaction: row.transaction,
+              primaryRelease,
+              secondaryRelease,
+            })}`}
             style={{display: `block`, width: `100%`}}
           >
             {row.transaction}

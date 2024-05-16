@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
@@ -10,11 +10,14 @@ import {
   MetricSamplesTable,
   SearchableMetricSamplesTable,
 } from 'sentry/components/metrics/metricSamplesTable';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {MRI} from 'sentry/types/metrics';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
 import type {
@@ -24,8 +27,8 @@ import type {
 } from 'sentry/utils/metrics/types';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
@@ -96,7 +99,7 @@ export function MetricDetails({
   focusArea,
   setMetricsSamples,
 }: MetricDetailsProps) {
-  const location = useLocation();
+  const {selection} = usePageFilters();
   const organization = useOrganization();
 
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
@@ -129,17 +132,32 @@ export function MetricDetails({
     [organization]
   );
 
+  const selectionRange = focusArea?.selection?.range;
+  const selectionDatetime =
+    defined(selectionRange) && defined(selectionRange) && defined(selectionRange)
+      ? ({
+          start: selectionRange.start,
+          end: selectionRange.end,
+        } as PageFilters['datetime'])
+      : undefined;
+
   const tracesTarget = generateTracesRouteWithQuery({
     orgSlug: organization.slug,
     metric:
       op && mri
         ? {
-            metricsOp: op,
+            max: selectionRange?.max,
+            min: selectionRange?.min,
+            op: op,
+            query: queryWithFocusedSeries,
             mri,
-            metricsQuery: queryWithFocusedSeries,
           }
         : undefined,
-    query: omit(location.query, ['widgets', 'interval']),
+    query: {
+      project: selection.projects as unknown as string[],
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
+    },
   });
 
   return (
@@ -147,7 +165,11 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
+            <TabList.Item key={Tab.SAMPLES}>
+              <GuideAnchor target="metrics_table" position="top">
+                {t('Span Samples')}
+              </GuideAnchor>
+            </TabList.Item>
             <TabList.Item
               textValue={t('Code Location')}
               key={Tab.CODE_LOCATIONS}
@@ -181,7 +203,7 @@ export function MetricDetails({
               <MetricSampleTableWrapper organization={organization}>
                 {organization.features.includes('metrics-samples-list-search') ? (
                   <SearchableMetricSamplesTable
-                    focusArea={focusArea?.selection?.range}
+                    focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
                     op={op}
@@ -190,7 +212,7 @@ export function MetricDetails({
                   />
                 ) : (
                   <MetricSamplesTable
-                    focusArea={focusArea?.selection?.range}
+                    focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
                     op={op}

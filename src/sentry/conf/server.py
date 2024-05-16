@@ -1627,6 +1627,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
+    # Enable the new assignee dropdown trigger on issue stream
+    "organizations:issue-stream-new-assignee-dropdown-trigger": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
     # Enable new events graph design for issue stream
@@ -1893,6 +1895,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Rename current Performance modules to "Insights"
+    "organizations:performance-insights": False,
     # Enable queues module ui
     "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
@@ -1999,9 +2003,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
-    "projects:span-metrics-extraction-ga-modules": False,
-    "projects:span-metrics-extraction-all-modules": False,
-    "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
     "projects:span-metrics-double-write-distributions-as-gauges": False,
@@ -3037,7 +3038,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.2"
+SELF_HOSTED_STABLE_VERSION = "24.5.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

@@ -44,7 +44,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
     def organization_matches_provisioning_args(
         self, organization_id: int, provisioning_options: OrganizationProvisioningOptions
-    ):
+    ) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             org: Organization = Organization.objects.get(id=organization_id)
             assert org.slug == provisioning_options.provision_options.slug
@@ -54,7 +54,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             )
         assert org.is_test == provisioning_options.provision_options.is_test
 
-    def assert_has_default_team_and_membership(self, organization_id: int, user_id: int):
+    def assert_has_default_team_and_membership(self, organization_id: int, user_id: int) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             org_membership = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
@@ -64,7 +64,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
                 team_id=team.id, organizationmember_id=org_membership.id
             )
 
-    def test_provisions_when_no_conflicting_orgs(self):
+    def test_provisions_when_no_conflicting_orgs(self) -> None:
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
@@ -78,7 +78,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         )
         self.assert_has_default_team_and_membership(organization_id, user.id)
 
-    def test_provisions_test_org_without_default_team(self):
+    def test_provisions_test_org_without_default_team(self) -> None:
         user = self.create_user()
         provision_options = self.get_provisioning_args(user, create_default_team=False)
         organization_id = 42
@@ -94,7 +94,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not Team.objects.filter(organization_id=organization_id).exists()
 
-    def test_provisions_when_fully_conflicting_org_has_matching_owner(self):
+    def test_provisions_when_fully_conflicting_org_has_matching_owner(self) -> None:
         user = self.create_user()
         organization_id = 42
         existing_org = self.create_organization(
@@ -112,7 +112,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             organization_id=organization_id, provisioning_options=provision_options
         )
 
-    def test_does_not_provision_and_returns_false_when_multiple_orgs_conflict(self):
+    def test_does_not_provision_and_returns_false_when_multiple_orgs_conflict(self) -> None:
         organization_id = 42
         # Org with a matching id
         self.create_organization(
@@ -137,7 +137,9 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             )
         assert not provisioning_user_memberships.exists()
 
-    def test_does_not_provision_and_returns_false_when_conflicting_org_with_different_owner(self):
+    def test_does_not_provision_and_returns_false_when_conflicting_org_with_different_owner(
+        self,
+    ) -> None:
         organization_id = 42
         self.create_organization(
             id=organization_id, slug="santry", name="Santry", owner=self.create_user()
@@ -159,7 +161,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
     def test_does_not_provision_when_organization_id_already_in_use(
         self,
-    ):
+    ) -> None:
         organization_id = 42
         user = self.create_user()
         self.create_organization(
@@ -179,7 +181,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
     def test_does_not_provision_when_organization_slug_already_in_use(
         self,
-    ):
+    ) -> None:
         organization_id = 42
         user = self.create_user()
         self.create_organization(slug="santry", name="Santry", owner=user)
@@ -197,13 +199,13 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
 @control_silo_test(regions=create_test_regions("us"))
 class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provisioning_user = self.create_user()
         self.provisioned_org = self.create_organization(
             name="Santry", slug="santry", owner=self.provisioning_user
         )
 
-    def create_temporary_slug_res(self, organization: Organization, slug: str, region: str):
+    def create_temporary_slug_res(self, organization: Organization, slug: str, region: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
             transaction.atomic(router.db_for_write(OrganizationSlugReservation))
         ):
@@ -225,7 +227,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
         )
 
-    def test_updates_org_slug_when_no_conflicts(self):
+    def test_updates_org_slug_when_no_conflicts(self) -> None:
         desired_slug = "new-santry"
         # We have to create a temporary slug reservation in order for org mapping drains to proceed
         self.create_temporary_slug_res(
@@ -245,7 +247,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             updated_org = Organization.objects.get(id=self.provisioned_org.id)
         assert updated_org.slug == desired_slug
 
-    def test_returns_true_if_organization_slug_already_updated(self):
+    def test_returns_true_if_organization_slug_already_updated(self) -> None:
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
                 region_name="us",
@@ -260,7 +262,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             updated_org = Organization.objects.get(id=self.provisioned_org.id)
         assert updated_org.slug == self.provisioned_org.slug
 
-    def test_fails_if_organization_not_found(self):
+    def test_fails_if_organization_not_found(self) -> None:
         rpc_org_slug_res = self.create_rpc_organization_slug_reservation("new-santry")
         with assume_test_silo_mode(SiloMode.REGION):
             self.provisioned_org.delete()
@@ -276,7 +278,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not Organization.objects.filter(slug="new-santry").exists()
 
-    def test_does_not_update_slug_when_conflict_exists(self):
+    def test_does_not_update_slug_when_conflict_exists(self) -> None:
         desired_slug = "new-sentry"
         self.create_organization(slug=desired_slug, name="conflicted org", owner=self.create_user())
         result = (

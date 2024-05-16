@@ -28,6 +28,7 @@ import {BASE_URL} from 'sentry/views/performance/mobile/appStarts/settings';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useAppStartupsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -52,6 +53,7 @@ type Query = {
 };
 
 export function ScreenSummary() {
+  const moduleURL = useAppStartupsModuleURL();
   const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();
@@ -81,7 +83,7 @@ export function ScreenSummary() {
   }, [location, appStartType]);
 
   const startupModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/performance/mobile/app-startup/`,
+    pathname: moduleURL,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
@@ -193,7 +195,7 @@ export function ScreenSummary() {
                   ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
                 }}
                 groupId={spanGroup}
-                moduleName={ModuleName.STARTUP}
+                moduleName={ModuleName.APP_START}
                 transactionName={transactionName}
                 spanDescription={spanDescription}
                 spanOp={spanOp}

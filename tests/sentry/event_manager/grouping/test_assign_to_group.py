@@ -297,7 +297,7 @@ def test_new_group(
             "secondary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
             "secondary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "new_group",
+            "result_tag_value_for_metrics": "no_match",
             # Moot since no existing group was passed
             "event_assigned_to_given_existing_group": None,
         }
@@ -309,7 +309,7 @@ def test_new_group(
             "new_group_created": True,
             "primary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "new_group",
+            "result_tag_value_for_metrics": "no_match",
             # The rest are moot since no existing group was passed and no secondary hash was
             # calculated.
             "event_assigned_to_given_existing_group": None,
@@ -375,7 +375,7 @@ def test_existing_group_no_new_hash(
             "event_assigned_to_given_existing_group": False,
             "primary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "new_group",
+            "result_tag_value_for_metrics": "no_match",
             # The rest are moot since no secondary hash was calculated.
             "hashes_different": None,
             "secondary_hash_found": None,

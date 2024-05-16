@@ -37,6 +37,7 @@ import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/scree
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useScreenLoadsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -56,6 +57,7 @@ type Query = {
 };
 
 function ScreenLoadSpans() {
+  const moduleURL = useScreenLoadsModuleURL();
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
@@ -66,7 +68,7 @@ function ScreenLoadSpans() {
   }, [location.query.project, projects]);
 
   const screenLoadModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
+    pathname: moduleURL,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
@@ -211,7 +213,7 @@ function ScreenLoadSpans() {
               {spanGroup && (
                 <SpanSamplesPanel
                   groupId={spanGroup}
-                  moduleName={ModuleName.SCREEN}
+                  moduleName={ModuleName.SCREEN_LOAD}
                   transactionName={transactionName}
                   spanDescription={spanDescription}
                   onClose={() => {
