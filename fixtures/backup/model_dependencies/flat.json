@@ -563,7 +563,8 @@
     "sentry.projectdebugfile"
   ],
   "sentry.project": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.projecttemplate"
   ],
   "sentry.projectartifactbundle": [
     "sentry.artifactbundle",
@@ -605,6 +606,12 @@
   "sentry.projectteam": [
     "sentry.project",
     "sentry.team"
+  ],
+  "sentry.projecttemplate": [
+    "sentry.organization"
+  ],
+  "sentry.projecttemplateoption": [
+    "sentry.projecttemplate"
   ],
   "sentry.projecttransactionthreshold": [
     "sentry.organization",

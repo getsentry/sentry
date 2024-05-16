@@ -75,6 +75,7 @@ from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
@@ -83,6 +84,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
@@ -391,6 +393,12 @@ class BackupTestCase(TransactionTestCase):
         OrganizationAccessRequest.objects.create(member=invited, team=team)
 
         # Project*
+        project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
+        ProjectTemplateOption.objects.create(
+            project_template=project_template, key="mail:subject_prefix", value=f"[{slug}]"
+        )
+
+        # TODO (@saponifi3d): Add project template to project
         project = self.create_project(name=f"project-{slug}", teams=[team])
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)

@@ -245,6 +245,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
+    template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
