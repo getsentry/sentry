@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {css, type Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -101,13 +101,7 @@ function BaseTag({
 
   const tag = (
     <Tooltip title={tooltipText} containerDisplayMode="inline-flex" {...tooltipProps}>
-      <Background
-        type={type}
-        css={css`
-          --border-style: ${borderStyle};
-        `}
-        data-test-id="tag-background"
-      >
+      <Background type={type} borderStyle={borderStyle} data-test-id="tag-background">
         {tagIcon && (
           <IconWrapper>
             <IconDefaultsProvider {...iconsProps}>{tagIcon}</IconDefaultsProvider>
@@ -156,13 +150,16 @@ export default Tag;
 
 const TAG_HEIGHT = '20px';
 
-export const Background = styled('div')<{type: keyof Theme['tag']}>`
+export const Background = styled('div')<{
+  type: keyof Theme['tag'];
+  borderStyle?: TagProps['borderStyle'];
+}>`
   display: inline-flex;
   align-items: center;
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
-  border: var(--border-style, solid) 1px ${p => p.theme.tag[p.type].border};
+  border: ${p => p.borderStyle ?? 'solid'} 1px ${p => p.theme.tag[p.type].border};
   padding: 0 ${space(1)};
 `;
 
