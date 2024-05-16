@@ -127,7 +127,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'trace_id',
       subject: t('Trace ID'),
-      value: <TraceDrawerComponents.CardValueWithCopy value={traceSlug} />,
+      value: <TraceDrawerComponents.CopyableCardValueWithLink value={traceSlug} />,
     },
     {
       key: 'events',
