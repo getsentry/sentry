@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+
 import {ModulesOnboarding} from './modulesOnboarding';
 
 describe('ModulesOnboarding', () => {
@@ -20,7 +22,7 @@ describe('ModulesOnboarding', () => {
 
     render(
       <ModulesOnboarding
-        moduleQueryFilter=""
+        moduleQueryFilter={new MutableSearch('')}
         onboardingContent={<div>Start collecting Insights!</div>}
         referrer=""
       >
@@ -42,7 +44,7 @@ describe('ModulesOnboarding', () => {
 
     render(
       <ModulesOnboarding
-        moduleQueryFilter=""
+        moduleQueryFilter={new MutableSearch('')}
         onboardingContent={<div>Start collecting Insights!</div>}
         referrer=""
       >

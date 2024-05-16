@@ -5,6 +5,7 @@ import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
@@ -16,7 +17,7 @@ export function ModulesOnboarding({
   referrer,
 }: {
   children: React.ReactNode;
-  moduleQueryFilter: string;
+  moduleQueryFilter: MutableSearch;
   onboardingContent: React.ReactNode;
   referrer: string;
 }) {

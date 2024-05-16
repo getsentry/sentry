@@ -1,9 +1,9 @@
 import type {PageFilters} from 'sentry/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
-export function useHasData(filter: string, referrer: string) {
+export function useHasData(mutableSearch: MutableSearch, referrer: string) {
   const pageFilters = usePageFilters();
   const ninetyDayPageFilters: PageFilters = {
     ...pageFilters.selection,
@@ -14,7 +14,6 @@ export function useHasData(filter: string, referrer: string) {
       utc: pageFilters.selection.datetime.utc,
     },
   };
-  const mutableSearch = new MutableSearch(filter);
   const {data, isLoading, error} = useSpanMetrics(
     {
       search: mutableSearch,

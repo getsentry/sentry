@@ -170,9 +170,7 @@ export function CacheLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
             <ModulesOnboarding
-              moduleQueryFilter={MutableSearch.fromQueryObject(
-                BASE_FILTERS
-              ).formatString()}
+              moduleQueryFilter={MutableSearch.fromQueryObject(BASE_FILTERS)}
               onboardingContent={<OnboardingContent />}
               referrer={Referrer.LANDING_CACHE_ONBOARDING}
             >

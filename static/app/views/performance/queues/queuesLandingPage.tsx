@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -113,7 +113,7 @@ function QueuesLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
             <ModulesOnboarding
-              moduleQueryFilter={DEFAULT_QUERY_FILTER}
+              moduleQueryFilter={new MutableSearch(DEFAULT_QUERY_FILTER)}
               onboardingContent={<OnboardingContent />}
               referrer={'api.performance.queues.landing-onboarding'}
             >
