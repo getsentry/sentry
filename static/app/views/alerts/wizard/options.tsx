@@ -36,7 +36,9 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users'
   | 'custom_transactions'
-  | 'custom_metrics';
+  | 'custom_metrics'
+  | 'llm_tokens'
+  | 'llm_cost';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -75,26 +77,28 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
+  llm_cost: t('LLM cost'),
+  llm_tokens: t('LLM token usage'),
 };
 
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
 };
-export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
-  {
-    categoryHeading: t('Errors'),
-    options: ['issues', 'num_errors', 'users_experiencing_errors'],
-  },
-  ...(org.features.includes('crash-rate-alerts')
-    ? [
-        {
-          categoryHeading: t('Sessions'),
-          options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
-        },
-      ]
-    : []),
-  {
+export const getAlertWizardCategories = (org: Organization) => {
+  const result: AlertWizardCategory[] = [
+    {
+      categoryHeading: t('Errors'),
+      options: ['issues', 'num_errors', 'users_experiencing_errors'],
+    },
+  ];
+  if (org.features.includes('crash-rate-alerts')) {
+    result.push({
+      categoryHeading: t('Sessions'),
+      options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
+    });
+  }
+  result.push({
     categoryHeading: t('Performance'),
     options: [
       'throughput',
@@ -106,12 +110,19 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'cls',
       ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
     ],
-  },
-  {
+  });
+  if (org.features.includes('ai-analytics')) {
+    result.push({
+      categoryHeading: t('LLM Monitoring'),
+      options: ['llm_tokens', 'llm_cost'],
+    });
+  }
+  result.push({
     categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
     options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
-  },
-];
+  });
+  return result;
+};
 
 export type WizardRuleTemplate = {
   aggregate: string;
@@ -176,6 +187,16 @@ export const AlertWizardRuleTemplates: Record<
   },
   custom_metrics: {
     aggregate: DEFAULT_METRIC_ALERT_FIELD,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  llm_tokens: {
+    aggregate: 'sum(c:spans/ai.total_tokens.used@none)',
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  llm_cost: {
+    aggregate: 'sum(c:spans/ai.total_cost@usd)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
