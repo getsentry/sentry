@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
@@ -103,13 +103,9 @@ export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps
   return (
     <StyledTag
       type={getTagTypeForPriority(priority)}
-      css={css`
-        --tagHeight: ${organization.features.includes(
-          'organizations:issue-stream-new-assignee-dropdown-trigger'
-        )
-          ? '24px'
-          : '18px'};
-      `}
+      isBigtag={organization.features.includes(
+        'organizations:issue-stream-new-assignee-dropdown-trigger'
+      )}
     >
       {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
       {children}
@@ -277,7 +273,9 @@ const DropdownButton = styled(Button)`
   box-shadow: none;
 `;
 
-const StyledTag = styled(Tag)`
+const StyledTag = styled(Tag, {
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+})<{isBigtag: boolean}>`
   span {
     display: flex;
     align-items: center;
@@ -285,7 +283,7 @@ const StyledTag = styled(Tag)`
   }
 
   & > div {
-    height: var(--tagHeight, 18px);
+    height: ${p => (p.isBigtag ? '24px' : '18px')};
   }
 `;
 
