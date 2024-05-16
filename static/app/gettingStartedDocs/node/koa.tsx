@@ -77,7 +77,13 @@ const onboarding: OnboardingConfig = {
         {
           description: tct(
             "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you are not able to import an external file, read about the [docs:different installation methods in our docs].",
-            {code1: <code />, code2: <code />, docs: <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />}
+            {
+              code1: <code />,
+              code2: <code />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+              ),
+            }
           ),
           code: [
             {
