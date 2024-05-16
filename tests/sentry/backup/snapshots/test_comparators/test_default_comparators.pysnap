@@ -1026,6 +1026,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - organization
+    - template
   model_name: sentry.project
 - comparators:
   - class: ForeignKeyComparator
@@ -1101,6 +1102,22 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - team
   model_name: sentry.projectteam
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+  model_name: sentry.projecttemplate
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - project_template
+  model_name: sentry.projecttemplateoption
 - comparators:
   - class: ForeignKeyComparator
     fields:

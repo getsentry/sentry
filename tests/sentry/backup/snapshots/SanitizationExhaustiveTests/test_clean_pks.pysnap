@@ -1,5 +1,5 @@
 ---
-created: '2024-05-02T22:04:54.161383+00:00'
+created: '2024-01-01T00:00:00+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -40,99 +40,15 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.organizationoption
   ordinal: 1
   sanitized_fields: []
-- model_name: sentry.project
+- model_name: sentry.projecttemplate
   ordinal: 1
   sanitized_fields:
   - date_added
+  - date_updated
   - name
-  - slug
-- model_name: sentry.project
-  ordinal: 2
-  sanitized_fields:
-  - date_added
-  - name
-  - slug
-- model_name: sentry.project
-  ordinal: 3
-  sanitized_fields:
-  - date_added
-  - name
-  - slug
-- model_name: sentry.project
-  ordinal: 4
-  sanitized_fields:
-  - date_added
-  - name
-  - slug
-- model_name: sentry.projectintegration
-  ordinal: 1
-  sanitized_fields:
-  - config
-- model_name: sentry.projectkey
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - secret_key
-- model_name: sentry.projectkey
-  ordinal: 2
-  sanitized_fields:
-  - date_added
-  - secret_key
-- model_name: sentry.projectkey
-  ordinal: 3
-  sanitized_fields:
-  - date_added
-  - secret_key
-- model_name: sentry.projectkey
-  ordinal: 4
-  sanitized_fields:
-  - date_added
-  - secret_key
-- model_name: sentry.projectoption
+- model_name: sentry.projecttemplateoption
   ordinal: 1
   sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 2
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 3
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 4
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 5
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 6
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 7
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 8
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 9
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 10
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 11
-  sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 12
-  sanitized_fields: []
-- model_name: sentry.projectownership
-  ordinal: 1
-  sanitized_fields:
-  - date_created
-  - last_updated
-- model_name: sentry.projectredirect
-  ordinal: 1
-  sanitized_fields:
-  - date_added
 - model_name: sentry.relay
   ordinal: 1
   sanitized_fields:
@@ -222,12 +138,6 @@ source: tests/sentry/backup/test_sanitize.py
   - first_seen
   - ip_address
   - last_seen
-- model_name: sentry.useroption
-  ordinal: 1
-  sanitized_fields: []
-- model_name: sentry.useroption
-  ordinal: 2
-  sanitized_fields: []
 - model_name: sentry.userpermission
   ordinal: 1
   sanitized_fields: []
@@ -252,16 +162,30 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - last_seen
-- model_name: sentry.projectteam
-  ordinal: 1
-  sanitized_fields: []
-- model_name: sentry.projectteam
-  ordinal: 2
-  sanitized_fields: []
-- model_name: sentry.projectbookmark
+- model_name: sentry.project
   ordinal: 1
   sanitized_fields:
   - date_added
+  - name
+  - slug
+- model_name: sentry.project
+  ordinal: 2
+  sanitized_fields:
+  - date_added
+  - name
+  - slug
+- model_name: sentry.project
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+  - name
+  - slug
+- model_name: sentry.project
+  ordinal: 4
+  sanitized_fields:
+  - date_added
+  - name
+  - slug
 - model_name: sentry.orgauthtoken
   ordinal: 1
   sanitized_fields:
@@ -372,6 +296,12 @@ source: tests/sentry/backup/test_sanitize.py
   - client_secret
   - date_added
   - name
+- model_name: sentry.useroption
+  ordinal: 1
+  sanitized_fields: []
+- model_name: sentry.useroption
+  ordinal: 2
+  sanitized_fields: []
 - model_name: sentry.useremail
   ordinal: 1
   sanitized_fields:
@@ -462,6 +392,85 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+- model_name: sentry.projectteam
+  ordinal: 1
+  sanitized_fields: []
+- model_name: sentry.projectteam
+  ordinal: 2
+  sanitized_fields: []
+- model_name: sentry.projectredirect
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+- model_name: sentry.projectownership
+  ordinal: 1
+  sanitized_fields:
+  - date_created
+  - last_updated
+- model_name: sentry.projectoption
+  ordinal: 1
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 2
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 3
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 4
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 5
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 6
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 7
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 8
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 9
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 10
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 11
+  sanitized_fields: []
+- model_name: sentry.projectoption
+  ordinal: 12
+  sanitized_fields: []
+- model_name: sentry.projectkey
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - secret_key
+- model_name: sentry.projectkey
+  ordinal: 2
+  sanitized_fields:
+  - date_added
+  - secret_key
+- model_name: sentry.projectkey
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+  - secret_key
+- model_name: sentry.projectkey
+  ordinal: 4
+  sanitized_fields:
+  - date_added
+  - secret_key
+- model_name: sentry.projectintegration
+  ordinal: 1
+  sanitized_fields:
+  - config
+- model_name: sentry.projectbookmark
+  ordinal: 1
+  sanitized_fields:
+  - date_added
 - model_name: sentry.organizationmemberteam
   ordinal: 1
   sanitized_fields: []
