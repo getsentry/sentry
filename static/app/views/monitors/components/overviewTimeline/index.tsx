@@ -149,6 +149,7 @@ export function OverviewTimeline({monitorList}: Props) {
         stickyCursor
         allowZoom
         showCursor={!isLoading}
+        showIncidents={!isLoading}
         timeWindowConfig={timeWindowConfig}
       />
 

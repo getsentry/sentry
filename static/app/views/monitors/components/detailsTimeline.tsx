@@ -105,6 +105,7 @@ export function DetailsTimeline({monitor, organization}: Props) {
       <AlignedGridLineOverlay
         allowZoom={!isLoading}
         showCursor={!isLoading}
+        showIncidents={!isLoading}
         timeWindowConfig={timeWindowConfig}
       />
       <OverviewRow
