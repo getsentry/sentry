@@ -2545,7 +2545,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rule-task-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/backfill-similar-embeddings-records/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/backfill-similar-embeddings-records/$",
         ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
         name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),
