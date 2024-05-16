@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 import sentry_sdk
+from rest_framework.exceptions import NotFound
 
 """
 Module that gets both metadata and time series from Snuba.
@@ -648,7 +649,7 @@ def _fetch_tags_or_values_for_mri(
             error_str = f"The following metrics {metric_mris} do not exist in the dataset"
         else:
             error_str = "Dataset contains no metric data for your project selection"
-        raise InvalidParams(error_str)
+        raise NotFound(error_str)
 
     tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
     tag_or_value_ids: set[int | str | None]
