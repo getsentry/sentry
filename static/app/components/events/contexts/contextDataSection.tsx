@@ -52,7 +52,7 @@ export default function ContextDataSection(props: ContextDataSectionProps) {
     <EventDataSection
       key={'context'}
       type={'context'}
-      title={t('Context')}
+      title={t('Contexts')}
       help={tct(
         'The structured context items attached to this event. [link:Learn more]',
         {
