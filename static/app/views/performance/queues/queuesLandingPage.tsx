@@ -27,6 +27,7 @@ import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
   BASE_URL,
   MODULE_TITLE,
@@ -122,11 +123,11 @@ function QueuesLandingPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart />
+                  <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart />
+                  <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>

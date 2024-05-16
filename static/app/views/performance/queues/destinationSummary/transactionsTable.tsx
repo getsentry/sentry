@@ -21,6 +21,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/starfish/types';
@@ -119,6 +120,7 @@ export function TransactionsTable() {
   const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
     destination: locationQuery.destination,
     sort,
+    referrer: Referrer.QUEUES_SUMMARY_TRANSACTIONS_TABLE,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {

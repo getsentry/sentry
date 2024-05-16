@@ -20,6 +20,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
@@ -109,6 +110,7 @@ export function QueuesTable({error, destination, sort}: Props) {
   const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({
     destination,
     sort,
+    referrer: Referrer.QUEUES_LANDING_DESTINATIONS_TABLE,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
