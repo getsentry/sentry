@@ -18,7 +18,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_get_org_auth_config():
+def test_get_org_auth_config() -> None:
     org_with_many_api_keys = Factories.create_organization()
     org_without_api_keys = Factories.create_organization()
     Factories.create_organization()  # unrelated, not in the results.
@@ -63,7 +63,7 @@ def test_get_org_auth_config():
 
 @control_silo_test
 @django_db_all(transaction=True)
-def test_enable_sso():
+def test_enable_sso() -> None:
     org = Factories.create_organization()
     provider_key = "fly"
     provider_config = {"id": "x123x"}
@@ -87,7 +87,7 @@ def test_enable_sso():
 
 @control_silo_test
 @django_db_all(transaction=True)
-def test_enable_sso_user_triggers_signal():
+def test_enable_sso_user_triggers_signal() -> None:
     org = Factories.create_organization()
     user = Factories.create_user()
 

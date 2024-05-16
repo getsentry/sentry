@@ -16,8 +16,8 @@ export enum ModuleName {
   CACHE = 'cache',
   VITAL = 'vital',
   QUEUE = 'queue',
-  SCREEN = 'screen',
-  STARTUP = 'startup',
+  SCREEN_LOAD = 'screen_load',
+  APP_START = 'app_start',
   RESOURCE = 'resource',
   ALL = '',
   OTHER = 'other',
@@ -95,7 +95,11 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
-export type ConditionalAggregate = `avg_if` | `count_op`;
+export type ConditionalAggregate =
+  | `avg_if`
+  | `count_op`
+  | 'trace_status_rate'
+  | 'time_spent_percentage';
 
 export const SPAN_FUNCTIONS = [
   'sps',
@@ -201,6 +205,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
+  MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 }
 
 export type IndexedResponse = {
@@ -246,6 +251,7 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
@@ -264,6 +270,7 @@ export enum SpanFunction {
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
   COUNT_OP = 'count_op',
+  TRACE_STATUS_RATE = 'trace_status_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -320,6 +327,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.COUNT_OP]: {
     desc: t('Count of spans with matching operation'),
     defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.TRACE_STATUS_RATE]: {
+    desc: t('Percentage of spans with matching trace status'),
+    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
