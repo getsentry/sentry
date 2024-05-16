@@ -12,7 +12,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {EventItem} from './traceTimelineTooltip';
-import {useTraceTimelineEvents} from './useTraceTimelineEvents';
+import {type TimelineEvent, useTraceTimelineEvents} from './useTraceTimelineEvents';
 
 interface TraceTimelineProps {
   event: Event;
@@ -26,10 +26,11 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const hasTraceId = !!event.contexts?.trace?.trace_id;
 
   let timelineStatus: string | undefined;
+  let issues: {id: number; project: string; title: string}[] = [];
   if (hasTraceId && !isLoading) {
     timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
-    // XXX: Use feature flag to determine if the timeline should be skipped;
-    // this require knowing how many issues
+    // XXX: Check if org has feature here
+    issues = getIssuesFromEvents(traceEvents);
   } else if (!hasTraceId) {
     timelineStatus = 'no_trace_id';
   }
@@ -71,15 +72,26 @@ export function TraceTimeline({event}: TraceTimelineProps) {
           />
         </QuestionTooltipWrapper>
         <Feature features="related-issues-issue-details-page">
-          {traceEvents
-            .filter(traceEvent => traceEvent.id !== event.id)
-            .map((traceEvent, index) => (
+          {issues.length === 2 &&
+            traceEvents.map((traceEvent, index) => (
               <EventItem key={index} timelineEvent={traceEvent} />
             ))}
         </Feature>
       </TimelineWrapper>
     </ErrorBoundary>
   );
+}
+
+function getIssuesFromEvents(
+  events: TimelineEvent[]
+): {id: number; project: string; title: string}[] {
+  return events
+    .filter(event => event['issue.id'] !== undefined)
+    .map(event => ({
+      id: event['issue.id'],
+      title: event.title,
+      project: event.project,
+    }));
 }
 
 const TimelineWrapper = styled('div')`
