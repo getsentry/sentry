@@ -43,6 +43,7 @@ from sentry.snuba.metrics.extraction import (
     RuleCondition,
     SpecVersion,
     TagMapping,
+    TagSpec,
     are_specs_equal,
     should_use_on_demand_metrics,
 )
@@ -1394,8 +1395,8 @@ def _parse_percentiles(value: tuple[()] | tuple[str, str, str, str, str]) -> tup
     return p25, p75
 
 
-def _produce_histogram_outliers(query_results: Any) -> Sequence[TagMapping]:
-    rules: list[TagMapping] = []
+def _produce_histogram_outliers(query_results: Any) -> list[TagMapping]:
+    tags_by_metric: dict[str, list[TagSpec]] = {}
     for row in query_results:
         platform = row["platform"]
         op = row["op"]
@@ -1415,32 +1416,30 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[TagMapping]:
                 # default values from clickhouse if no data is present
                 continue
 
-            rules.append(
+            tags_by_metric.setdefault(_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric], []).append(
                 {
-                    # TODO: One list of tags for every metric (while keeping the same order).
-                    "metrics": [_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric]],
-                    "tags": [
-                        {
-                            "condition": {
-                                "op": "and",
-                                "inner": [
-                                    {"op": "eq", "name": "event.contexts.trace.op", "value": op},
-                                    {"op": "eq", "name": "event.platform", "value": platform},
-                                    # This is in line with https://github.com/getsentry/sentry/blob/63308b3f2256fe2f24da43a951154d0ef2218d19/src/sentry/snuba/discover.py#L1728-L1729=
-                                    # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
-                                    {
-                                        "op": "gte",
-                                        "name": "event.duration",
-                                        "value": p75 + 3 * abs(p75 - p25),
-                                    },
-                                ],
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "event.contexts.trace.op", "value": op},
+                            {"op": "eq", "name": "event.platform", "value": platform},
+                            # This is in line with https://github.com/getsentry/sentry/blob/63308b3f2256fe2f24da43a951154d0ef2218d19/src/sentry/snuba/discover.py#L1728-L1729=
+                            # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
+                            {
+                                "op": "gte",
+                                "name": "event.duration",
+                                "value": p75 + 3 * abs(p75 - p25),
                             },
-                            "key": "histogram_outlier",
-                            "value": "outlier",
-                        }
-                    ],
+                        ],
+                    },
+                    "key": "histogram_outlier",
+                    "value": "outlier",
                 }
             )
+
+    rules: list[TagMapping] = [
+        {"metrics": [metric], "tags": tags} for metric, tags in tags_by_metric.items()
+    ]
 
     rules.append(
         {
