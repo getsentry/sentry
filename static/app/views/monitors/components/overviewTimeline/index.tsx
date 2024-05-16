@@ -135,10 +135,7 @@ export function OverviewTimeline({monitorList}: Props) {
             borderless
           />
         </HeaderControlsLeft>
-        <AlignedGridLineLabels
-          timeWindowConfig={timeWindowConfig}
-          width={timelineWidth}
-        />
+        <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
         <HeaderControlsRight>
           <DateNavigator
             dateNavigation={dateNavigation}
@@ -153,7 +150,6 @@ export function OverviewTimeline({monitorList}: Props) {
         allowZoom
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
-        width={timelineWidth}
       />
 
       <MonitorRows>
@@ -163,7 +159,6 @@ export function OverviewTimeline({monitorList}: Props) {
             monitor={monitor}
             timeWindowConfig={timeWindowConfig}
             bucketedData={monitorStats?.[monitor.id]}
-            width={timelineWidth}
             onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
             onToggleMuteEnvironment={(env, isMuted) =>
               handleToggleMuteEnvironment(monitor, env, isMuted)
