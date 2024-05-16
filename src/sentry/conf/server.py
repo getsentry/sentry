@@ -2001,9 +2001,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
-    "projects:span-metrics-extraction-ga-modules": False,
-    "projects:span-metrics-extraction-all-modules": False,
-    "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
     "projects:span-metrics-double-write-distributions-as-gauges": False,
