@@ -58,10 +58,12 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                     action.get("_sentry_app_installation", {}).get("sentry_app_id", None)
                 )
     if sentry_app_ids:
-        fetched_apps = app_service.get_many(
+        fetched_rpc_installations = app_service.get_many(
             filter=dict(app_ids=sentry_app_ids, organization_id=organization.id)
         )
-        sentry_app_map = {install.sentry_app.id: install.sentry_app for install in fetched_apps}
+        sentry_app_map = {
+            install.sentry_app.id: install.sentry_app for install in fetched_rpc_installations
+        }
 
     # Prepare AlertRuleTriggerActions that are SentryApp components
     errors = []
