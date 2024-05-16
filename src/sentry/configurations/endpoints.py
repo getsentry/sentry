@@ -29,6 +29,7 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, project: Project) -> Response:
