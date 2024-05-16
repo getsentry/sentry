@@ -15,10 +15,6 @@ import type {TimeWindowConfig} from './types';
 interface Props {
   timeWindowConfig: TimeWindowConfig;
   /**
-   * The size of the timeline
-   */
-  width: number;
-  /**
    * Enable zoom selection
    */
   allowZoom?: boolean;
@@ -64,13 +60,13 @@ function alignDateToBoundary(date: moment.Moment, minuteInterval: number) {
   return date.startOf('day');
 }
 
-function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
-  const {start, end, elapsedMinutes, intervals, dateTimeProps} = config;
+function getTimeMarkersFromConfig(config: TimeWindowConfig) {
+  const {start, end, elapsedMinutes, intervals, dateTimeProps, timelineWidth} = config;
 
   const {referenceMarkerInterval, minimumMarkerInterval, normalMarkerInterval} =
     intervals;
 
-  const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
+  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
 
   // The first marker will always be the starting time. This always renders the
   // full date and time
@@ -103,8 +99,8 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
   return markers;
 }
 
-export function GridLineLabels({width, timeWindowConfig, className}: Props) {
-  const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
+export function GridLineLabels({timeWindowConfig, className}: Props) {
+  const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   return (
     <LabelsContainer aria-hidden className={className}>
@@ -118,7 +114,6 @@ export function GridLineLabels({width, timeWindowConfig, className}: Props) {
 }
 
 export function GridLineOverlay({
-  width,
   timeWindowConfig,
   showCursor,
   stickyCursor,
@@ -126,9 +121,9 @@ export function GridLineOverlay({
   className,
 }: Props) {
   const router = useRouter();
-  const {start, dateLabelFormat} = timeWindowConfig;
+  const {start, timelineWidth, dateLabelFormat} = timeWindowConfig;
 
-  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / width;
+  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / timelineWidth;
 
   const dateFromPosition = useCallback(
     (position: number) => moment(start.getTime() + msPerPixel * position),
@@ -165,7 +160,7 @@ export function GridLineOverlay({
   });
 
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
-  const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
+  const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   // Skip first gridline, this will be represented as a border on the
   // LabelsContainer
