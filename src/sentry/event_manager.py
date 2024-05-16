@@ -409,7 +409,7 @@ class EventManager:
         project_id: int | None,
         raw: bool = False,
         assume_normalized: bool = False,
-        start_time: int | None = None,
+        start_time: float | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         has_attachments: bool = False,
@@ -1496,7 +1496,7 @@ def _save_aggregate(
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
-                    result="new_group",
+                    result="no_match",
                 )
 
                 metrics.incr(
@@ -1639,7 +1639,7 @@ def _save_aggregate_new(
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
-            result = "new_group"
+            result = "no_match"
 
     # From here on out, we're just doing housekeeping
 
@@ -2664,7 +2664,7 @@ def save_attachment(
     event_id: str,
     key_id: int | None = None,
     group_id: int | None = None,
-    start_time: float | int | None = None,
+    start_time: float | None = None,
 ) -> None:
     """
     Persists a cached event attachments into the file store.

@@ -14,7 +14,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -28,7 +27,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
@@ -41,13 +39,14 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {useScreenLoadsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -68,6 +67,7 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
   project,
 }: Props) {
+  const moduleURL = useScreenLoadsModuleURL();
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -170,9 +170,7 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/screens/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -181,15 +179,7 @@ export function ScreenLoadSpansTable({
       };
 
       return (
-        <Link
-          onClick={() =>
-            trackAnalytics('performance_views.sample_spans.opened', {
-              organization,
-              source: ModuleName.SCREEN_LOAD,
-            })
-          }
-          to={`${pathname}?${qs.stringify(query)}`}
-        >
+        <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
       );

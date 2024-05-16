@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import useOrganization from 'sentry/utils/useOrganization';
-import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/messageSpanSamplesTable';
+import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {MessageActorType} from 'sentry/views/performance/queues/settings';
 
 jest.mock('sentry/utils/useOrganization');

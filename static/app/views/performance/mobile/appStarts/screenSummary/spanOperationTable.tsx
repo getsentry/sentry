@@ -10,7 +10,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -24,7 +23,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import {
   COLD_START_TYPE,
@@ -32,13 +30,14 @@ import {
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {useAppStartupsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -57,6 +56,7 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
+  const moduleURL = useAppStartupsModuleURL();
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -147,9 +147,7 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/app-startup/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -160,15 +158,7 @@ export function SpanOperationTable({
       };
 
       return (
-        <Link
-          onClick={() =>
-            trackAnalytics('performance_views.sample_spans.opened', {
-              organization,
-              source: ModuleName.APP_START,
-            })
-          }
-          to={`${pathname}?${qs.stringify(query)}`}
-        >
+        <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
       );

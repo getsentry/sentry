@@ -248,7 +248,12 @@ class RedisBuffer(Buffer):
         return pipe.execute()[0]
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
+        value_dict = {value: time()}
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
+        logger.info(
+            "redis_buffer.push_to_sorted_set",
+            extra={"key_name": key, "value": json.dumps(value_dict)},
+        )
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         redis_set = self._execute_redis_operation(

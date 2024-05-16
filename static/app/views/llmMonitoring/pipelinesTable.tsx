@@ -25,7 +25,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
@@ -91,6 +91,8 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 
 export function PipelinesTable() {
   const location = useLocation();
+  const moduleURL = useAIModuleURL();
+
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
@@ -205,7 +207,7 @@ export function PipelinesTable() {
                 sortParameterName: QueryParameterNames.SPANS_SORT,
               }),
             renderBodyCell: (column, row) =>
-              renderBodyCell(column, row, meta, location, organization),
+              renderBodyCell(moduleURL, column, row, meta, location, organization),
           }}
           location={location}
         />
@@ -216,6 +218,7 @@ export function PipelinesTable() {
 }
 
 function renderBodyCell(
+  moduleURL: string,
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
@@ -237,9 +240,7 @@ function renderBodyCell(
 
     return (
       <Link
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/ai-monitoring/pipeline-type/${row['span.group']}?${qs.stringify(queryString)}`
-        )}
+        to={`${moduleURL}/pipeline-type/${row['span.group']}?${qs.stringify(queryString)}`}
       >
         {row['span.description']}
       </Link>
@@ -248,10 +249,7 @@ function renderBodyCell(
   if (column.key === 'ai_total_tokens_used(c:spans/ai.total_cost@usd)') {
     const cost = row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
     if (cost) {
-      if (cost < 0.01) {
-        return <span>US {cost * 100}¢</span>;
-      }
-      return <span>US${cost}</span>;
+      return <span>US ${cost.toFixed(3)}</span>;
     }
     return (
       <span>

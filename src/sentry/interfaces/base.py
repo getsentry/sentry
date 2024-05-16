@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from html import escape
-from typing import ClassVar, Union
+from typing import Any, ClassVar, Union
 
 from django.conf import settings
 from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
-from sentry.utils.canonical import get_canonical_name
 from sentry.utils.imports import import_string
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, safe_execute
@@ -19,9 +19,8 @@ interface_logger = logging.getLogger("sentry.interfaces")
 DataPath = list[Union[str, int]]
 
 
-def get_interface(name):
+def get_interface(name: str) -> type[Interface]:
     try:
-        name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
         raise ValueError(f"Invalid interface name: {name}")
@@ -34,9 +33,9 @@ def get_interface(name):
     return interface
 
 
-def get_interfaces(data):
+def get_interfaces(event: Mapping[str, Any]) -> dict[str, Interface]:
     result = []
-    for key, data in data.items():
+    for key, data in event.items():
         # Skip invalid interfaces that were nulled out during normalization
         if data is None:
             continue
