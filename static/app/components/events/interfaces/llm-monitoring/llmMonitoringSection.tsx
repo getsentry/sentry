@@ -12,6 +12,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {type IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
 
@@ -20,7 +21,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function LLMMonitoringSection({event, organization}: Props) {
+export default function LLMMonitoringSection({event}: Props) {
   const traceId = event.contexts.trace?.trace_id;
   const spanId = event.contexts.trace?.span_id;
   const {data, error, isLoading} = useIndexedSpans({
@@ -29,16 +30,13 @@ export default function LLMMonitoringSection({event, organization}: Props) {
     referrer: 'api.ai-pipelines.view',
     search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
   });
+  const moduleUrl = useAIModuleURL();
   const aiPipelineGroup =
     data && (data[0] as IndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
 
   const actions = (
     <ButtonBar gap={1}>
-      <LinkButton
-        size="xs"
-        icon={<IconOpen />}
-        to={`/organizations/${organization.slug}/llm-monitoring/`}
-      >
+      <LinkButton size="xs" icon={<IconOpen />} to={moduleUrl}>
         {t('View in LLM Monitoring')}
       </LinkButton>
     </ButtonBar>

@@ -16,7 +16,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {LLMMonitoringOnboarding} from 'sentry/views/llmMonitoring/onboarding';
-import {PipelinesTable} from 'sentry/views/llmMonitoring/PipelinesTable';
+import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
 import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
