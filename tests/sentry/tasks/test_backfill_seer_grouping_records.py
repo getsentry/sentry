@@ -783,7 +783,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                             "stacktrace_distance": 0.01,
                             "message_distance": 0.01,
                             "should_group": True,
-                            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                             "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
                             "parent_group_id": parent_group_id,
                         }
