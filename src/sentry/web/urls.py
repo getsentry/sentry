@@ -719,6 +719,12 @@ urlpatterns += [
         react_page_view,
         name="performance",
     ),
+    # Insights
+    re_path(
+        r"^insights/",
+        react_page_view,
+        name="insights",
+    ),
     # Profiling
     re_path(
         r"^profiling/",
