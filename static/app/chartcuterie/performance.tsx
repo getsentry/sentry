@@ -1,3 +1,4 @@
+import Grid from 'sentry/components/charts/components/grid';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
@@ -18,6 +19,11 @@ export type FunctionRegressionPercentileData = {
   data: EventsStatsSeries<'p95()'>;
 };
 
+const performanceChartDefaults = {
+  ...slackChartDefaults,
+  grid: Grid({left: 10, right: 5, bottom: 5}),
+};
+
 function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend = options.legend || {};
   options.legend.icon = 'none';
@@ -27,16 +33,19 @@ function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
 
   options.yAxis = options.yAxis || {};
   options.yAxis.axisLabel = options.yAxis.axisLabel || {};
+  options.yAxis.axisLabel.fontSize = 11;
   options.yAxis.axisLabel.fontFamily = DEFAULT_FONT_FAMILY;
 
   options.xAxis = options.xAxis || {};
   options.xAxis.axisLabel = options.xAxis.axisLabel || {};
+  options.xAxis.axisLabel.fontSize = 11;
   options.xAxis.axisLabel.fontFamily = DEFAULT_FONT_FAMILY;
 
   return {
     ...options,
-    grid: slackChartDefaults.grid,
+    grid: performanceChartDefaults.grid,
     visualMap: options.options?.visualMap,
+    backgroundColor: theme.background,
   };
 }
 type FunctionRegressionChartData = {
@@ -57,11 +66,7 @@ performanceCharts.push({
 
     return {
       ...modifiedOptions,
-
-      backgroundColor: theme.background,
       series: transformedSeries,
-      grid: slackChartDefaults.grid,
-      visualMap: modifiedOptions.options?.visualMap,
     };
   },
   ...slackChartSize,
@@ -95,11 +100,7 @@ performanceCharts.push({
 
     return {
       ...modifiedOptions,
-
-      backgroundColor: theme.background,
       series: transformedSeries,
-      grid: slackChartDefaults.grid,
-      visualMap: modifiedOptions.options?.visualMap,
     };
   },
   ...slackChartSize,
