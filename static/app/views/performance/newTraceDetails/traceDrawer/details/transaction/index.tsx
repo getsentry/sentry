@@ -107,7 +107,7 @@ export function TransactionNodeDetails({
     organization,
   });
 
-  const {data: cacheMetrics, isLoading: isCacheMetricsLoading} = useSpanMetrics(
+  const {data: cacheMetrics} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         transaction: node.value.transaction,
@@ -117,7 +117,7 @@ export function TransactionNodeDetails({
     Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
   );
 
-  if (isLoading || isCacheMetricsLoading) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
@@ -149,7 +149,7 @@ export function TransactionNodeDetails({
         />
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
-        {cacheMetrics[0] && <CacheMetrics cacheMetrics={cacheMetrics[0]} />}
+        {cacheMetrics.length && <CacheMetrics cacheMetrics={cacheMetrics} />}
         <Sdk event={event} />
       </TraceDrawerComponents.SectionCardGroup>
 
