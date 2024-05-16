@@ -1,15 +1,15 @@
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import cast
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.metadata.utils import METRICS_API_HIDDEN_OPERATIONS
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import parse_mri
-from sentry.snuba.metrics.datasource import (
-    _build_metric_meta,
-    get_metrics_blocking_state_of_projects,
-)
-from sentry.snuba.metrics.utils import BlockedMetric, MetricMeta
+from sentry.snuba.metrics.datasource import get_metrics_blocking_state_of_projects
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, get_available_operations
+from sentry.snuba.metrics.utils import BlockedMetric, MetricMeta, MetricOperationType, MetricUnit
 from sentry.snuba.metrics_layer.query import fetch_metric_mris
 
 
@@ -95,3 +95,26 @@ def _convert_to_mris_to_project_ids_mapping(project_id_to_mris: dict[int, list[s
             mris_to_project_ids.setdefault(mri, []).append(project_id)
 
     return mris_to_project_ids
+
+
+def _build_metric_meta(
+    parsed_mri: ParsedMRI, project_ids: Sequence[int], blocking_status: Sequence[BlockedMetric]
+) -> MetricMeta:
+    available_operations = get_available_operations(parsed_mri)
+
+    if parsed_mri.namespace == "custom":
+        available_operations = [
+            operation
+            for operation in available_operations
+            if operation not in METRICS_API_HIDDEN_OPERATIONS
+        ]
+
+    return MetricMeta(
+        type=parsed_mri.entity,
+        name=parsed_mri.name,
+        unit=cast(MetricUnit, parsed_mri.unit),
+        mri=parsed_mri.mri_string,
+        operations=cast(Sequence[MetricOperationType], available_operations),
+        projectIds=project_ids,
+        blockingStatus=blocking_status,
+    )

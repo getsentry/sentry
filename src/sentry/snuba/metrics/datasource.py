@@ -13,7 +13,6 @@ efficient, we only look at the past 24 hours.
 """
 
 __all__ = (
-    "get_metrics_meta",
     "get_all_tags",
     "get_tag_values",
     "get_series",
@@ -27,7 +26,7 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, cast
+from typing import Any
 
 from snuba_sdk import And, Column, Condition, Function, Op, Or, Query, Request
 from snuba_sdk.conditions import ConditionGroup
@@ -54,13 +53,7 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import (
-    ParsedMRI,
-    get_available_operations,
-    is_custom_measurement,
-    is_mri,
-    parse_mri,
-)
+from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, is_mri, parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -73,14 +66,11 @@ from sentry.snuba.metrics.utils import (
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
-    BlockedMetric,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
     MetricMeta,
     MetricMetaWithTagKeys,
-    MetricOperationType,
     MetricType,
-    MetricUnit,
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
@@ -307,85 +297,6 @@ def get_metrics_blocking_state_of_projects(
             )
 
     return metrics_blocking_state_by_mri
-
-
-def _build_metric_meta(
-    parsed_mri: ParsedMRI, project_ids: Sequence[int], blocking_status: Sequence[BlockedMetric]
-) -> MetricMeta:
-    available_operations = get_available_operations(parsed_mri)
-    blocked_operations = ["p50", "p75", "p90", "p95", "p99"]
-    if parsed_mri.namespace == "custom":
-        available_operations = [
-            operation for operation in available_operations if operation not in blocked_operations
-        ]
-
-    return MetricMeta(
-        type=parsed_mri.entity,
-        name=parsed_mri.name,
-        unit=cast(MetricUnit, parsed_mri.unit),
-        mri=parsed_mri.mri_string,
-        operations=cast(Sequence[MetricOperationType], available_operations),
-        projectIds=project_ids,
-        blockingStatus=blocking_status,
-    )
-
-
-def get_metrics_meta(
-    projects: Sequence[Project],
-    use_case_ids: Sequence[UseCaseID],
-    start: datetime | None = None,
-    end: datetime | None = None,
-) -> Sequence[MetricMeta]:
-    if not projects:
-        return []
-
-    stored_metrics = get_stored_metrics_of_projects(projects, use_case_ids, start, end)
-    metrics_blocking_state = (
-        get_metrics_blocking_state_of_projects(projects) if UseCaseID.CUSTOM in use_case_ids else {}
-    )
-
-    metrics_metas = []
-    for metric_mri, project_ids in stored_metrics.items():
-        parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is None:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_extra("project_ids", project_ids)
-                scope.set_extra("metric_mri", metric_mri)
-                sentry_sdk.capture_message("Invalid metric MRI detected")
-
-            continue
-
-        blocking_status = []
-        if (metric_blocking := metrics_blocking_state.get(metric_mri)) is not None:
-            blocking_status = [
-                BlockedMetric(isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id)
-                for is_blocked, blocked_tags, project_id in metric_blocking
-            ]
-            # We delete the metric so that in the next steps we can just merge the remaining blocked metrics that are
-            # not stored.
-            del metrics_blocking_state[metric_mri]
-
-        metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
-
-    for metric_mri, metric_blocking in metrics_blocking_state.items():
-        parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is None:
-            continue
-
-        metrics_metas.append(
-            _build_metric_meta(
-                parsed_mri,
-                [],
-                [
-                    BlockedMetric(
-                        isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
-                    )
-                    for is_blocked, blocked_tags, project_id in metric_blocking
-                ],
-            )
-        )
-
-    return metrics_metas
 
 
 def get_stored_metrics_of_projects(
