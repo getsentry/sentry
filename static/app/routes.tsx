@@ -1447,17 +1447,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const performanceRoutes = (
-    <Route
-      path="/performance/"
-      component={make(() => import('sentry/views/performance'))}
-      withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
+  const insightsRoutes = (
+    <Fragment>
       <Route path="database/">
         <IndexRoute
           component={make(
@@ -1572,6 +1563,20 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+    </Fragment>
+  );
+
+  const performanceRoutes = (
+    <Route
+      path="/performance/"
+      component={make(() => import('sentry/views/performance'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <Route
+        path="trends/"
+        component={make(() => import('sentry/views/performance/trends'))}
+      />
       <Route path="traces/">
         <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
       </Route>
@@ -1652,6 +1657,7 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
+      {insightsRoutes}
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
