@@ -173,7 +173,7 @@ const EventTitle = styled('div')`
 
 const EventDescription = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  direction: rtl;
+  margin-left: 1em;
 `;
 
 const TraceItem = styled('div')`
