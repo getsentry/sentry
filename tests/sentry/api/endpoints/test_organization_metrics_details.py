@@ -229,16 +229,15 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "max_timestamp",
             "min",
             "min_timestamp",
-            "p50",
-            "p75",
-            "p90",
-            "p95",
-            "p99",
             "sum",
         ]
 
         with override_options(
-            {"sentry-metrics.metrics-api.hide-percentile-operations": True},
+            {
+                "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs": [
+                    self.organization.id
+                ]
+            },
         ):
             response = self.get_success_response(
                 self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
@@ -252,5 +251,10 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
                 "max_timestamp",
                 "min",
                 "min_timestamp",
+                "p50",
+                "p75",
+                "p90",
+                "p95",
+                "p99",
                 "sum",
             ]

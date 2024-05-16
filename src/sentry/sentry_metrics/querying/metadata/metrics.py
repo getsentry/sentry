@@ -56,7 +56,9 @@ def get_metrics_meta(
                 # not stored.
                 del metrics_blocking_state[metric_mri]
 
-            metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
+            metrics_metas.append(
+                _build_metric_meta(organization, parsed_mri, project_ids, blocking_status)
+            )
 
         for metric_mri, metric_blocking in metrics_blocking_state.items():
             parsed_mri = parse_mri(metric_mri)
@@ -65,6 +67,7 @@ def get_metrics_meta(
 
             metrics_metas.append(
                 _build_metric_meta(
+                    organization,
                     parsed_mri,
                     [],
                     [
@@ -105,11 +108,16 @@ def _convert_to_mris_to_project_ids_mapping(project_id_to_mris: dict[int, list[s
 
 
 def _build_metric_meta(
-    parsed_mri: ParsedMRI, project_ids: Sequence[int], blocking_status: Sequence[BlockedMetric]
+    organization: Organization,
+    parsed_mri: ParsedMRI,
+    project_ids: Sequence[int],
+    blocking_status: Sequence[BlockedMetric],
 ) -> MetricMeta:
     available_operations = get_available_operations(parsed_mri)
 
-    if options.get("sentry-metrics.metrics-api.hide-percentile-operations"):
+    if organization.id not in options.get(
+        "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs"
+    ):
         available_operations = [
             operation
             for operation in available_operations
