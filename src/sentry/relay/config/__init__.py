@@ -75,6 +75,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
     "projects:span-metrics-double-write-distributions-as-gauges",
+    "projects:relay-otel-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1
