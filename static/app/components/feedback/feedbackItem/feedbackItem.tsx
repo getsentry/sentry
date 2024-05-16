@@ -27,7 +27,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const url = eventData?.tags.find(tag => tag.key === 'url');
+  const url = eventData?.tags?.find(tag => tag.key === 'url');
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   const overflowRef = useRef<HTMLDivElement>(null);
