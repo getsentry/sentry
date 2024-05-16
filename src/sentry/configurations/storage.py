@@ -105,19 +105,5 @@ class BlobDriver:
             return None
 
 
-class ProjectOptionsDriver:
-    def __init__(self, project: Project) -> None:
-        self.project = project
-
-    def get(self) -> StorageFormat | None:
-        return self.project.get_option("sentry:remote_config")
-
-    def set(self, value: StorageFormat) -> None:
-        self.project.update_option("sentry:remote_config", value)
-
-    def pop(self) -> None:
-        self.project.delete_option("sentry:remote_config")
-
-
 def make_storage(project):
     return StorageBackend(project)
