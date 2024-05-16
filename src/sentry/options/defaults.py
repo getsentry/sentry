@@ -2506,3 +2506,10 @@ register(
 register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# Disable
+register(
+    "sentry-metrics.metrics-api.hide-percentile-operations",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

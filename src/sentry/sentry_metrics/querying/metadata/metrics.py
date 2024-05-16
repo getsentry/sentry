@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import cast
 
+from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.utils import METRICS_API_HIDDEN_OPERATIONS
@@ -102,7 +103,7 @@ def _build_metric_meta(
 ) -> MetricMeta:
     available_operations = get_available_operations(parsed_mri)
 
-    if parsed_mri.namespace == "custom":
+    if options.get("sentry-metrics.metrics-api.hide-percentile-operations"):
         available_operations = [
             operation
             for operation in available_operations
