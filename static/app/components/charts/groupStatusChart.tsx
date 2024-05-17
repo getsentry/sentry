@@ -62,6 +62,7 @@ function GroupStatusChart({
 
       return {colors: undefined, emphasisColors: undefined, series};
     }
+
     const series: Series[] = [
       {
         seriesName: t('Events'),
