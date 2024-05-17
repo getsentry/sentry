@@ -21,7 +21,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
-import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -232,7 +232,7 @@ function renderBodyCell(
 }
 
 function TransactionCell({transaction, op}: {op: string; transaction: string}) {
-  const moduleURL = useQueueModuleURL();
+  const moduleURL = useModuleURL('queue');
   const {query} = useLocation();
   const queryString = {
     ...query,

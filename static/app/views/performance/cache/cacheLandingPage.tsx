@@ -25,6 +25,7 @@ import {
   BASE_FILTERS,
   BASE_URL,
   MODULE_TITLE,
+  ONBOARDING_CONTENT,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/cache/settings';
 import {
@@ -33,6 +34,8 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -167,33 +170,39 @@ export function CacheLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
-            <ModuleLayout.Half>
-              <CacheHitMissChart
-                series={{
-                  seriesName: DataTitles.cacheMissRate,
-                  data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
-                }}
-                isLoading={isCacheHitRateLoading}
-                error={cacheHitRateError}
-              />
-            </ModuleLayout.Half>
-            <ModuleLayout.Half>
-              <ThroughputChart
-                series={throughputData['spm()']}
-                isLoading={isThroughputDataLoading}
-                error={throughputError}
-              />
-            </ModuleLayout.Half>
-            <ModuleLayout.Full>
-              <TransactionsTable
-                data={transactionsListWithDuration}
-                isLoading={isTransactionsListLoading || isTransactionDurationLoading}
-                sort={sort}
-                error={transactionsListError || transactionDurationError}
-                meta={meta}
-                pageLinks={transactionsListPageLinks}
-              />
-            </ModuleLayout.Full>
+            <ModulesOnboarding
+              moduleQueryFilter={MutableSearch.fromQueryObject(BASE_FILTERS)}
+              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
+              referrer={Referrer.LANDING_CACHE_ONBOARDING}
+            >
+              <ModuleLayout.Half>
+                <CacheHitMissChart
+                  series={{
+                    seriesName: DataTitles.cacheMissRate,
+                    data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
+                  }}
+                  isLoading={isCacheHitRateLoading}
+                  error={cacheHitRateError}
+                />
+              </ModuleLayout.Half>
+              <ModuleLayout.Half>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                  error={throughputError}
+                />
+              </ModuleLayout.Half>
+              <ModuleLayout.Full>
+                <TransactionsTable
+                  data={transactionsListWithDuration}
+                  isLoading={isTransactionsListLoading || isTransactionDurationLoading}
+                  sort={sort}
+                  error={transactionsListError || transactionDurationError}
+                  meta={meta}
+                  pageLinks={transactionsListPageLinks}
+                />
+              </ModuleLayout.Full>
+            </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

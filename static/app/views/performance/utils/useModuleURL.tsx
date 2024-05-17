@@ -1,8 +1,6 @@
-import partial from 'lodash/partial';
-
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {BASE_URL as AI_BASE_URL} from 'sentry/views/aiMonitoring/settings';
+import {BASE_URL as AI_BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
@@ -30,7 +28,10 @@ const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.ALL]: '',
 };
 
-export const useModuleURL = (moduleName: ModuleName): string => {
+type ModuleNameStrings = `${ModuleName}`;
+type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
+
+export const useModuleURL = (moduleName: RoutableModuleNames): string => {
   const {slug} = useOrganization();
 
   if (moduleName === ModuleName.AI) {
@@ -42,14 +43,3 @@ export const useModuleURL = (moduleName: ModuleName): string => {
     `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
   );
 };
-
-export const useDatabaseModuleURL = partial(useModuleURL, ModuleName.DB);
-export const useRequestsModuleURL = partial(useModuleURL, ModuleName.HTTP);
-export const useCacheModuleURL = partial(useModuleURL, ModuleName.CACHE);
-export const useQueueModuleURL = partial(useModuleURL, ModuleName.QUEUE);
-export const useScreenLoadsModuleURL = partial(useModuleURL, ModuleName.SCREEN_LOAD);
-export const useAppStartupsModuleURL = partial(useModuleURL, ModuleName.APP_START);
-export const useWebVitalsModuleURL = partial(useModuleURL, ModuleName.VITAL);
-export const useResourceModuleURL = partial(useModuleURL, ModuleName.RESOURCE);
-export const useAIModuleURL = partial(useModuleURL, ModuleName.AI);
-export const useMobileUIModuleURL = partial(useModuleURL, ModuleName.MOBILE_UI);

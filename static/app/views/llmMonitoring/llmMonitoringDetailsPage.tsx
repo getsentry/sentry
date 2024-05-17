@@ -18,13 +18,13 @@ import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
-} from 'sentry/views/aiMonitoring/aiMonitoringCharts';
-import {PipelineSpansTable} from 'sentry/views/aiMonitoring/pipelineSpansTable';
-import {BASE_URL} from 'sentry/views/aiMonitoring/settings';
+} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
+import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
+import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
@@ -42,8 +42,8 @@ type Query = {
   'span.description'?: string;
 };
 
-export function AiMonitoringPage({params}: Props) {
-  const moduleURL = useAIModuleURL();
+export function LLMMonitoringPage({params}: Props) {
+  const moduleURL = useModuleURL('ai');
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -98,15 +98,15 @@ export function AiMonitoringPage({params}: Props) {
                   label: t('Dashboard'),
                 },
                 {
-                  label: t('AI Monitoring'),
+                  label: t('LLM Monitoring'),
+                  to: moduleURL,
                 },
                 {
                   label: spanDescription ?? t('(no name)'),
-                  to: moduleURL,
                 },
               ]}
             />
-            <Layout.Title>{t('AI Monitoring')}</Layout.Title>
+            <Layout.Title>{t('LLM Monitoring')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -183,7 +183,7 @@ function PageWithProviders({params}: Props) {
       baseURL={BASE_URL}
       features="ai-analytics"
     >
-      <AiMonitoringPage params={params} />
+      <LLMMonitoringPage params={params} />
     </ModulePageProviders>
   );
 }

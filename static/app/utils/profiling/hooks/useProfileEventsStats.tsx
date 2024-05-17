@@ -39,7 +39,7 @@ export function useProfileEventsStats<F extends string>({
   }
 
   if (dataset === 'discover') {
-    query = `has:profile.id ${query ?? ''}`;
+    query = `has:profile.id ${query ? `(${query})` : ''}`;
   }
 
   const path = `/organizations/${organization.slug}/events-stats/`;
