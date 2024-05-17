@@ -68,6 +68,7 @@ from sentry.grouping.ingest.metrics import (
     record_hash_calculation_metrics,
     record_new_group_metrics,
 )
+from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -136,6 +137,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.utils.types import NonNone
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -1477,7 +1479,31 @@ def _save_aggregate(
             # If we still haven't found a matching grouphash, we're now safe to go ahead and create
             # the group.
             if existing_grouphash is None:
-                group = _create_group(project, event, **group_creation_kwargs)
+                seer_matched_group = None
+
+                if should_call_seer_for_grouping(event, project):
+                    try:
+                        # If the `projects:similarity-embeddings-grouping` feature is disabled,
+                        # we'll still get back result metadata, but `seer_matched_group` will be None
+                        seer_response_data, seer_matched_group = get_seer_similar_issues(
+                            event, primary_hashes
+                        )
+                        event.data["seer_similarity"] = seer_response_data
+
+                        # We only want to add this data to new groups, while we're testing
+                        # TODO: Remove this once we're out of the testing phase
+                        if not seer_matched_group:
+                            group_creation_kwargs["data"]["metadata"][
+                                "seer_similarity"
+                            ] = seer_response_data
+
+                    # Insurance - in theory we shouldn't ever land here
+                    except Exception as e:
+                        sentry_sdk.capture_exception(
+                            e, tags={"event": event.event_id, "project": project.id}
+                        )
+
+                group = seer_matched_group or _create_group(project, event, **group_creation_kwargs)
 
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
@@ -1488,8 +1514,19 @@ def _save_aggregate(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
                 ).update(group=group)
 
-                is_new = True
-                is_regression = False
+                is_new = not seer_matched_group
+                is_regression = (
+                    False
+                    if is_new
+                    else _process_existing_aggregate(
+                        # If `seer_matched_group` were `None`, `is_new` would be true and we
+                        # wouldn't be here
+                        group=NonNone(seer_matched_group),
+                        event=event,
+                        incoming_group_values=group_creation_kwargs,
+                        release=release,
+                    )
+                )
 
                 span.set_tag("outcome", "new_group")
                 metric_tags["outcome"] = "new_group"
