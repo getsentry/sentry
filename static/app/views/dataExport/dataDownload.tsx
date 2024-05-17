@@ -216,7 +216,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
           {renderOpenInDiscover()}
           <p>
             <small>
-              <strong>{tct('SHA1: ', {checksum})}</strong>
+              <strong>SHA1:{checksum}</strong>
             </small>
             <br />
             {tct('Need help verifying? [link].', {
