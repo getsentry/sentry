@@ -12,7 +12,6 @@ import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface TimelineProps {
   timeWindowConfig: TimeWindowConfig;
-  width: number;
 }
 
 export interface CheckInTimelineProps extends TimelineProps {
@@ -30,11 +29,11 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: CheckInTimelineProps) {
-  const {bucketedData, timeWindowConfig, width, environment} = props;
-  const {start, end} = timeWindowConfig;
+  const {bucketedData, timeWindowConfig, environment} = props;
+  const {start, end, timelineWidth} = timeWindowConfig;
 
   const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / width;
+  const msPerPixel = elapsedMs / timelineWidth;
 
   const jobTicks = mergeBuckets(bucketedData, environment);
 
@@ -79,11 +78,10 @@ export interface MockCheckInTimelineProps extends TimelineProps {
 export function MockCheckInTimeline({
   mockTimestamps,
   timeWindowConfig,
-  width,
 }: MockCheckInTimelineProps) {
   const {start, end} = timeWindowConfig;
   const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / width;
+  const msPerPixel = elapsedMs / timeWindowConfig.timelineWidth;
 
   return (
     <TimelineContainer>

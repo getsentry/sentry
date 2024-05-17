@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {useAppStartupsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -56,7 +56,7 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
-  const moduleURL = useAppStartupsModuleURL();
+  const moduleURL = useModuleURL('app_start');
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();

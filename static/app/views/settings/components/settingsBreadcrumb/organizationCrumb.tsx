@@ -10,10 +10,10 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
-import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
-import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
+import BreadcrumbDropdown from './breadcrumbDropdown';
+import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}>;

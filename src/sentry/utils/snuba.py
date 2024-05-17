@@ -133,6 +133,9 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "user.id": "sentry_tags[user.id]",
+    "user.email": "sentry_tags[user.email]",
+    "user.username": "sentry_tags[user.username]",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
