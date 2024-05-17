@@ -109,6 +109,8 @@ import {TraceType} from '../traceType';
  * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
  */
 
+type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
+
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   interface Span extends RawSpanType {
@@ -172,6 +174,12 @@ export declare namespace TraceTree {
   };
 
   type CollectedVital = {key: string; measurement: Measurement};
+
+  interface TraceTreeEvents {
+    ['trace timeline change']: (view: [number, number]) => void;
+  }
+
+  type EventStore = {[K in keyof TraceTreeEvents]: Set<TraceTreeEvents[K]>};
 }
 
 export type ViewManagerScrollToOptions = {
@@ -508,6 +516,8 @@ export class TraceTree {
     const tLen = transactionQueue.length;
     const oLen = orphanErrorsQueue.length;
 
+    // Items in each queue are sorted by timestamp, so we just take
+    // from the queue with the earliest timestamp which means the final list will be ordered.
     while (tIdx < tLen || oIdx < oLen) {
       const transaction = transactionQueue[tIdx];
       const orphan = orphanErrorsQueue[oIdx];
@@ -612,9 +622,12 @@ export class TraceTree {
     data: Event,
     spans: RawSpanType[],
     options: {sdk: string | undefined} | undefined
-  ): TraceTreeNode<TraceTree.NodeValue> {
+  ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
     parent.invalidate(parent);
     const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
+
+    let min_span_start = Number.POSITIVE_INFINITY;
+    let min_span_end = Number.NEGATIVE_INFINITY;
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
@@ -625,14 +638,14 @@ export class TraceTree {
     // If we've already fetched children, the tree is already assembled
     if (parent.spanChildren.length > 0) {
       parent.zoomedIn = true;
-      return parent;
+      return [parent, null];
     }
 
     // If we have no spans, insert an empty node to indicate that there is no data
     if (!spans.length && !parent.children.length) {
       parent.zoomedIn = true;
       parent.spanChildren.push(new NoDataNode(parent));
-      return parent;
+      return [parent, null];
     }
 
     if (parentIsSpan) {
@@ -675,6 +688,16 @@ export class TraceTree {
         event_id: undefined,
         project_slug: undefined,
       });
+
+      if (
+        typeof span.start_timestamp === 'number' &&
+        span.start_timestamp < min_span_start
+      ) {
+        min_span_start = span.start_timestamp;
+      }
+      if (typeof span.timestamp === 'number' && span.timestamp > min_span_end) {
+        min_span_end = span.timestamp;
+      }
 
       for (const error of getRelatedSpanErrorsFromTransaction(span, parent)) {
         node.errors.add(error);
@@ -748,7 +771,8 @@ export class TraceTree {
     parent.zoomedIn = true;
     TraceTree.AutogroupSiblingSpanNodes(parent);
     TraceTree.AutogroupDirectChildrenSpanNodes(parent);
-    return parent;
+
+    return [parent, [min_span_start, min_span_end]];
   }
 
   static AutogroupDirectChildrenSpanNodes(
@@ -1326,7 +1350,36 @@ export class TraceTree {
         // Api response is not sorted
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
 
-        TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
+        const [_, view] = TraceTree.FromSpans(node, data, spans.data, {
+          sdk: data.sdk?.name,
+        });
+
+        // Spans contain millisecond precision, which means that it is possible for the
+        // children spans of a transaction to extend beyond the start and end of the transaction
+        // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
+        // of our trace so that all of the span children are visible and can be rendered inside the view.
+        if (
+          view &&
+          Number.isFinite(view[0]) &&
+          Number.isFinite(view[1]) &&
+          this.root.space
+        ) {
+          const prev_start = this.root.space[0];
+          const prev_end = this.root.space[1];
+          const new_start = view[0];
+          const new_end = view[1];
+
+          // Update the space of the tree and the trace root node
+          this.root.space = [
+            Math.min(new_start * node.multiplier, this.root.space[0]),
+            Math.max(new_end * node.multiplier - prev_start, this.root.space[1]),
+          ];
+          this.root.children[0].space = [...this.root.space];
+
+          if (prev_start !== this.root.space[0] || prev_end !== this.root.space[1]) {
+            this.dispatch('trace timeline change', this.root.space);
+          }
+        }
 
         const spanChildren = node.getVisibleChildren();
         this._list.splice(index + 1, 0, ...spanChildren);
@@ -1364,6 +1417,38 @@ export class TraceTree {
 
   get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
     return this._list;
+  }
+
+  listeners: TraceTree.EventStore = {
+    'trace timeline change': new Set(),
+  };
+
+  on<K extends keyof TraceTree.TraceTreeEvents>(
+    event: K,
+    cb: TraceTree.TraceTreeEvents[K]
+  ): void {
+    this.listeners[event].add(cb);
+  }
+
+  off<K extends keyof TraceTree.TraceTreeEvents>(
+    event: K,
+    cb: TraceTree.TraceTreeEvents[K]
+  ): void {
+    this.listeners[event].delete(cb);
+  }
+
+  dispatch<K extends keyof TraceTree.TraceTreeEvents>(
+    event: K,
+    ...args: ArgumentTypes<TraceTree.TraceTreeEvents[K]>
+  ): void {
+    if (!this.listeners[event]) {
+      return;
+    }
+
+    for (const handler of this.listeners[event]) {
+      // @ts-expect-error
+      handler(...args);
+    }
   }
 
   /**
