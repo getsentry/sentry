@@ -119,7 +119,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_different_ids(self) -> None:
         create_default_projects()
-        event_data = load_data("generic-event-profiling").data
+        event_data = load_data("generic-event-profiling")
         project_id = event_data["event"].pop("project_id", self.project.id)
         event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
@@ -444,7 +444,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         create_default_projects()
-        event_data = load_data("generic-event-profiling").data
+        event_data = load_data("generic-event-profiling")
         project_id = event_data["event"].pop("project_id")
         event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)

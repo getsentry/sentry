@@ -17,7 +17,6 @@ import type {
   OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/deprecatedAssigneeSelectorDropdown';
-import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconSettings, IconUser} from 'sentry/icons';
@@ -307,7 +306,7 @@ function AssignedTo({
           </GuideAnchor>
         </Access>
       </StyledSidebarTitle>
-      <StyledSidebarSectionContent>
+      <SidebarSection.Content>
         <StyledAssigneeSelectorDropdown
           group={group}
           owners={owners}
@@ -316,7 +315,7 @@ function AssignedTo({
           onClear={() => handleAssigneeChange(null)}
           trigger={makeTrigger}
         />
-      </StyledSidebarSectionContent>
+      </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
@@ -352,12 +351,6 @@ const IconWrapper = styled('div')`
 const ActorName = styled('div')`
   line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const StyledSidebarSectionContent = styled(SidebarSection.Content)`
-  ${AutoCompleteRoot} {
-    display: block;
-  }
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`

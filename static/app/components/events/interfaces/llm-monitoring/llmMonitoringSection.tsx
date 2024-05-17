@@ -12,7 +12,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {type IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
 
@@ -30,7 +30,7 @@ export default function LLMMonitoringSection({event}: Props) {
     referrer: 'api.ai-pipelines.view',
     search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
   });
-  const moduleUrl = useAIModuleURL();
+  const moduleUrl = useModuleURL('ai');
   const aiPipelineGroup =
     data && (data[0] as IndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
 
