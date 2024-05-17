@@ -32,6 +32,8 @@ class SlackOptionsLoadEndpoint(Endpoint):
     slack_request_class = SlackOptionsLoadRequest
 
     def is_substring(self, string, substring):
+        string = re.escape(string)
+        substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 
     def get_filtered_option_groups(
