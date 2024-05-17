@@ -95,7 +95,7 @@ function GroupStatusChart({
             : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
+    return {colors: [theme.gray300], emphasisColors: [theme.gray300], series};
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
