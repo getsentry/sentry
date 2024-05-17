@@ -600,6 +600,22 @@ class Columns(Enum):
         issue_platform_name="contexts[app.in_foreground]",
         alias="app.in_foreground",
     )
+    OS_DISTRIBUTION_NAME = Column(
+        group_name="events.contexts[os.distribution.name]",
+        event_name="contexts[os.distribution.name]",
+        transaction_name="contexts[os.distribution.name]",
+        discover_name="contexts[os.distribution.name]",
+        issue_platform_name="contexts[os.distribution.name]",
+        alias="os.distribution.name",
+    )
+    OS_DISTRIBUTION_VERSION = Column(
+        group_name="events.contexts[os.distribution.version]",
+        event_name="contexts[os.distribution.version]",
+        transaction_name="contexts[os.distribution.version]",
+        discover_name="contexts[os.distribution.version]",
+        issue_platform_name="contexts[os.distribution.version]",
+        alias="os.distribution.version",
+    )
     # Transactions specific columns
     TRANSACTION_OP = Column(
         group_name=None,
