@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useContext, useEffect, useState} from 'react';
 import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
@@ -20,6 +20,7 @@ import type {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {OrganizationLoaderContext} from 'sentry/views/organizationContext';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -83,6 +84,8 @@ function SudoModal({
     superuserReason,
   } = state;
 
+  const isLoading = useContext(OrganizationLoaderContext)?.isLoading;
+
   useEffect(() => {
     const getAuthenticators = async () => {
       try {
@@ -96,8 +99,13 @@ function SudoModal({
       }
     };
 
-    getAuthenticators();
-  }, [api]);
+    if (!isLoading) {
+      console.log('fetching authenticators', new Date().getTime());
+      getAuthenticators().then(() =>
+        console.log('fetched authenticators', new Date().getTime())
+      );
+    } else console.log('skipped authenticators', new Date().getTime());
+  }, [api, isLoading]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({

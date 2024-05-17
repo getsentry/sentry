@@ -90,13 +90,17 @@ export function OrganizationContextProvider({children}: Props) {
       return;
     }
 
+    const logSet = () => {
+      console.log('set loading to false', new Date().getTime());
+      setIsLoading(false);
+    };
+
     metric.mark({name: 'organization-details-fetch-start'});
     // Track when the organization finishes loading so OrganizationLoaderContext
     // is up-to-date
+    console.log('set loading to true', new Date().getTime());
     setIsLoading(true);
-    fetchOrganizationDetails(api, orgSlug, false, true).finally(() =>
-      setIsLoading(false)
-    );
+    fetchOrganizationDetails(api, orgSlug, false, true).then(logSet);
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the

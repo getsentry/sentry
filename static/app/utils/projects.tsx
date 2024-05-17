@@ -325,6 +325,7 @@ class BaseProjects extends Component<Props, State> {
         limit,
         allProjects,
       });
+      console.log('Fetching all projects in loadAllProjects');
 
       this.setState({
         fetching: false,
@@ -521,6 +522,7 @@ async function fetchProjects(
 
   // populate the projects store if all projects were fetched
   if (allProjects) {
+    console.log('setting projects in store', projects);
     ProjectsStore.loadInitialData(data);
   }
 

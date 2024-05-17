@@ -450,7 +450,8 @@ class _ClientConfig:
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
             ),
-            "disableU2FForSUForm": getattr(settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False),
+            "disableU2FForSUForm": False,
+            # "disableU2FForSUForm": getattr(settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False),
             "links": dict(self.links),
             "user": self.user_details,
             "isAuthenticated": self.user_details is not None,
