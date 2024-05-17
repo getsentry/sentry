@@ -450,18 +450,6 @@ function BaseGroupRow({
     ? group.stats?.[statsPeriod]
     : [];
 
-  const groupChart = !defined(groupStats) ? (
-    <Placeholder height="36px" />
-  ) : (
-    <GroupStatusChart
-      stats={groupStats}
-      secondaryStats={groupSecondaryStats}
-      showSecondaryPoints={showSecondaryPoints}
-      groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-      showMarkLine
-    />
-  );
-
   return (
     <Wrapper
       data-test-id="group"
@@ -496,7 +484,17 @@ function BaseGroupRow({
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
           {organization.features.includes('issue-stream-new-events-graph') ? (
-            groupChart
+            !defined(groupStats) ? (
+              <Placeholder height="36px" />
+            ) : (
+              <GroupStatusChart
+                stats={groupStats}
+                secondaryStats={groupSecondaryStats}
+                showSecondaryPoints={showSecondaryPoints}
+                groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+                showMarkLine
+              />
+            )
           ) : (
             <GroupChart
               stats={groupStats}
