@@ -1376,26 +1376,6 @@ export class TraceTree {
           ];
           this.root.children[0].space = [...this.root.space];
 
-          // If the parent is a transaction node, we need to update its space as well
-          if (node.space) {
-            if (isTransactionNode(node)) {
-              node.space = [
-                Math.min(view[0] * node.multiplier, node.space[0]),
-                Math.max(view[1] * node.multiplier - node.space[0], node.space[1]),
-              ];
-              // If the parent is not a transaction node, then we'll find the first one
-              // in the parent chain and update its space.
-            } else {
-              const parentTransaction = node.parent_transaction;
-              if (parentTransaction) {
-                parentTransaction.space = [
-                  view[0] * node.multiplier,
-                  (view[1] - view[0]) * node.multiplier,
-                ];
-              }
-            }
-          }
-
           if (prev_start !== this.root.space[0] || prev_end !== this.root.space[1]) {
             this.dispatch('trace timeline change', this.root.space);
           }
