@@ -1,5 +1,6 @@
 import logging
 import time
+from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
@@ -11,6 +12,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import features, nodestore
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
+from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
@@ -21,6 +23,9 @@ from sentry.models.project import Project
 from sentry.seer.utils import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
+    IncompleteSeerDataError,
+    SeerSimilarIssueData,
+    SimilarGroupNotFoundError,
     delete_grouping_records,
     post_bulk_grouping_records,
 )
@@ -58,17 +63,22 @@ class GroupStacktraceData(TypedDict):
     time_limit=60 * 15 + 5,
 )
 def backfill_seer_grouping_records(
-    project_id: int, last_processed_id: int | None, dry_run: bool = False, *args: Any, **kwargs: Any
+    project_id: int,
+    last_processed_index: int | None,
+    dry_run: bool = False,
+    *args: Any,
+    **kwargs: Any,
 ) -> None:
     """
     Task to backfill seer grouping_records table.
-    Pass in last_processed_id = 0 if running project for the first time, else None
+    Pass in last_processed_index = None if calling for the first time. This function will spawn
+    child tasks that will pass the last_processed_index
     """
     logger.info(
         "backfill_seer_grouping_records.start",
         extra={
             "project_id": project_id,
-            "last_processed_id": last_processed_id,
+            "last_processed_index": last_processed_index,
             "dry_run": dry_run,
         },
     )
@@ -81,10 +91,11 @@ def backfill_seer_grouping_records(
         return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-    if last_processed_id is None:
-        last_processed_id = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
 
-    if last_processed_id == 0 and dry_run:
+    if last_processed_index is None:
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
+
+    if last_processed_index == 0 and dry_run:
         logger.info(
             "backfill_seer_grouping_records.delete_all_seer_records",
             extra={"project_id": project.id},
@@ -92,19 +103,36 @@ def backfill_seer_grouping_records(
         delete_grouping_records(project_id)
         redis_client.delete(make_backfill_redis_key(project_id))
 
-    group_id_message_data_batch = (
-        Group.objects.filter(
-            project_id=project.id, id__gt=last_processed_id, type=ErrorGroupType.type_id
+    if last_processed_index == 0:
+        # Set the metadata of groups where times_seen = 1
+        # Do not set the version number, so we can consider it for future backfills later
+        groups_seen_once = Group.objects.filter(
+            project_id=project_id, type=ErrorGroupType.type_id, times_seen=1
         )
+        for group in groups_seen_once:
+            seer_similarity_seen_once = {"times_seen_once": True}
+            if group.data.get("metadata"):
+                group.data["metadata"]["seer_similarity"] = seer_similarity_seen_once
+            else:
+                group.data["metadata"] = {"seer_similarity": seer_similarity_seen_once}
+
+        if not dry_run:
+            Group.objects.bulk_update(groups_seen_once, ["data"])
+
+    group_id_message_data = (
+        Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
         .values_list("id", "message", "data")
-        .order_by("id")[:BATCH_SIZE]
+        .order_by("times_seen")
     )
+    batch_end_index = min(last_processed_index + BATCH_SIZE, len(group_id_message_data))
+    group_id_message_data_batch = group_id_message_data[last_processed_index:batch_end_index]
+
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
             "batch_len": len(group_id_message_data_batch),
-            "last_processed_id": last_processed_id,
+            "last_processed_index": last_processed_index,
         },
     )
 
@@ -118,7 +146,7 @@ def backfill_seer_grouping_records(
     group_id_message_batch_filtered = {
         group_id: message
         for (group_id, message, data) in group_id_message_data_batch
-        if get_path(data, "metadata", "embeddings_info", "nn_model_version") is None
+        if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
     }
     if len(group_id_message_data_batch) != len(group_id_message_batch_filtered):
         logger.info(
@@ -174,6 +202,10 @@ def backfill_seer_grouping_records(
             project, rows, group_id_message_batch_filtered, group_hashes_dict
         )
 
+        # If nodestore is down, we should stop
+        if data["data"] == [] and data["stacktrace_list"] == []:
+            return
+
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
@@ -182,21 +214,44 @@ def backfill_seer_grouping_records(
                     stacktrace_list=data["stacktrace_list"],
                 )
             )
-        if response["success"]:
+
+        if response.get("success"):
+            groups_with_neighbor = response["groups_with_neighbor"]
             groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
             for group in groups:
-                if group.data.get("metadata"):
-                    group.data["metadata"]["embeddings_info"] = {
-                        "nn_model_version": 0,
-                        "group_hash": json.dumps([group_hashes_dict[group.id]]),
-                    }
-                else:
-                    group.data["metadata"] = {
-                        "embeddings_info": {
-                            "nn_model_version": 0,
-                            "group_hash": json.dumps([group_hashes_dict[group.id]]),
-                        }
-                    }
+                seer_similarity = {
+                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                    "request_hash": group_hashes_dict[group.id],
+                }
+                if str(group.id) in groups_with_neighbor:
+                    # TODO: remove this try catch once the helper is made
+                    try:
+                        seer_similarity["results"] = [
+                            asdict(
+                                SeerSimilarIssueData.from_raw(
+                                    project_id, groups_with_neighbor[str(group.id)]
+                                )
+                            )
+                        ]
+                    # TODO: if we reach this exception, we need to delete the record from seer or this will always happen
+                    # we should not update the similarity data for this group cause we'd want to try again once we delete it
+                    except (IncompleteSeerDataError, SimilarGroupNotFoundError):
+                        logger.exception(
+                            "tasks.backfill_seer_grouping_records.invalid_parent_group",
+                            extra={
+                                "project_id": project_id,
+                                "group_id": group.id,
+                                "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
+                            },
+                        )
+                        seer_similarity = {}
+
+                if seer_similarity:
+                    if group.data.get("metadata"):
+                        group.data["metadata"]["seer_similarity"] = seer_similarity
+                    else:
+                        group.data["metadata"] = {"seer_similarity": seer_similarity}
+
             if not dry_run:
                 num_updated = Group.objects.bulk_update(groups, ["data"])
                 logger.info(
@@ -204,24 +259,31 @@ def backfill_seer_grouping_records(
                     extra={"project_id": project.id, "num_updated": num_updated},
                 )
 
-        last_processed_id = group_id_message_data_batch[len(group_id_message_data_batch) - 1][0]
-        redis_client.set(
-            f"{make_backfill_redis_key(project_id)}",
-            last_processed_id if last_processed_id is not None else 0,
-            ex=60 * 60 * 24 * 7,
-        )
+            last_processed_index = batch_end_index
+            redis_client.set(
+                f"{make_backfill_redis_key(project_id)}",
+                last_processed_index if last_processed_index is not None else 0,
+                ex=60 * 60 * 24 * 7,
+            )
 
-        logger.info(
-            "calling next backfill task",
-            extra={
-                "project_id": project.id,
-                "last_processed_id": last_processed_id,
-                "dry_run": dry_run,
-            },
-        )
-        backfill_seer_grouping_records.apply_async(
-            args=[project.id, last_processed_id, dry_run],
-        )
+            if last_processed_index <= len(group_id_message_data):
+                logger.info(
+                    "calling next backfill task",
+                    extra={
+                        "project_id": project.id,
+                        "last_processed_index": last_processed_index,
+                        "dry_run": dry_run,
+                    },
+                )
+                backfill_seer_grouping_records.apply_async(
+                    args=[project.id, last_processed_index, dry_run],
+                )
+        else:
+            # If seer is down, we should stop
+            logger.info(
+                "backfill_seer_bulk_insert_returned_invald_result",
+                extra={"project_id": project.id},
+            )
     else:
         logger.info(
             "backfill_seer_snuba_returned_empty_result",
@@ -327,6 +389,7 @@ def lookup_group_data_stacktrace_bulk(
                         continue
                     group_data.append(
                         CreateGroupingRecordData(
+                            group_id=group_id,
                             project_id=project_id,
                             message=messages[group_id],
                             hash=hashes[group_id],
@@ -383,7 +446,9 @@ def lookup_group_data_stacktrace_single(
             grouping_info = get_grouping_info(None, project=project, event=event)
         stacktrace_string = get_stacktrace_string(grouping_info)
         group_data = (
-            CreateGroupingRecordData(hash=hash, project_id=project_id, message=message)
+            CreateGroupingRecordData(
+                group_id=group_id, hash=hash, project_id=project_id, message=message
+            )
             if stacktrace_string != ""
             else None
         )
@@ -403,5 +468,5 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
 
 
 def make_backfill_redis_key(project_id):
-    redis_key = "grouping_record_backfill.last_processed_id"
+    redis_key = "grouping_record_backfill.last_processed_index"
     return f"{redis_key}-{project_id}"

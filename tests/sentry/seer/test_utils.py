@@ -29,8 +29,8 @@ DUMMY_POOL = ConnectionPool("dummy")
 CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
     "group_id_list": [1, 2],
     "data": [
-        {"hash": "hash-1", "project_id": 1, "message": "message"},
-        {"hash": "hash-2", "project_id": 1, "message": "message 2"},
+        {"group_id": 1, "hash": "hash-1", "project_id": 1, "message": "message"},
+        {"group_id": 2, "hash": "hash-2", "project_id": 1, "message": "message 2"},
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
 }
@@ -381,7 +381,10 @@ def test_from_raw_nonexistent_group(default_project):
 @mock.patch("sentry.seer.utils.logger")
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
-    expected_return_value = {"success": True}
+    expected_return_value = {
+        "success": True,
+        "groups_with_neighbor": {"1": "00000000000000000000000000000000"},
+    }
     mock_seer_request.return_value = HTTPResponse(
         json.dumps(expected_return_value).encode("utf-8"), status=200
     )
