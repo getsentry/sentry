@@ -135,10 +135,7 @@ class ConfigOptionsTest(CliTestCase):
         assert_output(rv)
 
         assert options.get("int_option") == 40
-        assert options.get("str_option") == "blabla"
-
-        assert options.isset("int_option") is False
-        assert options.isset("str_option") is False
+        assert options.get("str_option") == "new value"
 
         assert options.get("map_option") == {
             "a": 1,
@@ -156,7 +153,7 @@ class ConfigOptionsTest(CliTestCase):
         )
 
         assert rv.exit_code == 2
-        assert options.get("int_option") == 20
+        assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
             "a": 1,
@@ -233,8 +230,6 @@ class ConfigOptionsTest(CliTestCase):
                 "- 3",
                 "",
                 ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
-                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
-                ConsolePresenter.SET_MSG % ("int_option", 40),
                 ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
                 ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
                 ConsolePresenter.UNSET_MSG % "to_unset_option",
@@ -243,8 +238,8 @@ class ConfigOptionsTest(CliTestCase):
 
         assert expected_output in rv.output
 
-        assert options.get("int_option") == 40
-        assert options.get("str_option") == "new value"
+        assert options.get("int_option") == 20
+        assert options.get("str_option") == "old value"
         assert options.get("map_option") == {
             "a": 1,
             "b": 2,
@@ -253,8 +248,8 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("drifted_option") == [1, 2, 3]
 
         assert not options.isset("to_unset_option")
-
-        pass
+        assert not options.isset("int_option")
+        assert not options.isset("str_option")
 
     def test_bad_patch(self):
         rv = self.invoke(
