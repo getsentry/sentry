@@ -17,13 +17,13 @@ import {transformData} from './utils';
 
 type ApiResult = Record<string, number>;
 
-type Props = ViewProps & {
+interface Props extends ViewProps {
   currentFilter: SpanOperationBreakdownFilter;
   fields: string[];
   location: Location;
   organization: OrganizationSummary;
   queryExtras?: Record<string, string>;
-};
+}
 
 /**
  * Fetch and render a bar chart that shows event volume
