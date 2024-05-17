@@ -28,6 +28,15 @@ type DefaultProps = {
   closeButton?: boolean;
 };
 
+type State = {
+  authenticators: Array<Authenticator>;
+  error: boolean;
+  errorType: string;
+  showAccessForms: boolean;
+  superuserAccessCategory: string;
+  superuserReason: string;
+};
+
 type Props = WithRouterProps &
   DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {
@@ -44,10 +53,20 @@ type Props = WithRouterProps &
     retryRequest?: () => Promise<any>;
   };
 
-function SudoModal(props: Props) {
-  const [state, setState] = useState({
+function SudoModal({
+  closeModal,
+  isSuperuser,
+  location,
+  needsReload,
+  router,
+  retryRequest,
+  api,
+  Header,
+  Body,
+  closeButton,
+}: Props) {
+  const [state, setState] = useState<State>({
     authenticators: [] as Authenticator[],
-    busy: false,
     error: false,
     errorType: '',
     showAccessForms: true,
@@ -57,7 +76,6 @@ function SudoModal(props: Props) {
 
   const {
     authenticators,
-    busy,
     error,
     errorType,
     showAccessForms,
@@ -68,7 +86,7 @@ function SudoModal(props: Props) {
   useEffect(() => {
     const getAuthenticators = async () => {
       try {
-        const fetchedAuthenticators = await props.api.requestPromise('/authenticators/');
+        const fetchedAuthenticators = await api.requestPromise('/authenticators/');
         setState(prevState => ({
           ...prevState,
           authenticators: fetchedAuthenticators ?? [],
@@ -79,7 +97,7 @@ function SudoModal(props: Props) {
     };
 
     getAuthenticators();
-  }, [props.api]);
+  }, [api]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -90,7 +108,6 @@ function SudoModal(props: Props) {
   };
 
   const handleSubmit = async data => {
-    const {api, isSuperuser} = props;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
@@ -120,8 +137,6 @@ function SudoModal(props: Props) {
   };
 
   const handleSuccess = () => {
-    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} = props;
-
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
       if (needsReload) {
@@ -135,19 +150,9 @@ function SudoModal(props: Props) {
       return;
     }
 
-    setState(prevState => ({
-      ...prevState,
-      busy: true,
-    }));
-
     retryRequest().then(() => {
-      setState(
-        prevState => ({
-          busy: false,
-          showAccessForms: true,
-        }),
-        closeModal
-      ); // Pass closeModal as a separate argument
+      setState(prevState => ({...prevState, showAccessForms: true}));
+      closeModal();
     });
   };
 
@@ -172,7 +177,6 @@ function SudoModal(props: Props) {
 
     setState(prevState => ({
       ...prevState,
-      busy: false,
       error: true,
       errorType: newErrorType,
       showAccessForms: true,
@@ -180,15 +184,16 @@ function SudoModal(props: Props) {
   };
 
   const handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
-    setState(prevState => ({
-      ...prevState,
-      busy: true,
-    }));
-
-    setState(prevState => ({
-      ...prevState,
-      busy: false,
-    }));
+    try {
+      data.isSuperuserModal = isSuperuser;
+      data.superuserAccessCategory = state.superuserAccessCategory;
+      data.superuserReason = state.superuserReason;
+      await api.requestPromise('/auth/', {method: 'PUT', data});
+      handleSuccess();
+    } catch (err) {
+      // u2fInterface relies on this
+      throw err;
+    }
   };
 
   const getAuthLoginPath = (): string => {
@@ -201,7 +206,6 @@ function SudoModal(props: Props) {
   };
 
   const handleLogout = async () => {
-    const {api} = props;
     try {
       await logout(api);
     } catch {
@@ -211,7 +215,6 @@ function SudoModal(props: Props) {
   };
 
   const renderBodyContent = () => {
-    const {isSuperuser} = props;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     const validateSUForm = ConfigStore.get('validateSUForm');
@@ -325,7 +328,7 @@ function SudoModal(props: Props) {
 
   return (
     <Fragment>
-      <Header closeButton={props.closeButton}>{t('Confirm Password to Continue')}</Header>
+      <Header closeButton={closeButton}>{t('Confirm Password to Continue')}</Header>
       <Body>{renderBodyContent()}</Body>
     </Fragment>
   );
