@@ -12,7 +12,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.actor import Actor
 from sentry.utils import json
-from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
+from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):

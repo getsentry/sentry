@@ -23,11 +23,6 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-    CombinedRuleSerializer,
-)
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
@@ -35,6 +30,11 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+    CombinedRuleSerializer,
+)
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident

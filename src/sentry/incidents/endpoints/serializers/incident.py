@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -40,7 +40,7 @@ class IncidentSerializer(Serializer):
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
-            results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
+            results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))  # type: ignore[assignment]
             results[incident]["activation"] = (
                 serialize(incident.activation) if incident.activation else []
             )
@@ -58,7 +58,7 @@ class IncidentSerializer(Serializer):
                 seen_by = incident_seen_dict[incident.id]
                 has_seen = any(seen for seen in seen_by if seen["id"] == str(user.id))
                 results[incident]["seen_by"] = seen_by
-                results[incident]["has_seen"] = has_seen
+                results[incident]["has_seen"] = has_seen  # type: ignore[assignment]
 
         if "activities" in self.expand:
             # There could be many activities. An incident could seesaw between error/warning for a long period.
