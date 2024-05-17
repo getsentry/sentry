@@ -78,7 +78,7 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
 
 @django_db_all
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_simple_similar_issues_embeddings_only_hash_returned(mock_seer_request, default_project):
+def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
     similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
@@ -177,7 +177,7 @@ def test_returns_sorted_similarity_results(mock_seer_request, default_project):
 
 
 @django_db_all
-def test_from_raw_only_parent_hash(default_project):
+def test_from_raw_simple(default_project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
