@@ -158,6 +158,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     <TraceDrawerComponents.SectionCard
       items={[...items, ...aggregateMeasurements]}
       title={t('Additional Data')}
+      enableSorting
     />
   );
 }

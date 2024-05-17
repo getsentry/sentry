@@ -22,5 +22,7 @@ export function Tags({span}: {span: RawSpanType}) {
     key: key,
   }));
 
-  return <TraceDrawerComponents.SectionCard items={items} title={t('Tags')} />;
+  return (
+    <TraceDrawerComponents.SectionCard items={items} title={t('Tags')} enableSorting />
+  );
 }

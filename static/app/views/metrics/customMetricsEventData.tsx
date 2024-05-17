@@ -228,7 +228,11 @@ export function CustomMetricsEventData({
     });
 
     return (
-      <TraceDrawerComponents.SectionCard title={t('Emitted Metrics')} items={items} />
+      <TraceDrawerComponents.SectionCard
+        title={t('Emitted Metrics')}
+        items={items}
+        enableSorting
+      />
     );
   }
 

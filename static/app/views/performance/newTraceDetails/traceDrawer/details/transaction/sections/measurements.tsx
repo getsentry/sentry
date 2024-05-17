@@ -150,7 +150,11 @@ export function Measurements({event, location, organization}: MeasurementsProps)
 
   return (
     <Wrapper>
-      <TraceDrawerComponents.SectionCard items={items} title={t('Measurements')} />
+      <TraceDrawerComponents.SectionCard
+        items={items}
+        title={t('Measurements')}
+        enableSorting
+      />
     </Wrapper>
   );
 }

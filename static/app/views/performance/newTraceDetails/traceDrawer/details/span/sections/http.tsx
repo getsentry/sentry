@@ -45,7 +45,7 @@ export function SpanHTTPInfo({span}: {span: RawSpanType}) {
     ];
 
     return parsedURL ? (
-      <TraceDrawerComponents.SectionCard items={items} title={t('Http')} />
+      <TraceDrawerComponents.SectionCard items={items} title={t('Http')} enableSorting />
     ) : null;
   }
 

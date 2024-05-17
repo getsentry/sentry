@@ -90,7 +90,13 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     </Title>
   );
 
-  return <TraceDrawerComponents.SectionCard items={formattedDataItems} title={title} />;
+  return (
+    <TraceDrawerComponents.SectionCard
+      items={formattedDataItems}
+      title={title}
+      enableSorting
+    />
+  );
 }
 
 const Title = styled('div')`

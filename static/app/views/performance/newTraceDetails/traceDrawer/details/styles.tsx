@@ -591,10 +591,12 @@ function SectionCard({
   items,
   title,
   disableTruncate,
+  enableSorting: sortItems = false,
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
+  enableSorting?: boolean;
 }) {
   const [showingAll, setShowingAll] = useState(false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
@@ -603,13 +605,21 @@ function SectionCard({
     return null;
   }
 
+  const cardItems = sortItems
+    ? items.sort((a, b) => {
+        return String(a.subject).localeCompare(String(b.subject));
+      })
+    : items;
+
   return (
     <Card>
       <CardContentTitle>{title}</CardContentTitle>
-      {items.slice(0, showingAll || disableTruncate ? items.length : 5).map(item => (
-        <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
-      ))}
-      {items.length > 5 && !disableTruncate ? (
+      {cardItems
+        .slice(0, showingAll || disableTruncate ? cardItems.length : 5)
+        .map(item => (
+          <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
+        ))}
+      {cardItems.length > 5 && !disableTruncate ? (
         <TruncateActionWrapper>
           <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
         </TruncateActionWrapper>
