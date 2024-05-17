@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
@@ -25,6 +26,7 @@ from sentry.signals import (
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
+    first_custom_metric_received,
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
@@ -316,6 +318,31 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
         project_id=project.id,
         monitor_id=monitor_id,
     )
+
+
+@first_custom_metric_received.connect(weak=False)
+def record_first_custom_metric(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
+
+    analytics.record(
+        "first_custom_metric.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+    # TODO(metrics): remove this after we confirm that the signal is working
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    with sentry_sdk.push_scope() as scope:
+        scope.set_tag("organization_id", project.organization_id)
+        scope.set_tag("organization_slug", organization.slug)
+        scope.set_tag("project_id", project.id)
+        scope.set_tag("project_slug", project.slug)
+        sentry_sdk.capture_message(
+            "A new project has sent the first custom metric",
+            fingerprint=["new-first-custom-metric"],
+        )
 
 
 @member_invited.connect(weak=False)
