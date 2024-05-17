@@ -213,12 +213,12 @@ export function Trace({
       trace.root.space[1] !== manager.trace_space.width)
   ) {
     manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    const maybeQueue = decodeScrollQueue(qs.parse(location.search).node);
-    const maybeEventId = qs.parse(location.search)?.eventId;
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
 
-    if (maybeQueue || maybeEventId) {
+    if (maybeQueue || queryParams.eventId) {
       scrollQueueRef.current = {
-        eventId: maybeEventId as string,
+        eventId: queryParams.eventId as string,
         path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
       };
     }
@@ -1325,16 +1325,18 @@ function MissingInstrumentationTraceBar(props: MissingInstrumentationTraceBarPro
     },
     [props.manager, props.node_space, props.virtualized_index, duration]
   );
+
   return (
-    <div ref={registerSpanBarRef} className="TraceBar">
+    <Fragment>
+      <div ref={registerSpanBarRef} className="TraceBar">
+        <div className="TracePatternContainer">
+          <div className="TracePattern missing_instrumentation" />
+        </div>
+      </div>
       <div ref={registerSpanBarTextRef} className="TraceBarDuration">
         {duration}
       </div>
-
-      <div className="TracePatternContainer">
-        <div className="TracePattern missing_instrumentation" />
-      </div>
-    </div>
+    </Fragment>
   );
 }
 

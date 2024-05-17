@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
@@ -72,25 +71,28 @@ export function GeneralInfo(props: GeneralnfoProps) {
     span.sentry_tags?.category
   );
 
-  if (![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)) {
+  if (
+    ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule) &&
+    span.description
+  ) {
     items.push({
       key: 'description',
       subject: t('Description'),
       value:
         span.op && span.hash ? (
-          <Link
-            to={spanDetailsRouteWithQuery({
+          <TraceDrawerComponents.CopyableCardValueWithLink
+            value={span.description}
+            linkTarget={spanDetailsRouteWithQuery({
               orgSlug: props.organization.slug,
               transaction: event.title,
               query: props.location.query,
               spanSlug: {op: span.op, group: span.hash},
               projectID: event.projectID,
             })}
-          >
-            {span.description}
-          </Link>
+            linkText={t('View Similar Spans')}
+          />
         ) : (
-          span.description
+          <TraceDrawerComponents.CopyableCardValueWithLink value={span.description} />
         ),
     });
   }

@@ -1,12 +1,13 @@
 import logging
 
+import orjson
+
 from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integration.gitlab")
@@ -104,7 +105,7 @@ class GitlabIdentityProvider(OAuth2Provider):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
+            payload = orjson.loads(body)
         except Exception as e:
             # JSONDecodeError's will happen when we get a 301
             # from GitLab, and won't have the `code` attribute

@@ -29,7 +29,7 @@ from sentry.db.models import (
     Model,
     OptionManager,
     Value,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -39,6 +39,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
+from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -121,7 +122,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-hapi",
     "node-koa",
     "node-nestjs",
-    "node-serverlesscloud",
     "php",
     "php-laravel",
     "php-symfony",
@@ -214,7 +214,7 @@ class ProjectManager(BaseManager["Project"]):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-@region_silo_only_model
+@region_silo_model
 class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
@@ -245,6 +245,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
+    template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
@@ -470,7 +471,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             rules_by_environment_id[environment_id].add(rule_id)
 
         environment_names = dict(
-            Environment.objects.filter(id__in=rules_by_environment_id).values_list("id", "name")
+            Environment.objects.filter(organization_id=old_org_id).values_list("id", "name")
         )
 
         for environment_id, rule_ids in rules_by_environment_id.items():
@@ -487,6 +488,14 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             if monitor.slug in new_monitors:
                 RegionScheduledDeletion.schedule(monitor, days=0)
             else:
+                for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
+                    monitor_id=monitor.id, status=MonitorStatus.ACTIVE
+                ).values_list("id", "environment_id"):
+                    MonitorEnvironment.objects.filter(id=monitor_env_id).update(
+                        environment_id=Environment.get_or_create(
+                            self, name=environment_names.get(env_id, None)
+                        ).id
+                    )
                 monitor.update(organization_id=organization.id)
 
         # Remove alert owners not in new org

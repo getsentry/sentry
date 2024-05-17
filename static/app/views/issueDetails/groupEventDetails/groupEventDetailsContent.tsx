@@ -55,8 +55,8 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
-const AIMonitoringSection = lazy(
-  () => import('sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection')
+const LLMMonitoringSection = lazy(
+  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
 
 type GroupEventDetailsContentProps = {
@@ -133,6 +133,7 @@ function DefaultGroupEventDetailsContent({
             report={event.userReport}
             orgSlug={organization.slug}
             issueId={group.id}
+            showEventLink={false}
           />
         </EventDataSection>
       )}
@@ -142,8 +143,9 @@ function DefaultGroupEventDetailsContent({
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
         .flatMap(x => x.data.values ?? [])
         .some(({value}) => {
-          const lowerText = value.toLowerCase();
+          const lowerText = value?.toLowerCase();
           return (
+            lowerText &&
             (lowerText.includes('api key') || lowerText.includes('429')) &&
             (lowerText.includes('openai') ||
               lowerText.includes('anthropic') ||
@@ -152,7 +154,7 @@ function DefaultGroupEventDetailsContent({
           );
         }) ? (
         <LazyLoad
-          LazyComponent={AIMonitoringSection}
+          LazyComponent={LLMMonitoringSection}
           event={event}
           organization={organization}
         />
@@ -174,7 +176,11 @@ function DefaultGroupEventDetailsContent({
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       )}
       {showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+        <ResourcesAndMaybeSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
       )}
       <EventEvidence event={event} group={group} project={project} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
@@ -199,7 +205,11 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       {!showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+        <ResourcesAndMaybeSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
@@ -235,6 +245,18 @@ function DefaultGroupEventDetailsContent({
         />
       )}
     </Fragment>
+  );
+}
+
+function ResourcesAndMaybeSolutionsIssueDetailsContent({
+  event,
+  project,
+  group,
+}: Required<GroupEventDetailsContentProps>) {
+  return (
+    <ErrorBoundary mini>
+      <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+    </ErrorBoundary>
   );
 }
 

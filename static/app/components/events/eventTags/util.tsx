@@ -1,6 +1,6 @@
-import type {RefObject} from 'react';
+import {type RefObject, useCallback, useState} from 'react';
+import {useResizeObserver} from '@react-aria/utils';
 
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -94,6 +94,11 @@ export const TagFilterData = {
     'url',
   ]),
   [TagFilter.OTHER]: new Set([
+    /* Monitors */
+    'monitor.slug',
+    'monitor.incident',
+    'monitor.id',
+    'monitor.status',
     /* SDK (maybe?) */
     'handled',
     'level',
@@ -174,9 +179,22 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * accurately describe the available space.
  */
 export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
-  const {width} = useDimensions<HTMLElement>({elementRef});
-  const breakPoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
-    ({minWidth}) => width >= minWidth
-  );
-  return breakPoint?.columnCount ?? 1;
+  const calculateColumnCount = useCallback(() => {
+    const width = elementRef.current?.clientWidth || 0;
+    const breakpoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
+      ({minWidth}) => width >= minWidth
+    );
+    return breakpoint?.columnCount ?? 1;
+  }, [elementRef]);
+
+  const [columnCount, setColumnCount] = useState(calculateColumnCount());
+
+  const onResize = useCallback(() => {
+    const count = calculateColumnCount();
+    setColumnCount(count);
+  }, [calculateColumnCount]);
+
+  useResizeObserver({ref: elementRef, onResize});
+
+  return columnCount;
 }

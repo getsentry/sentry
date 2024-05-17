@@ -1,10 +1,10 @@
 import type {ReactNode} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
@@ -102,8 +102,15 @@ const HTTP_ACTION_OPTIONS = [
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
+  cache: t('Action'),
+  vital: t('Action'),
+  queue: t('Action'),
+  screen_load: t('Action'),
+  app_start: t('Action'),
   resource: t('Resource'),
   other: t('Action'),
+  'mobile-ui': t('Action'),
+  ai: 'Action',
   '': t('Action'),
 };
 

@@ -310,6 +310,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span',
+    plural: 'spans',
+    displayName: 'spans',
+    titleName: t('Spans'),
+    uid: 12,
+  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -318,12 +326,32 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     uid: 13,
   },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profileDuration',
+    plural: 'profileDuration',
+    displayName: 'profile hours',
+    titleName: t('Profile Hours'),
+    uid: 17,
+  },
+  /**
+   * Used to display metrics on the stats page
+   */
   [DataCategoryExact.METRICS]: {
     name: DataCategoryExact.METRICS,
     apiName: 'metrics',
     plural: 'metrics',
     displayName: 'metrics',
     titleName: t('Metrics'),
+    // Metrics has no uid, is only used on stats page
+    uid: -1,
+  },
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
+    plural: 'metricSeconds',
+    displayName: 'metric hours',
+    titleName: t('Metrics Hours'),
     uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
@@ -378,7 +406,6 @@ export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
 export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
-export const USE_REACT_CONCURRENT_MODE = process.env.USE_REACT_CONCURRENT_MODE;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

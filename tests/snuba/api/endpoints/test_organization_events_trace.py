@@ -42,7 +42,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         self.url = reverse(
             self.url_name,
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "trace_id": self.trace_id,
             },
         )
@@ -154,7 +154,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
+            kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -189,7 +189,10 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         # Fake trace id
         self.url = reverse(
             "sentry-api-0-organization-events-trace-light",
-            kwargs={"organization_slug": self.project.organization.slug, "trace_id": uuid4().hex},
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "trace_id": uuid4().hex,
+            },
         )
 
         with self.feature(self.FEATURES):
@@ -206,7 +209,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             self.url = reverse(
                 "sentry-api-0-organization-events-trace-light",
                 kwargs={
-                    "organization_slug": self.project.organization.slug,
+                    "organization_id_or_slug": self.project.organization.slug,
                     "trace_id": "not-a-trace",
                 },
             )
@@ -225,7 +228,10 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         )
         url = reverse(
             "sentry-api-0-organization-events-trace-light",
-            kwargs={"organization_slug": self.project.organization.slug, "trace_id": no_root_trace},
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "trace_id": no_root_trace,
+            },
         )
 
         with self.feature(self.FEATURES):
@@ -523,6 +529,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             assert len(event["errors"]) == 1
             assert event["errors"][0]["event_id"] == error.event_id
             assert event["errors"][0]["issue_id"] == error.group_id
+            assert event["errors"][0]["message"] == error.search_message
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -554,6 +561,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } == response.data["orphan_errors"][0]
 
     def test_with_one_orphan_error(self):
@@ -709,7 +717,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
+            kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -784,7 +792,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace},
+            kwargs={"organization_id_or_slug": self.project.organization.slug, "trace_id": trace},
         )
 
         with self.feature(self.FEATURES):
@@ -916,7 +924,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         )
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace_id},
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "trace_id": trace_id,
+            },
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -1113,6 +1124,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         }
         data1 = {
             "event_id": error1.event_id,
@@ -1125,6 +1137,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         }
         assert data in gen1_event["errors"]
         assert data1 in gen1_event["errors"]
@@ -1179,6 +1192,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } == response.data["orphan_errors"][1]
         assert {
             "event_id": error1.event_id,
@@ -1191,6 +1205,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         } == response.data["orphan_errors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
@@ -1235,6 +1250,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } in response.data["orphan_errors"]
         assert {
             "event_id": error1.event_id,
@@ -1247,6 +1263,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error1.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error1.search_message,
         } in response.data["orphan_errors"]
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
@@ -1293,6 +1310,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(error.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": error.search_message,
         } in response.data["orphan_errors"]
 
     def test_with_default(self):
@@ -1319,6 +1337,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": datetime.fromisoformat(default_event.timestamp).timestamp(),
             "generation": 0,
             "event_type": "error",
+            "message": default_event.search_message,
         } in root_event["errors"]
 
     def test_pruning_root(self):
@@ -1435,6 +1454,35 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         # We shouldn't have detailed fields here
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
+
+    def test_with_error_event(self):
+        self.load_trace()
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.gen1_span_ids[0],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        errors = trace_transaction["children"][0]["errors"]
+        assert len(errors) == 1
+        error_result = errors[0]
+        assert error_result["event_id"] == error.event_id
+        assert error_result["span"] == self.gen1_span_ids[0]
+        assert error_result["title"] == error.title
+        assert error_result["message"] == error.search_message
 
     @pytest.mark.skip(
         "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
@@ -1574,7 +1622,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
 
         url = reverse(
             self.url_name,
-            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
+            kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
         with self.feature(self.FEATURES):
@@ -1589,7 +1637,10 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         # Fake trace id
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug, "trace_id": uuid4().hex},
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "trace_id": uuid4().hex,
+            },
         )
 
         with self.feature(self.FEATURES):
@@ -1610,7 +1661,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             self.url = reverse(
                 self.url_name,
                 kwargs={
-                    "organization_slug": self.project.organization.slug,
+                    "organization_id_or_slug": self.project.organization.slug,
                     "trace_id": "not-a-trace",
                 },
             )

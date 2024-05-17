@@ -1,5 +1,4 @@
 from .activity import *  # NOQA
-from .actor import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
 from .apigrant import *  # NOQA
@@ -91,6 +90,7 @@ from .projectownership import ProjectOwnership  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectteam import ProjectTeam  # noqa
+from .projecttemplate import ProjectTemplate  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
@@ -114,7 +114,6 @@ from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
-from .sentryfunction import *  # NOQA
 from .sentryshot import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA

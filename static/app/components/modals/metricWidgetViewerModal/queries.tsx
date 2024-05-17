@@ -124,6 +124,7 @@ export function Queries({
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
               <QueryBuilder
+                index={index}
                 onChange={data => onQueryChange(data, index)}
                 metricsQuery={query}
                 projects={selection.projects}
@@ -416,7 +417,7 @@ function ExpressionAliasForm({
       <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
         <StyledButton
           icon={<IconDelete size="xs" />}
-          aria-label="Clear Alias"
+          aria-label={t('Clear Alias')}
           onClick={() => onChange(undefined)}
         />
       </Tooltip>

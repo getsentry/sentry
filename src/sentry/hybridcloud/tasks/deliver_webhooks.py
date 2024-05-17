@@ -2,6 +2,7 @@ import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import orjson
 import sentry_sdk
 from django.db.models import Min, Subquery
 from django.utils import timezone
@@ -23,7 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_region_by_name
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -302,7 +303,11 @@ def drain_mailbox_parallel(payload_id: int) -> None:
                     # Delivery was successful
                     payload_record.delete()
                     delivered += 1
+                    duration = timezone.now() - payload_record.date_added
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+                    metrics.timing(
+                        "hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds()
+                    )
 
             # We didn't have any more messages to deliver.
             # Break out of this task so we can get a new one.
@@ -351,8 +356,9 @@ def deliver_message(payload: WebhookPayload) -> None:
     perform_request(payload)
     payload.delete()
 
+    duration = timezone.now() - payload.date_added
+    metrics.timing("hybridcloud.deliver_webhooks.delivery_time", duration.total_seconds())
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-    metrics.distribution("hybridcloud.deliver_webhooks.attempts", payload.attempts)
 
 
 def perform_request(payload: WebhookPayload) -> None:
@@ -373,7 +379,7 @@ def perform_request(payload: WebhookPayload) -> None:
             logging_context["request_method"] = payload.request_method
             logging_context["request_path"] = payload.request_path
 
-            headers = json.loads(payload.request_headers)
+            headers = orjson.loads(payload.request_headers)
             response = client.request(
                 method=payload.request_method,
                 path=payload.request_path,

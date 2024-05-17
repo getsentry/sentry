@@ -135,7 +135,7 @@ describe('Onboarding Product Selection', function () {
       )
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Go here'));
+    await userEvent.click(screen.getByText('View npm instructions'));
 
     expect(skipLazyLoader).toHaveBeenCalledTimes(1);
   });

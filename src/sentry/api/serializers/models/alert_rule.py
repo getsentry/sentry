@@ -30,7 +30,6 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.utils.actor import ActorTuple
 
 logger = logging.getLogger(__name__)
 
@@ -155,10 +154,9 @@ class AlertRuleSerializer(Serializer):
                 for project in alert_rule.projects.all():
                     alert_rule_projects.add((alert_rule.id, project.slug))
 
-        # TODO - Cleanup Subscription Project Mapping
         snuba_alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
-        ).values_list("id", "snuba_query__subscriptions__project__slug")
+        ).values_list("id", "projects__slug")
 
         alert_rule_projects.update(
             [(id, project_slug) for id, project_slug in snuba_alert_rule_projects if project_slug]
@@ -198,9 +196,10 @@ class AlertRuleSerializer(Serializer):
             )
             result[item]["activations"] = serialize(activations, **kwargs)
 
-            actor = ActorTuple.from_id(user_id=item.user_id, team_id=item.team_id)
-            if actor:
-                result[item]["owner"] = actor.identifier
+            if item.user_id or item.team_id:
+                actor = item.owner
+                if actor:
+                    result[item]["owner"] = actor.identifier
 
         if "original_alert_rule" in self.expand:
             snapshot_activities = AlertRuleActivity.objects.filter(

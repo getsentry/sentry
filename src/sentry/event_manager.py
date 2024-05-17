@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -16,7 +17,7 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
@@ -30,11 +31,11 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEVERITY_DETECTION_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    PLACEHOLDER_EVENT_TITLES,
     DataCategory,
 )
 from sentry.culprit import generate_culprit
@@ -100,7 +101,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
@@ -118,7 +118,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
@@ -147,7 +147,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
 
 HIGH_SEVERITY_THRESHOLD = 0.1
 
@@ -338,7 +337,7 @@ class EventManager:
         project_config: Any | None = None,
         sent_at: datetime | None = None,
     ):
-        self._data = CanonicalKeyDict(data)
+        self._data: MutableMapping[str, Any] = data
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
@@ -387,18 +386,21 @@ class EventManager:
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
+            json_dumps=orjson.dumps,
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+        self._data = CanonicalKeyDict(
+            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
+        )
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
         if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
-    def get_data(self) -> CanonicalKeyDict:
+    def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
     @sentry_sdk.tracing.trace
@@ -407,7 +409,7 @@ class EventManager:
         project_id: int | None,
         raw: bool = False,
         assume_normalized: bool = False,
-        start_time: int | None = None,
+        start_time: float | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         has_attachments: bool = False,
@@ -542,14 +544,7 @@ class EventManager:
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
-        except HashDiscarded as err:
-            logger.info(
-                "event_manager.save.discard",
-                extra={
-                    "reason": err.reason,
-                    "tombstone_id": err.tombstone_id,
-                },
-            )
+        except HashDiscarded:
             discard_event(job, attachments)
             raise
 
@@ -575,10 +570,6 @@ class EventManager:
         _increment_release_associated_counts_many(jobs, projects)
         _get_or_create_group_release_many(jobs)
         _tsdb_record_all_metrics(jobs)
-
-        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-            group_id=group_info.group.id, environment_id=job["environment"].id
-        )
 
         if attachments:
             attachments = filter_attachments_for_group(attachments, job)
@@ -1505,7 +1496,7 @@ def _save_aggregate(
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
-                    result="new_group",
+                    result="no_match",
                 )
 
                 metrics.incr(
@@ -1648,7 +1639,7 @@ def _save_aggregate_new(
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
-            result = "new_group"
+            result = "no_match"
 
     # From here on out, we're just doing housekeeping
 
@@ -2228,8 +2219,9 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEVERITY_DETECTION_URL,
-    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+    settings.SEER_SEVERITY_URL,
+    retries=settings.SEER_SEVERITY_RETRIES,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
 
@@ -2440,46 +2432,31 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             with metrics.timer(op):
                 timeout = options.get(
                     "issues.severity.seer-timout",
-                    settings.SEVERITY_DETECTION_TIMEOUT / 1000,
+                    settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
-                    body=json.dumps_experimental("event-manager.enable-orjson", payload),
+                    body=orjson.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
-                severity = json.loads_experimental(
-                    "event-manager.enable-orjson", response.data
-                ).get("severity")
+                severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
-        except MaxRetryError as e:
-            logger.warning(
-                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEVERITY_DETECTION_RETRIES,
-                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
-                repr(e.reason),
-                extra=logger_data,
-            )
+        except MaxRetryError:
             reason = "microservice_max_retry"
             update_severity_error_count()
-            metrics.incr("issues.severity.max_retry_error")
-        except Exception as e:
-            logger.warning(
-                "Unable to get severity score from microservice. Got: %s.",
-                repr(e),
-                extra=logger_data,
-            )
+            metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+        except TimeoutError:
+            reason = "microservice_timeout"
+            update_severity_error_count()
+            metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+        except Exception:
             reason = "microservice_error"
             update_severity_error_count()
-            metrics.incr("issues.severity.error")
+            metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            sentry_sdk.capture_exception()
         else:
-            logger.info(
-                "Got severity score of %s for event %s",
-                severity,
-                event.data["event_id"],
-                extra=logger_data,
-            )
             update_severity_error_count(reset=True)
 
     return severity, reason
@@ -2687,7 +2664,7 @@ def save_attachment(
     event_id: str,
     key_id: int | None = None,
     group_id: int | None = None,
-    start_time: float | int | None = None,
+    start_time: float | None = None,
 ) -> None:
     """
     Persists a cached event attachments into the file store.
@@ -2798,7 +2775,7 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
 
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(
-            json.dumps_experimental("event-manager.enable-orjson", dict(job["event"].data.items()))
+            orjson.dumps(dict(job["event"].data.items())).decode()
         )
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):

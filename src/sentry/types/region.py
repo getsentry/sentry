@@ -269,8 +269,8 @@ def get_region_for_organization(organization_id_or_slug: str) -> Region:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if (
-        id_or_slug_path_params_enabled(organization_slug=organization_id_or_slug)
-        and organization_id_or_slug.isnumeric()
+        id_or_slug_path_params_enabled(organization_id_or_slug=organization_id_or_slug)
+        and organization_id_or_slug.isdecimal()
     ):
         mapping = OrganizationMapping.objects.filter(
             organization_id=organization_id_or_slug

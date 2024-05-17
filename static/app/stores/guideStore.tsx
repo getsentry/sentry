@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {createStore} from 'reflux';
 
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
@@ -12,6 +11,7 @@ import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import type {CommonStoreDefinition} from './types';
 
@@ -168,7 +168,7 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    const guidesContent: GuidesContent = getGuidesContent(this.state.orgSlug);
+    const guidesContent: GuidesContent = getGuidesContent(this.state.organization);
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);

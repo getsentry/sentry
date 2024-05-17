@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -14,6 +13,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,14 +23,15 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
+import {BASE_URL} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -80,42 +81,48 @@ export function DatabaseLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const queryListResponse = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(tableFilters),
-    fields: [
-      'project.id',
-      'span.group',
-      'span.description',
-      'spm()',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-    ],
-    sorts: [sort],
-    limit: LIMIT,
-    cursor,
-    referrer: 'api.starfish.use-span-list',
-  });
+  const queryListResponse = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(tableFilters),
+      fields: [
+        'project.id',
+        'span.group',
+        'span.description',
+        'spm()',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: LIMIT,
+      cursor,
+    },
+    'api.starfish.use-span-list'
+  );
 
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: ['spm()'],
-    referrer: 'api.starfish.span-landing-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+    },
+    'api.starfish.span-landing-page-metrics-chart'
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    referrer: 'api.starfish.span-landing-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    },
+    'api.starfish.span-landing-page-metrics-chart'
+  );
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
@@ -259,11 +266,11 @@ const SelectorContainer = styled('div')`
 
 const LIMIT: number = 25;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database')].join(' — ')}
-      baseURL="/performance/database"
+      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <DatabaseLandingPage />
@@ -271,4 +278,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

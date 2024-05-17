@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 from django.test import override_settings
 from django.urls import reverse
@@ -21,8 +22,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 POPULARITY = 27
 EXPECTED = {
@@ -115,7 +116,7 @@ class SentryAppsTest(APITestCase):
                 }
             ]
 
-        assert data in json.loads(response.content)
+        assert data in orjson.loads(response.content)
 
     def get_data(self, **kwargs: Any) -> Mapping[str, Any]:
         return {
@@ -191,7 +192,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
             self.get_success_response(status_code=200)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_sees_all_apps(self):
         self.get_success_response(status_code=200)
 
@@ -372,7 +373,7 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
         response = self.get_success_response(
             **self.get_data(popularity=POPULARITY), status_code=201
         )
-        assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
+        assert {"popularity": POPULARITY}.items() <= orjson.loads(response.content).items()
 
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.get_success_response(
@@ -380,12 +381,12 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
             )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_create(self):
         self.get_error_response(**self.get_data(name="POPULARITY"))
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_can_create(self):
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(**self.get_data(popularity=POPULARITY), status_code=201)
@@ -464,7 +465,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_creates_sentry_app(self):
         response = self.get_success_response(**self.get_data(), status_code=201)
-        content = json.loads(response.content)
+        content = orjson.loads(response.content)
         for key, value in EXPECTED.items():
             assert key in content
             if isinstance(value, list):
@@ -522,7 +523,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self.get_success_response(
             **self.get_data(popularity=POPULARITY), status_code=201
         )
-        assert {"popularity": self.default_popularity}.items() <= json.loads(
+        assert {"popularity": self.default_popularity}.items() <= orjson.loads(
             response.content
         ).items()
 
@@ -547,7 +548,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
         response = self.get_success_response(**data, status_code=201)
-        content = json.loads(response.content)
+        content = orjson.loads(response.content)
         for key, value in expected.items():
             assert key in content
             if isinstance(value, list):
@@ -590,7 +591,7 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
         # XXX: Compare schema as an object instead of json to avoid key ordering issues
-        record.call_args.kwargs["schema"] = json.loads(record.call_args.kwargs["schema"])
+        record.call_args.kwargs["schema"] = orjson.loads(record.call_args.kwargs["schema"])
 
         record.assert_called_with(
             "sentry_app.schema_validation_error",
@@ -605,7 +606,7 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_can_create_with_error_created_hook_with_flag(self):
         expected = {**EXPECTED, "events": ["error"]}
         response = self.get_success_response(**self.get_data(events=("error",)), status_code=201)
-        content = json.loads(response.content)
+        content = orjson.loads(response.content)
         for key, value in expected.items():
             assert key in content
             if isinstance(value, list):

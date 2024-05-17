@@ -13,11 +13,12 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.types.actor import Actor
 from sentry.utils.cache import cache
 
 
@@ -33,7 +34,7 @@ class RuleSource(IntEnum):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class Rule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -105,6 +106,21 @@ class Rule(Model):
 
         return None
 
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        self.owner_team_id = None
+        self.owner_user_id = None
+        if actor and actor.is_user:
+            self.owner_user_id = actor.id
+        if actor and actor.is_team:
+            self.owner_team_id = actor.id
+
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)
         self._clear_project_rule_cache()
@@ -152,7 +168,7 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
-@region_silo_only_model
+@region_silo_model
 class RuleActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -166,7 +182,7 @@ class RuleActivity(Model):
         db_table = "sentry_ruleactivity"
 
 
-@region_silo_only_model
+@region_silo_model
 class NeglectedRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 

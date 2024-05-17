@@ -18,8 +18,8 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models.fields.uuid import UUIDField
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.utils.json import JSONData
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
@@ -34,8 +34,6 @@ __all__ = (
     "get_model_if_available",
     "control_silo_model",
     "region_silo_model",
-    "control_silo_only_model",
-    "region_silo_only_model",
 )
 
 
@@ -139,7 +137,7 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
-    def get_relocation_ordinal_fields(self, _json_model: JSONData) -> list[str] | None:
+    def get_relocation_ordinal_fields(self, _json_model: Any) -> list[str] | None:
         """
         Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
         the `write_relocation_import()` method may return an `ImportKind` besides
@@ -197,7 +195,7 @@ class BaseModel(models.Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         """
         Takes the export JSON representation of this model, and "sanitizes" any data that might be
@@ -212,6 +210,9 @@ class BaseModel(models.Model):
         model_name = get_model_name(cls) if model_name is None else model_name
         fields = cls._meta.get_fields()
         field_names = [f.name for f in fields]
+
+        str_field_types = [models.CharField, models.TextField]
+        sensitive_words = ["password", "token", "secret"]
 
         # All `models.CharField` fields called "slug" and "name" can be auto-sanitized as strings.
         if "name" in field_names and "slug" in field_names:
@@ -229,6 +230,29 @@ class BaseModel(models.Model):
             # Auto-sanitize all `models.EmailField` fields on this class.
             if isinstance(f, models.EmailField):
                 sanitizer.set_email(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all IP Address fields.
+            if isinstance(f, models.IPAddressField) or isinstance(f, models.GenericIPAddressField):
+                sanitizer.set_ip(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all URL fields.
+            if isinstance(f, models.URLField) or f.name.endswith("url") or f.name.endswith("uri"):
+                sanitizer.set_url(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all UUID fields.
+            if (
+                isinstance(f, models.UUIDField)
+                or isinstance(f, UUIDField)
+                or f.name.endswith("guid")
+                or f.name.endswith("uuid")
+            ):
+                sanitizer.set_uuid(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all string fields that contain any sensitive words in their name.
+            is_str_field_type = next(filter(lambda t: isinstance(f, t), str_field_types), None)
+            contains_sensitive_word = next(filter(lambda w: w in f.name, sensitive_words), None)
+            if is_str_field_type and contains_sensitive_word:
+                sanitizer.set_string(json, SanitizableField(model_name, f.name))
 
         return None
 
@@ -453,7 +477,3 @@ region_silo_model = ModelSiloLimit(SiloMode.REGION)
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.
 """
-
-# Deprecated
-control_silo_only_model = control_silo_model
-region_silo_only_model = region_silo_model

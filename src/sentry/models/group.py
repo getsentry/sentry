@@ -33,7 +33,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
@@ -43,12 +43,13 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
+from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
@@ -67,8 +68,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
-
+_short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
@@ -510,7 +510,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_only_model
+@region_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -804,6 +804,30 @@ class Group(Model):
             else self.get_latest_event_for_environments([env.name for env in environments])
         )
 
+    def get_suspect_commit(self) -> Commit | None:
+        from sentry.models.groupowner import GroupOwner, GroupOwnerType
+
+        suspect_commit_owner = (
+            GroupOwner.objects.filter(
+                group_id=self.id,
+                project_id=self.project_id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                context__isnull=False,
+            )
+            .order_by("-date_added")
+            .first()
+        )
+
+        if not suspect_commit_owner:
+            return None
+
+        commit_id = suspect_commit_owner.context.get("commitId")
+        if not commit_id:
+            return None
+
+        commit = Commit.objects.filter(id=commit_id)
+        return commit.first()
+
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
 
@@ -902,7 +926,7 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor: RpcActor = group_assignee.assigned_actor()
+        assigned_actor: Actor = group_assignee.assigned_actor()
 
         return assigned_actor.resolve()
 

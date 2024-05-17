@@ -1,11 +1,16 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import SearchBar from 'sentry/components/events/searchBar';
+import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TagCollection} from 'sentry/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -18,27 +23,90 @@ const getSpanName = (index: number) => {
   return spanNames[index];
 };
 
+const omitSupportedTags = [SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
+
+const getTracesSupportedTags = () => {
+  const tags: TagCollection = Object.fromEntries(
+    Object.values(SpanIndexedField)
+      .filter(v => !omitSupportedTags.includes(v))
+      .map(v => [v, {key: v, name: v}])
+  );
+  tags.has = getHasTag(tags);
+  return tags;
+};
+
+interface SpanFieldEntry {
+  key: string;
+  name: string;
+}
+type SpanFieldsResponse = SpanFieldEntry[];
+
+const getDynamicSpanFieldsEndpoint = (orgSlug: string, selection): ApiQueryKey => [
+  `/organizations/${orgSlug}/spans/fields/`,
+  {
+    query: {
+      project: selection.projects,
+      environment: selection.environments,
+      statsPeriod: '1h', // Hard coded stats period to load recent tags fast
+    },
+  },
+];
+
+const useTracesSupportedTags = (): TagCollection => {
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const staticTags = getTracesSupportedTags();
+
+  const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
+    getDynamicSpanFieldsEndpoint(organization.slug, selection),
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
+
+  if (dynamicTagQuery.isSuccess) {
+    const dynamicTags: TagCollection = Object.fromEntries(
+      dynamicTagQuery.data.map(entry => [entry.key, entry])
+    );
+    return {
+      ...dynamicTags,
+      ...staticTags,
+    };
+  }
+
+  return staticTags;
+};
+
 export function TracesSearchBar({
   queries,
   handleSearch,
   handleClearSearch,
 }: TracesSearchBarProps) {
   // TODO: load tags for autocompletion
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
+  const supportedTags = useTracesSupportedTags();
+
   return (
     <TraceSearchBarsContainer>
       {localQueries.map((query, index) => (
         <TraceBar key={index}>
           <SpanLetter>{getSpanName(index)}</SpanLetter>
           <StyledSearchBar
+            searchSource="trace-explorer"
             query={query}
             onSearch={(queryString: string) => handleSearch(index, queryString)}
             placeholder={t(
               'Search for traces containing a span matching these attributes'
             )}
             organization={organization}
+            metricAlert={false}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
           />
           <StyledButton
             aria-label={t('Remove span')}

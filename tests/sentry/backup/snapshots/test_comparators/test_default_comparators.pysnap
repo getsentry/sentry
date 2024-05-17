@@ -1,5 +1,5 @@
 ---
-created: '2024-04-29T16:10:44.191647+00:00'
+created: '2024-05-09T23:29:47.969852+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -77,20 +77,9 @@ source: tests/sentry/backup/test_comparators.py
     - user_id
   model_name: sentry.activity
 - comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - team
-    - user_id
-  model_name: sentry.actor
-- comparators:
   - class: DateUpdatedComparator
     fields:
     - date_modified
-  - class: EqualOrRemovedComparator
-    fields:
-    - owner
-    - team
-    - user_id
   - class: DatetimeEqualityComparator
     fields:
     - date_added
@@ -594,7 +583,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - actor
     - group
     - organization
     - project
@@ -1038,6 +1026,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - organization
+    - template
   model_name: sentry.project
 - comparators:
   - class: ForeignKeyComparator
@@ -1113,6 +1102,22 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - team
   model_name: sentry.projectteam
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+  model_name: sentry.projecttemplate
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - project_template
+  model_name: sentry.projecttemplateoption
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1432,11 +1437,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - organization
-  model_name: sentry.sentryfunction
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - organization_id
   model_name: sentry.sentryshot
 - comparators:
@@ -1475,10 +1475,6 @@ source: tests/sentry/backup/test_comparators.py
     - organization_id
   model_name: sentry.stringindexer
 - comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - actor
-    - organization
   - class: IgnoredComparator
     fields:
     - org_role

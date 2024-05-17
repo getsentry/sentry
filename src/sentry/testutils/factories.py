@@ -15,6 +15,7 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -56,7 +57,6 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
@@ -123,7 +123,6 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -152,7 +151,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
-from sentry.utils import json, loremipsum
+from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
 
@@ -287,7 +286,7 @@ DEFAULT_EVENT_DATA = {
 
 def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
-        manifest = json.load(fp)
+        manifest = orjson.loads(fp.read())
     if org:
         manifest["org"] = org
     if release:
@@ -296,7 +295,7 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
         manifest["project"] = project
     for path in extra_files or {}:
         manifest["files"][path] = {"url": path}
-    return json.dumps(manifest)
+    return orjson.dumps(manifest).decode()
 
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
@@ -1744,7 +1743,8 @@ class Factories:
         group: Group,
         status: int,
         release: Release | None = None,
-        actor: Actor | None = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
         prev_history: GroupHistory | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
@@ -1760,9 +1760,8 @@ class Factories:
             group=group,
             project=group.project,
             release=release,
-            actor=actor,
-            user_id=actor.user_id if actor else None,
-            team_id=actor.team_id if actor else None,
+            user_id=user_id,
+            team_id=team_id,
             status=status,
             prev_history=prev_history,
             prev_history_date=prev_history_date,
@@ -1779,17 +1778,6 @@ class Factories:
             type=ActivityType.NOTE.value,
             user_id=user.id,
             data=data,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_sentry_function(name, code, **kwargs):
-        return SentryFunction.objects.create(
-            name=name,
-            code=code,
-            slug=slugify(name),
-            external_id=slugify(name) + "-" + uuid4().hex,
-            **kwargs,
         )
 
     @staticmethod

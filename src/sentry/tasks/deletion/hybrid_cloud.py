@@ -77,7 +77,12 @@ def set_watermark(
 
 
 def _chunk_watermark_batch(
-    prefix: str, field: HybridCloudForeignKey, manager: BaseManager, *, batch_size: int
+    prefix: str,
+    field: HybridCloudForeignKey,
+    manager: BaseManager,
+    *,
+    batch_size: int,
+    model: type[Model],
 ) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
     agg = manager.aggregate(Min("id"), Max("id"))
@@ -89,6 +94,16 @@ def _chunk_watermark_batch(
     capped = upper
     if upper >= batch_upper:
         capped = batch_upper
+
+    watermark_delta = max(upper - lower, 0)
+    metric_field_name = f"{model._meta.db_table}:{field.name}"
+    metric_tags = dict(field_name=metric_field_name, watermark_type=prefix)
+    metrics.gauge(
+        "deletion.hybrid_cloud.watermark_delta",
+        value=watermark_delta,
+        tags=metric_tags,
+        sample_rate=1.0,
+    )
 
     return WatermarkBatch(
         low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
@@ -102,6 +117,9 @@ def _chunk_watermark_batch(
     silo_mode=SiloMode.CONTROL,
 )
 def schedule_hybrid_cloud_foreign_key_jobs_control():
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.CONTROL, process_hybrid_cloud_foreign_key_cascade_batch_control
     )
@@ -114,6 +132,9 @@ def schedule_hybrid_cloud_foreign_key_jobs_control():
     silo_mode=SiloMode.REGION,
 )
 def schedule_hybrid_cloud_foreign_key_jobs():
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
     )
@@ -150,6 +171,9 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
 def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _process_hybrid_cloud_foreign_key_cascade(
         app_name=app_name,
         model_name=model_name,
@@ -168,6 +192,9 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
 ) -> None:
+    if options.get("hybrid_cloud.disable_tombstone_cleanup"):
+        return
+
     _process_hybrid_cloud_foreign_key_cascade(
         app_name=app_name,
         model_name=model_name,
@@ -245,7 +272,7 @@ def _process_tombstone_reconciliation(
         watermark_manager = field.model.objects
 
     watermark_batch = _chunk_watermark_batch(
-        prefix, field, watermark_manager, batch_size=get_batch_size()
+        prefix, field, watermark_manager, batch_size=get_batch_size(), model=model
     )
     has_more = watermark_batch.has_more
     if watermark_batch.low < watermark_batch.up:
@@ -378,6 +405,7 @@ def get_ids_cross_db_for_row_watermark(
     field: HybridCloudForeignKey,
     row_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
+
     oldest_seen = timezone.now()
     model_object_id_pairs = model.objects.filter(
         id__lte=row_watermark_batch.up, id__gt=row_watermark_batch.low

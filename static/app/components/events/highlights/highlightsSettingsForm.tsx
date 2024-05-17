@@ -5,8 +5,14 @@ import Form, {type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  makeDetailedProjectQueryKey,
+  useDetailedProject,
+} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -18,10 +24,11 @@ export default function HighlightsSettingsForm({
   projectSlug,
 }: HighlightsSettingsFormProps) {
   const organization = useOrganization();
-  const {data: project, refetch} = useDetailedProject({
+  const {data: project} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
+  const queryClient = useQueryClient();
   if (!organization.features.includes('event-tags-tree-ui') || !project) {
     return null;
   }
@@ -35,8 +42,16 @@ export default function HighlightsSettingsForm({
     },
     apiMethod: 'PUT',
     apiEndpoint: `/projects/${organization.slug}/${projectSlug}/`,
-    onSubmitSuccess: () => {
-      refetch();
+    onSubmitSuccess: (updatedProject: Project) => {
+      setApiQueryData<Project>(
+        queryClient,
+        makeDetailedProjectQueryKey({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        }),
+        data => (updatedProject ? updatedProject : data)
+      );
+      trackAnalytics('highlights.project_settings.updated_manually', {organization});
       addSuccessMessage(`Successfully updated highlights for '${project.name}'`);
     },
   };

@@ -66,9 +66,9 @@ const topPythonFrameworks: PlatformKey[] = [
 
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 

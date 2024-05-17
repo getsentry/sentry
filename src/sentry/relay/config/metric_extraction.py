@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 2
+_METRIC_EXTRACTION_VERSION = 3
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
@@ -184,15 +184,6 @@ def _get_alert_metric_specs(
 
             if results := _convert_snuba_query_to_metrics(project, alert_snuba_query, prefilling):
                 for spec in results:
-                    _log_on_demand_metric_spec(
-                        project_id=project.id,
-                        spec_for="alert",
-                        spec=spec,
-                        id=alert.id,
-                        field=alert_snuba_query.aggregate,
-                        query=alert_snuba_query.query,
-                        prefilling=prefilling,
-                    )
                     metrics.incr(
                         "on_demand_metrics.on_demand_spec.for_alert",
                         tags={"prefilling": prefilling},
@@ -502,15 +493,6 @@ def _generate_metric_specs(
         organization_bulk_query_cache=organization_bulk_query_cache,
     ):
         for spec in results:
-            _log_on_demand_metric_spec(
-                project_id=project.id,
-                spec_for="widget",
-                spec=spec,
-                id=widget_query.id,
-                field=aggregate,
-                query=widget_query.conditions,
-                prefilling=prefilling,
-            )
             metrics.incr(
                 "on_demand_metrics.on_demand_spec.for_widget",
                 tags={"prefilling": prefilling},
@@ -780,64 +762,44 @@ def _convert_aggregate_and_query_to_metrics(
         "query": query,
         "groupbys": groupbys,
     }
-    # Create as many specs as we support
-    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-        try:
-            on_demand_spec = OnDemandMetricSpec(
-                field=aggregate,
-                query=query,
-                environment=environment,
-                groupbys=groupbys,
-                spec_type=spec_type,
-                spec_version=spec_version,
-            )
-            metric_spec = on_demand_spec.to_metric_spec(project)
-            # TODO: switch to validate_rule_condition
-            if (condition := metric_spec.get("condition")) is not None:
-                validate_sampling_condition(json.dumps(condition))
-            else:
-                metrics.incr(
-                    "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
-                )
 
-            metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
-        except ValueError:
-            # raised by validate_sampling_condition or metric_spec lacking "condition"
-            metrics.incr("on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling})
-            logger.exception("Invalid on-demand metric spec", extra=extra)
-        except Exception:
-            # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
-            metrics.incr("on_demand_metrics.invalid_metric_spec.other")
-            logger.exception("Failed on-demand metric spec creation.", extra=extra)
+    with sentry_sdk.start_span(op="converting_aggregate_and_query") as span:
+        span.set_data("widget_query_args", {"query": query, "aggregate": aggregate})
+        # Create as many specs as we support
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            try:
+                on_demand_spec = OnDemandMetricSpec(
+                    field=aggregate,
+                    query=query,
+                    environment=environment,
+                    groupbys=groupbys,
+                    spec_type=spec_type,
+                    spec_version=spec_version,
+                )
+                metric_spec = on_demand_spec.to_metric_spec(project)
+                # TODO: switch to validate_rule_condition
+                if (condition := metric_spec.get("condition")) is not None:
+                    validate_sampling_condition(json.dumps(condition))
+                else:
+                    metrics.incr(
+                        "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
+                    )
+
+                metric_specs_and_hashes.append(
+                    (on_demand_spec.query_hash, metric_spec, spec_version)
+                )
+            except ValueError:
+                # raised by validate_sampling_condition or metric_spec lacking "condition"
+                metrics.incr(
+                    "on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling}
+                )
+                logger.exception("Invalid on-demand metric spec", extra=extra)
+            except Exception:
+                # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
+                metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+                logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
-
-
-def _log_on_demand_metric_spec(
-    project_id: int,
-    spec_for: Literal["alert", "widget"],
-    spec: HashedMetricSpec,
-    id: int,
-    field: str,
-    query: str,
-    prefilling: bool,
-) -> None:
-    spec_query_hash, spec_dict, spec_version = spec
-
-    logger.info(
-        "on_demand_metrics.on_demand_metric_spec",
-        extra={
-            "project_id": project_id,
-            f"{spec_for}.id": id,
-            f"{spec_for}.field": field,
-            f"{spec_for}.query": query,
-            "spec_for": spec_for,
-            "spec_query_hash": spec_query_hash,
-            "spec": spec_dict,
-            "spec_version": spec_version,
-            "prefilling": prefilling,
-        },
-    )
 
 
 # CONDITIONAL TAGGING

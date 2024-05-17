@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry import features, tsdb
+from sentry import tsdb
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -15,7 +15,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupSnooze(Model):
     """
     A snooze marks an issue as ignored until a condition is hit.
@@ -97,28 +97,20 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self) -> bool:
-        if features.has(
-            "organizations:groupsnooze-cached-rates", organization=self.group.project.organization
-        ):
-            return self.test_frequency_rates_w_cache()
-        else:
-            return self.test_frequency_rates_no_cache()
-
-    def test_frequency_rates_w_cache(self) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_frequency_rate:events_seen_counter"
 
         cache_ttl = self.window * 60  # Redis TTL in seconds (window is in minutes)
 
-        value: int | float = float("inf")  # using +inf as a sentinel value
+        cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
 
         try:
-            value = cache.incr(cache_key)
+            cached_event_count = cache.incr(cache_key)
             cache.touch(cache_key, cache_ttl)
         except ValueError:
             # key doesn't exist, fall back on sentinel value
             pass
 
-        if value < self.count:
+        if cached_event_count < self.count:
             metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "true", "hit": "true"})
             return True
 
@@ -145,27 +137,6 @@ class GroupSnooze(Model):
 
         return True
 
-    def test_frequency_rates_no_cache(self) -> bool:
-        metrics.incr("groupsnooze.test_frequency_rates", tags={"cached": "false"})
-        metrics.incr("groupsnooze.test_frequency_rates.snuba_call")
-
-        end = timezone.now()
-        start = end - timedelta(minutes=self.window)
-
-        rate = tsdb.backend.get_sums(
-            model=get_issue_tsdb_group_model(self.group.issue_category),
-            keys=[self.group_id],
-            start=start,
-            end=end,
-            tenant_ids={"organization_id": self.group.project.organization_id},
-            referrer_suffix="frequency_snoozes",
-        )[self.group_id]
-
-        if rate >= self.count:
-            return False
-
-        return True
-
     def test_user_rates_or_counts(self, group: Group) -> bool:
         """
         Test if the number of unique users or rate of users seen by the group is below the snooze threshold.
@@ -178,59 +149,28 @@ class GroupSnooze(Model):
           to query Snuba. This functionality relies on the fact that this is called in
           post-processing for every event, so we can assume that the call-count == event count.
         """
-        if features.has(
-            "organizations:groupsnooze-cached-counts", organization=self.group.project.organization
-        ):
-            if self.user_window:
-                if not self.test_user_rates_w_cache():
-                    return False
-            elif not self.test_user_counts_w_cache(group):
+        if self.user_window:
+            if not self.test_user_rates():
                 return False
-            return True
-        else:
-            if self.user_window:
-                if not self.test_user_rates_no_cache():
-                    return False
-            elif not self.test_user_counts_no_cache(group):
-                return False
-            return True
-
-    def test_user_rates_no_cache(self) -> bool:
-        metrics.incr("groupsnooze.test_user_rates", tags={"cached": "false"})
-        metrics.incr("groupsnooze.test_user_rates.snuba_call")
-
-        end = timezone.now()
-        start = end - timedelta(minutes=self.user_window)
-
-        rate = tsdb.backend.get_distinct_counts_totals(
-            model=get_issue_tsdb_user_group_model(self.group.issue_category),
-            keys=[self.group_id],
-            start=start,
-            end=end,
-            tenant_ids={"organization_id": self.group.project.organization_id},
-            referrer_suffix="user_count_snoozes",
-        )[self.group_id]
-
-        if rate >= self.user_count:
+        elif not self.test_user_counts(group):
             return False
-
         return True
 
-    def test_user_rates_w_cache(self) -> bool:
+    def test_user_rates(self) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_rate:events_seen_counter"
 
         cache_ttl = self.user_window * 60  # Redis TTL in seconds (window is in minutes)
 
-        value: int | float = float("inf")  # using +inf as a sentinel value
+        cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
 
         try:
-            value = cache.incr(cache_key)
+            cached_event_count = cache.incr(cache_key)
             cache.touch(cache_key, cache_ttl)
         except ValueError:
             # key doesn't exist, fall back on sentinel value
             pass
 
-        if value < self.user_count:
+        if cached_event_count < self.user_count:
             # if number of hits within the window is less than the threshold, we can't have reached enough users
             metrics.incr("groupsnooze.test_user_rates", tags={"cached": "true", "hit": "true"})
             return True
@@ -258,17 +198,7 @@ class GroupSnooze(Model):
 
         return True
 
-    def test_user_counts_no_cache(self, group: Group) -> bool:
-        metrics.incr("groupsnooze.test_user_counts", tags={"cached": "false"})
-        metrics.incr("groupsnooze.test_user_counts.snuba_call")
-
-        threshold = self.user_count + self.state["users_seen"]
-        real_count = group.count_users_seen(
-            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE.value
-        )
-        return real_count < threshold
-
-    def test_user_counts_w_cache(self, group: Group) -> bool:
+    def test_user_counts(self, group: Group) -> bool:
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
         try:
             users_seen = self.state["users_seen"]
@@ -279,14 +209,14 @@ class GroupSnooze(Model):
 
         CACHE_TTL = 3600  # Redis TTL in seconds
 
-        value: int | float = float("inf")  # using +inf as a sentinel value
+        cached_event_count: int | float = float("inf")  # using +inf as a sentinel value
         try:
-            value = cache.incr(cache_key)
+            cached_event_count = cache.incr(cache_key)
         except ValueError:
             # key doesn't exist, fall back on sentinel value
             pass
 
-        if value < threshold:
+        if cached_event_count < threshold:
             # if we've seen less than that many events, we can't possibly have seen enough users
             metrics.incr("groupsnooze.test_user_counts", tags={"cached": "true", "hit": "true"})
             return True

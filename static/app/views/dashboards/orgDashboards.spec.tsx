@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';

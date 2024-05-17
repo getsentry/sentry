@@ -69,6 +69,11 @@ describe('HTTPLandingPage', function () {
   beforeEach(function () {
     jest.clearAllMocks();
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture({name: 'frontend'}), ProjectFixture({name: 'backend'})],
+    });
+
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -81,6 +86,7 @@ describe('HTTPLandingPage', function () {
         data: [
           {
             'span.domain': ['*.sentry.io'],
+            project: 'backend',
             'project.id': 1,
             'sum(span.self_time)': 815833579.659315,
             'spm()': 40767.0,
@@ -92,6 +98,7 @@ describe('HTTPLandingPage', function () {
           },
           {
             'span.domain': ['*.github.com'],
+            project: 'frontend',
             'project.id': 2,
             'sum(span.self_time)': 473552338.9970339,
             'spm()': 29912.133333333335,
@@ -155,7 +162,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http',
+          query: 'span.module:http span.op:http.client',
           referrer: 'api.performance.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -180,7 +187,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http',
+          query: 'span.module:http span.op:http.client',
           referrer: 'api.performance.http.landing-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -205,7 +212,7 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http',
+          query: 'span.module:http span.op:http.client',
           referrer: 'api.performance.http.landing-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -226,6 +233,7 @@ describe('HTTPLandingPage', function () {
           dataset: 'spansMetrics',
           environment: [],
           field: [
+            'project',
             'project.id',
             'span.domain',
             'spm()',
@@ -238,7 +246,7 @@ describe('HTTPLandingPage', function () {
           ],
           per_page: 10,
           project: [],
-          query: 'span.module:http span.domain:*git*',
+          query: 'span.module:http span.op:http.client span.domain:*git*',
           referrer: 'api.performance.http.landing-domains-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',

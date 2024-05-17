@@ -102,6 +102,10 @@ export type SidebarItemProps = {
    * An optional prefix that can be used to reset the "new" indicator
    */
   isNewSeenKeySuffix?: string;
+  /**
+   * Is this item expanded in the floating sidebar
+   */
+  isOpenInFloatingSidebar?: boolean;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   search?: string;
   to?: string;
@@ -138,6 +142,7 @@ function SidebarItem({
   variant,
   isNested,
   isMainItem,
+  isOpenInFloatingSidebar,
   ...props
 }: SidebarItemProps) {
   const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
@@ -199,7 +204,10 @@ function SidebarItem({
 
   return (
     <Tooltip
-      disabled={!isInCollapsedState && !isTop}
+      disabled={
+        (!isInCollapsedState && !isTop) ||
+        (shouldAccordionFloat && isOpenInFloatingSidebar)
+      }
       title={
         <Flex align="center">
           {label} {badges}
@@ -287,8 +295,7 @@ export function isItemActive(
       location.pathname.includes('/alerts/') &&
       !location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
-    (item?.label === 'Performance' && location.pathname.includes('/performance/')) ||
-    (item?.label === 'Starfish' && location.pathname.includes('/starfish/'))
+    (item?.label === 'Performance' && location.pathname.includes('/performance/'))
   );
 }
 

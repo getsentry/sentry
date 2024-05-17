@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {
   getStacktrace,
   StackTracePreviewContent,
@@ -13,11 +12,9 @@ import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {EventError} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 
 import {
   makeTraceNodeBarColor,
@@ -26,7 +23,7 @@ import {
 } from '../../traceModels/traceTree';
 
 import {IssueList} from './issues/issues';
-import {TraceDrawerComponents} from './styles';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 
 export function ErrorNodeDetails({
   node,
@@ -34,7 +31,6 @@ export function ErrorNodeDetails({
   onTabScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
-  const location = useLocation();
   const issues = useMemo(() => {
     return [...node.errors];
   }, [node.errors]);
@@ -58,6 +54,26 @@ export function ErrorNodeDetails({
 
   const theme = useTheme();
   const parentTransaction = node.parent_transaction;
+
+  const items: SectionCardKeyValueList = [
+    {
+      key: 'title',
+      subject: t('Title'),
+      value: <TraceDrawerComponents.CopyableCardValueWithLink value={node.value.title} />,
+    },
+  ];
+
+  if (parentTransaction) {
+    items.push({
+      key: 'parent_transaction',
+      subject: t('Parent Transaction'),
+      value: (
+        <a onClick={() => onParentClick(parentTransaction)}>
+          {getTraceTabTitle(parentTransaction)}
+        </a>
+      ),
+    });
+  }
 
   return isLoading ? (
     <LoadingIndicator />
@@ -92,57 +108,37 @@ export function ErrorNodeDetails({
 
       <IssueList issues={issues} node={node} organization={organization} />
 
-      <TraceDrawerComponents.Table className="table key-value">
-        <tbody>
-          {stackTrace ? (
-            <tr>
-              <StackTraceTitle>{t('Stack Trace')}</StackTraceTitle>
-              <StackTraceWrapper>
-                <StackTracePreviewContent event={data} stacktrace={stackTrace} />
-              </StackTraceWrapper>
-            </tr>
-          ) : (
-            <Row title={t('Stack Trace')}>
-              {t('No stack trace has been reported with this error')}
-            </Row>
-          )}
-          <Tags
-            enableHiding
-            location={location}
-            organization={organization}
-            event={node.value}
-            tags={data.tags}
-          />
-          <Row
-            title={t('Title')}
-            extra={<CopyToClipboardButton size="xs" borderless text={node.value.title} />}
-          >
-            {node.value.title}
-          </Row>
-          {parentTransaction ? (
-            <Row title="Parent Transaction">
-              <td className="value">
-                <a onClick={() => onParentClick(parentTransaction)}>
-                  {getTraceTabTitle(parentTransaction)}
-                </a>
-              </td>
-            </Row>
-          ) : null}
-        </tbody>
-      </TraceDrawerComponents.Table>
+      <TraceDrawerComponents.SectionCard
+        items={[
+          {
+            key: 'stack_trace',
+            subject: null,
+            value:
+              stackTrace && data ? (
+                <StackTraceWrapper>
+                  <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+                </StackTraceWrapper>
+              ) : (
+                t('No stack trace has been reported with this error')
+              ),
+          },
+        ]}
+        title={t('Stack Trace')}
+      />
+
+      <TraceDrawerComponents.SectionCard items={items} title={t('General')} />
+
+      <TraceDrawerComponents.EventTags
+        projectSlug={node.value.project_slug}
+        event={data}
+      />
     </TraceDrawerComponents.DetailContainer>
   ) : null;
 }
 
-const StackTraceWrapper = styled('td')`
+const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;
   }
-`;
-
-const StackTraceTitle = styled('td')`
-  font-weight: 600;
-  font-size: 13px;
-  width: 175px;
 `;

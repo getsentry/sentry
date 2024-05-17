@@ -6,8 +6,6 @@ import {useComboBox} from '@react-aria/combobox';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {SelectContext} from 'sentry/components/compactSelect/control';
-import {SelectFilterContext} from 'sentry/components/compactSelect/list';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {
@@ -35,6 +33,7 @@ type SearchQueryBuilderComboboxProps = {
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  tabIndex?: number;
 };
 
 export function SearchQueryBuilderCombobox({
@@ -50,6 +49,7 @@ export function SearchQueryBuilderCombobox({
   onKeyDown,
   onInputChange,
   autoFocus,
+  tabIndex = -1,
 }: SearchQueryBuilderComboboxProps) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
@@ -153,48 +153,38 @@ export function SearchQueryBuilderCombobox({
     [inputProps, state]
   );
 
-  const selectContextValue = useMemo(
-    () => ({
-      search: filterValue,
-      overlayIsOpen: isOpen,
-      registerListState: () => {},
-      saveSelectedOptions: () => {},
-    }),
-    [filterValue, isOpen]
-  );
-
   return (
-    <SelectContext.Provider value={selectContextValue}>
-      <SelectFilterContext.Provider value={hiddenOptions}>
-        <Wrapper>
-          <UnstyledInput
-            {...inputProps}
+    <Wrapper>
+      <UnstyledInput
+        {...inputProps}
+        size="md"
+        ref={mergeRefs([inputRef, triggerProps.ref])}
+        type="text"
+        placeholder={placeholder}
+        onClick={handleInputClick}
+        value={inputValue}
+        onChange={onInputChange}
+        tabIndex={tabIndex}
+      />
+      <StyledPositionWrapper
+        {...overlayProps}
+        zIndex={theme.zIndex?.tooltip}
+        visible={isOpen}
+      >
+        <Overlay ref={popoverRef}>
+          <ListBox
+            {...listBoxProps}
+            ref={listBoxRef}
+            listState={state}
+            hasSearch={!!filterValue}
+            hiddenOptions={hiddenOptions}
+            keyDownHandler={() => true}
+            overlayIsOpen={isOpen}
             size="md"
-            ref={mergeRefs([inputRef, triggerProps.ref])}
-            type="text"
-            placeholder={placeholder}
-            onClick={handleInputClick}
-            value={inputValue}
-            onChange={onInputChange}
           />
-          <StyledPositionWrapper
-            {...overlayProps}
-            zIndex={theme.zIndex?.tooltip}
-            visible={isOpen}
-          >
-            <Overlay ref={popoverRef}>
-              <ListBox
-                {...listBoxProps}
-                ref={listBoxRef}
-                listState={state}
-                keyDownHandler={() => true}
-                size="md"
-              />
-            </Overlay>
-          </StyledPositionWrapper>
-        </Wrapper>
-      </SelectFilterContext.Provider>
-    </SelectContext.Provider>
+        </Overlay>
+      </StyledPositionWrapper>
+    </Wrapper>
   );
 }
 

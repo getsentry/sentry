@@ -67,10 +67,6 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
 
-// Enable react 18 concurrent mode
-const USE_REACT_CONCURRENT_MODE =
-  (DEV_MODE || IS_ACCEPTANCE_TEST) && !env.DISABLE_REACT_CONCURRENT_MODE;
-
 // Environment variables that are used by other tooling and should
 // not be user configurable.
 //
@@ -117,7 +113,7 @@ const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
 // Locale file extraction build step
@@ -278,7 +274,7 @@ const appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
+            referenceExtensions: ['.js', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -360,7 +356,6 @@ const appConfig: Configuration = {
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
         SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
         USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
-        USE_REACT_CONCURRENT_MODE: JSON.stringify(USE_REACT_CONCURRENT_MODE),
       },
     }),
 
@@ -469,7 +464,7 @@ const appConfig: Configuration = {
     },
 
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.json', '.ts', '.tsx', '.less'],
     symlinks: false,
   },
   output: {

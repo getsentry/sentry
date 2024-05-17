@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -6,8 +5,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
-import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
+import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -26,6 +26,10 @@ describe('OrganizationCrumb', function () {
   beforeEach(() => {
     OrganizationsStore.init();
     OrganizationsStore.load(organizations);
+
+    initialData = window.__initialData;
+    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(window.location.assign).mockReset();
   });
 
   const switchOrganization = async () => {
@@ -43,11 +47,6 @@ describe('OrganizationCrumb', function () {
       organization,
     });
 
-  beforeEach(function () {
-    initialData = window.__initialData;
-    jest.mocked(browserHistory.push).mockReset();
-    jest.mocked(window.location.assign).mockReset();
-  });
   afterEach(function () {
     window.__initialData = initialData;
   });

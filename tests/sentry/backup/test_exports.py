@@ -13,6 +13,7 @@ from sentry.db import models
 from sentry.models.email import Email
 from sentry.models.options.option import Option
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
@@ -25,18 +26,17 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils.json import JSONData
 from tests.sentry.backup import get_matching_exportable_models
 
 
 class ExportTestCase(BackupTestCase):
     @staticmethod
-    def count(data: JSONData, model: type[models.base.BaseModel]) -> int:
+    def count(data: Any, model: type[models.base.BaseModel]) -> int:
         return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
 
     @staticmethod
     def exists(
-        data: JSONData, model: type[models.base.BaseModel], key: str, value: Any | None = None
+        data: Any, model: type[models.base.BaseModel], key: str, value: Any | None = None
     ) -> bool:
         for d in data:
             if d["model"] == str(get_model_name(model)):
@@ -55,7 +55,7 @@ class ExportTestCase(BackupTestCase):
         *,
         scope: ExportScope,
         filter_by: set[str] | None = None,
-    ) -> JSONData:
+    ) -> Any:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
         return export_to_file(tmp_path, scope=scope, filter_by=filter_by)
 
@@ -65,7 +65,7 @@ class ExportTestCase(BackupTestCase):
         *,
         scope: ExportScope,
         filter_by: set[str] | None = None,
-    ) -> JSONData:
+    ) -> Any:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.enc.tar")
         return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
 
@@ -76,7 +76,7 @@ class ScopingTests(ExportTestCase):
     """
 
     @staticmethod
-    def verify_model_inclusion(data: JSONData, scope: ExportScope) -> None:
+    def verify_model_inclusion(data: Any, scope: ExportScope) -> None:
         """
         Ensure all in-scope models are included, and that no out-of-scope models are included.
         """
@@ -101,7 +101,7 @@ class ScopingTests(ExportTestCase):
             )
 
     def verify_encryption_equality(
-        self, tmp_dir: str, unencrypted: JSONData, scope: ExportScope
+        self, tmp_dir: str, unencrypted: Any, scope: ExportScope
     ) -> None:
         res = validate(
             unencrypted,
@@ -210,9 +210,20 @@ class FilteringTests(ExportTestCase):
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all", email="shared@example.com")
-        self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+
+        # Add an invited email to each org.
+        OrganizationMember.objects.create(
+            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(
@@ -246,9 +257,20 @@ class FilteringTests(ExportTestCase):
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all", email="shared@example.com")
-        self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+
+        # Add an invited email to each org.
+        OrganizationMember.objects.create(
+            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(
@@ -282,9 +304,20 @@ class FilteringTests(ExportTestCase):
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all")
-        self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+
+        # Add an invited email to each org.
+        OrganizationMember.objects.create(
+            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+        )
+        OrganizationMember.objects.create(
+            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             data = self.export(

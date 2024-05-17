@@ -1,13 +1,24 @@
-import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
+import {
+  Children,
+  Fragment,
+  type PropsWithChildren,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
-import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
@@ -18,9 +29,10 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined, formatBytesBase10} from 'sentry/utils';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -130,63 +142,6 @@ const HeaderContainer = styled(Title)`
   z-index: 10;
   flex: 1 1 auto;
 `;
-
-interface EventDetailsLinkProps {
-  node: TraceTreeNode<TraceTree.NodeValue>;
-  organization: Organization;
-}
-
-function EventDetailsLink(props: EventDetailsLinkProps) {
-  const params = useMemo((): {
-    eventId: string | undefined;
-    projectSlug: string | undefined;
-  } => {
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
-
-    if (eventId && projectSlug) {
-      return {eventId, projectSlug};
-    }
-
-    if (isSpanNode(props.node) || isAutogroupedNode(props.node)) {
-      const parent = props.node.parent_transaction;
-      if (parent?.metadata.event_id && parent?.metadata.project_slug) {
-        return {
-          eventId: parent.metadata.event_id,
-          projectSlug: parent.metadata.project_slug,
-        };
-      }
-    }
-
-    return {eventId: undefined, projectSlug: undefined};
-  }, [props.node]);
-
-  const locationDescriptor = useMemo(() => {
-    const query = {...qs.parse(location.search), legacy: 1};
-
-    return {
-      query: query,
-      pathname: `/performance/${params.projectSlug}:${params.eventId}/`,
-      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
-    };
-  }, [params.eventId, params.projectSlug, props.node]);
-
-  return (
-    <LinkButton
-      disabled={!params.eventId || !params.projectSlug}
-      title={
-        !params.eventId || !params.projectSlug
-          ? t('Event ID or Project Slug missing')
-          : undefined
-      }
-      size="xs"
-      to={locationDescriptor}
-      onClick={() => traceAnalytics.trackViewEventDetails(props.organization)}
-    >
-      {t('View Event Details')}
-    </LinkButton>
-  );
-}
 
 const DURATION_COMPARISON_STATUS_COLORS: {
   equal: {light: ColorOrAlias; normal: ColorOrAlias};
@@ -436,24 +391,11 @@ function NodeActions(props: {
       },
     };
 
-    const eventId = props.node.metadata.event_id;
-    const projectSlug = props.node.metadata.project_slug;
-    const query = {...qs.parse(location.search), legacy: 1};
-
-    const eventDetailsLink = {
-      query: query,
-      pathname: `/performance/${projectSlug}:${eventId}/`,
-      hash: isSpanNode(props.node) ? `#span-${props.node.value.span_id}` : undefined,
-    };
-
-    const viewEventDetails: MenuItemProps = {
-      key: 'view-event-details',
-      label: t('View Event Details'),
-      to: eventDetailsLink,
-      onAction: () => {
-        traceAnalytics.trackViewEventDetails(props.organization);
-      },
-    };
+    const eventId =
+      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+    const projectSlug =
+      props.node.metadata.project_slug ??
+      props.node.parent_transaction?.metadata.project_slug;
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {
@@ -471,10 +413,10 @@ function NodeActions(props: {
     };
 
     if (isTransactionNode(props.node)) {
-      return [showInView, viewEventDetails, jsonDetails];
+      return [showInView, jsonDetails];
     }
     if (isSpanNode(props.node)) {
-      return [showInView, viewEventDetails];
+      return [showInView];
     }
     if (isMissingInstrumentationNode(props.node)) {
       return [showInView];
@@ -507,12 +449,6 @@ function NodeActions(props: {
         >
           {t('Show in view')}
         </Button>
-
-        {isTransactionNode(props.node) ||
-        isSpanNode(props.node) ||
-        isTraceErrorNode(props.node) ? (
-          <EventDetailsLink node={props.node} organization={props.organization} />
-        ) : null}
 
         {isTransactionNode(props.node) ? (
           <Button
@@ -571,6 +507,22 @@ const ActionsContainer = styled('div')`
     .DropdownMenu {
       display: none;
     }
+  }
+`;
+
+function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
+  return (
+    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+      <TagsWrapper>
+        <NewTagsUI event={event} projectSlug={projectSlug} />
+      </TagsWrapper>
+    </LazyRender>
+  );
+}
+
+const TagsWrapper = styled('div')`
+  h3 {
+    color: ${p => p.theme.textColor};
   }
 `;
 
@@ -644,7 +596,7 @@ function SectionCard({
   title: React.ReactNode;
   disableTruncate?: boolean;
 }) {
-  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
+  const [showingAll, setShowingAll] = useState(false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   if (items.length === 0) {
@@ -654,7 +606,7 @@ function SectionCard({
   return (
     <Card>
       <CardContentTitle>{title}</CardContentTitle>
-      {items.slice(0, showingAll ? items.length : 5).map(item => (
+      {items.slice(0, showingAll || disableTruncate ? items.length : 5).map(item => (
         <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
       ))}
       {items.length > 5 && !disableTruncate ? (
@@ -666,11 +618,81 @@ function SectionCard({
   );
 }
 
-const Card = styled(Panel)`
-  padding: ${space(0.75)};
+function SectionCardGroup({children}: {children: React.ReactNode}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+
+  const columns: React.ReactNode[] = [];
+  const cards = Children.toArray(children);
+
+  // Evenly distributing the cards into columns.
+  const columnSize = Math.ceil(cards.length / columnCount);
+  for (let i = 0; i < cards.length; i += columnSize) {
+    columns.push(<CardsColumn key={i}>{cards.slice(i, i + columnSize)}</CardsColumn>);
+  }
+
+  return (
+    <CardsWrapper columnCount={columnCount} ref={containerRef}>
+      {columns}
+    </CardsWrapper>
+  );
+}
+
+const CardsWrapper = styled('div')<{columnCount: number}>`
   display: grid;
-  column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr 30px;
+  align-items: start;
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
+  gap: 10px;
+`;
+
+const CardsColumn = styled('div')`
+  grid-column: span 1;
+`;
+
+function CopyableCardValueWithLink({
+  value,
+  linkTarget,
+  linkText,
+}: {
+  value: React.ReactNode;
+  linkTarget?: LocationDescriptor;
+  linkText?: string;
+}) {
+  return (
+    <CardValueContainer>
+      <CardValueText>
+        {value}
+        {typeof value === 'string' ? (
+          <StyledCopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={value}
+          />
+        ) : null}
+      </CardValueText>
+      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+    </CardValueContainer>
+  );
+}
+
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  transform: translateY(2px);
+`;
+
+const CardValueContainer = styled(FlexBox)`
+  justify-content: space-between;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const CardValueText = styled('span')`
+  overflow-wrap: anywhere;
+`;
+
+const Card = styled(Panel)`
+  margin-bottom: 10px;
+  padding: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -684,9 +706,8 @@ const CardContentTitle = styled('p')`
 
 const ContentContainer = styled('div')`
   display: grid;
-  grid-template-columns: subgrid;
-  grid-column: span 3;
   column-gap: ${space(1.5)};
+  grid-template-columns: minmax(100px, 150px) 1fr 30px;
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => p.theme.subText};
@@ -727,7 +748,6 @@ const TraceDrawerComponents = {
   Table,
   IconTitleWrapper,
   IconBorder,
-  EventDetailsLink,
   TitleText,
   Duration,
   TableRow,
@@ -736,6 +756,9 @@ const TraceDrawerComponents = {
   TableValueRow,
   IssuesLink,
   SectionCard,
+  CopyableCardValueWithLink,
+  EventTags,
+  SectionCardGroup,
 };
 
 export {TraceDrawerComponents};

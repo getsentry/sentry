@@ -1,6 +1,5 @@
 // eslint-disable-next-line simple-import-sort/imports
 import {browserHistory, createRoutes, match} from 'react-router';
-import {extraErrorDataIntegration} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import type {Event} from '@sentry/types';
@@ -51,19 +50,17 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  */
 function getSentryIntegrations(routes?: Function) {
   const integrations = [
-    extraErrorDataIntegration({
+    Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.metrics.metricsAggregatorIntegration(),
     Sentry.reactRouterV3BrowserTracingIntegration({
       history: browserHistory as any,
       routes: typeof routes === 'function' ? createRoutes(routes()) : [],
       match,
       _experiments: {
-        enableInteractions: true,
+        enableInteractions: false,
       },
-      enableInp: true,
     }),
     Sentry.browserProfilingIntegration(),
   ];
@@ -103,7 +100,8 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
-      if (context.transactionContext.op?.startsWith('ui.action')) {
+      const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
+      if (op.startsWith('ui.action')) {
         return tracesSampleRate / 100;
       }
       return tracesSampleRate;
@@ -117,6 +115,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+
+      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
+      if (event.spans) {
+        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
+        event.timestamp = newEndTimestamp;
+      }
+
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
@@ -225,7 +230,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
   }
 
-  const {customerDomain, features} = window.__initialData;
+  const {customerDomain} = window.__initialData;
 
   if (customerDomain) {
     Sentry.setTag('isCustomerDomain', 'yes');
@@ -233,14 +238,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
-
-  // TODO: Remove once we've finished rolling out the new renderer
-  Sentry.setTag(
-    'isConcurrentRenderer',
-    (features as unknown as string[])?.includes(
-      'organizations:react-concurrent-renderer-enabled'
-    ) ?? false
-  );
 }
 
 export function isFilteredRequestErrorEvent(event: Event): boolean {

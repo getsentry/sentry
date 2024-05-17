@@ -4,29 +4,38 @@ import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
+import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 interface EventTagTreeRowConfig {
+  // Omits the dropdown of actions applicable to this tag
   disableActions?: boolean;
+  // Omit error styling from being displayed, even if context is invalid
+  disableErrors?: boolean;
+  // Displays tag value as plain text, rather than a hyperlink if applicable
   disableRichValue?: boolean;
 }
 
 export interface EventTagsTreeRowProps {
   content: TagTreeContent;
   event: Event;
-  projectSlug: string;
+  project: Project;
   tagKey: string;
   config?: EventTagTreeRowConfig;
   isLast?: boolean;
@@ -37,17 +46,16 @@ export default function EventTagsTreeRow({
   event,
   content,
   tagKey,
-  projectSlug,
+  project,
   spacerCount = 0,
   isLast = false,
   config = {},
   ...props
 }: EventTagsTreeRowProps) {
-  const organization = useOrganization();
   const originalTag = content.originalTag;
-  const tagMeta = content.meta?.value?.[''];
-  const tagErrors = tagMeta?.err ?? [];
-  const hasTagErrors = tagErrors.length > 0 && !config?.disableActions;
+  const tagErrors = content.meta?.value?.['']?.err ?? [];
+  const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
+  const hasStem = !isLast && objectIsEmpty(content.subtree);
 
   if (!originalTag) {
     return (
@@ -55,7 +63,7 @@ export default function EventTagsTreeRow({
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
-              <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+              <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
               <TreeBranchIcon hasErrors={hasTagErrors} />
             </Fragment>
           )}
@@ -65,27 +73,13 @@ export default function EventTagsTreeRow({
       </TreeRow>
     );
   }
-  const tagValue =
-    originalTag.key === 'release' && !config?.disableRichValue ? (
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={projectSlug}
-        releaseVersion={content.value}
-        showUnderline
-        underlineColor="linkUnderline"
-      >
-        <Version version={content.value} truncate />
-      </VersionHoverCard>
-    ) : (
-      <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
-    );
 
   const tagActions = hasTagErrors ? (
     <TreeValueErrors data-test-id="tag-tree-row-errors">
       <AnnotatedTextErrors errors={tagErrors} />
     </TreeValueErrors>
   ) : (
-    <EventTagsTreeRowDropdown content={content} event={event} />
+    <EventTagsTreeRowDropdown content={content} event={event} project={project} />
   );
 
   return (
@@ -93,7 +87,7 @@ export default function EventTagsTreeRow({
       <TreeKeyTrunk spacerCount={spacerCount}>
         {spacerCount > 0 && (
           <Fragment>
-            <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
             <TreeBranchIcon hasErrors={hasTagErrors} />
           </Fragment>
         )}
@@ -103,7 +97,14 @@ export default function EventTagsTreeRow({
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>
-        <TreeValue hasErrors={hasTagErrors}>{tagValue}</TreeValue>
+        <TreeValue hasErrors={hasTagErrors}>
+          <EventTagsTreeValue
+            config={config}
+            content={content}
+            event={event}
+            project={project}
+          />
+        </TreeValue>
         {!config?.disableActions && tagActions}
       </TreeValueTrunk>
     </TreeRow>
@@ -111,11 +112,13 @@ export default function EventTagsTreeRow({
 }
 
 function EventTagsTreeRowDropdown({
-  event,
   content,
-}: Pick<EventTagsTreeRowProps, 'content' | 'event'>) {
+  event,
+  project,
+}: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const router = useRouter();
+  const {mutate: saveTag} = useMutateProject({organization, project});
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
 
@@ -123,9 +126,19 @@ function EventTagsTreeRowDropdown({
     return null;
   }
 
-  const referrer = 'event-tags-tree';
+  const referrer = 'event-tags-table';
+  const highlightTagSet = new Set(project?.highlightTags ?? []);
+  const hideAddHighlightsOption =
+    // Check for existing highlight record to prevent replacing all with a single tag if we receive a project summary (instead of a detailed project)
+    project?.highlightTags &&
+    // Skip tags already highlighted
+    highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization,
+    project,
+  });
 
   return (
     <TreeValueDropdown
@@ -160,6 +173,16 @@ function EventTagsTreeRowDropdown({
               `/organizations/${organization.slug}/issues/${searchQuery}`,
               router
             );
+          },
+        },
+        {
+          key: 'add-to-highlights',
+          label: t('Add to event highlights'),
+          hidden: hideAddHighlightsOption || !isProjectAdmin,
+          onAction: () => {
+            saveTag({
+              highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
+            });
           },
         },
         {
@@ -216,6 +239,86 @@ function EventTagsTreeRowDropdown({
   );
 }
 
+function EventTagsTreeValue({
+  config,
+  content,
+  event,
+  project,
+}: Pick<EventTagsTreeRowProps, 'config' | 'content' | 'event' | 'project'>) {
+  const organization = useOrganization();
+  const {originalTag} = content;
+  const tagMeta = content.meta?.value?.[''];
+  if (!originalTag) {
+    return null;
+  }
+
+  const defaultValue = (
+    <EventTagsValue tag={originalTag} meta={tagMeta} withOnlyFormattedText />
+  );
+
+  if (config?.disableRichValue) {
+    return defaultValue;
+  }
+
+  let tagValue = defaultValue;
+  const referrer = 'event-tags-table';
+  switch (originalTag.key) {
+    case 'release':
+      tagValue = (
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={project.slug}
+          releaseVersion={content.value}
+          showUnderline
+          underlineColor="linkUnderline"
+        >
+          <Version version={content.value} truncate shouldWrapText />
+        </VersionHoverCard>
+      );
+      break;
+    case 'transaction':
+      const transactionQuery = qs.stringify({
+        project: event.projectID,
+        transaction: content.value,
+        referrer,
+      });
+      const transactionDestination = `/organizations/${organization.slug}/performance/summary/?${transactionQuery}`;
+      tagValue = (
+        <TagLinkText>
+          <Link to={transactionDestination}>{content.value}</Link>
+        </TagLinkText>
+      );
+      break;
+    case 'replayId':
+    case 'replay_id':
+      const replayQuery = qs.stringify({referrer});
+      const replayDestination = `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`;
+      tagValue = (
+        <TagLinkText>
+          <Link to={replayDestination}>{content.value}</Link>
+        </TagLinkText>
+      );
+      break;
+    default:
+      tagValue = defaultValue;
+  }
+
+  return !isUrl(content.value) ? (
+    tagValue
+  ) : (
+    <TagLinkText>
+      <ExternalLink
+        onClick={e => {
+          e.preventDefault();
+          openNavigateToExternalLinkModal({linkText: content.value});
+        }}
+      >
+        {content.value}
+      </ExternalLink>
+    </TagLinkText>
+  );
+}
+
 const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${space(0.5)};
   padding-left: ${space(1)};
@@ -245,12 +348,13 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
     ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
 `;
 
-const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
+const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (!p.isLast ? p.theme.border : 'transparent')};
+  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
   margin-right: -1px;
   height: 100%;
+  width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
@@ -268,8 +372,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   display: grid;
   height: 100%;
   align-items: center;
-  grid-template-columns: ${p =>
-    p.spacerCount > 0 ? `${(p.spacerCount - 1) * 20 + 3}px 1rem 1fr` : '1fr'};
+  grid-template-columns: ${p => (p.spacerCount > 0 ? `auto 1rem 1fr` : '1fr')};
 `;
 
 const TreeValueTrunk = styled('div')`
@@ -319,4 +422,9 @@ const TreeValueDropdown = styled(DropdownMenu)`
 const TreeValueErrors = styled('div')`
   height: 20px;
   margin-right: ${space(0.75)};
+`;
+
+const TagLinkText = styled('span')`
+  color: ${p => p.theme.linkColor};
+  margin: 0;
 `;

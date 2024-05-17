@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Protocol, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
@@ -21,7 +21,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -36,6 +36,7 @@ from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -89,18 +90,12 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
         if projects is not None:
-            # TODO - Cleanup Subscription Project Mapping
-            queryset = queryset.filter(
-                Q(snuba_query__subscriptions__project__in=projects) | Q(projects__in=projects)
-            ).distinct()
+            queryset = queryset.filter(projects__in=projects).distinct()
 
         return queryset
 
     def fetch_for_project(self, project):
-        # TODO - Cleanup Subscription Project Mapping
-        return self.filter(
-            Q(snuba_query__subscriptions__project=project) | Q(projects=project)
-        ).distinct()
+        return self.filter(projects=project).distinct()
 
     @classmethod
     def __build_subscription_cache_key(cls, subscription_id):
@@ -192,7 +187,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         return []
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleExcludedProjects(Model):
     """
     Excludes a specific project from an AlertRule
@@ -212,7 +207,7 @@ class AlertRuleExcludedProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleProjects(Model):
     """
     Specify a project for the AlertRule
@@ -235,7 +230,7 @@ class AlertRuleMonitorType(Enum):
     ACTIVATED = 1
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -293,6 +288,21 @@ class AlertRule(Model):
             pass
         return None
 
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned Protocol"""
+        return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned Protocol"""
+        self.team_id = None
+        self.user_id = None
+        if actor and actor.is_user:
+            self.user_id = actor.id
+        if actor and actor.is_team:
+            self.team_id = actor.id
+
     def get_audit_log_data(self):
         return {"label": self.name}
 
@@ -326,7 +336,7 @@ class AlertRule(Model):
                 projects,
                 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 self.snuba_query,
-                query_extra,
+                query_extra=query_extra,
             )
             if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
                 # NOTE: Activated Alert Rules are conditionally subscribed
@@ -382,7 +392,7 @@ class AlertRuleThresholdType(Enum):
     BELOW = 1
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleTrigger(Model):
     """
     This model represents the threshold trigger for an AlertRule
@@ -411,7 +421,7 @@ class AlertRuleTrigger(Model):
         unique_together = (("alert_rule", "label"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleTriggerExclusion(Model):
     """
     Allows us to define a specific trigger to be excluded from a query subscription
@@ -438,10 +448,10 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
-    This model represents an action that occurs when a trigger is fired. This is
+    This model represents an action that occurs when a trigger (over/under) is fired. This is
     typically some sort of notification.
     """
 
@@ -564,7 +574,7 @@ class AlertRuleActivityType(Enum):
     DEACTIVATED = 8
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleActivity(Model):
     """
     Provides an audit log of activity for the alert rule
@@ -595,6 +605,15 @@ def update_alert_activations(
     )
 
     if now > subscription_end:
+        logger.info(
+            "alert activation monitor finishing",
+            extra={
+                "subscription_window": subscription.snuba_query.time_window,
+                "date_added": subscription.date_added,
+                "now": now,
+            },
+        )
+
         alert_rule.activations.filter(finished_at=None, query_subscription=subscription).update(
             metric_value=value, finished_at=now
         )

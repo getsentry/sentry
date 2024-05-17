@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -11,6 +10,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -23,7 +23,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import {
   COLD_START_TYPE,
@@ -31,10 +30,12 @@ import {
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -55,6 +56,7 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
+  const moduleURL = useModuleURL('app_start');
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -145,9 +147,7 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/app-startup/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -161,6 +161,15 @@ export function SpanOperationTable({
         <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
+      );
+    }
+
+    if (data.meta.fields[column.key] === 'percent_change') {
+      return (
+        <PercentChangeCell
+          deltaValue={parseFloat(row[column.key] as string)}
+          preferredPolarity="-"
+        />
       );
     }
 

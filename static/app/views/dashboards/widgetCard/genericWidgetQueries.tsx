@@ -198,9 +198,13 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
     widget.queries.forEach(query => {
-      query.conditions =
-        query.conditions +
-        (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
+      if (dashboardFilterConditions) {
+        // If there is no base query, there's no need to add parens
+        if (query.conditions) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+      }
     });
     return widget;
   }

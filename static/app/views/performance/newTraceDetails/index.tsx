@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -25,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
@@ -56,12 +56,11 @@ import {
   searchInTraceTreeTokens,
 } from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
 import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
-import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -71,9 +70,9 @@ import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
-import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
+import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
@@ -136,14 +135,34 @@ export function TraceView() {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
+    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-    return {start, end, statsPeriod, useSpans: 1};
+    return {start, end, statsPeriod, timestamp, useSpans: 1};
   }, []);
 
   const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod} = queryParams;
+    const {start, end, statsPeriod, timestamp} = queryParams;
+
+    let startTimeStamp = start;
+    let endTimeStamp = end;
+
+    // If timestamp exists in the query params, we want to use it to set the start and end time
+    // with a buffer of 1.5 days, for retrieving events belonging to the trace.
+    if (timestamp) {
+      const parsedTimeStamp = Number(timestamp);
+
+      if (isNaN(parsedTimeStamp)) {
+        throw new Error('Invalid timestamp');
+      }
+
+      const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
+      const dateFromTimestamp = new Date(parsedTimeStamp * 1000);
+
+      startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
+      endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
+    }
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -153,9 +172,9 @@ export function TraceView() {
       query: `trace:${traceSlug}`,
       projects: [ALL_ACCESS_PROJECTS],
       version: 2,
-      start,
-      end,
-      range: statsPeriod,
+      start: startTimeStamp,
+      end: endTimeStamp,
+      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
     });
   }, [queryParams, traceSlug]);
 
@@ -330,13 +349,6 @@ function TraceViewContent(props: TraceViewContentProps) {
 
     const newTabs = [TRACE_TAB];
 
-    if (tree.profiled_events.size > 0) {
-      newTabs.push({
-        node: 'profiles',
-        label: 'Profiles',
-      });
-    }
-
     if (tree.vitals.size > 0) {
       const types = Array.from(tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
@@ -344,6 +356,13 @@ function TraceViewContent(props: TraceViewContentProps) {
       newTabs.push({
         ...VITALS_TAB,
         label,
+      });
+    }
+
+    if (tree.profiled_events.size > 0) {
+      newTabs.push({
+        node: 'profiles',
+        label: 'Profiles',
       });
     }
 
@@ -488,6 +507,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      if (traceStateRef.current.preferences.drawer.minimized) {
+        traceDispatch({type: 'minimize drawer', payload: false});
+      }
       setRowAsFocused(node, event, traceStateRef.current.search.resultsLookup, null, 0);
 
       if (traceStateRef.current.search.resultsLookup.has(node)) {
@@ -637,6 +659,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      const query = qs.parse(location.search);
+
+      if (query.fov && typeof query.fov === 'string') {
+        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+      }
+
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
 
@@ -780,14 +808,6 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
       />
-      <TraceHeader
-        tree={tree}
-        rootEventResults={rootEvent}
-        metaResults={props.metaResults}
-        organization={props.organization}
-        traces={props.trace}
-        traceID={props.traceSlug}
-      />
       <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
@@ -823,6 +843,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            metaResults={props.metaResults}
             traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
@@ -851,11 +872,24 @@ function TraceResetZoomButton(props: {
   }, [props.viewManager, props.organization]);
 
   return (
-    <Button size="xs" onClick={onResetZoom}>
+    <ResetZoomButton
+      size="xs"
+      onClick={onResetZoom}
+      ref={props.viewManager.registerResetZoomRef}
+    >
       {t('Reset Zoom')}
-    </Button>
+    </ResetZoomButton>
   );
 }
+
+const ResetZoomButton = styled(Button)`
+  transition: opacity 0.2s 0.5s ease-in-out;
+
+  &[disabled] {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+`;
 
 const TraceExternalLayout = styled('div')`
   display: flex;
@@ -871,7 +905,8 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: 0 ${space(2)} 0 ${space(2)};
+  padding: ${space(2)};
+
   background-color: ${p => p.theme.background};
 
   --info: ${p => p.theme.purple400};
@@ -898,8 +933,7 @@ const TraceGrid = styled('div')<{
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */

@@ -37,13 +37,61 @@ describe('useProfileEvents', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body,
-      match: [MockApiClient.matchQuery({dataset: 'profiles'})],
+      match: [MockApiClient.matchQuery({dataset: 'profiles', query: 'transaction:foo'})],
     });
 
     const {result} = renderHook(useProfileEvents, {
       wrapper: TestContext,
       initialProps: {
         fields,
+        query: 'transaction:foo',
+        sort: {key: 'count()', order: 'desc' as const},
+        referrer: '',
+      },
+    });
+
+    await waitFor(() => result.current.isSuccess);
+    expect(result.current.data).toEqual(body);
+  });
+
+  it('handles querying the api using discover', async function () {
+    const {organization: organizationUsingTransactions} = initializeOrg({
+      organization: {features: ['profiling-using-transactions']},
+    });
+
+    function TestContextUsingTransactions({children}: {children?: ReactNode}) {
+      return (
+        <QueryClientProvider client={makeTestQueryClient()}>
+          <OrganizationContext.Provider value={organizationUsingTransactions}>
+            {children}
+          </OrganizationContext.Provider>
+        </QueryClientProvider>
+      );
+    }
+
+    const fields = ['count()'];
+
+    const body: EventsResults<(typeof fields)[number]> = {
+      data: [],
+      meta: {fields: {}, units: {}},
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          query: 'has:profile.id (transaction:foo)',
+        }),
+      ],
+    });
+
+    const {result} = renderHook(useProfileEvents, {
+      wrapper: TestContextUsingTransactions,
+      initialProps: {
+        fields,
+        query: 'transaction:foo',
         sort: {key: 'count()', order: 'desc' as const},
         referrer: '',
       },

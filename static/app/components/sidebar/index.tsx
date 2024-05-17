@@ -377,6 +377,7 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/traces/`}
                   id="performance-trace-explorer"
                   icon={<SubitemDot collapsed />}
+                  isAlpha
                 />
               </Feature>
             </SidebarAccordion>
@@ -407,16 +408,16 @@ function Sidebar() {
     />
   );
 
-  const aiMonitoring = hasOrganization && (
+  const llmMonitoring = hasOrganization && (
     <Feature features="ai-analytics" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconRobot />}
-        label={t('AI Monitoring')}
+        label={t('LLM Monitoring')}
         isAlpha
         variant="short"
-        to={`/organizations/${organization.slug}/ai-monitoring/`}
-        id="ai-monitoring"
+        to={`/organizations/${organization.slug}/llm-monitoring/`}
+        id="llm-monitoring"
       />
     </Feature>
   );
@@ -439,7 +440,6 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconMegaphone />}
         label={t('User Feedback')}
-        isBeta
         variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
@@ -582,7 +582,7 @@ function Sidebar() {
                   {profiling}
                   {metrics}
                   {replays}
-                  {aiMonitoring}
+                  {llmMonitoring}
                   {feedback}
                   {monitors}
                   {alerts}
