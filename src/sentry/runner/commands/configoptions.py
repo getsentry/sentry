@@ -259,33 +259,31 @@ def sync(ctx: click.Context) -> None:
                     presenter_delegator.flush()
                     raise
             else:
-                if options.isset(opt.name):
-                    if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
-                        if not dry_run:
-                            try:
-                                options.delete(opt.name)
-                            except Exception:
-                                metrics.incr(
-                                    "options_automator.run",
-                                    amount=2,
-                                    tags={"status": "update_failed"},
-                                    sample_rate=1.0,
-                                )
-                                presenter_delegator.flush()
-                                raise
-                        presenter_delegator.unset(opt.name)
-                    else:
-                        # If an option is set on disk, but not passed into configoptions,
-                        # we can safely continue.
-                        if options.is_set_on_disk(opt.name):
-                            continue
-                        # isset() will pull from local cache, which gets updated with every get() call.
-                        # configoptions is only concerned with removing the option from the db.
-                        elif not options.set_in_db(opt.name):
-                            continue
-                        else:
-                            presenter_delegator.drift(opt.name, options.get(opt.name))
-                            drift_found = True
+                last_updated = options.get_last_update_channel(opt.name)
+
+                # for options that are set on disk, last_updated should be None
+                if last_updated == options.UpdateChannel.AUTOMATOR:
+                    if not dry_run:
+                        try:
+                            options.delete(opt.name)
+                        except Exception:
+                            metrics.incr(
+                                "options_automator.run",
+                                amount=2,
+                                tags={"status": "update_failed"},
+                                sample_rate=1.0,
+                            )
+                            presenter_delegator.flush()
+                            raise
+                    presenter_delegator.unset(opt.name)
+                elif last_updated == options.UpdateChannel.CLI:
+                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    drift_found = True
+                elif last_updated == options.UpdateChannel.UNKNOWN:
+                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    drift_found = True
+                else:
+                    continue
 
     if invalid_options:
         status = "update_failed"

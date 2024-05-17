@@ -71,7 +71,6 @@ all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
 is_set_on_disk = default_manager.is_set_on_disk
-set_in_db = default_manager.set_in_db
 lookup_key = default_manager.lookup_key
 get_last_update_channel = default_manager.get_last_update_channel
 can_update = default_manager.can_update

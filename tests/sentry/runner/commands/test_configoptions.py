@@ -234,8 +234,6 @@ class ConfigOptionsTest(CliTestCase):
 
         assert expected_output in rv.output
 
-        assert not options.set_in_db("str_option")
-
         assert options.get("int_option") == 20
         assert options.get("str_option") == "blabla"
         assert options.get("map_option") == {
@@ -243,9 +241,6 @@ class ConfigOptionsTest(CliTestCase):
             "b": 2,
         }
         assert options.get("list_option") == [1, 2]
-
-        assert not options.set_in_db("str_option")
-        assert not options.set_in_db("to_unset_option")
 
         # assert there's no drift after unsetting
         rv = self.invoke(

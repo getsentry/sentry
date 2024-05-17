@@ -259,7 +259,9 @@ class OptionsManager:
 
     def isset(self, key: str) -> bool:
         """
-        Check if a key exists on the local cache, network cache, and db in that order.
+        Check if a key is set on the local cache, network cache, or db in that order.
+        Keep in mind that if an option is deleted, any new calls to options.get()
+        will repopulate the cache, resulting in this method to return true.
         """
         opt = self.lookup_key(key)
 
@@ -269,13 +271,6 @@ class OptionsManager:
                 return True
 
         return self.is_set_on_disk(key)
-
-    def set_in_db(self, key: str) -> bool:
-        """
-        Check if a key has been set in the database.
-        """
-        opt = self.lookup_key(key)
-        return self.store.get_store(opt) is not None
 
     def is_set_on_disk(self, key: str) -> bool:
         """
