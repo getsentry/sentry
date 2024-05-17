@@ -21,10 +21,17 @@ import {useRoutes} from 'sentry/utils/useRoutes';
  */
 export const OrganizationContext = createContext<Organization | null>(null);
 
+interface OrganizationLoaderContextProps {
+  isLoading: boolean;
+  loader: () => void;
+}
+
 /**
  * Holds a function to load the organization.
  */
-const OrganizationLoaderContext = createContext<null | (() => void)>(null);
+const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps | null>(
+  null
+);
 
 interface Props {
   children: React.ReactNode;
@@ -35,7 +42,7 @@ interface Props {
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const loadOrganization = useContext(OrganizationLoaderContext);
+  const loadOrganization = useContext(OrganizationLoaderContext)?.loader;
 
   // XXX(epurkhiser): The loadOrganization function is stable as long as the
   // organization slug is stable. A change to the organization slug will cause
