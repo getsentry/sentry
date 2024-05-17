@@ -1528,35 +1528,36 @@ def _save_aggregate(
                     )
                 )
 
-                span.set_tag("outcome", "new_group")
-                metric_tags["outcome"] = "new_group"
+                span.set_tag("outcome", "new_group" if is_new else "seer_match")
+                metric_tags["outcome"] = "new_group" if is_new else "seer_match"
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
                     result="no_match",
                 )
 
-                metrics.incr(
-                    "group.created",
-                    skip_internal=True,
-                    tags={
-                        "platform": event.platform or "unknown",
-                        "sdk": normalized_sdk_tag_from_event(event),
-                    },
-                )
-
-                # This only applies to events with stacktraces
-                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-                if frame_mix:
+                if is_new:
                     metrics.incr(
-                        "grouping.in_app_frame_mix",
-                        sample_rate=1.0,
+                        "group.created",
+                        skip_internal=True,
                         tags={
                             "platform": event.platform or "unknown",
                             "sdk": normalized_sdk_tag_from_event(event),
-                            "frame_mix": frame_mix,
                         },
                     )
+
+                    # This only applies to events with stacktraces
+                    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                    if frame_mix:
+                        metrics.incr(
+                            "grouping.in_app_frame_mix",
+                            sample_rate=1.0,
+                            tags={
+                                "platform": event.platform or "unknown",
+                                "sdk": normalized_sdk_tag_from_event(event),
+                                "frame_mix": frame_mix,
+                            },
+                        )
 
                 return GroupInfo(group, is_new, is_regression)
 
