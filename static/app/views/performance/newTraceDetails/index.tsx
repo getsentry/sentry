@@ -72,6 +72,18 @@ import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
+function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
+  if (Array.isArray(maybePath)) {
+    return maybePath;
+  }
+
+  if (typeof maybePath === 'string') {
+    return [maybePath as TraceTree.NodePath];
+  }
+
+  return null;
+}
+
 function logTraceType(type: TraceType, organization: Organization) {
   switch (type) {
     case TraceType.BROKEN_SUBTRACES:
@@ -224,6 +236,8 @@ function TraceViewContent(props: TraceViewContentProps) {
   const rootEvent = useTraceRootEvent(props.trace);
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
+
+  const initializedRef = useRef(false);
   const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
     null
   );
@@ -372,6 +386,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
     // We only want to update the tabs when the tree changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
+
+  useLayoutEffect(() => {
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
+
+    if (maybeQueue || queryParams.eventId) {
+      scrollQueueRef.current = {
+        eventId: queryParams.eventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    }
   }, [tree]);
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
@@ -792,6 +818,26 @@ function TraceViewContent(props: TraceViewContentProps) {
     logTraceType(shape, organization);
   }, [tree, shape, organization]);
 
+  useLayoutEffect(() => {
+    if (!tree.root?.space) {
+      return undefined;
+    }
+
+    initializedRef.current = true;
+    viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
+
+    // Whenever the timeline changes, update the trace space
+    const onTraceTimelineChange = (s: [number, number]) => {
+      viewManager.updateTraceSpace(s[0], s[1]);
+    };
+
+    tree.on('trace timeline change', onTraceTimelineChange);
+
+    return () => {
+      tree.off('trace timeline change', onTraceTimelineChange);
+    };
+  }, [viewManager, tree]);
+
   return (
     <TraceExternalLayout>
       <TraceUXChangeAlert />
@@ -820,6 +866,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_state={traceState}
             trace_dispatch={traceDispatch}
             scrollQueueRef={scrollQueueRef}
+            initializedRef={initializedRef}
             onRowClick={onRowClick}
             onTraceLoad={onTraceLoad}
             onTraceSearch={onTraceSearch}

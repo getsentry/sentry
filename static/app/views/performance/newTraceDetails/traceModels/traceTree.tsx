@@ -1369,10 +1369,25 @@ export class TraceTree {
           const new_start = view[0];
           const new_end = view[1];
 
+          // Update the space of the tree and the trace root node
           this.root.space = [
             Math.min(new_start * node.multiplier, this.root.space[0]),
             Math.max(new_end * node.multiplier - prev_start, this.root.space[1]),
           ];
+          this.root.children[0].space = [...this.root.space];
+
+          // If the parent is a transaction node, we need to update its space as well
+          if (isTransactionNode(node)) {
+            node.space = [...this.root.space];
+            // If the parent is not a transaction node, then we'll find the first one
+            // in the parent chain and update its space.
+          } else {
+            const parentTransaction = node.parent_transaction;
+            if (parentTransaction) {
+              parentTransaction.space = [...this.root.space];
+            }
+          }
+
           if (prev_start !== this.root.space[0] || prev_end !== this.root.space[1]) {
             this.dispatch('trace timeline change', this.root.space);
           }

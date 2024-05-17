@@ -216,6 +216,18 @@ export class VirtualizedViewManager {
     }
   }
 
+  updateTraceSpace(start: number, width: number) {
+    if (this.trace_space.width === width && this.to_origin === start) {
+      return;
+    }
+
+    this.to_origin = start;
+    this.trace_space = new TraceView(0, 0, width, 1);
+
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPxMatrix();
+  }
+
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
     this.to_origin = space[0];
 
