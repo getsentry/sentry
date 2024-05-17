@@ -16,26 +16,25 @@ import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-/**
- * Holds the current organization if loaded.
- */
-export const OrganizationContext = createContext<Organization | null>(null);
-
 interface OrganizationLoaderContextProps {
   isLoading: boolean;
   loadOrganization: () => void;
 }
 
-/**
- * Holds a function to load the organization.
- */
-const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps | null>(
-  null
-);
-
 interface Props {
   children: React.ReactNode;
 }
+
+/**
+ * Holds the current organization if loaded.
+ */
+export const OrganizationContext = createContext<Organization | null>(null);
+
+/**
+ * Holds a function to load the organization.
+ */
+export const OrganizationLoaderContext =
+  createContext<OrganizationLoaderContextProps | null>(null);
 
 /**
  * Ensures that an organization is loaded when the hook is used. This will only
@@ -92,9 +91,14 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
+    // Track when the organization finishes loading so OrganizationLoaderContext
+    // is up-to-date
     setIsLoading(true);
-    await fetchOrganizationDetails(api, orgSlug, false, true);
-    setIsLoading(false);
+    try {
+      await fetchOrganizationDetails(api, orgSlug, false, true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the
