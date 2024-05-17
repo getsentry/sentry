@@ -24,7 +24,6 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
-import {BASE_URL} from 'sentry/views/performance/mobile/appStarts/settings';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -228,7 +227,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, ROUTE_NAMES['app-startup']].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <ScreenSummary />
