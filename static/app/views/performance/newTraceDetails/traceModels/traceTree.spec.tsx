@@ -603,6 +603,31 @@ describe('TreeNode', () => {
       });
     });
 
+    it('adjusts trace space when spans exceed the bounds of a trace', () => {
+      const adjusted = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 1,
+              timestamp: 3,
+            }),
+          ],
+          orphan_errors: [],
+        })
+      );
+
+      expect(adjusted.root.space).toEqual([1000, 2000]);
+
+      const [_, adjusted_space] = TraceTree.FromSpans(
+        adjusted.root,
+        makeEvent(),
+        [makeSpan({start_timestamp: 0.5, timestamp: 3.5})],
+        {sdk: undefined}
+      );
+
+      expect(adjusted_space).toEqual([0.5, 3.5]);
+    });
+
     it('inserts no data node when txn has no span children', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -977,7 +1002,7 @@ describe('TraceTree', () => {
       {project_slug: '', event_id: ''}
     );
 
-    const node = TraceTree.FromSpans(
+    const [node] = TraceTree.FromSpans(
       root,
       makeEvent(),
       [
@@ -1029,7 +1054,7 @@ describe('TraceTree', () => {
       )
     );
 
-    const node = TraceTree.FromSpans(
+    const [node] = TraceTree.FromSpans(
       root,
       makeEvent(),
       [
@@ -1079,7 +1104,7 @@ describe('TraceTree', () => {
       start = node;
     }
 
-    const node = TraceTree.FromSpans(
+    const [node] = TraceTree.FromSpans(
       root,
       makeEvent(),
       [
@@ -1109,7 +1134,7 @@ describe('TraceTree', () => {
     );
 
     const date = new Date().getTime();
-    const node = TraceTree.FromSpans(
+    const [node] = TraceTree.FromSpans(
       root,
       makeEvent(),
       [
@@ -1149,7 +1174,7 @@ describe('TraceTree', () => {
     );
 
     const date = new Date().getTime();
-    const node = TraceTree.FromSpans(
+    const [node] = TraceTree.FromSpans(
       root,
       makeEvent(),
       [
