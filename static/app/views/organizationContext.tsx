@@ -94,7 +94,6 @@ export function OrganizationContextProvider({children}: Props) {
     // Track when the organization finishes loading so OrganizationLoaderContext
     // is up-to-date
     setIsLoading(true);
-    setIsLoading(true);
     fetchOrganizationDetails(api, orgSlug, false, true).finally(() =>
       setIsLoading(false)
     );
