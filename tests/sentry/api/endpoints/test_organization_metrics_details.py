@@ -1,5 +1,3 @@
-from datetime import timedelta
-from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +9,7 @@ from sentry.sentry_metrics.use_case_id_registry import (
 )
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -84,7 +83,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
         )
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=[UseCaseID.SESSIONS],
         )
 
         get_metrics_meta.reset_mock()
@@ -98,7 +99,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
         )
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=[UseCaseID.SESSIONS],
         )
 
     @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
@@ -110,10 +113,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.METRIC_STATS.value
         )
         get_metrics_meta.assert_called_once_with(
+            organization=self.organization,
             projects=[self.project],
             use_case_ids=[UseCaseID.METRIC_STATS],
-            start=mock.ANY,
-            end=mock.ANY,
         )
 
         get_metrics_meta.reset_mock()
@@ -146,7 +148,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=self.user, superuser=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=all_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization, projects=[self.project], use_case_ids=all_use_case_ids
         )
 
         get_metrics_meta.reset_mock()
@@ -155,7 +157,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=self.user, staff=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=public_use_case_ids,
         )
 
         get_metrics_meta.reset_mock()
@@ -168,7 +172,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=normal_user)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=public_use_case_ids,
         )
 
     def test_metrics_details_for_custom_metrics(self):
@@ -215,30 +221,40 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert data[2]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "sum",
+        ]
 
-    def test_metrics_details_with_date_range(self):
-        metrics = (
-            ("c:custom/clicks_1@none", 0),
-            ("c:custom/clicks_2@none", 1),
-            ("c:custom/clicks_3@none", 7),
-        )
-        for mri, days in metrics:
-            self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                "counter",
-                mri,
-                {"transaction": "/hello"},
-                int((self.now - timedelta(days=days)).timestamp()),
-                10,
-                UseCaseID.CUSTOM,
-            )
-
-        for stats_period, expected_count in (("1d", 1), ("2d", 2), ("2w", 3)):
+        with override_options(
+            {
+                "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs": [
+                    self.organization.id
+                ]
+            },
+        ):
             response = self.get_success_response(
-                self.organization.slug,
-                project=self.project.id,
-                useCase="custom",
-                statsPeriod=stats_period,
+                self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
             )
-            assert len(response.data) == expected_count
+            data = sorted(response.data, key=lambda d: d["mri"])
+            assert sorted(data[1]["operations"]) == [
+                "avg",
+                "count",
+                "histogram",
+                "max",
+                "max_timestamp",
+                "min",
+                "min_timestamp",
+                "p50",
+                "p75",
+                "p90",
+                "p95",
+                "p99",
+                "sum",
+            ]

@@ -7,6 +7,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 from uuid import uuid4
 
+import orjson
 import responses
 from django.test import override_settings
 from rest_framework import status
@@ -15,7 +16,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
-from sentry.models.actor import get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -24,7 +24,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channe
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
+from sentry.types.actor import Actor
 
 
 class ProjectRuleBaseTestCase(APITestCase):
@@ -107,7 +107,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = get_actor_for_user(self.user).get_actor_identifier()
+        owner = f"user:{self.user.id}"
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
@@ -140,7 +140,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == name
-        assert rule.owner == get_actor_for_user(self.user)
+        assert rule.owner_user_id == self.user.id
+        assert rule.owner_team_id is None
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
 
@@ -358,7 +359,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
@@ -385,7 +386,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
@@ -393,7 +394,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
             "channel": self.channel_id,
             "unfurl_links": False,
             "unfurl_media": False,
@@ -403,7 +404,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/chat.postMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(payload),
+            body=orjson.dumps(payload),
         )
         response = self.get_success_response(
             self.organization.slug,
@@ -423,7 +424,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         data = parse_qs(responses.calls[1].request.body)
         message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
         assert data["text"][0] == message
-        rendered_blocks = json.loads(data["blocks"][0])
+        rendered_blocks = orjson.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message
         assert (
             rendered_blocks[1]["elements"][0]["text"]
@@ -532,7 +533,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             name="test",
-            owner=other_team.actor.get_actor_identifier(),
+            owner=f"team:{other_team.id}",
             actionMatch="any",
             filterMatch="any",
             actions=[],
@@ -558,7 +559,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert response.data["owner"] == f"team:{team.id}"
 
         rule = Rule.objects.get(id=response.data["id"])
-        assert rule.owner_id
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
@@ -760,7 +760,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
-            "owner": get_actor_for_user(self.user).id,
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),
@@ -768,8 +767,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
-            "owner_user_id": self.user.id,
-            "owner_team_id": None,
+            "owner": Actor.from_id(user_id=self.user.id),
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]

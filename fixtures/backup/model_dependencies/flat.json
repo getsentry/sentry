@@ -44,12 +44,7 @@
     "sentry.project",
     "sentry.user"
   ],
-  "sentry.actor": [
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.alertrule": [
-    "sentry.actor",
     "sentry.organization",
     "sentry.snubaquery",
     "sentry.team",
@@ -326,7 +321,6 @@
     "sentry.project"
   ],
   "sentry.grouphistory": [
-    "sentry.actor",
     "sentry.group",
     "sentry.organization",
     "sentry.project",
@@ -569,7 +563,8 @@
     "sentry.projectdebugfile"
   ],
   "sentry.project": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.projecttemplate"
   ],
   "sentry.projectartifactbundle": [
     "sentry.artifactbundle",
@@ -611,6 +606,12 @@
   "sentry.projectteam": [
     "sentry.project",
     "sentry.team"
+  ],
+  "sentry.projecttemplate": [
+    "sentry.organization"
+  ],
+  "sentry.projecttemplateoption": [
+    "sentry.projecttemplate"
   ],
   "sentry.projecttransactionthreshold": [
     "sentry.organization",
@@ -735,7 +736,6 @@
     "sentry.project"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
     "sentry.project",
     "sentry.team",
@@ -785,9 +785,6 @@
   "sentry.sentryappinstallationtoken": [
     "sentry.apitoken",
     "sentry.sentryappinstallation"
-  ],
-  "sentry.sentryfunction": [
-    "sentry.organization"
   ],
   "sentry.sentryshot": [
     "sentry.organization"

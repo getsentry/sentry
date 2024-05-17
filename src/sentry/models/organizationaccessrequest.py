@@ -4,12 +4,12 @@ from django.urls import reverse
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationAccessRequest(Model):
     __relocation_scope__ = RelocationScope.Organization
 

@@ -1,9 +1,8 @@
-import {Link} from 'react-router';
 import * as qs from 'query-string';
 
+import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useRequestsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {
@@ -19,8 +18,8 @@ export function TransactionCell({
   transaction,
   transactionMethod,
 }: Props) {
+  const moduleURL = useRequestsModuleURL();
   const location = useLocation();
-  const organization = useOrganization();
 
   if (!transaction) {
     return NULL_DESCRIPTION;
@@ -32,9 +31,7 @@ export function TransactionCell({
       ? `${transactionMethod} ${transaction}`
       : transaction;
 
-  const pathname = normalizeUrl(
-    `/organizations/${organization.slug}/performance/http/domains/`
-  );
+  const pathname = `${moduleURL}/domains/`;
 
   const query = {
     ...location.query,

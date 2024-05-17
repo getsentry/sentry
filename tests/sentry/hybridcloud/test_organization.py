@@ -60,8 +60,9 @@ def basic_filled_out_org() -> tuple[Organization, list[User]]:
     return org, [owner, other_user]
 
 
-def parameterize_with_orgs(f: Callable):
-    return pytest.mark.parametrize("org_factory", [pytest.param(basic_filled_out_org)])(f)
+parameterize_with_orgs = pytest.mark.parametrize(
+    "org_factory", [pytest.param(basic_filled_out_org)]
+)
 
 
 def find_ordering(list_of_things: list[Any], e: Any) -> int:
@@ -76,7 +77,7 @@ def order_things_by_id(a: list[Any], b: list[Any]) -> None:
     a.sort(key=lambda i: find_ordering(b_ids, i.id))
 
 
-def assert_for_list(a: list[Any], b: list[Any], assertion: Callable) -> None:
+def assert_for_list(a: list[Any], b: list[Any], assertion: Callable[[Any, Any], None]) -> None:
     assert len(a) == len(b)
     order_things_by_id(a, b)
     for a_thing, b_thing in zip(a, b):
@@ -84,7 +85,7 @@ def assert_for_list(a: list[Any], b: list[Any], assertion: Callable) -> None:
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_team_equals(orm_team: Team, team: RpcTeam):
+def assert_team_equals(orm_team: Team, team: RpcTeam) -> None:
     assert team.id == orm_team.id
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
@@ -92,7 +93,7 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_project_equals(orm_project: Project, project: RpcProject):
+def assert_project_equals(orm_project: Project, project: RpcProject) -> None:
     assert project.id == orm_project.id
     assert project.status == orm_project.status
     assert project.slug == orm_project.slug
@@ -101,7 +102,9 @@ def assert_project_equals(orm_project: Project, project: RpcProject):
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_member: RpcTeamMember):
+def assert_team_member_equals(
+    orm_team_member: OrganizationMemberTeam, team_member: RpcTeamMember
+) -> None:
     assert team_member.id == orm_team_member.id
     assert team_member.team_id == orm_team_member.team_id
     assert team_member.role == orm_team_member.get_team_role()
@@ -115,7 +118,7 @@ def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_memb
 @assume_test_silo_mode(SiloMode.REGION)
 def assert_organization_member_equals(
     orm_organization_member: OrganizationMember, organization_member: RpcOrganizationMember
-):
+) -> None:
     assert organization_member.organization_id == orm_organization_member.organization_id
     assert organization_member.id == orm_organization_member.id
     assert organization_member.user_id == orm_organization_member.user_id
@@ -168,7 +171,7 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_get_organization_by_id_works(user_context: User | None, orm_org: Organization):
+def assert_get_organization_by_id_works(user_context: User | None, orm_org: Organization) -> None:
     assert (
         organization_service.get_organization_by_id(
             id=-2, user_id=user_context.id if user_context else None
@@ -195,7 +198,7 @@ def assert_get_organization_by_id_works(user_context: User | None, orm_org: Orga
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
-def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[User]]]):
+def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[User]]]) -> None:
     orm_org, orm_users = org_factory()
 
     for user_context in itertools.chain([None], orm_users):
@@ -203,7 +206,7 @@ def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_get_org_by_id_works(user_context: User | None, orm_org: Organization):
+def assert_get_org_by_id_works(user_context: User | None, orm_org: Organization) -> None:
     assert (
         organization_service.get_org_by_id(id=-2, user_id=user_context.id if user_context else None)
         is None
@@ -221,7 +224,7 @@ def assert_get_org_by_id_works(user_context: User | None, orm_org: Organization)
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
-def test_get_org_id(org_factory: Callable[[], tuple[Organization, list[User]]]):
+def test_get_org_id(org_factory: Callable[[], tuple[Organization, list[User]]]) -> None:
     orm_org, orm_users = org_factory()
 
     for user_context in itertools.chain([None], orm_users):
@@ -231,7 +234,7 @@ def test_get_org_id(org_factory: Callable[[], tuple[Organization, list[User]]]):
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
-def test_idempotency(org_factory: Callable[[], tuple[Organization, list[User]]]):
+def test_idempotency(org_factory: Callable[[], tuple[Organization, list[User]]]) -> None:
     orm_org, orm_users = org_factory()
     new_user = Factories.create_user()
 
@@ -253,7 +256,7 @@ def test_idempotency(org_factory: Callable[[], tuple[Organization, list[User]]])
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_options():
+def test_options() -> None:
     org = Factories.create_organization()
     organization_service.update_option(organization_id=org.id, key="test", value="a string")
     organization_service.update_option(organization_id=org.id, key="test2", value=False)
@@ -265,7 +268,7 @@ def test_options():
 
 
 class RpcOrganizationMemberTest(TestCase):
-    def test_get_audit_log_metadata(self):
+    def test_get_audit_log_metadata(self) -> None:
         org = self.create_organization(owner=self.user)
         user = self.create_user(email="foobar@sentry.io")
         member = self.create_member(user_id=user.id, role="owner", organization_id=org.id)
@@ -275,7 +278,7 @@ class RpcOrganizationMemberTest(TestCase):
 
 
 @django_db_all(transaction=True)
-def test_update_organization_member():
+def test_update_organization_member() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     rpc_member = organization_service.add_organization_member(
@@ -299,7 +302,7 @@ def test_update_organization_member():
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_count_members_without_sso():
+def test_count_members_without_sso() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     user_two = Factories.create_user(email="has.sso@sentry.io")
@@ -317,7 +320,7 @@ def test_count_members_without_sso():
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_send_sso_unlink_emails():
+def test_send_sso_unlink_emails() -> None:
     org = Factories.create_organization()
     user = Factories.create_user(email="test@sentry.io")
     user_two = Factories.create_user(email="two@sentry.io")

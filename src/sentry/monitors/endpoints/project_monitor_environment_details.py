@@ -15,11 +15,10 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.endpoints.base import ProjectMonitorEnvironmentEndpoint
-from sentry.monitors.endpoints.base_monitor_environment_details import (
-    MonitorEnvironmentDetailsMixin,
-)
 from sentry.monitors.serializers import MonitorSerializer
+
+from .base import ProjectMonitorEnvironmentEndpoint
+from .base_monitor_environment_details import MonitorEnvironmentDetailsMixin
 
 
 @region_silo_endpoint
@@ -36,8 +35,8 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
     @extend_schema(
         operation_id="Update a Monitor Environment for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
@@ -58,8 +57,8 @@ class ProjectMonitorEnvironmentDetailsEndpoint(
     @extend_schema(
         operation_id="Delete a Monitor Environment for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],

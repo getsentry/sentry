@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -10,10 +9,9 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -26,14 +24,18 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import {BASE_URL} from 'sentry/views/performance/mobile/appStarts/settings';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useAppStartupsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 import AppStartWidgets from './widgets';
@@ -50,7 +52,8 @@ type Query = {
   transaction: string;
 };
 
-function ScreenSummary() {
+export function ScreenSummary() {
+  const moduleURL = useAppStartupsModuleURL();
   const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();
@@ -80,7 +83,7 @@ function ScreenSummary() {
   }, [location, appStartType]);
 
   const startupModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/performance/mobile/app-startup/`,
+    pathname: moduleURL,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
@@ -109,120 +112,131 @@ function ScreenSummary() {
   ];
 
   return (
-    <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
-      <Layout.Page>
-        <PageAlertProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs crumbs={crumbs} />
-              <Layout.Title>{transactionName}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
+    <Layout.Page>
+      <PageAlertProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
+            <Layout.Title>{transactionName}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
 
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <PageAlert />
-              <HeaderContainer>
-                <ControlsContainer>
-                  <PageFiltersContainer>
-                    <PageFilterBar condensed>
-                      <DatePageFilter />
-                    </PageFilterBar>
-                  </PageFiltersContainer>
-                  <ReleaseComparisonSelector />
-                  <StartTypeSelector />
-                </ControlsContainer>
-                <MetricsRibbon
-                  dataset={DiscoverDatasets.SPANS_METRICS}
-                  filters={[
-                    `transaction:${transactionName}`,
-                    `span.op:app.start.${appStartType}`,
-                    '(',
-                    'span.description:"Cold Start"',
-                    'OR',
-                    'span.description:"Warm Start"',
-                    ')',
-                  ]}
-                  fields={[
-                    `avg_if(span.duration,release,${primaryRelease})`,
-                    `avg_if(span.duration,release,${secondaryRelease})`,
-                    `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-                    'count()',
-                  ]}
-                  blocks={[
-                    {
-                      unit: DurationUnit.MILLISECOND,
-                      allowZero: false,
-                      title:
-                        appStartType === COLD_START_TYPE
-                          ? t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
-                          : t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-                      dataKey: `avg_if(span.duration,release,${primaryRelease})`,
-                    },
-                    {
-                      unit: DurationUnit.MILLISECOND,
-                      allowZero: false,
-                      title:
-                        appStartType === COLD_START_TYPE
-                          ? t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
-                          : t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-                      dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
-                    },
-                    {
-                      unit: 'percent_change',
-                      title: t('Change'),
-                      dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-                    },
-                    {
-                      unit: 'count',
-                      title: t('Count'),
-                      dataKey: 'count()',
-                    },
-                  ]}
-                  referrer="api.starfish.mobile-startup-totals"
-                />
-              </HeaderContainer>
-              <ErrorBoundary mini>
-                <AppStartWidgets additionalFilters={[`transaction:${transactionName}`]} />
-              </ErrorBoundary>
-              <SamplesContainer>
-                <SamplesTables transactionName={transactionName} />
-              </SamplesContainer>
-              {spanGroup && spanOp && appStartType && (
-                <ScreenLoadSpanSamples
-                  additionalFilters={{
-                    [SpanMetricsField.APP_START_TYPE]: appStartType,
-                    ...(deviceClass
-                      ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass}
-                      : {}),
-                  }}
-                  groupId={spanGroup}
-                  transactionName={transactionName}
-                  spanDescription={spanDescription}
-                  spanOp={spanOp}
-                  onClose={() => {
-                    router.replace({
-                      pathname: router.location.pathname,
-                      query: omit(
-                        router.location.query,
-                        'spanGroup',
-                        'transactionMethod',
-                        'spanDescription',
-                        'spanOp'
-                      ),
-                    });
-                  }}
-                />
-              )}
-            </Layout.Main>
-          </Layout.Body>
-        </PageAlertProvider>
-      </Layout.Page>
-    </SentryDocumentTitle>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <HeaderContainer>
+              <ControlsContainer>
+                <PageFilterBar condensed>
+                  <DatePageFilter />
+                </PageFilterBar>
+                <ReleaseComparisonSelector />
+                <StartTypeSelector />
+              </ControlsContainer>
+              <MetricsRibbon
+                dataset={DiscoverDatasets.SPANS_METRICS}
+                filters={[
+                  `transaction:${transactionName}`,
+                  `span.op:app.start.${appStartType}`,
+                  '(',
+                  'span.description:"Cold Start"',
+                  'OR',
+                  'span.description:"Warm Start"',
+                  ')',
+                ]}
+                fields={[
+                  `avg_if(span.duration,release,${primaryRelease})`,
+                  `avg_if(span.duration,release,${secondaryRelease})`,
+                  `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+                  'count()',
+                ]}
+                blocks={[
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    allowZero: false,
+                    title:
+                      appStartType === COLD_START_TYPE
+                        ? t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
+                        : t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
+                    dataKey: `avg_if(span.duration,release,${primaryRelease})`,
+                  },
+                  {
+                    unit: DurationUnit.MILLISECOND,
+                    allowZero: false,
+                    title:
+                      appStartType === COLD_START_TYPE
+                        ? t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
+                        : t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
+                    dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
+                  },
+                  {
+                    unit: 'percent_change',
+                    title: t('Change'),
+                    dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+                  },
+                  {
+                    unit: 'count',
+                    title: t('Count'),
+                    dataKey: 'count()',
+                  },
+                ]}
+                referrer="api.starfish.mobile-startup-totals"
+              />
+            </HeaderContainer>
+            <ErrorBoundary mini>
+              <AppStartWidgets additionalFilters={[`transaction:${transactionName}`]} />
+            </ErrorBoundary>
+            <SamplesContainer>
+              <SamplesTables transactionName={transactionName} />
+            </SamplesContainer>
+            {spanGroup && spanOp && appStartType && (
+              <SpanSamplesPanel
+                additionalFilters={{
+                  [SpanMetricsField.APP_START_TYPE]: appStartType,
+                  ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+                }}
+                groupId={spanGroup}
+                moduleName={ModuleName.APP_START}
+                transactionName={transactionName}
+                spanDescription={spanDescription}
+                spanOp={spanOp}
+                onClose={() => {
+                  router.replace({
+                    pathname: router.location.pathname,
+                    query: omit(
+                      router.location.query,
+                      'spanGroup',
+                      'transactionMethod',
+                      'spanDescription',
+                      'spanOp'
+                    ),
+                  });
+                }}
+              />
+            )}
+          </Layout.Main>
+        </Layout.Body>
+      </PageAlertProvider>
+    </Layout.Page>
   );
 }
 
-export default ScreenSummary;
+function PageWithProviders() {
+  const location = useLocation<Query>();
+
+  const {transaction} = location.query;
+
+  return (
+    <ModulePageProviders
+      title={[transaction, ROUTE_NAMES['app-startup']].join(' — ')}
+      baseURL={`/performance/${BASE_URL}`}
+      features="spans-first-ui"
+    >
+      <ScreenSummary />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;
 
 const ControlsContainer = styled('div')`
   display: flex;

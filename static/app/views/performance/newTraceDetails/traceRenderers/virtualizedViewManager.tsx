@@ -1,6 +1,8 @@
+import {browserHistory} from 'react-router';
 import {mat3, vec2} from 'gl-matrix';
+import * as qs from 'query-string';
 
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
@@ -15,6 +17,14 @@ const DIVIDER_WIDTH = 6;
 
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
+}
+
+function getHorizontalDelta(x: number, y: number): number {
+  if (x >= 0 && y >= 0) {
+    return Math.max(x, y);
+  }
+
+  return Math.min(x, y);
 }
 
 type ViewColumn = {
@@ -77,6 +87,7 @@ export class VirtualizedViewManager {
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
+  reset_zoom_button: HTMLButtonElement | null = null;
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
   horizontal_scrollbar_container: HTMLElement | null = null;
@@ -114,6 +125,21 @@ export class VirtualizedViewManager {
   // Smallest of time that can be displayed across the entire view.
   private readonly MAX_ZOOM_PRECISION = 1;
   private readonly ROW_PADDING_PX = 16;
+  private scrollbar_width: number = 0;
+
+  timers: {
+    onFovChange: {id: number} | null;
+    onRowIntoView: number | null;
+    onScrollEndSync: {id: number} | null;
+    onWheelEnd: number | null;
+    onZoomIntoSpace: number | null;
+  } = {
+    onZoomIntoSpace: null,
+    onWheelEnd: null,
+    onRowIntoView: null,
+    onScrollEndSync: null,
+    onFovChange: null,
+  };
 
   // Column configuration
   columns: Record<'list' | 'span_list', ViewColumn>;
@@ -132,6 +158,7 @@ export class VirtualizedViewManager {
       },
     };
 
+    this.registerResetZoomRef = this.registerResetZoomRef.bind(this);
     this.registerContainerRef = this.registerContainerRef.bind(this);
     this.registerHorizontalScrollBarContainerRef =
       this.registerHorizontalScrollBarContainerRef.bind(this);
@@ -293,7 +320,6 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
-  private scrollbar_width: number = 0;
   onScrollbarWidthChange(width: number) {
     if (width === this.scrollbar_width) {
       return;
@@ -308,6 +334,10 @@ export class VirtualizedViewManager {
     } else {
       this.teardown();
     }
+  }
+
+  registerResetZoomRef(ref: HTMLButtonElement | null) {
+    this.reset_zoom_button = ref;
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {
@@ -465,6 +495,22 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = Math.round(this.columns.list.width * 100) + '%';
+      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
+    } else {
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.removeEventListener(
+          'scroll',
+          this.onHorizontalScrollbarScroll
+        );
+      }
+    }
+
+    this.horizontal_scrollbar_container = ref;
+  }
+
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
     const left_percentage = cursor.x / this.trace_physical_space.width;
     const left_view = left_percentage * this.trace_view.width;
@@ -475,7 +521,7 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
-      if (!this.onWheelEndRaf) {
+      if (!this.timers.onWheelEnd) {
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
@@ -504,13 +550,16 @@ export class VirtualizedViewManager {
       });
       this.draw();
     } else {
-      if (!this.onWheelEndRaf) {
+      if (!this.timers.onWheelEnd) {
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
 
       // Holding shift key allows for horizontal scrolling
-      const distance = event.shiftKey ? event.deltaY : event.deltaX;
+      const distance = event.shiftKey
+        ? getHorizontalDelta(event.deltaX, event.deltaY)
+        : event.deltaX;
+
       if (
         event.shiftKey ||
         (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
@@ -529,9 +578,9 @@ export class VirtualizedViewManager {
   }
 
   onBringRowIntoView(space: [number, number]) {
-    if (this.zoomIntoSpaceRaf !== null) {
-      window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
-      this.zoomIntoSpaceRaf = null;
+    if (this.timers.onZoomIntoSpace !== null) {
+      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      this.timers.onZoomIntoSpace = null;
     }
 
     if (space[0] - this.to_origin > this.trace_view.x) {
@@ -556,7 +605,6 @@ export class VirtualizedViewManager {
     this.draw();
   }
 
-  zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
     let distance_x = space[0] - this.to_origin - this.trace_view.x;
     let final_x = space[0] - this.to_origin;
@@ -592,25 +640,24 @@ export class VirtualizedViewManager {
       this.draw();
 
       if (progress < 1) {
-        this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+        this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
-        this.zoomIntoSpaceRaf = null;
+        this.timers.onZoomIntoSpace = null;
         this.setTraceView({x: final_x, width: final_width});
         this.draw();
       }
     };
 
-    this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+    this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
   }
 
   resetZoom() {
     this.onZoomIntoSpace([this.to_origin, this.trace_space.width]);
   }
 
-  onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
-    if (this.onWheelEndRaf !== null) {
-      window.cancelAnimationFrame(this.onWheelEndRaf);
+    if (this.timers.onWheelEnd !== null) {
+      window.cancelAnimationFrame(this.timers.onWheelEnd);
     }
 
     const start = performance.now();
@@ -619,11 +666,11 @@ export class VirtualizedViewManager {
       if (elapsed > 200) {
         this.onWheelEnd();
       } else {
-        this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
+        this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
       }
     };
 
-    this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
+    this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
   }
 
   onWheelStart() {
@@ -647,7 +694,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelEnd() {
-    this.onWheelEndRaf = null;
+    this.timers.onWheelEnd = null;
 
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
       const span_list = this.columns.span_list.column_refs[i];
@@ -667,11 +714,29 @@ export class VirtualizedViewManager {
     }
   }
 
+  maybeInitializeTraceViewFromQS(fov: string): void {
+    const [x, width] = fov.split(',').map(parseFloat);
+
+    if (isNaN(x) || isNaN(width)) {
+      return;
+    }
+
+    if (width <= 0 || width > this.trace_space.width) {
+      return;
+    }
+
+    if (x < 0 || x > this.trace_space.width) {
+      return;
+    }
+    this.setTraceView({x, width});
+  }
+
   setTraceView(view: {width?: number; x?: number}) {
     // In cases where a trace might have a single error, there is no concept of a timeline
     if (this.trace_view.width === 0) {
       return;
     }
+
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
@@ -684,24 +749,26 @@ export class VirtualizedViewManager {
 
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
+    this.enqueueFOVQueryParamSync();
+    this.syncResetZoomButton();
   }
 
-  registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
-    if (ref) {
-      ref.style.width = Math.round(this.columns.list.width * 100) + '%';
-      ref.addEventListener('scroll', this.onHorizontalScrollbarScroll, {passive: false});
-    } else {
-      if (this.horizontal_scrollbar_container) {
-        this.horizontal_scrollbar_container.removeEventListener(
-          'scroll',
-          this.onHorizontalScrollbarScroll
-        );
-      }
+  enqueueFOVQueryParamSync() {
+    if (this.timers.onFovChange !== null) {
+      window.cancelAnimationFrame(this.timers.onFovChange.id);
     }
 
-    this.horizontal_scrollbar_container = ref;
+    this.timers.onFovChange = requestAnimationTimeout(() => {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...qs.parse(location.search),
+          fov: `${this.trace_view.x},${this.trace_view.width}`,
+        },
+      });
+      this.timers.onFovChange = null;
+    }, 500);
   }
-
   onNewMaxRowWidth(max) {
     this.syncHorizontalScrollbar(max);
   }
@@ -715,6 +782,12 @@ export class VirtualizedViewManager {
       child.style.width =
         Math.round(max - this.scrollbar_width + this.ROW_PADDING_PX) + 'px';
     }
+  }
+
+  syncResetZoomButton() {
+    if (!this.reset_zoom_button) return;
+    this.reset_zoom_button.disabled =
+      this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
@@ -743,7 +816,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  syncedRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'list';
@@ -763,9 +835,9 @@ export class VirtualizedViewManager {
       return;
     }
 
-    if (this.bringRowIntoViewAnimation !== null) {
-      window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
-      this.bringRowIntoViewAnimation = null;
+    if (this.timers.onRowIntoView !== null) {
+      window.cancelAnimationFrame(this.timers.onRowIntoView);
+      this.timers.onRowIntoView = null;
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
@@ -817,22 +889,21 @@ export class VirtualizedViewManager {
     return transform;
   }
 
-  scrollEndSyncRaf: {id: number} | null = null;
   enqueueOnScrollEndOutOfBoundsCheck() {
-    if (this.bringRowIntoViewAnimation !== null) {
+    if (this.timers.onRowIntoView !== null) {
       // Dont enqueue updates while view is scrolling
       return;
     }
 
-    window.cancelAnimationFrame(this.scrollEndSyncRaf?.id ?? 0);
+    window.cancelAnimationFrame(this.timers.onScrollEndSync?.id ?? 0);
 
-    this.scrollEndSyncRaf = requestAnimationTimeout(() => {
+    this.timers.onScrollEndSync = requestAnimationTimeout(() => {
       this.onScrollEndOutOfBoundsCheck();
     }, 300);
   }
 
   onScrollEndOutOfBoundsCheck() {
-    this.scrollEndSyncRaf = null;
+    this.timers.onScrollEndSync = null;
     this.scrolling_source = null;
 
     const translation = this.columns.list.translate[0];
@@ -896,7 +967,6 @@ export class VirtualizedViewManager {
     this.animateScrollColumnTo(newTransform, duration);
   }
 
-  bringRowIntoViewAnimation: number | null = null;
   animateScrollColumnTo(x: number, duration: number) {
     const start = performance.now();
 
@@ -937,9 +1007,9 @@ export class VirtualizedViewManager {
 
       if (progress < 1) {
         this.columns.list.translate[0] = pos;
-        this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+        this.timers.onRowIntoView = window.requestAnimationFrame(animate);
       } else {
-        this.bringRowIntoViewAnimation = null;
+        this.timers.onRowIntoView = null;
         if (this.horizontal_scrollbar_container) {
           this.horizontal_scrollbar_container.scrollLeft = -x;
         }
@@ -949,7 +1019,7 @@ export class VirtualizedViewManager {
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
     };
 
-    this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+    this.timers.onRowIntoView = window.requestAnimationFrame(animate);
   }
 
   initialize(container: HTMLElement) {
@@ -1217,7 +1287,8 @@ export class VirtualizedViewManager {
 
       const outside_left =
         span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
-      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+      const outside_right =
+        span.space[0] - this.to_origin - error_margin > this.trace_view.right;
 
       if (outside_left || outside_right) {
         this.hideSpanBar(this.span_bars[i], this.span_text[i]);

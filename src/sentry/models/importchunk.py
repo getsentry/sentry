@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, control_silo_only_model, region_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, control_silo_model, region_silo_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.uuid import UUIDField
 
@@ -67,7 +67,7 @@ class BaseImportChunk(DefaultFieldsModel):
         abstract = True
 
 
-@region_silo_only_model
+@region_silo_model
 class RegionImportChunk(BaseImportChunk):
     """
     Records the pk mapping for the successful import of instances of a model that lives in the
@@ -82,7 +82,7 @@ class RegionImportChunk(BaseImportChunk):
         unique_together = (("import_uuid", "model", "min_ordinal"),)
 
 
-@control_silo_only_model
+@control_silo_model
 class ControlImportChunk(BaseImportChunk):
     """
     Records the pk mapping for the successful import of instances of a model that lives in the
@@ -97,7 +97,7 @@ class ControlImportChunk(BaseImportChunk):
         unique_together = (("import_uuid", "model", "min_ordinal"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class ControlImportChunkReplica(BaseImportChunk):
     """
     A duplicate of a `ControlImportChunk` saved on the control silo. Unlike other `*Replica` models,

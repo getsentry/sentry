@@ -96,6 +96,13 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES.value,
     Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_BAR_CHART.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_EVENT_SAMPLES.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_SCREEN_TABLE.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_SPAN_TABLE.value,
+    Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
+    Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
+    Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -109,7 +116,7 @@ DEFAULT_INCREASED_RATE_LIMIT = dict(limit=50, window=1, concurrent_limit=50)
 
 
 def rate_limit_events(
-    request: Request, organization_slug: str | None = None, *args, **kwargs
+    request: Request, organization_id_or_slug: str | None = None, *args, **kwargs
 ) -> dict[str, dict[RateLimitCategory, RateLimit]]:
     """
     Decision tree for rate limiting for organization events endpoint.
@@ -149,9 +156,14 @@ def rate_limit_events(
     rate_limit = RateLimit(**LEGACY_RATE_LIMIT)
 
     try:
-        organization = Organization.objects.get_from_cache(slug=organization_slug)
+        if str(organization_id_or_slug).isdecimal():
+            organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
+        else:
+            organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
     except Organization.DoesNotExist:
-        logger.warning("organization.slug.invalid", extra={"organization_slug": organization_slug})
+        logger.warning(
+            "organization.slug.invalid", extra={"organization_id_or_slug": organization_id_or_slug}
+        )
         return _config_for_limit(rate_limit)
 
     if organization.id in options.get("api.organization_events.rate-limit-increased.orgs", []):
@@ -223,7 +235,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,

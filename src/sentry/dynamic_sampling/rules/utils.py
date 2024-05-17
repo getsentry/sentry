@@ -1,11 +1,12 @@
 from enum import Enum
-from typing import Any, Literal, NotRequired, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union
 
+import orjson
 from django.conf import settings
 from rediscluster import RedisCluster
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
-from sentry.utils import json, redis
+from sentry.utils import redis
 
 BOOSTED_RELEASES_LIMIT = 10
 
@@ -192,15 +193,18 @@ def get_rule_type(rule: Rule) -> RuleType | None:
 def get_rule_hash(rule: PolymorphicRule) -> int:
     # We want to be explicit in what we use for computing the hash. In addition, we need to remove certain fields like
     # the sampleRate.
-    return json.dumps(
-        _deep_sorted(
+    return (
+        orjson.dumps(
             {
                 "id": rule["id"],
                 "type": rule["type"],
                 "condition": rule["condition"],
-            }
+            },
+            option=orjson.OPT_SORT_KEYS,
         )
-    ).__hash__()
+        .decode()
+        .__hash__()
+    )
 
 
 def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
@@ -211,13 +215,6 @@ def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
         return sampling["type"], float(sampling["value"])
     else:
         return None
-
-
-def _deep_sorted(value: Any | dict[Any, Any]) -> Any | dict[Any, Any]:
-    if isinstance(value, dict):
-        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
-    else:
-        return value
 
 
 def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:

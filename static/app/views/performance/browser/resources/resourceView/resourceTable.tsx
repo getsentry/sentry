@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -10,6 +9,7 @@ import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -122,7 +122,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         <DescriptionWrapper>
           <ResourceIcon fileExtension={fileExtension} spanOp={row[SPAN_OP]} />
           <SpanDescriptionCell
-            moduleName={ModuleName.HTTP}
+            moduleName={ModuleName.RESOURCE}
             projectId={row[PROJECT_ID]}
             spanOp={row[SPAN_OP]}
             description={row[SPAN_DESCRIPTION]}

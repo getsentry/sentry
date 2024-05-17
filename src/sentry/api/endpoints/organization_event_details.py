@@ -91,28 +91,30 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str | int | None = None,
+        organization_id_or_slug: int | str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         organization = kwargs["organization"]
-        project_slug = kwargs.pop("project_slug")
+        project_id_or_slug = kwargs.pop("project_id_or_slug")
 
         try:
             if id_or_slug_path_params_enabled(
                 convert_args_class=self.convert_args.__qualname__,
-                organization_slug=organization.slug,
+                organization_id_or_slug=organization.slug,
             ):
                 project = Project.objects.get(
-                    slug__id_or_slug=project_slug,
+                    slug__id_or_slug=project_id_or_slug,
                     organization_id=organization.id,
                     status=ObjectStatus.ACTIVE,
                 )
             else:
                 project = Project.objects.get(
-                    slug=project_slug, organization_id=organization.id, status=ObjectStatus.ACTIVE
+                    slug=project_id_or_slug,
+                    organization_id=organization.id,
+                    status=ObjectStatus.ACTIVE,
                 )
 
             kwargs["project"] = project

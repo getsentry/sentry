@@ -26,7 +26,10 @@ from sentry.backup.dependencies import (
 from sentry.backup.findings import InstanceID
 from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter, ImportFlags
 from sentry.backup.scopes import ExportScope
+from sentry.db.models.base import BaseModel
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
@@ -67,11 +70,11 @@ def get_existing_import_chunk(
     out_pk_map = PrimaryKeyMap()
     for old_pk, new_pk in found_data["inserted_map"].items():
         identifier = found_data["inserted_identifiers"].get(old_pk, None)
-        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Inserted, identifier)
+        out_pk_map.insert(model_name, int(old_pk), int(new_pk), ImportKind.Inserted, identifier)
     for old_pk, new_pk in found_data["existing_map"].items():
-        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Existing)
+        out_pk_map.insert(model_name, int(old_pk), int(new_pk), ImportKind.Existing)
     for old_pk, new_pk in found_data["overwrite_map"].items():
-        out_pk_map.insert(model_name, old_pk, new_pk, ImportKind.Overwrite)
+        out_pk_map.insert(model_name, int(old_pk), int(new_pk), ImportKind.Overwrite)
 
     return RpcImportOk(
         mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
@@ -170,25 +173,29 @@ class UniversalImportExportService(ImportExportService):
         }
 
         try:
-            using = router.db_for_write(model)
-            with transaction.atomic(using=using):
-                # It's possible that this write has already occurred, and we are simply retrying
-                # because the response got lost in transit. If so, just re-use that reply. We do
-                # this in the transaction because, while `import_by_model` is generally called in a
-                # sequential manner, cases like timeouts or long queues may cause a previous call to
-                # still be active when the next one is made. We'll check once here for an existing
-                # copy of this (uniquely identifiable) import chunk here to short circuit and avoid
-                # doing frivolous work. However, this doesn't fully solve our data race error, as it
-                # is possible that another runaway process makes the colliding write while we're
-                # building our transaction. Thus, we'll check `get_existing_import_chunk()` again if
-                # we catch an `IntegrityError` below.
-                existing_import_chunk = get_existing_import_chunk(
-                    batch_model_name, import_flags, import_chunk_type, min_ordinal
-                )
-                if existing_import_chunk is not None:
-                    logger.info("import_by_model.already_imported", extra=extra)
-                    return existing_import_chunk
+            # It's possible that this write has already occurred, and we are simply retrying
+            # because the response got lost in transit. If so, just re-use that reply. We do
+            # this in the transaction because, while `import_by_model` is generally called in a
+            # sequential manner, cases like timeouts or long queues may cause a previous call to
+            # still be active when the next one is made. We'll check once here for an existing
+            # copy of this (uniquely identifiable) import chunk here to short circuit and avoid
+            # doing frivolous work. However, this doesn't fully solve our data race error, as it
+            # is possible that another runaway process makes the colliding write while we're
+            # building our transaction. Thus, we'll check `get_existing_import_chunk()` again if
+            # we catch an `IntegrityError` below.
+            existing_import_chunk = get_existing_import_chunk(
+                batch_model_name, import_flags, import_chunk_type, min_ordinal
+            )
+            if existing_import_chunk is not None:
+                logger.info("import_by_model.already_imported", extra=extra)
+                return existing_import_chunk
 
+            # We don't need the control and region silo synced into the correct `*Replica` tables
+            # immediately. The locally silo-ed versions of the models are written by the scripts
+            # themselves, and the remote versions will be synced a few minutes later, well before
+            # any users are likely ot need to get ahold of them to view actual data in the UI.
+            using = router.db_for_write(model)
+            with outbox_context(transaction.atomic(using=using), flush=False):
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
@@ -198,15 +205,24 @@ class UniversalImportExportService(ImportExportService):
                 last_seen_ordinal = min_ordinal - 1
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     model_instance = deserialized_object.object
+                    inst_model_name = get_model_name(model_instance)
+
+                    if not isinstance(model_instance, BaseModel):
+                        return RpcImportError(
+                            kind=RpcImportErrorKind.UnexpectedModel,
+                            on=InstanceID(model=str(inst_model_name), ordinal=None),
+                            left_pk=model_instance.pk,
+                            reason=f"Received non-sentry model of kind `{inst_model_name}`",
+                        )
+
                     if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
                         if model_instance.get_possible_relocation_scopes() & ok_relocation_scopes:
-                            inst_model_name = get_model_name(model_instance)
                             if inst_model_name != batch_model_name:
                                 return RpcImportError(
                                     kind=RpcImportErrorKind.UnexpectedModel,
-                                    on=InstanceID(model=str(inst_model_name), ordinal=1),
+                                    on=InstanceID(model=str(inst_model_name), ordinal=None),
                                     left_pk=model_instance.pk,
-                                    reason=f"Received model of kind `{str(inst_model_name)}` when `{str(batch_model_name)}` was expected",
+                                    reason=f"Received model of kind `{inst_model_name}` when `{batch_model_name}` was expected",
                                 )
 
                             for f in filters:
@@ -281,9 +297,9 @@ class UniversalImportExportService(ImportExportService):
                                         reason=str(e),
                                     )
 
-                # If the `counter` is at 0, no model instances were actually imported, so we can
-                # return early.
+                # If the `last_seen_ordinal` has not been incremented, no actual writes were done.
                 if last_seen_ordinal == min_ordinal - 1:
+                    logger.info("import_by_model.none_imported", extra=extra)
                     return RpcImportOk(
                         mapped_pks=RpcPrimaryKeyMap.into_rpc(out_pk_map),
                         min_ordinal=None,
@@ -329,7 +345,9 @@ class UniversalImportExportService(ImportExportService):
                 if import_chunk_type == ControlImportChunk:
                     ControlImportChunk(**import_chunk_args).save()
                 else:
-                    RegionImportChunk(**import_chunk_args).save()
+                    # XXX: Monitors and Files are stored in non-default connections in saas.
+                    with in_test_hide_transaction_boundary():
+                        RegionImportChunk(**import_chunk_args).save()
 
                 logger.info("import_by_model.successfully_imported", extra=extra)
                 return RpcImportOk(
@@ -449,7 +467,7 @@ class UniversalImportExportService(ImportExportService):
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnexportableModel,
                     on=InstanceID(model_name),
-                    reason=f"The model `{str(batch_model_name)}` is not exportable",
+                    reason=f"The model `{batch_model_name}` is not exportable",
                 )
 
             max_pk = from_pk

@@ -33,6 +33,8 @@ import {DomainStatusLink} from 'sentry/views/performance/http/components/domainS
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
+  BASE_FILTERS,
+  BASE_URL,
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
@@ -44,12 +46,13 @@ import {
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useRequestsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
@@ -59,6 +62,7 @@ type Query = {
 };
 
 export function HTTPDomainSummaryPage() {
+  const moduleURL = useRequestsModuleURL();
   const location = useLocation<Query>();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -76,57 +80,64 @@ export function HTTPDomainSummaryPage() {
   });
 
   const project = projects.find(p => projectId === p.id);
-
   const filters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
-  const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-    ],
-    referrer: Referrer.DOMAIN_SUMMARY_METRICS_RIBBON,
-  });
+  const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      ],
+    },
+    Referrer.DOMAIN_SUMMARY_METRICS_RIBBON
+  );
 
   const {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['spm()'],
-    referrer: Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: ['spm()'],
+    },
+    Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    referrer: Referrer.DOMAIN_SUMMARY_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+    },
+    Referrer.DOMAIN_SUMMARY_DURATION_CHART
+  );
 
   const {
     isLoading: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+    },
+    Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART
+  );
 
   const {
     isLoading: isTransactionsListLoading,
@@ -134,25 +145,27 @@ export function HTTPDomainSummaryPage() {
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      'project.id',
-      'transaction',
-      'transaction.method',
-      'spm()',
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-    ],
-    sorts: [sort],
-    limit: TRANSACTIONS_TABLE_ROW_COUNT,
-    cursor,
-    referrer: Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST,
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        'project.id',
+        'transaction',
+        'transaction.method',
+        'spm()',
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+      cursor,
+    },
+    Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST
+  );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
@@ -169,7 +182,7 @@ export function HTTPDomainSummaryPage() {
               },
               {
                 label: MODULE_TITLE,
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/http`),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {
@@ -344,10 +357,10 @@ const MetricsRibbon = styled('div')`
   gap: ${space(4)};
 `;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
-      baseURL="/performance/http"
+      baseURL={`/performance/${BASE_URL}`}
       title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="spans-first-ui"
     >
@@ -356,4 +369,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

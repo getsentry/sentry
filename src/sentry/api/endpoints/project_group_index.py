@@ -77,9 +77,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                    ``"is:unresolved"`` is assumed.)
         :qparam string environment: this restricts the issues to ones containing
                                     events from this environment
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -214,9 +214,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"ignored"``.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -271,9 +271,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         :qparam int id: a list of IDs of the issues to be removed.  This
                         parameter shall be repeated for each issue.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the issues
+        :pparam string project_id_or_slug: the id or slug of the project the issues
                                      belong to.
         :auth: required
         """

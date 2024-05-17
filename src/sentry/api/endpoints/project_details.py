@@ -4,6 +4,7 @@ import time
 from datetime import timedelta
 from uuid import uuid4
 
+import orjson
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
@@ -48,7 +49,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -284,7 +284,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         return value
 
-    def validate_symbolSources(self, sources_json):
+    def validate_symbolSources(self, sources_json) -> str:
         if not sources_json:
             return sources_json
 
@@ -307,7 +307,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         # This is always allowed.
         added_or_modified_sources = [s for s in sources if s not in orig_sources]
         if not added_or_modified_sources:
-            return json.dumps(sources) if sources else ""
+            return orjson.dumps(sources).decode() if sources else ""
 
         # All modified sources should get a new UUID, as a way to invalidate caches.
         # Downstream symbolicator uses this ID as part of a cache key, so assigning
@@ -321,7 +321,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             if source["type"] != "appStoreConnect":
                 source["id"] = str(uuid4())
 
-        sources_json = json.dumps(sources) if sources else ""
+        sources_json = orjson.dumps(sources).decode() if sources else ""
 
         # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
@@ -456,7 +456,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: DetailedProjectSerializer,
@@ -500,8 +500,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectAdminSerializer,
         responses={
@@ -891,7 +891,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Delete a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

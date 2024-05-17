@@ -638,8 +638,12 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export enum ReplayContextKey {
+  REPLAY_ID = 'replay_id',
+}
+
 export interface ReplayContext {
-  replay_id: string;
+  [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
 export interface BrowserContext {

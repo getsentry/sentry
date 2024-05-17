@@ -506,7 +506,7 @@ const makeRow = (
   value: KeyValueListDataItem['value'],
   actionButton?: ReactNode
 ): KeyValueListDataItem => {
-  const itemKey = kebabCase(subject);
+  const itemKey = kebabCase(subject ?? '');
 
   return {
     key: itemKey,

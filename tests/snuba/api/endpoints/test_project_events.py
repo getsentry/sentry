@@ -18,7 +18,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-project-events",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url, format="json")
 
@@ -43,7 +46,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-project-events",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url, {"query": "delet"}, format="json")
 
@@ -65,8 +71,8 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
             url = reverse(
                 "sentry-api-0-project-events",
                 kwargs={
-                    "organization_slug": project.organization.slug,
-                    "project_slug": project.slug,
+                    "organization_id_or_slug": project.organization.slug,
+                    "project_id_or_slug": project.slug,
                 },
             )
             response = self.client.get(url, format="json")
@@ -87,8 +93,8 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-events",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -112,8 +118,8 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-events",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
         response = self.client.get(url, {"sample": "true"}, format="json")

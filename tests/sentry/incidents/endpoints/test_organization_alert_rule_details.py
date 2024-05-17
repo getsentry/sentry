@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from functools import cached_property
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 
 import responses
@@ -235,6 +236,79 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         )
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, rule.id)
+
+        assert resp.status_code == 200
+        assert len(responses.calls) == 1
+        assert "errors" not in resp.data
+
+        action = resp.data["triggers"][0]["actions"][0]
+        assert "select" == action["formFields"]["optional_fields"][-1]["type"]
+        assert "sentry/members" in action["formFields"]["optional_fields"][-1]["uri"]
+        assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
+
+    @responses.activate
+    def test_with_sentryapp_multiple_installations_filters_by_org(self):
+        self.superuser = self.create_user("admin@localhost", is_superuser=True)
+        self.login_as(user=self.superuser)
+        self.create_team(organization=self.organization, members=[self.superuser])
+
+        org2 = self.create_organization(name="org2")
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.superuser
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=org2, user=self.superuser
+        )
+
+        getmany_response = app_service.get_many(
+            filter=dict(app_ids=[sentry_app.id], organization_id=self.organization.id)
+        )
+
+        rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=sentry_app,
+            sentry_app_config=[
+                {"name": "title", "value": "An alert"},
+                {"summary": "Something happened here..."},
+                {"name": "points", "value": "3"},
+                {"name": "assignee", "value": "Nisanthan"},
+            ],
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+        with self.feature("organizations:incidents"):
+            with mock.patch.object(app_service, "get_many") as mock_get_many:
+                mock_get_many.return_value = getmany_response
+                resp = self.get_response(self.organization.slug, rule.id)
+
+                assert mock_get_many.call_count == 1
+                mock_get_many.assert_called_with(
+                    filter={
+                        "app_ids": [sentry_app.id],
+                        "organization_id": self.organization.id,
+                    },
+                )
 
         assert resp.status_code == 200
         assert len(responses.calls) == 1
@@ -653,7 +727,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
         self.login_as(self.user)
         alert_rule = self.alert_rule
-        alert_rule.owner = self.team.actor
+        alert_rule.team = self.team
+        alert_rule.user_id = None
         alert_rule.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
@@ -1294,7 +1369,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         )
         self.login_as(self.user)
         alert_rule = self.alert_rule
-        alert_rule.owner = self.team.actor
+        alert_rule.team = self.team
         alert_rule.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         OrganizationMemberTeam.objects.filter(
@@ -1305,7 +1380,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             resp = self.get_response(self.organization.slug, alert_rule.id)
         assert resp.status_code == 204
         another_alert_rule = self.alert_rule
-        alert_rule.owner = self.team.actor
+        alert_rule.team = self.team
         another_alert_rule.save()
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
@@ -1320,7 +1395,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         team = self.create_team(organization=self.organization, members=[self.user])
         project = self.create_project(name="boo", organization=self.organization, teams=[team])
         alert_rule = self.create_alert_rule(projects=[project])
-        alert_rule.owner = team.actor
         alert_rule.team_id = team.id
         alert_rule.save()
 
@@ -1331,7 +1405,6 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             name="ahh", organization=self.organization, teams=[other_team]
         )
         other_alert_rule = self.create_alert_rule(projects=[other_project])
-        other_alert_rule.owner = other_team.actor
         other_alert_rule.team_id = other_team.id
         other_alert_rule.save()
 

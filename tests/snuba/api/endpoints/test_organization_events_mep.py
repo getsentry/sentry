@@ -69,7 +69,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.login_as(user=self.user)
         url = reverse(
             self.viewname,
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -3241,6 +3241,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["faketag"] == "foo"
         assert not meta["isMetricsData"]
 
+    def test_filtering_by_org_id_is_not_compatible(self):
+        """Implicitly test the fact that percentiles are their own 'dataset'"""
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["title", "p50()", "count()"],
+                "query": "event.type:transaction organization_id:2",
+                "dataset": "metrics",
+                "project": self.project.id,
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 400, response.content
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3249,7 +3268,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
-        self.url = reverse(self.viewname, kwargs={"organization_slug": self.organization.slug})
+        self.url = reverse(
+            self.viewname, kwargs={"organization_id_or_slug": self.organization.slug}
+        )
         self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def _create_specs(

@@ -1,3 +1,73 @@
+24.5.0
+------
+
+### Various fixes & improvements
+
+- Revert "fix(staff): Prevent fetching authenticators before preloading (#70938)" (2d7dcff0) by @getsentry-bot
+- feat(metrics): Add custom metrics banner (#70946) by @matejminar
+- feat(metrics): Register guide (#70948) by @matejminar
+- chore(issues): Add flag for resolve in upcoming release (#70898) by @roggenkemper
+- chore(generic-metrics): Add new options to toggle dropping percentiles (#70889) by @ayirr7
+- fix(slack): don't raise RuntimeError if unable to fetch property in slack request (#67798) by @cathteng
+- Revert "nit: Remove authenticators from state (#70365)" (c946f52a) by @getsentry-bot
+- feat(performance): Adds error rate to queues module (#70883) by @edwardgou-sentry
+- feat(related_issues): Support passing an event_id to the endpoint (#70878) by @armenzg
+- dev(similarity): add more telemetry to backfill (#70947) by @JoshFerge
+- fix(issues): Fix missing retries configuration (#70907) by @mrduncan
+- chore(metrics): rollout feature flag (#70940) by @obostjancic
+- feat(trace-explorer): Supports metrics min/max (#70920) by @Zylphrex
+- feat(performance): queues module table sorting (#70817) by @edwardgou-sentry
+- feat(metrics): Default custom metric + dismiss empty state (#70936) by @matejminar
+- ref: improve devimports test (#70926) by @asottile-sentry
+- ref(insights): abstract ScreenLoadSpanSamples side panel for mobile modules (#70890) by @KevinL10
+- fix(staff): Prevent fetching authenticators before preloading (#70938) by @schew2381
+- fix(api): Update Endpoint so it Returns 404 as a `status_code` (#70918) by @iamrajjoshi
+- Hook up `peanutbutter` as an LPQ backend (#69187) by @Swatinem
+- ref(insights): Declare module base URLs as constants (#70861) by @gggritso
+- fix(metrics): copy code location (#70932) by @obostjancic
+- chore(metrics): remove meta datetime param (#70928) by @obostjancic
+- ci: reduce time running codecov (#70885) by @giovanni-guidini
+
+_Plus 747 more_
+
+24.4.2
+------
+
+### Related Issues - V1 (ongoing)
+
+This will include same-root and trace-connected issues.
+
+By: @armenzg (#69670, #69693, #69237)
+
+### Various fixes & improvements
+
+- feat(traces): Add multiple queries for trace search (#69929) by @k-fish
+- feat(api-idorslug): Rename Path paramaters to `project_id_or_slug` (#69716) by @iamrajjoshi
+- ref(rules): Handle action match in delayed rule processor (#69797) by @ceorourke
+- ref(crons): Improve typing on MONITOR_CODEC (#69919) by @evanpurkhiser
+- reF(ui): Use Link component for performance/cache/tables/transactionCell (#69906) by @evanpurkhiser
+- feat(replay): Refetch the viewed-by data after an update to it (#69357) by @ryan953
+- fix: no attribute error (#69908) by @nhsiehgit
+- feat(user): Add option to only return verified emails from verify_user_emails (#69812) by @davidenwang
+- ref(py): Update monitor_consumer to handle FilteredPayload (#69904) by @evanpurkhiser
+- ref: fix BytesWarning in last_seen_updater (#69909) by @asottile-sentry
+- ref(crons): Remove decode compat code (#69905) by @evanpurkhiser
+- ref(app-starts): Generalize screen table component (#69839) by @narsaynorath
+- ref(profiling): preserve colors when highlighting (#69912) by @JonasBa
+- fix(trace): track data quality from frontend (#69907) by @JonasBa
+- fix(project-release): POST should not call Snuba (#69831) by @sentaur-athena
+- fix(trace): use the same resize icon (#69869) by @JonasBa
+- feat(ui): Remove lazy renderer component prop (#69823) by @scttcper
+- ref(js): Use Link component in spanDescriptionLink (#69897) by @evanpurkhiser
+- feat(ui): Tag sentry events with concurrent mode (#69819) by @scttcper
+- ref: maxminddb module is always available, GEOIP_PATH_MMDB attr always present (#69902) by @asottile-sentry
+- fix(trace): remove click outside (#69862) by @JonasBa
+- ref(ui): Use Link component in performance http/tables/transactionCell (#69891) by @evanpurkhiser
+- ref(ui): Use Button for "Change Photo" (#69901) by @evanpurkhiser
+- feat(crons): Add ability dispatch clock ticks to kafka (#69896) by @evanpurkhiser
+
+_Plus 478 more_
+
 24.4.1
 ------
 

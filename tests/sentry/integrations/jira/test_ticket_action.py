@@ -66,8 +66,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 reverse(
                     "sentry-api-0-project-rules",
                     kwargs={
-                        "organization_slug": self.organization.slug,
-                        "project_slug": self.project.slug,
+                        "organization_id_or_slug": self.organization.slug,
+                        "project_id_or_slug": self.project.slug,
                     },
                 ),
                 format="json",
@@ -124,8 +124,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             reverse(
                 "sentry-api-0-project-rules",
                 kwargs={
-                    "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",

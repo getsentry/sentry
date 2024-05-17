@@ -142,7 +142,7 @@ function TimeInput({time, setTime}: TimeInputProps) {
   return (
     <Input
       ref={timeInputRef}
-      aria-label="Time"
+      aria-label={t('Time')}
       type="time"
       data-test-id="search-bar-date-picker-time-input"
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

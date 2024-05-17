@@ -1,11 +1,11 @@
 from unittest.mock import call, patch
 
+import orjson
 from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
-from sentry.utils import json
 
 
 class TestProjectAutofixCodebaseIndexCreate(APITestCase):
@@ -18,8 +18,8 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         self.url = reverse(
             self.endpoint,
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -41,7 +41,7 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "organization_id": self.project.organization.id,
                     "project_id": self.project.id,
@@ -86,7 +86,7 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
         calls = [
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,
@@ -102,7 +102,7 @@ class TestProjectAutofixCodebaseIndexCreate(APITestCase):
             ),
             call(
                 f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data=json.dumps(
+                data=orjson.dumps(
                     {
                         "organization_id": self.project.organization.id,
                         "project_id": self.project.id,

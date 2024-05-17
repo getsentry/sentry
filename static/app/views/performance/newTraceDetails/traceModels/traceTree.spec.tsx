@@ -10,7 +10,6 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
-import {TraceType} from '../../traceDetails/newTraceDetailsContent';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -18,6 +17,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from '../guards';
+import {TraceType} from '../traceType';
 
 import {
   NoDataNode,

@@ -2,6 +2,7 @@ import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import SwitchButton from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -22,7 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {METRIC_CHART_GROUP} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput} from 'sentry/views/metrics/formulaInput';
+import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
@@ -118,13 +119,15 @@ export function Queries() {
         ))}
       </Wrapper>
       <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
-        <Button
-          size="sm"
-          icon={<IconAdd isCircled />}
-          onClick={() => handleAddWidget(MetricExpressionType.QUERY)}
-        >
-          {t('Add metric')}
-        </Button>
+        <GuideAnchor target="add_metric_query" position="bottom">
+          <Button
+            size="sm"
+            icon={<IconAdd isCircled />}
+            onClick={() => handleAddWidget(MetricExpressionType.QUERY)}
+          >
+            {t('Add metric')}
+          </Button>
+        </GuideAnchor>
         <Button
           size="sm"
           icon={<IconAdd isCircled />}
@@ -207,6 +210,7 @@ function Query({
         />
       )}
       <QueryBuilder
+        index={index}
         onChange={handleChange}
         metricsQuery={metricsQuery}
         projects={projects}
@@ -273,7 +277,7 @@ function Formula({
           type={MetricExpressionType.EQUATION}
         />
       )}
-      <FormulaInput
+      <EquationInput
         availableVariables={availableVariables}
         value={widget.formula}
         onChange={formula => handleChange({formula})}

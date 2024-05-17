@@ -1,5 +1,4 @@
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
@@ -7,14 +6,15 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import useProjects from 'sentry/utils/useProjects';
 import withLatestContext from 'sentry/utils/withLatestContext';
-import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
-import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
+import BreadcrumbDropdown from './breadcrumbDropdown';
+import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}> & {

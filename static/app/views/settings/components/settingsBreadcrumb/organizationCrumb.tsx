@@ -1,18 +1,19 @@
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
 import IdBadge from 'sentry/components/idBadge';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
-import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
-import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
+import BreadcrumbDropdown from './breadcrumbDropdown';
+import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}>;
@@ -75,7 +76,7 @@ function OrganizationCrumb({params, routes, route, ...props}: Props) {
       onSelect={handleSelect}
       hasMenu={hasMenu}
       route={route}
-      items={organizations.map((org, index) => ({
+      items={sortBy(organizations, ['name']).map((org, index) => ({
         index,
         value: org,
         label: (

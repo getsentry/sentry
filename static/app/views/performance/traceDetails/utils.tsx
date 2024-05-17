@@ -1,7 +1,8 @@
-import type {LocationDescriptorObject, Query} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {Organization, OrganizationSummary} from 'sentry/types';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
   EventLite,
   TraceError,
@@ -19,15 +20,14 @@ export function getTraceDetailsUrl(
   organization: Pick<OrganizationSummary, 'slug' | 'features'>,
   traceSlug: string,
   dateSelection,
-  query: Query,
   timestamp?: string | number,
   eventId?: string,
-  spanId?: string
+  spanId?: string,
+  demo?: string
 ): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
   const queryParams = {
-    ...query,
     statsPeriod,
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
@@ -43,8 +43,9 @@ export function getTraceDetailsUrl(
       ),
       query: {
         ...queryParams,
-        timestamp,
+        timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
+        demo,
       },
     };
   }

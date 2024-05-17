@@ -38,7 +38,7 @@ import {
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {FormulaInput as EquationInput} from 'sentry/views/metrics/formulaInput';
+import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
@@ -124,6 +124,7 @@ export function Queries({
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
               <QueryBuilder
+                index={index}
                 onChange={data => onQueryChange(data, index)}
                 metricsQuery={query}
                 projects={selection.projects}
@@ -416,7 +417,7 @@ function ExpressionAliasForm({
       <Tooltip title={t('Clear alias')} delay={SLOW_TOOLTIP_DELAY}>
         <StyledButton
           icon={<IconDelete size="xs" />}
-          aria-label="Clear Alias"
+          aria-label={t('Clear Alias')}
           onClick={() => onChange(undefined)}
         />
       </Tooltip>

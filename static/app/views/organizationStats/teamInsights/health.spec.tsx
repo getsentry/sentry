@@ -47,6 +47,8 @@ describe('TeamStatsHealth', () => {
   const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
+    TeamStore.reset();
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/projects/`,
@@ -154,10 +156,6 @@ describe('TeamStatsHealth', () => {
       url: `/teams/org-slug/${team2.slug}/release-count/`,
       body: [],
     });
-  });
-
-  beforeEach(() => {
-    TeamStore.reset();
   });
 
   afterEach(() => {

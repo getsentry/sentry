@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import IO
+from typing import IO, Any
 from uuid import uuid4
 
+import orjson
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
@@ -47,6 +49,8 @@ __all__ = (
     "import_in_global_scope",
 )
 
+logger = logging.getLogger(__name__)
+
 # We have to be careful when removing fields from our model schemas, since exports created using
 # the old-but-still-in-the-support-window versions could have those fields set in the data they
 # provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
@@ -59,11 +63,21 @@ __all__ = (
 # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
 # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[
-    str, set[str]
-] = {  # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
-    "sentry.team": {"org_role"}
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+    # The actor field should be retained until 24.6.0
+    "sentry.team": {"org_role", "actor"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
 }
+
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+DELETED_MODELS = {"sentry.actor"}
 
 # The maximum number of models that may be sent at a time.
 MAX_BATCH_SIZE = 20
@@ -154,25 +168,29 @@ def _import(
     # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
-    content = (
+    content: bytes | str = (
         decrypt_encrypted_tarball(src, decryptor)
         if decryptor is not None
         else src.read().decode("utf-8")
     )
 
-    if len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove and fields that we have marked for deletion in the
+    if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
+        # Parse the content JSON and remove fields and models that we have marked for deletion in the
         # function.
+        content_as_json = orjson.loads(content)
+
         shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads(content)  # type: ignore[arg-type]
-        for json_model in content_as_json:
+        for i, json_model in enumerate(content_as_json):
             if json_model["model"] in shimmed_models:
                 fields_to_remove = DELETED_FIELDS[json_model["model"]]
                 for field in fields_to_remove:
                     json_model["fields"].pop(field, None)
 
+            if json_model["model"] in DELETED_MODELS:
+                del content_as_json[i]
+
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = json.dumps(content_as_json)
+        content = orjson.dumps(content_as_json)
 
     filters = []
     if filter_by is not None:
@@ -190,7 +208,7 @@ def _import(
             # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
             filtered_org_pks = set()
             seen_first_org_member_model = False
-            user_filter: Filter[int] = Filter(model=User, field="pk")
+            user_filter: Filter[int] = Filter[int](model=User, field="pk")
             filters.append(user_filter)
 
             # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
@@ -237,7 +255,7 @@ def _import(
             raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
 
         user_filter = next(f for f in filters if f.model == User)
-        email_filter = Filter(
+        email_filter = Filter[str](
             model=Email,
             field="email",
             values={v for k, v in user_to_email.items() if k in user_filter.values},
@@ -254,7 +272,7 @@ def _import(
     # NOT including the current instance.
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.loads(content)
+        models = orjson.loads(content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
         num_current_model_instances_yielded = 0
@@ -264,7 +282,7 @@ def _import(
                 if last_seen_model_name is not None and len(batch) > 0:
                     yield (
                         last_seen_model_name,
-                        json.dumps(batch),
+                        orjson.dumps(batch).decode(),
                         num_current_model_instances_yielded,
                     )
 
@@ -279,7 +297,11 @@ def _import(
             batch.append(model)
 
         if last_seen_model_name is not None and batch:
-            yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+            yield (
+                last_seen_model_name,
+                orjson.dumps(batch).decode(),
+                num_current_model_instances_yielded,
+            )
 
     # A wrapper for some immutable state we need when performing a single `do_write().
     @dataclass(frozen=True)
@@ -294,7 +316,7 @@ def _import(
         import_write_context: ImportWriteContext,
         pk_map: PrimaryKeyMap,
         model_name: NormalizedModelName,
-        json_data: json.JSONData,
+        json_data: Any,
         offset: int,
     ) -> None:
         model_relations = import_write_context.dependencies.get(model_name)
@@ -304,6 +326,15 @@ def _import(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
         model_name_str = str(model_name)
+        min_ordinal = offset + 1
+
+        extra = {
+            "model_name": model_name_str,
+            "import_uuid": flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+        logger.info("import_by_model.request_import", extra=extra)
+
         result = import_by_model(
             model_name=model_name_str,
             scope=import_write_context.scope,
@@ -311,7 +342,7 @@ def _import(
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
-            min_ordinal=offset + 1,
+            min_ordinal=min_ordinal,
         )
 
         if isinstance(result, RpcImportError):
@@ -336,7 +367,9 @@ def _import(
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
                 import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
             ).first()
-            if existing_control_import_chunk_replica is None:
+            if existing_control_import_chunk_replica is not None:
+                logger.info("import_by_model.control_replica_already_exists", extra=extra)
+            else:
                 # If `min_ordinal` is not null, these values must not be either.
                 assert result.max_ordinal is not None
                 assert result.min_source_pk is not None
@@ -457,7 +490,7 @@ def import_in_user_scope(
         ImportScope.User,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
@@ -488,7 +521,7 @@ def import_in_organization_scope(
         ImportScope.Organization,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        filter_by=Filter[str](Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
     )
 
@@ -520,7 +553,7 @@ def import_in_config_scope(
         ImportScope.Config,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 

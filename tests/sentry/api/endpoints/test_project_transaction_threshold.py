@@ -16,8 +16,8 @@ class ProjectTransactionThresholdTest(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-transaction-threshold",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -112,7 +112,10 @@ class ProjectTransactionThresholdTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         ProjectTransactionThreshold.objects.create(

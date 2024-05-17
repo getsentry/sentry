@@ -28,7 +28,6 @@ updates:
       # - dependency-name: "@sentry/react"
       - dependency-name: '@sentry/node'
       - dependency-name: '@sentry/utils'
-      - dependency-name: '@sentry/integrations'
       - dependency-name: '@sentry/rrweb'
 
       # We ignore everything that hasn't yet been upgrade, this way we will

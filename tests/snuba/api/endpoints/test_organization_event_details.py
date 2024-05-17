@@ -14,8 +14,8 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = pytest.mark.sentry_metrics
 
 
-def format_project_event(project_slug, event_id):
-    return f"{project_slug}:{event_id}"
+def format_project_event(project_id_or_slug, event_id):
+    return f"{project_id_or_slug}:{event_id}"
 
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
@@ -62,8 +62,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "a" * 32,
             },
         )
@@ -79,8 +79,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "a" * 32,
             },
         )
@@ -97,8 +97,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.id,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.id,
                 "event_id": "a" * 32,
             },
         )
@@ -127,8 +127,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )
@@ -143,8 +143,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             url = reverse(
                 "sentry-api-0-organization-event-details",
                 kwargs={
-                    "organization_slug": self.project.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.project.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                     "event_id": "a" * 32,
                 },
             )
@@ -167,8 +167,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "a" * 32,
             },
         )
@@ -188,8 +188,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "d" * 32,
             },
         )
@@ -204,8 +204,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             reverse(
                 "sentry-api-0-organization-event-details",
                 kwargs={
-                    "organization_slug": self.project.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.project.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                     "event_id": "not-an-event",
                 },
             )
@@ -221,8 +221,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "d" * 32,
             },
         )
@@ -241,8 +241,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "a" * 32,
             },
         )
@@ -272,8 +272,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "d" * 32,
             },
         )
@@ -297,8 +297,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": occurrence.event_id,
             },
         )
@@ -325,8 +325,8 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
         self.url = reverse(
             self.endpoint,
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )

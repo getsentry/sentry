@@ -18,7 +18,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
-from sentry.replays.query import query_replays_collection_raw, replay_url_parser_config
+from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
@@ -34,7 +34,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Replays",
-        parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("ListReplays", list[ReplayDetailsResponse]),
             400: RESPONSE_BAD_REQUEST,
@@ -83,7 +83,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 # to do this for completeness sake.
                 return Response({"detail": "Missing start or end period."}, status=400)
 
-            return query_replays_collection_raw(
+            return query_replays_collection_paginated(
                 project_ids=filter_params["project_id"],
                 start=start,
                 end=end,

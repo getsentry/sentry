@@ -3,10 +3,10 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
+import orjson
 import redis
 from django.conf import settings
 
-from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import redis_clusters
 
@@ -161,9 +161,9 @@ class RedisReprocessingStore(ReprocessingStore):
         self.redis.setex(
             _get_info_reprocessed_key(group_id),
             settings.SENTRY_REPROCESSING_SYNC_TTL,
-            json.dumps(
-                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
-            ),
+            orjson.dumps(
+                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count},
+            ).decode(),
         )
 
     def get_pending(self, group_id: int) -> tuple[str | None, int]:
@@ -176,4 +176,4 @@ class RedisReprocessingStore(ReprocessingStore):
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None
-        return json.loads(info)
+        return orjson.loads(info)

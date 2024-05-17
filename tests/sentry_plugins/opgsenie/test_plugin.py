@@ -1,11 +1,11 @@
 from functools import cached_property
 
+import orjson
 import responses
 
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
@@ -54,7 +54,7 @@ class OpsGeniePluginTest(PluginTestCase):
             self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
             "recipients": "me",

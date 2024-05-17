@@ -4,14 +4,14 @@ import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
+import orjson
 from django.core.cache import cache
 from urllib3 import HTTPResponse
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
 from sentry import options
+from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
-    PLACEHOLDER_EVENT_TITLES,
     SEER_ERROR_COUNT_KEY,
     EventManager,
     _get_severity_score,
@@ -22,7 +22,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -38,14 +37,9 @@ def make_event(**kwargs) -> dict[str, Any]:
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
-    @patch("sentry.event_manager.logger.info")
-    def test_error_event_simple(
-        self,
-        mock_logger_info: MagicMock,
-        mock_urlopen: MagicMock,
-    ) -> None:
+    def test_error_event_simple(self, mock_urlopen: MagicMock) -> None:
         manager = EventManager(
             make_event(
                 exception={
@@ -73,19 +67,9 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen.assert_called_with(
             "POST",
             "/v0/issues/severity-score",
-            body=json.dumps(payload),
+            body=orjson.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
             timeout=0.2,
-        )
-        mock_logger_info.assert_called_with(
-            "Got severity score of %s for event %s",
-            severity,
-            event.event_id,
-            extra={
-                "event_id": event.event_id,
-                "op": "event_manager._get_severity_score",
-                "payload": payload,
-            },
         )
         assert severity == 0.1231
         assert reason == "ml"
@@ -93,12 +77,10 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
-    @patch("sentry.event_manager.logger.info")
     def test_message_event_simple(
         self,
-        mock_logger_info: MagicMock,
         mock_urlopen: MagicMock,
     ) -> None:
         cases: list[dict[str, Any]] = [
@@ -121,19 +103,9 @@ class TestGetEventSeverity(TestCase):
             mock_urlopen.assert_called_with(
                 "POST",
                 "/v0/issues/severity-score",
-                body=json.dumps(payload),
+                body=orjson.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
                 timeout=0.2,
-            )
-            mock_logger_info.assert_called_with(
-                "Got severity score of %s for event %s",
-                severity,
-                event.event_id,
-                extra={
-                    "event_id": event.event_id,
-                    "op": "event_manager._get_severity_score",
-                    "payload": payload,
-                },
             )
             assert severity == 0.1231
             assert reason == "ml"
@@ -141,7 +113,7 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     def test_uses_exception(
         self,
@@ -161,13 +133,13 @@ class TestGetEventSeverity(TestCase):
         _get_severity_score(event)
 
         assert (
-            json.loads(mock_urlopen.call_args.kwargs["body"])["message"]
+            orjson.loads(mock_urlopen.call_args.kwargs["body"])["message"]
             == "NopeError: Nopey McNopeface"
         )
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     def test_short_circuit_level(
         self,
@@ -194,12 +166,9 @@ class TestGetEventSeverity(TestCase):
             assert severity == expected_severity
             assert reason == expected_reason
 
-    @pytest.mark.xfail(
-        reason="TODO (kmclb): Failing because of changes made in https://github.com/getsentry/sentry/pull/69397, and because the test is too brittle and the behavior it's testing is based on flawed assumptions (says the person who wrote the code in the first place). Will be fixed in a follow-up PR."
-    )
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
-        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+        return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
     )
     @patch("sentry.event_manager.logger.warning")
     def test_unusable_event_title(
@@ -210,22 +179,21 @@ class TestGetEventSeverity(TestCase):
         for title in PLACEHOLDER_EVENT_TITLES:
             manager = EventManager(make_event(exception={"values": []}, platform="python"))
             event = manager.save(self.project.id)
-            # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
-            # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
-            event.get_event_metadata()["title"] = title  # type: ignore[index]
+            # `title` is a property with no setter, but it pulls from `data`, so it's equivalent
+            # to set it there
+            event.data["title"] = title
 
             severity, reason = _get_severity_score(event)
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
                 "Unable to get severity score because of unusable `message` value '%s'",
-                "<unlabeled event>",
+                title,
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
                     "event_type": "default",
-                    "event_title": title,
-                    "computed_title": "<unlabeled event>",
+                    "title": title,
                 },
             )
             assert severity == 0.0
@@ -237,10 +205,10 @@ class TestGetEventSeverity(TestCase):
             severity_connection_pool, "/issues/severity-score", Exception("It broke")
         ),
     )
-    @patch("sentry.event_manager.logger.warning")
+    @patch("sentry.event_manager.metrics.incr")
     def test_max_retry_exception(
         self,
-        mock_logger_warning: MagicMock,
+        mock_metrics_incr: MagicMock,
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
@@ -261,20 +229,8 @@ class TestGetEventSeverity(TestCase):
 
         severity, reason = _get_severity_score(event)
 
-        mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-            1,
-            "y",
-            "Exception('It broke')",
-            extra={
-                "event_id": event.event_id,
-                "op": "event_manager._get_severity_score",
-                "payload": {
-                    "message": "NopeError: Nopey McNopeface",
-                    "has_stacktrace": 0,
-                    "handled": True,
-                },
-            },
+        mock_metrics_incr.assert_called_with(
+            "issues.severity.error", tags={"reason": "max_retries"}
         )
         assert severity == 1.0
         assert reason == "microservice_max_retry"
@@ -282,12 +238,47 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
+        side_effect=ConnectTimeoutError(),
+    )
+    @patch("sentry.event_manager.metrics.incr")
+    def test_timeout_error(
+        self,
+        mock_metrics_incr: MagicMock,
+        _mock_urlopen: MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                },
+                platform="python",
+            )
+        )
+        event = manager.save(self.project.id)
+
+        severity, reason = _get_severity_score(event)
+
+        mock_metrics_incr.assert_called_with("issues.severity.error", tags={"reason": "timeout"})
+        assert severity == 1.0
+        assert reason == "microservice_timeout"
+        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=Exception("It broke"),
     )
-    @patch("sentry.event_manager.logger.warning")
+    @patch("sentry.event_manager.sentry_sdk.capture_exception")
+    @patch("sentry.event_manager.metrics.incr")
     def test_other_exception(
         self,
-        mock_logger_warning: MagicMock,
+        mock_metrics_incr: MagicMock,
+        mock_capture_exception: MagicMock,
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
@@ -308,19 +299,8 @@ class TestGetEventSeverity(TestCase):
 
         severity, reason = _get_severity_score(event)
 
-        mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice. Got: %s.",
-            "Exception('It broke')",
-            extra={
-                "event_id": event.event_id,
-                "op": "event_manager._get_severity_score",
-                "payload": {
-                    "message": "NopeError: Nopey McNopeface",
-                    "has_stacktrace": 0,
-                    "handled": True,
-                },
-            },
-        )
+        mock_capture_exception.assert_called_once_with()
+        mock_metrics_incr.assert_called_with("issues.severity.error", tags={"reason": "unknown"})
         assert severity == 1.0
         assert reason == "microservice_error"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1

@@ -17,6 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models.dashboard import Dashboard
+from sentry.models.organization import Organization
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -29,6 +30,17 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+
+    def has_object_permission(self, request: Request, view, obj):
+        if isinstance(obj, Organization):
+            return super().has_object_permission(request, view, obj)
+
+        if isinstance(obj, Dashboard):
+            for project in obj.projects.all():
+                if not request.access.has_project_access(project):
+                    return False
+
+        return True
 
 
 @region_silo_endpoint
@@ -49,7 +61,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         If on the first page, this endpoint will also include any pre-built dashboards
         that haven't been replaced or removed.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           dashboards belongs to.
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
@@ -142,7 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         ``````````````````````````````````````````
 
         Create a new dashboard for the given Organization
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           dashboards belongs to.
         """
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):

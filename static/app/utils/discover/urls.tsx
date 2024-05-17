@@ -51,6 +51,7 @@ export function generateLinkToEventInTraceView({
   eventId,
   transactionName,
   eventView,
+  demo,
   type = 'performance',
 }: {
   eventId: string;
@@ -59,6 +60,7 @@ export function generateLinkToEventInTraceView({
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;
+  demo?: string;
   eventView?: EventView;
   isHomepage?: boolean;
   spanId?: string;
@@ -75,10 +77,10 @@ export function generateLinkToEventInTraceView({
       organization,
       String(traceSlug),
       dateSelection,
-      location.query,
       normalizedTimestamp,
       eventId,
-      spanId
+      spanId,
+      demo
     );
   }
 

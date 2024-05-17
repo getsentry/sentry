@@ -275,6 +275,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Superuser read/write
+register(
+    "superuser.read-write.ga-rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # API
 # GA Option for endpoints to work with id or slug as path parameters
@@ -311,6 +318,13 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "api.remove-non-webhook-control-path-gitlab-parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls the rate of using the hashed value of User API tokens for lookups when logging in
@@ -491,14 +505,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# React concurrent renderer
-register(
-    "frontend.react-concurrent-renderer-enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -643,9 +649,6 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-register("snuba.snql.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1015,6 +1018,12 @@ register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AU
 # Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
 register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Controls whether non-processing relays should run full normalization.
+register("relay.force_full_normalization", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Controls whether processing relays should skip normalization.
+register("relay.disable_normalization.processing", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1226,6 +1235,29 @@ register(
 # Option to enable orjson for JSON parsing in reconstruct_messages function
 register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Option to enable direct storage queries for meta queries in the metrics layer
+register(
+    "sentry-metrics.metrics-layer.use-storage-direct-meta-queries",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to remove support for percentiles on a per-org basis.
+# Add the org_id to list to disable percentiles.
+register(
+    "sentry-metrics.drop-percentiles.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to remove support for percentiles on a per-use case basis.
+# Add the use case to list to disable percentiles.
+register(
+    "sentry-metrics.drop-percentiles.per-use-case",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Global and per-organization limits on the writes to the string indexer's DB.
@@ -1695,9 +1727,51 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # hours
 register(
+    "performance.traces.trace-explorer-max-trace-ids-per-chunk",
+    type=Int,
+    default=2500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-skip-floating-spans",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-key.sample-rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-key.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-value.sample-rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-values.max",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-values.search",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1740,6 +1814,15 @@ register(
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Flagpole Rollout
+register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1814,9 +1897,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
-
-# Turns on and off the running for dynamic sampling collect_orgs.
-register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # Sets the timeout for webhooks
 register(
@@ -1919,18 +1999,6 @@ register(
 )
 
 register(
-    "delightful_metrics.enable_envelope_forwarding",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_serialization",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "delightful_metrics.enable_capture_envelope",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1938,24 +2006,6 @@ register(
 
 register(
     "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2247,6 +2297,10 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
+# Switch to read assemble status from Redis instead of memcache
+register("assemble.read_from_redis", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Sampling rates for testing Rust-based grouping enhancers
 
 # Rate at which to run the Rust implementation of `assemble_stacktrace_component`
@@ -2320,6 +2374,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# temporary option for logging canonical key fallback stacktraces
+register(
+    "canonical-fallback.send-error-to-sentry",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2345,12 +2406,39 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "standalone-spans.buffer-ttl.seconds",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "standalone-spans.detect-performance-issues-consumer.enable",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "standalone-spans.send-occurrence-to-platform.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.profile-process-messages.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.deserialize-spans-rapidjson.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.deserialize-spans-orjson.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "indexed-spans.agg-span-waterfall.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2428,9 +2516,24 @@ register(
 )
 
 
+# default brownout crontab for Organization Events API deprecations
+# TODO: remove once endpoint is removed
 register(
-    "issue_platform.use_kafka_partition_key.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    "api.organization-activity.brownout-cron",
+    default="*/3 * * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+register(
+    "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

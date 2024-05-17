@@ -4,6 +4,8 @@ from collections.abc import Generator, Sequence
 from logging import Logger, getLogger
 from typing import Any
 
+import orjson
+
 from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
@@ -29,7 +31,7 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
 from sentry.types.rules import RuleFuture
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 _default_logger: Logger = getLogger(__name__)
 
@@ -93,20 +95,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 for block in additional_attachment:
                     blocks["blocks"].append(block)
 
+            payload = {
+                "text": blocks.get("text"),
+                "channel": channel,
+                "unfurl_links": False,
+                "unfurl_media": False,
+            }
             if payload_blocks := blocks.get("blocks"):
-                payload = {
-                    "text": blocks.get("text"),
-                    "blocks": json.dumps_experimental(
-                        "integrations.slack.enable-orjson", payload_blocks
-                    ),
-                    "channel": channel,
-                    "unfurl_links": False,
-                    "unfurl_media": False,
-                }
-                self.logger.info(
-                    "rule.slack_post.attachments",
-                    extra={"organization_id": event.group.project.organization_id},
-                )
+                payload["blocks"] = orjson.dumps(payload_blocks).decode()
 
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
@@ -158,6 +154,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # To reply to a thread, use the specific key in the payload as referenced by the docs
                     # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
                     payload["thread_ts"] = parent_notification_message.message_identifier
+                    # If this flow is triggered again for the same issue, we want it to be seen in the main channel
+                    payload["reply_broadcast"] = True
 
             client = SlackClient(integration_id=integration.id)
             try:
@@ -181,9 +179,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     "channel_name": self.get_option("channel"),
                 }
                 # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json.dumps_experimental(
-                    "integrations.slack.enable-orjson", payload
-                )
+                log_params["payload"] = orjson.dumps(payload).decode()
 
                 self.logger.info(
                     "rule.fail.slack_post",
@@ -253,9 +249,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps_experimental(
-                "integrations.slack.enable-orjson", blocks.get("blocks")
-            ),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,

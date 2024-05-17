@@ -69,9 +69,5 @@ export function getRegionChoices(): [string, string][] {
 }
 
 export function shouldDisplayRegions(): boolean {
-  const regionCount = getRegions().length;
-  return (
-    ConfigStore.get('features').has('organizations:multi-region-selector') &&
-    regionCount > 1
-  );
+  return getRegions().length > 1;
 }
