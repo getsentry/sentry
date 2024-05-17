@@ -116,7 +116,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             require_email_verification=update.require_email_verification,
             codecov_access=update.codecov_access,
         )
-        if isinstance(update.customer_id, tuple):
+        if isinstance(update.customer_id, (tuple, list)):
             update_dict["customer_id"] = update.customer_id[0]
         if isinstance(update.customer_id, CustomerId):
             update_dict["customer_id"] = update.customer_id.value
