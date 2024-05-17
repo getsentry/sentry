@@ -23,7 +23,7 @@ export const OrganizationContext = createContext<Organization | null>(null);
 
 interface OrganizationLoaderContextProps {
   isLoading: boolean;
-  loader: () => void;
+  loadOrganization: () => void;
 }
 
 /**
@@ -42,7 +42,7 @@ interface Props {
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const loadOrganization = useContext(OrganizationLoaderContext)?.loader;
+  const loadOrganization = useContext(OrganizationLoaderContext)?.loadOrganization;
 
   // XXX(epurkhiser): The loadOrganization function is stable as long as the
   // organization slug is stable. A change to the organization slug will cause
@@ -77,9 +77,11 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
+  const [isLoading, setIsLoading] = useState(false);
+
   // Provided to the OrganizationLoaderContext. Loads the organization if it is
   // not already present.
-  const loadOrganization = useCallback(() => {
+  const loadOrganization = useCallback(async () => {
     // Nothing to do if we already have the organization loaded
     if (organization && organization.slug === orgSlug) {
       return;
@@ -90,7 +92,9 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
-    fetchOrganizationDetails(api, orgSlug, false, true);
+    setIsLoading(true);
+    await fetchOrganizationDetails(api, orgSlug, false, true);
+    setIsLoading(false);
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the
@@ -100,7 +104,6 @@ export function OrganizationContextProvider({children}: Props) {
       if (organization === null) {
         return;
       }
-
       metric.measure({
         name: 'app.component.perf',
         start: 'organization-details-fetch-start',
@@ -168,25 +171,11 @@ export function OrganizationContextProvider({children}: Props) {
     }
   }, [orgSlug]);
 
-  function OrganizationLoaderContextProvider({children: loaderChildren}: Props) {
-    const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {}, []);
-
-    return (
-      <OrganizationLoaderContext.Provider
-        value={{isLoading: false, loader: loadOrganization}}
-      >
-        {loaderChildren}
-      </OrganizationLoaderContext.Provider>
-    );
-  }
-
   return (
-    <OrganizationLoaderContextProvider>
+    <OrganizationLoaderContext.Provider value={{isLoading, loadOrganization}}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
-    </OrganizationLoaderContextProvider>
+    </OrganizationLoaderContext.Provider>
   );
 }
