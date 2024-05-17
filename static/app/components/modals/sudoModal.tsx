@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
@@ -44,45 +44,53 @@ type Props = WithRouterProps &
     retryRequest?: () => Promise<any>;
   };
 
-type State = {
-  authenticators: Array<Authenticator>;
-  busy: boolean;
-  error: boolean;
-  errorType: string;
-  showAccessForms: boolean;
-  superuserAccessCategory: string;
-  superuserReason: string;
-};
-
-class SudoModal extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    closeButton: true,
-  };
-
-  state: State = {
-    authenticators: [],
+function SudoModal(props: Props) {
+  const [state, setState] = useState({
+    authenticators: [] as Authenticator[],
     busy: false,
     error: false,
     errorType: '',
     showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
-  };
+  });
 
-  componentDidMount() {
-    this.getAuthenticators();
-  }
+  const {
+    authenticators,
+    busy,
+    error,
+    errorType,
+    showAccessForms,
+    superuserAccessCategory,
+    superuserReason,
+  } = state;
 
-  handleSubmitCOPS = () => {
-    this.setState({
+  useEffect(() => {
+    const getAuthenticators = async () => {
+      try {
+        const fetchedAuthenticators = await props.api.requestPromise('/authenticators/');
+        setState(prevState => ({
+          ...prevState,
+          authenticators: fetchedAuthenticators ?? [],
+        }));
+      } catch {
+        // ignore errors
+      }
+    };
+
+    getAuthenticators();
+  }, [props.api]);
+
+  const handleSubmitCOPS = () => {
+    setState(prevState => ({
+      ...prevState,
       superuserAccessCategory: 'cops_csm',
       superuserReason: 'COPS and CSM use',
-    });
+    }));
   };
 
-  handleSubmit = async data => {
-    const {api, isSuperuser} = this.props;
-    const {superuserAccessCategory, superuserReason, authenticators} = this.state;
+  const handleSubmit = async data => {
+    const {api, isSuperuser} = props;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
@@ -90,29 +98,29 @@ class SudoModal extends Component<Props, State> {
     const suReason = superuserReason || data.superuserReason;
 
     if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
+      handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
 
-    if (this.state.showAccessForms && isSuperuser && !disableU2FForSUForm) {
-      this.setState({
+    if (showAccessForms && isSuperuser && !disableU2FForSUForm) {
+      setState(prevState => ({
+        ...prevState,
         showAccessForms: false,
         superuserAccessCategory: suAccessCategory,
         superuserReason: suReason,
-      });
+      }));
     } else {
       try {
         await api.requestPromise('/auth/', {method: 'PUT', data});
-        this.handleSuccess();
+        handleSuccess();
       } catch (err) {
-        this.handleError(err);
+        handleError(err);
       }
     }
   };
 
-  handleSuccess = () => {
-    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} =
-      this.props;
+  const handleSuccess = () => {
+    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} = props;
 
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
@@ -127,95 +135,89 @@ class SudoModal extends Component<Props, State> {
       return;
     }
 
-    this.setState({busy: true}, () => {
-      retryRequest().then(() => {
-        this.setState({busy: false, showAccessForms: true}, closeModal);
-      });
+    setState(prevState => ({
+      ...prevState,
+      busy: true,
+    }));
+
+    retryRequest().then(() => {
+      setState(
+        prevState => ({
+          busy: false,
+          showAccessForms: true,
+        }),
+        closeModal
+      ); // Pass closeModal as a separate argument
     });
   };
 
-  handleError = err => {
-    let errorType = '';
+  const handleError = err => {
+    let newErrorType = ''; // Create a new variable to store the error type
+
     if (err.status === 403) {
       if (err.responseJSON.detail.code === 'no_u2f') {
-        errorType = ErrorCodes.NO_AUTHENTICATOR;
+        newErrorType = ErrorCodes.NO_AUTHENTICATOR;
       } else {
-        errorType = ErrorCodes.INVALID_PASSWORD;
+        newErrorType = ErrorCodes.INVALID_PASSWORD;
       }
     } else if (err.status === 401) {
-      errorType = ErrorCodes.INVALID_SSO_SESSION;
+      newErrorType = ErrorCodes.INVALID_SSO_SESSION;
     } else if (err.status === 400) {
-      errorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
+      newErrorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
     } else if (err === ErrorCodes.NO_AUTHENTICATOR) {
-      errorType = ErrorCodes.NO_AUTHENTICATOR;
+      newErrorType = ErrorCodes.NO_AUTHENTICATOR;
     } else {
-      errorType = ErrorCodes.UNKNOWN_ERROR;
+      newErrorType = ErrorCodes.UNKNOWN_ERROR;
     }
-    this.setState({
+
+    setState(prevState => ({
+      ...prevState,
       busy: false,
       error: true,
-      errorType,
+      errorType: newErrorType,
       showAccessForms: true,
-    });
+    }));
   };
 
-  handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
-    this.setState({busy: true});
+  const handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
+    setState(prevState => ({
+      ...prevState,
+      busy: true,
+    }));
 
-    const {api, isSuperuser} = this.props;
-
-    try {
-      data.isSuperuserModal = isSuperuser;
-      data.superuserAccessCategory = this.state.superuserAccessCategory;
-      data.superuserReason = this.state.superuserReason;
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-      this.handleSuccess();
-    } catch (err) {
-      this.setState({busy: false});
-      // u2fInterface relies on this
-      throw err;
-    }
+    setState(prevState => ({
+      ...prevState,
+      busy: false,
+    }));
   };
 
-  getAuthLoginPath(): string {
+  const getAuthLoginPath = (): string => {
     const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
     const {superuserUrl} = window.__initialData.links;
     if (window.__initialData?.customerDomain && superuserUrl) {
       return `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
     }
     return authLoginPath;
-  }
+  };
 
-  handleLogout = async () => {
-    const {api} = this.props;
+  const handleLogout = async () => {
+    const {api} = props;
     try {
       await logout(api);
     } catch {
       // ignore errors
     }
-    window.location.assign(this.getAuthLoginPath());
+    window.location.assign(getAuthLoginPath());
   };
 
-  async getAuthenticators() {
-    const {api} = this.props;
-
-    try {
-      const authenticators = await api.requestPromise('/authenticators/');
-      this.setState({authenticators: authenticators ?? []});
-    } catch {
-      // ignore errors
-    }
-  }
-
-  renderBodyContent() {
-    const {isSuperuser} = this.props;
-    const {authenticators, error, errorType, showAccessForms} = this.state;
+  const renderBodyContent = () => {
+    const {isSuperuser} = props;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     const validateSUForm = ConfigStore.get('validateSUForm');
 
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
-      this.handleLogout();
+      handleLogout();
       return null;
     }
 
@@ -242,13 +244,13 @@ class SudoModal extends Component<Props, State> {
               apiMethod="PUT"
               apiEndpoint="/auth/"
               submitLabel={showAccessForms ? t('Continue') : t('Re-authenticate')}
-              onSubmit={this.handleSubmit}
-              onSubmitSuccess={this.handleSuccess}
-              onSubmitError={this.handleError}
+              onSubmit={handleSubmit}
+              onSubmitSuccess={handleSuccess}
+              onSubmitError={handleError}
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
                 <BackWrapper>
-                  <Button type="submit" onClick={this.handleSubmitCOPS}>
+                  <Button type="submit" onClick={handleSubmitCOPS}>
                     {t('COPS/CSM')}
                   </Button>
                 </BackWrapper>
@@ -262,12 +264,12 @@ class SudoModal extends Component<Props, State> {
                 <U2fContainer
                   authenticators={authenticators}
                   displayMode="sudo"
-                  onTap={this.handleU2fTap}
+                  onTap={handleU2fTap}
                 />
               )}
             </Form>
           ) : (
-            <Button priority="primary" href={this.getAuthLoginPath()}>
+            <Button priority="primary" href={getAuthLoginPath()}>
               {t('Continue')}
             </Button>
           )}
@@ -295,8 +297,8 @@ class SudoModal extends Component<Props, State> {
           apiMethod="PUT"
           apiEndpoint="/auth/"
           submitLabel={t('Confirm Password')}
-          onSubmitSuccess={this.handleSuccess}
-          onSubmitError={this.handleError}
+          onSubmitSuccess={handleSuccess}
+          onSubmitError={handleError}
           hideFooter={!user.hasPasswordAuth && authenticators.length === 0}
           initialData={{isSuperuserModal: isSuperuser}}
           resetOnError
@@ -314,23 +316,19 @@ class SudoModal extends Component<Props, State> {
           <U2fContainer
             authenticators={authenticators}
             displayMode="sudo"
-            onTap={this.handleU2fTap}
+            onTap={handleU2fTap}
           />
         </Form>
       </Fragment>
     );
-  }
+  };
 
-  render() {
-    const {Header, Body, closeButton} = this.props;
-
-    return (
-      <Fragment>
-        <Header closeButton={closeButton}>{t('Confirm Password to Continue')}</Header>
-        <Body>{this.renderBodyContent()}</Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Header closeButton={props.closeButton}>{t('Confirm Password to Continue')}</Header>
+      <Body>{renderBodyContent()}</Body>
+    </Fragment>
+  );
 }
 
 export default withSentryRouter(withApi(SudoModal));

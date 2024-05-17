@@ -24,7 +24,7 @@ export const OrganizationContext = createContext<Organization | null>(null);
 /**
  * Holds a function to load the organization.
  */
-const OrganizationLoaderContext = createContext<null | (() => void)>(null);
+export const OrganizationLoaderContext = createContext<null | (() => void)>(null);
 
 interface Props {
   children: React.ReactNode;
