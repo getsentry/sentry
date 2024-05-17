@@ -37,6 +37,7 @@ const Placeholder = styled(
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
+  border-radius: 5px;
 
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
   ${p => p.error && `color: ${p.theme.red200};`}

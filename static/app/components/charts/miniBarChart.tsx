@@ -58,7 +58,7 @@ function makeBaseChartOptions({
       top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
       bottom: labelYAxisExtents || showMarkLineLabel ? 4 : 0,
       left: markLineLabelSide === 'left' ? (showMarkLineLabel ? 35 : 4) : 0,
-      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 35 : 4) : 0,
+      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 25 : 4) : 0,
     },
     xAxis: {
       axisLine: showXAxisLine

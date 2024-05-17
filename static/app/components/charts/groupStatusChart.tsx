@@ -85,6 +85,7 @@ function GroupStatusChart({
                 label: {
                   show: true,
                   position: 'end',
+                  opacity: 1,
                   color: `${theme.gray300}`,
                   fontFamily: 'Rubik',
                   fontSize: 10,
@@ -113,7 +114,6 @@ function GroupStatusChart({
           emphasisColors={graphOptions.emphasisColors}
           hideDelay={50}
           showMarkLineLabel={showMarkLine}
-          width={136}
         />
         <GraphText>{groupStatus}</GraphText>
       </ChartWrapper>

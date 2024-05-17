@@ -10,10 +10,12 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -447,6 +449,18 @@ function BaseGroupRow({
     ? group.stats?.[statsPeriod]
     : [];
 
+  const groupChart = !defined(groupStats) ? (
+    <Placeholder height="36px" />
+  ) : (
+    <GroupStatusChart
+      stats={groupStats}
+      secondaryStats={groupSecondaryStats}
+      showSecondaryPoints={showSecondaryPoints}
+      groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+      showMarkLine
+    />
+  );
+
   return (
     <Wrapper
       data-test-id="group"
@@ -480,12 +494,16 @@ function BaseGroupRow({
 
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
-          <GroupChart
-            stats={groupStats}
-            secondaryStats={groupSecondaryStats}
-            showSecondaryPoints={showSecondaryPoints}
-            showMarkLine
-          />
+          {organization.features.includes('issue-stream-new-events-graph') ? (
+            groupChart
+          ) : (
+            <GroupChart
+              stats={groupStats}
+              secondaryStats={groupSecondaryStats}
+              showSecondaryPoints={showSecondaryPoints}
+              showMarkLine
+            />
+          )}
         </ChartWrapper>
       )}
       {displayReprocessingLayout ? (
