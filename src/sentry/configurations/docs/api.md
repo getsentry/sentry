@@ -6,17 +6,17 @@ Host: https://sentry.io/api/0
 
 @cmanallen
 
-## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/]
+## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/keys/<key_id>/configuration/]
 
 ### Get Configuration [GET]
 
-Retrieve the project's configuration.
+Retrieve the DSN's configuration.
 
 **Attributes**
 
 | Column             | Type   | Description                     |
 | ------------------ | ------ | ------------------------------- |
-| id                 | number | Project id.                     |
+| id                 | string | Client key.                     |
 | sample_rate        | number | A number value between 0 and 1. |
 | traces_sample_rate | number | A number value between 0 and 1. |
 | user_config        | any    | Arbitrary user supplied JSON.   |
@@ -44,7 +44,7 @@ Retrieve the project's configuration.
 
 ### Set Configuration [POST]
 
-Set the project's configuration.
+Set the DSN's configuration.
 
 - Request
 
@@ -73,6 +73,6 @@ Set the project's configuration.
 
 ### Delete Configuration [DELETE]
 
-Delete the project's configuration.
+Delete the DSN's configuration.
 
 - Response 204
