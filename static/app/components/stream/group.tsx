@@ -439,13 +439,15 @@ function BaseGroupRow({
     <GuideAnchor target="issue_stream" />
   );
 
-  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
-    ? group.filtered.stats?.[statsPeriod]
-    : group.stats?.[statsPeriod];
+  const groupStats: ReadonlyArray<TimeseriesValue> = useMemo(() => {
+    return group.filtered
+      ? group.filtered.stats?.[statsPeriod]
+      : group.stats?.[statsPeriod];
+  }, [group.filtered, group.stats, statsPeriod]);
 
-  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
-    ? group.stats?.[statsPeriod]
-    : [];
+  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = useMemo(() => {
+    return group.filtered ? group.stats?.[statsPeriod] : [];
+  }, [group.filtered, group.stats, statsPeriod]);
 
   return (
     <Wrapper
