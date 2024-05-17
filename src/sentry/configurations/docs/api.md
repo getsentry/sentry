@@ -28,7 +28,7 @@ Retrieve the DSN's configuration.
   ```json
   {
     "data": {
-      "id": 1,
+      "id": "99aabf0dad1c48ad8e47e2a43969f312",
       "sample_rate": 1.0,
       "traces_sample_rate": 0.5,
       "user_config": {
@@ -63,7 +63,7 @@ Set the DSN's configuration.
   ```json
   {
     "data": {
-      "id": 1,
+      "id": "99aabf0dad1c48ad8e47e2a43969f312",
       "sample_rate": 0.2,
       "traces_sample_rate": 0.5,
       "user_config": ["hello", "world"]
