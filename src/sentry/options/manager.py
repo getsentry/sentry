@@ -270,9 +270,9 @@ class OptionsManager:
 
         return self.is_set_on_disk(key)
 
-    def set_on_db(self, key: str) -> bool:
+    def set_in_db(self, key: str) -> bool:
         """
-        Check if a key has been set on the database.
+        Check if a key has been set in the database.
         """
         return self.store.get_store(key) is not None
 
