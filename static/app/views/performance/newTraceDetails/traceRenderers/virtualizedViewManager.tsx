@@ -1710,9 +1710,11 @@ export class VirtualizedList {
       }
     }
 
-    window.requestAnimationFrame(() => {
-      if (this.container) this.container.scrollTop = position;
-    });
+    setTimeout(() => {
+      if (this.container) {
+        this.container.scrollTop = position;
+      }
+    }, 100);
 
     dispatchJestScrollUpdate(this.container);
   }
