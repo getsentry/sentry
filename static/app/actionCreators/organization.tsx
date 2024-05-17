@@ -132,54 +132,55 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
-  const loadOrganization = async () => {
-    console.log('fetching org', new Date().getTime());
-    try {
-      await fetchOrg(api, slug, usePreload);
-    } catch (err) {
-      if (!err) {
-        return;
-      }
-
-      OrganizationStore.onFetchOrgError(err);
-
-      if (err.status === 403 || err.status === 401) {
-        const errMessage =
-          typeof err.responseJSON?.detail === 'string'
-            ? err.responseJSON?.detail
-            : typeof err.responseJSON?.detail?.message === 'string'
-              ? err.responseJSON?.detail.message
-              : null;
-
-        if (errMessage) {
-          addErrorMessage(errMessage);
+  const loadOrganization = () => {
+    return new Promise(async resolve => {
+      let org: Organization | undefined = undefined;
+      try {
+        org = await fetchOrg(api, slug, usePreload);
+      } catch (err) {
+        if (!err) {
+          return;
         }
 
-        return;
-      }
+        OrganizationStore.onFetchOrgError(err);
 
-      Sentry.captureException(err);
-    }
-    console.log('fetched org', new Date().getTime());
+        if (err.status === 403 || err.status === 401) {
+          const errMessage =
+            typeof err.responseJSON?.detail === 'string'
+              ? err.responseJSON?.detail
+              : typeof err.responseJSON?.detail?.message === 'string'
+                ? err.responseJSON?.detail.message
+                : null;
+
+          if (errMessage) {
+            addErrorMessage(errMessage);
+          }
+
+          return;
+        }
+        Sentry.captureException(err);
+      }
+      resolve(org);
+    });
   };
 
-  const loadTeamsAndProjects = async () => {
-    console.log('fetching projects and teams', new Date().getTime());
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
-    console.log('fetched projects and teams', new Date().getTime());
+  const loadTeamsAndProjects = () => {
+    return new Promise(async resolve => {
+      const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
 
-    console.log('setting projects in store', projects);
-    ProjectsStore.loadInitialData(projects ?? []);
+      ProjectsStore.loadInitialData(projects ?? []);
 
-    const teamPageLinks = resp?.getResponseHeader('Link');
-    if (teamPageLinks) {
-      const paginationObject = parseLinkHeader(teamPageLinks);
-      const hasMore = paginationObject?.next?.results ?? false;
-      const cursor = paginationObject.next?.cursor;
-      TeamStore.loadInitialData(teams, hasMore, cursor);
-    } else {
-      TeamStore.loadInitialData(teams);
-    }
+      const teamPageLinks = resp?.getResponseHeader('Link');
+      if (teamPageLinks) {
+        const paginationObject = parseLinkHeader(teamPageLinks);
+        const hasMore = paginationObject?.next?.results ?? false;
+        const cursor = paginationObject.next?.cursor;
+        TeamStore.loadInitialData(teams, hasMore, cursor);
+      } else {
+        TeamStore.loadInitialData(teams);
+      }
+      resolve(projects);
+    });
   };
 
   return Promise.all([loadOrganization(), loadTeamsAndProjects()]);

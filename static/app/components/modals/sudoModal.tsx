@@ -100,11 +100,8 @@ function SudoModal({
     };
 
     if (!isLoading) {
-      console.log('fetching authenticators', new Date().getTime());
-      getAuthenticators().then(() =>
-        console.log('fetched authenticators', new Date().getTime())
-      );
-    } else console.log('skipped authenticators', new Date().getTime());
+      getAuthenticators();
+    }
   }, [api, isLoading]);
 
   const handleSubmitCOPS = () => {

@@ -127,7 +127,6 @@ async function fetchProjects(
     includeAllArgs: true,
     query,
   });
-  console.log('Fetching all projects in useData');
 
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
@@ -201,7 +200,6 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       });
 
       const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
-      console.log('setting projects in store', projects);
       ProjectsStore.loadInitialData(fetchedProjects);
 
       setState(prev => ({
@@ -252,7 +250,6 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
 
       // Only update the store if we have more items
       if (fetchedProjects.length > store.projects.length) {
-        console.log('setting projects in store', projects);
         ProjectsStore.loadInitialData(fetchedProjects);
       }
 

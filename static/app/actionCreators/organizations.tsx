@@ -198,7 +198,6 @@ export async function fetchOrganizationDetails(
   }
 
   if (loadProjects) {
-    console.log('setting projects in store', projects);
     ProjectsStore.loadInitialData(data.projects || []);
   }
 
