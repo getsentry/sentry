@@ -87,6 +87,7 @@ export class VirtualizedViewManager {
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
+  reset_zoom_button: HTMLButtonElement | null = null;
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
   horizontal_scrollbar_container: HTMLElement | null = null;
@@ -157,6 +158,7 @@ export class VirtualizedViewManager {
       },
     };
 
+    this.registerResetZoomRef = this.registerResetZoomRef.bind(this);
     this.registerContainerRef = this.registerContainerRef.bind(this);
     this.registerHorizontalScrollBarContainerRef =
       this.registerHorizontalScrollBarContainerRef.bind(this);
@@ -212,6 +214,25 @@ export class VirtualizedViewManager {
       // @ts-expect-error
       handler(...args);
     }
+  }
+
+  updateTraceSpace(start: number, width: number) {
+    if (this.trace_space.width === width && this.to_origin === start) {
+      return;
+    }
+
+    this.to_origin = start;
+
+    // If view is scaled all the way out, then lets update it to match the new space, else
+    // we are implicitly zooming in, which may be even more confusing.
+    const preventImplicitZoom = this.trace_view.width === this.trace_space.width;
+    this.trace_space = new TraceView(0, 0, width, 1);
+    if (preventImplicitZoom) {
+      this.setTraceView({x: 0, width});
+    }
+
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPxMatrix();
   }
 
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
@@ -332,6 +353,10 @@ export class VirtualizedViewManager {
     } else {
       this.teardown();
     }
+  }
+
+  registerResetZoomRef(ref: HTMLButtonElement | null) {
+    this.reset_zoom_button = ref;
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {
@@ -744,6 +769,7 @@ export class VirtualizedViewManager {
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
     this.enqueueFOVQueryParamSync();
+    this.syncResetZoomButton();
   }
 
   enqueueFOVQueryParamSync() {
@@ -775,6 +801,12 @@ export class VirtualizedViewManager {
       child.style.width =
         Math.round(max - this.scrollbar_width + this.ROW_PADDING_PX) + 'px';
     }
+  }
+
+  syncResetZoomButton() {
+    if (!this.reset_zoom_button) return;
+    this.reset_zoom_button.disabled =
+      this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
@@ -1274,7 +1306,8 @@ export class VirtualizedViewManager {
 
       const outside_left =
         span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
-      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+      const outside_right =
+        span.space[0] - this.to_origin - error_margin > this.trace_view.right;
 
       if (outside_left || outside_right) {
         this.hideSpanBar(this.span_bars[i], this.span_text[i]);

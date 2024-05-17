@@ -31,7 +31,6 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
@@ -65,7 +64,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     'profiling-using-transactions'
   );
 
-  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
+  const fields = ALL_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
     key: 'count()',
@@ -138,22 +137,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const eventView = useMemo(() => {
-    const _eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: t('Profiling'),
-        fields: [],
-        query,
-        projects: selection.projects,
-      },
-      location
-    );
-    _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
-    return _eventView;
-  }, [location, query, selection.projects]);
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -194,9 +177,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 </PageFilterBar>
                 {profilingUsingTransactions ? (
                   <SearchBar
-                    searchSource="profile_summary"
+                    searchSource="profile_landing"
                     organization={organization}
-                    projectIds={eventView.project}
+                    projectIds={selection.projects}
                     query={query}
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
@@ -317,7 +300,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-const BASE_FIELDS = [
+const ALL_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
@@ -327,9 +310,6 @@ const BASE_FIELDS = [
   'p99()',
   'count()',
 ] as const;
-
-// user misery is only available with the profiling-using-transactions feature
-const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
 

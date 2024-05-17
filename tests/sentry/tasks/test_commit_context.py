@@ -854,7 +854,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
             status=200,
-            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha}],
+            json=[{"merge_commit_sha": self.pull_request.merge_commit_sha, "state": "closed"}],
         )
 
     def test_gh_comment_not_github(self, mock_comment_workflow, mock_get_commit_context):

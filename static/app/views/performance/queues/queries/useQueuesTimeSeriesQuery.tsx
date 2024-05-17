@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
@@ -16,14 +17,15 @@ const yAxis: SpanMetricsProperty[] = [
 ];
 
 export function useQueuesTimeSeriesQuery({enabled, destination}: Props) {
+  const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
+  if (destination) {
+    mutableSearch.addFilterValue('messaging.destination.name', destination, false);
+  }
+
   return useSpanMetricsSeries(
     {
       yAxis,
-      search: destination
-        ? MutableSearch.fromQueryObject({
-            'messaging.destination.name': destination,
-          })
-        : undefined,
+      search: mutableSearch,
       enabled,
     },
     'api.performance.queues.module-chart'

@@ -54,20 +54,16 @@ Sentry.init({
     verify: t(
       'Add this intentional error to your application to test that everything is working right away.'
     ),
-    verifyCode: `const transaction = Sentry.startTransaction({
+    verifyCode: `Sentry.startSpan({
       op: "test",
-      name: "My First Test Transaction",
-});
-
-setTimeout(() => {
+      name: "My First Test Span",
+}, () => {
   try {
     foo();
   } catch (e) {
     Sentry.captureException(e);
-  } finally {
-    transaction.finish();
   }
-}, 99);`,
+});`,
   },
   'python-django': {
     install: t('Use the following command to install our Python Django SDK'),

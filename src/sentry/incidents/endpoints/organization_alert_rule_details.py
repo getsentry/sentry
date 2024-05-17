@@ -58,9 +58,11 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                     action.get("_sentry_app_installation", {}).get("sentry_app_id", None)
                 )
     if sentry_app_ids:
+        fetched_rpc_installations = app_service.get_many(
+            filter=dict(app_ids=sentry_app_ids, organization_id=organization.id)
+        )
         sentry_app_map = {
-            install.sentry_app.id: install.sentry_app
-            for install in app_service.get_many(filter=dict(app_ids=sentry_app_ids))
+            install.sentry_app.id: install.sentry_app for install in fetched_rpc_installations
         }
 
     # Prepare AlertRuleTriggerActions that are SentryApp components
@@ -318,11 +320,6 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 project = alert_rule.projects.get()
             except Exception:
                 pass
-
-            # TODO - Cleanup Subscription Project Mapping
-            # if not, check to see if there's a project associated with the snuba query
-            if project is None:
-                project = alert_rule.snuba_query.subscriptions.get().project
 
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)

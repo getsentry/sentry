@@ -37,7 +37,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {
             "organizations:performance-use-metrics": True,
@@ -967,7 +967,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {
             "organizations:on-demand-metrics-extraction-widgets": True,

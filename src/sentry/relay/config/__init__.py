@@ -70,11 +70,9 @@ EXPOSABLE_FEATURES = [
     "projects:discard-transaction",
     "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
     "projects:span-metrics-double-write-distributions-as-gauges",
+    "projects:relay-otel-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1

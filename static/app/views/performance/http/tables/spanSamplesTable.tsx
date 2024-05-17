@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
@@ -110,6 +110,7 @@ function renderBodyCell(
   if (column.key === SpanIndexedField.ID) {
     return (
       <SpanIdCell
+        moduleName={ModuleName.HTTP}
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}

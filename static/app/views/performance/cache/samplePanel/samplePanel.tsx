@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import * as qs from 'query-string';
@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -34,6 +35,7 @@ import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   MetricsFields,
   type MetricsQueryFilters,
+  ModuleName,
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
@@ -196,6 +198,15 @@ export function CacheSamplePanel() {
     });
   };
 
+  const handleOpen = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: ModuleName.CACHE,
+      });
+    }
+  }, [organization, query.transaction]);
+
   const handleRefetch = () => {
     refetchCacheHits();
     refetchCacheMisses();
@@ -203,7 +214,7 @@ export function CacheSamplePanel() {
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose}>
+      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>
@@ -346,7 +357,17 @@ export function CacheSamplePanel() {
 
           <Fragment>
             <ModuleLayout.Full>
-              <Button onClick={handleRefetch}>{t('Try Different Samples')}</Button>
+              <Button
+                onClick={() => {
+                  trackAnalytics(
+                    'performance_views.sample_spans.try_different_samples_clicked',
+                    {organization, source: ModuleName.CACHE}
+                  );
+                  handleRefetch();
+                }}
+              >
+                {t('Try Different Samples')}
+              </Button>
             </ModuleLayout.Full>
           </Fragment>
         </ModuleLayout.Layout>

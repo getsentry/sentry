@@ -1161,6 +1161,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               organization={organization}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               isErrorMigration={showErrorMigrationWarning}
+              isForSpanMetric={aggregate.includes(':spans/')}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}

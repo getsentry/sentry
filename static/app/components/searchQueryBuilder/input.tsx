@@ -25,6 +25,11 @@ type SearchQueryBuilderInputProps = {
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
 };
 
+type SearchQueryBuilderInputInternalProps = {
+  tabIndex: number;
+  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+};
+
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
 
@@ -67,13 +72,17 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
-function SearchQueryBuilderInputInternal({token}: SearchQueryBuilderInputProps) {
-  const [inputValue, setInputValue] = useState(token.value.trim());
+function SearchQueryBuilderInputInternal({
+  token,
+  tabIndex,
+}: SearchQueryBuilderInputInternalProps) {
+  const trimmedTokenValue = token.value.trim();
+  const [inputValue, setInputValue] = useState(trimmedTokenValue);
   // TODO(malwilley): Use input ref to update cursor position on mount
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const resetInputValue = () => {
-    setInputValue(token.value.trim());
+    setInputValue(trimmedTokenValue);
     // TODO(malwilley): Reset cursor position using ref
   };
 
@@ -101,10 +110,10 @@ function SearchQueryBuilderInputInternal({token}: SearchQueryBuilderInputProps) 
   }, [allKeys]);
 
   // When token value changes, reset the input value
-  const [prevValue, setPrevValue] = useState(token.value);
-  if (token.value.trim() !== prevValue) {
-    setPrevValue(token.value.trim());
-    setInputValue(token.value.trim());
+  const [prevValue, setPrevValue] = useState(inputValue);
+  if (trimmedTokenValue !== prevValue) {
+    setPrevValue(trimmedTokenValue);
+    setInputValue(trimmedTokenValue);
   }
 
   return (
@@ -139,6 +148,7 @@ function SearchQueryBuilderInputInternal({token}: SearchQueryBuilderInputProps) 
           setSelectionIndex(e.target.selectionStart ?? 0);
         }
       }}
+      tabIndex={tabIndex}
     >
       <Section>
         {items.map(item => (
@@ -175,14 +185,12 @@ export function SearchQueryBuilderInput({
     [item.key, state.selectionManager]
   );
 
+  const isFocused = item.key === state.selectionManager.focusedKey;
+
   return (
-    <Row
-      {...mergeProps(rowProps, {onFocus})}
-      ref={ref}
-      tabIndex={-1} // Input row should not be focused directly
-    >
+    <Row {...mergeProps(rowProps, {onFocus})} ref={ref} tabIndex={-1}>
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
-        <SearchQueryBuilderInputInternal token={token} item={item} state={state} />
+        <SearchQueryBuilderInputInternal token={token} tabIndex={isFocused ? 0 : -1} />
       </GridCell>
     </Row>
   );

@@ -128,7 +128,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query, **kwargs):
         return self.client.get(
-            reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+            reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
             query,
             format="json",
             **kwargs,
@@ -267,6 +267,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                     measurement: duration + j + 1
                     for j, measurement in enumerate(
                         [
+                            "frames.slow",
                             "score.total",
                             "score.inp",
                             "score.weight.inp",
@@ -288,6 +289,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
         for i, mri in enumerate(
             [
+                "g:spans/mobile.slow_frames@none",
                 "d:spans/webvital.score.total@ratio",
                 "d:spans/webvital.score.inp@ratio",
                 "d:spans/webvital.score.weight.inp@ratio",

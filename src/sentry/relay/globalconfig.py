@@ -2,6 +2,7 @@ from typing import Any, TypedDict
 
 import sentry.options
 from sentry.relay.config import GenericFiltersConfig
+from sentry.relay.config.ai_model_costs import AIModelCosts, ai_model_costs_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.utils import metrics
 
@@ -27,6 +28,7 @@ RELAY_OPTIONS: list[str] = [
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
+    aiModelCosts: AIModelCosts
     filters: GenericFiltersConfig | None
     options: dict[str, Any]
 
@@ -44,6 +46,7 @@ def get_global_config():
 
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
+        "aiModelCosts": ai_model_costs_config(),
     }
 
     filters = get_global_generic_filters()

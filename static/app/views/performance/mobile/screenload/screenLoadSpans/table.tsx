@@ -27,7 +27,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
@@ -40,6 +39,7 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -67,6 +67,7 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
   project,
 }: Props) {
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -169,9 +170,7 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/screens/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,

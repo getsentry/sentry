@@ -20,13 +20,6 @@ interface TraceTimelineTooltipProps {
 
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const {projects} = useProjects({
-    slugs: [
-      ...timelineEvents.reduce((acc, cur) => acc.add(cur.project), new Set<string>()),
-    ],
-    orgId: organization.slug,
-  });
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
@@ -43,43 +36,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       <EventItemsWrapper hasTitle={hasTitle}>
         {hasTitle && <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>}
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
-          const project = projects.find(p => p.slug === timelineEvent.project);
-          return (
-            <EventItem
-              key={timelineEvent.id}
-              to={{
-                pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
-                query: {
-                  ...location.query,
-                  project: undefined,
-                  referrer: 'issues_trace_timeline',
-                },
-              }}
-              onClick={() => {
-                trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
-                  organization,
-                  event_id: timelineEvent.id,
-                  group_id: `${timelineEvent['issue.id']}`,
-                });
-              }}
-            >
-              <div>
-                {project && (
-                  <ProjectBadge project={project} avatarSize={18} hideName disableLink />
-                )}
-              </div>
-              <EventTitleWrapper>
-                <EventTitle>{timelineEvent.title}</EventTitle>
-                <EventDescription>
-                  {timelineEvent.transaction
-                    ? timelineEvent.transaction
-                    : 'stack.function' in timelineEvent
-                      ? timelineEvent['stack.function'].at(-1)
-                      : null}
-                </EventDescription>
-              </EventTitleWrapper>
-            </EventItem>
-          );
+          return <EventItem key={timelineEvent.id} timelineEvent={timelineEvent} />;
         })}
       </EventItemsWrapper>
       {filteredTimelineEvents.length > 3 && (
@@ -105,6 +62,51 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
         </TraceItem>
       )}
     </UnstyledUnorderedList>
+  );
+}
+
+interface EventItemProps {
+  timelineEvent: TimelineEvent;
+}
+
+function EventItem({timelineEvent}: EventItemProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const {projects} = useProjects({
+    slugs: [timelineEvent.project],
+    orgId: organization.slug,
+  });
+  const project = projects.find(p => p.slug === timelineEvent.project);
+  return (
+    <EventItemRoot
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
+        query: {
+          ...location.query,
+          project: undefined,
+          referrer: 'issues_trace_timeline',
+        },
+      }}
+      onClick={() => {
+        trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
+          organization,
+          event_id: timelineEvent.id,
+          group_id: `${timelineEvent['issue.id']}`,
+        });
+      }}
+    >
+      {project && <ProjectBadge project={project} avatarSize={18} hideName disableLink />}
+      <EventTitleWrapper>
+        <EventTitle>{timelineEvent.title}</EventTitle>
+        <EventDescription>
+          {timelineEvent.transaction
+            ? timelineEvent.transaction
+            : 'stack.function' in timelineEvent
+              ? timelineEvent['stack.function'].at(-1)
+              : null}
+        </EventDescription>
+      </EventTitleWrapper>
+    </EventItemRoot>
   );
 }
 
@@ -142,7 +144,7 @@ const YouAreHereItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const EventItem = styled(Link)`
+const EventItemRoot = styled(Link)`
   display: grid;
   grid-template-columns: max-content auto;
   color: ${p => p.theme.textColor};

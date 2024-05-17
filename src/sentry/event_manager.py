@@ -17,7 +17,7 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
@@ -31,7 +31,6 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
-from sentry.conf.server import SEER_SEVERITY_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -69,6 +68,7 @@ from sentry.grouping.ingest.metrics import (
     record_hash_calculation_metrics,
     record_new_group_metrics,
 )
+from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -137,6 +137,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.utils.types import NonNone
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -338,7 +339,7 @@ class EventManager:
         project_config: Any | None = None,
         sent_at: datetime | None = None,
     ):
-        self._data = CanonicalKeyDict(data)
+        self._data: MutableMapping[str, Any] = data
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
@@ -401,7 +402,7 @@ class EventManager:
         if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
-    def get_data(self) -> CanonicalKeyDict:
+    def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
     @sentry_sdk.tracing.trace
@@ -410,7 +411,7 @@ class EventManager:
         project_id: int | None,
         raw: bool = False,
         assume_normalized: bool = False,
-        start_time: int | None = None,
+        start_time: float | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         has_attachments: bool = False,
@@ -1437,6 +1438,15 @@ def _save_aggregate(
         ):
             # These values will get overridden with whatever happens inside the lock if we do manage
             # to acquire it, so it should only end up with `wait-for-lock` if we don't
+            #
+            # TODO: If we're using this `outome` value for anything more than a count in DD (in
+            # other words, if we care about duration), we should probably update it so that when an
+            # event does have to wait, we record whether during its wait the event which got the
+            # lock first
+            #   a) created a new group without consulting Seer,
+            #   b) created a new group because Seer didn't find a close enough match, or
+            #   c) used an existing group found by Seer
+            # because which of those things happened will have an effect on how long the event had to wait.
             span.set_tag("outcome", "wait_for_lock")
             metric_tags["outcome"] = "wait_for_lock"
 
@@ -1445,25 +1455,29 @@ def _save_aggregate(
                 all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
             # If we're in this branch, we checked our grouphashes and didn't find one with a group
-            # attached. We thus want to create a new group, but we need to guard against another
-            # event with the same hash coming in before we're done here and also thinking it needs
-            # to create a new group. To prevent this, we're using double-checked locking
+            # attached. We thus want to either ask seer for a nearest neighbor group (and create a
+            # new group if one isn't found) or just create a new group without consulting seer, but
+            # either way we need to guard against another event with the same hash coming in before
+            # we're done here and also thinking it needs to talk to seer and/or create a new group.
+            # To prevent this, we're using double-checked locking
             # (https://en.wikipedia.org/wiki/Double-checked_locking).
 
             # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
-            # hashed) event is also in the process of creating a group and has grabbed the lock
-            # before us, we'll block here until it's done. If not, we've now got the lock and other
-            # identically-hashed events will have to wait for us.
+            # hashed) event is already in the process of talking to seer and/or creating a group and
+            # has grabbed the lock before us, we'll block here until it's done. If not, we've now
+            # got the lock and other identically-hashed events will have to wait for us.
             all_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
             )
 
             flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
-            # Now check again to see if any of our grouphashes have a group. In the first race
-            # condition scenario above, we'll have been blocked long enough for the other event to
-            # have created the group and updated our grouphashes with a group id, which means this
-            # time, we'll find something.
+            # Now check again to see if any of our grouphashes have a group. If we got the lock, the
+            # result won't have changed and we still won't find anything. If we didn't get it, we'll
+            # have blocked until whichever identically-hashed event *did* get the lock has either
+            # created a new group for our hashes or assigned them to a neighboring group suggessted
+            # by seer. If that happens, we'll skip this whole branch and jump down to the same one
+            # we would have landed in had we found a group to begin with.
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
@@ -1475,10 +1489,34 @@ def _save_aggregate(
             else:
                 root_hierarchical_grouphash = None
 
-            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
-            # the group.
+            # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
+            # seer and/or create the group.
             if existing_grouphash is None:
-                group = _create_group(project, event, **group_creation_kwargs)
+                seer_matched_group = None
+
+                if should_call_seer_for_grouping(event, project):
+                    try:
+                        # If the `projects:similarity-embeddings-grouping` feature is disabled,
+                        # we'll still get back result metadata, but `seer_matched_group` will be None
+                        seer_response_data, seer_matched_group = get_seer_similar_issues(
+                            event, primary_hashes
+                        )
+                        event.data["seer_similarity"] = seer_response_data
+
+                        # We only want to add this data to new groups, while we're testing
+                        # TODO: Remove this once we're out of the testing phase
+                        if not seer_matched_group:
+                            group_creation_kwargs["data"]["metadata"][
+                                "seer_similarity"
+                            ] = seer_response_data
+
+                    # Insurance - in theory we shouldn't ever land here
+                    except Exception as e:
+                        sentry_sdk.capture_exception(
+                            e, tags={"event": event.event_id, "project": project.id}
+                        )
+
+                group = seer_matched_group or _create_group(project, event, **group_creation_kwargs)
 
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
@@ -1489,40 +1527,63 @@ def _save_aggregate(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
                 ).update(group=group)
 
-                is_new = True
-                is_regression = False
+                is_new = not seer_matched_group
+                is_regression = (
+                    False
+                    if is_new
+                    else _process_existing_aggregate(
+                        # If `seer_matched_group` were `None`, `is_new` would be true and we
+                        # wouldn't be here
+                        group=NonNone(seer_matched_group),
+                        event=event,
+                        incoming_group_values=group_creation_kwargs,
+                        release=release,
+                    )
+                )
 
-                span.set_tag("outcome", "new_group")
-                metric_tags["outcome"] = "new_group"
+                span.set_tag("outcome", "new_group" if is_new else "seer_match")
+                metric_tags["outcome"] = "new_group" if is_new else "seer_match"
                 record_calculation_metric_with_result(
                     project=project,
                     has_secondary_hashes=has_secondary_hashes,
-                    result="new_group",
+                    result="no_match",
                 )
 
-                metrics.incr(
-                    "group.created",
-                    skip_internal=True,
-                    tags={
-                        "platform": event.platform or "unknown",
-                        "sdk": normalized_sdk_tag_from_event(event),
-                    },
-                )
-
-                # This only applies to events with stacktraces
-                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-                if frame_mix:
+                if is_new:
                     metrics.incr(
-                        "grouping.in_app_frame_mix",
-                        sample_rate=1.0,
+                        "group.created",
+                        skip_internal=True,
                         tags={
                             "platform": event.platform or "unknown",
                             "sdk": normalized_sdk_tag_from_event(event),
-                            "frame_mix": frame_mix,
                         },
                     )
 
+                    # This only applies to events with stacktraces, and we only do this for new
+                    # groups, because we assume that if Seer puts an event in an existing group, it
+                    # and the existing group have the same frame mix
+                    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                    if frame_mix:
+                        metrics.incr(
+                            "grouping.in_app_frame_mix",
+                            sample_rate=1.0,
+                            tags={
+                                "platform": event.platform or "unknown",
+                                "sdk": normalized_sdk_tag_from_event(event),
+                                "frame_mix": frame_mix,
+                            },
+                        )
+
                 return GroupInfo(group, is_new, is_regression)
+
+    # If we land here, it's because either:
+    #
+    # a) There's an existing group with one of our hashes and we found it the first time we looked.
+    #
+    # b) We didn't find a group the first time we looked, but another identically-hashed event beat
+    # us to the lock and while we were waiting either created a new group or assigned our hashes to
+    # a neighboring group suggested by seer - such that when we finally got the lock and looked
+    # again, this time there was a group to find.
 
     group = Group.objects.get(id=existing_grouphash.group_id)
     if group.issue_category != GroupCategory.ERROR:
@@ -1560,9 +1621,10 @@ def _save_aggregate(
     record_calculation_metric_with_result(
         project=project,
         has_secondary_hashes=has_secondary_hashes,
-        # If at least one primary hash value isn't new, then we will have found it, since we check
-        # those before the secondary hash values. If the primary hash values are all new, then we
-        # must have found a secondary hash (or we'd be in the group-creation branch).
+        # If at least one primary hash value isn't new, then we'll definitely have found it, since
+        # we check all of the primary hashes before any secondary ones. If the primary hash values
+        # *are* all new, then we must have gotten here by finding a secondary hash (or we'd be in
+        # the group-creation/seer-consultation branch).
         result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
     )
 
@@ -1605,6 +1667,8 @@ def _save_aggregate(
     return GroupInfo(group, is_new, is_regression)
 
 
+# TODO: None of the seer logic has been added to this version yet, so you can't simultaneously use
+# optimized transitions and seer
 def _save_aggregate_new(
     event: Event,
     job: Job,
@@ -1640,7 +1704,7 @@ def _save_aggregate_new(
             group_info = create_group_with_grouphashes(
                 job, all_grouphashes, group_processing_kwargs
             )
-            result = "new_group"
+            result = "no_match"
 
     # From here on out, we're just doing housekeeping
 
@@ -2221,6 +2285,7 @@ def _process_existing_aggregate(
 
 severity_connection_pool = connection_from_url(
     settings.SEER_SEVERITY_URL,
+    retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )
 
@@ -2443,33 +2508,20 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                 )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
-        except MaxRetryError as e:
-            logger.warning(
-                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                SEER_SEVERITY_RETRIES,
-                "ies" if SEER_SEVERITY_RETRIES > 1 else "y",
-                repr(e.reason),
-                extra=logger_data,
-            )
+        except MaxRetryError:
             reason = "microservice_max_retry"
             update_severity_error_count()
-            metrics.incr("issues.severity.max_retry_error")
-        except Exception as e:
-            logger.warning(
-                "Unable to get severity score from microservice. Got: %s.",
-                repr(e),
-                extra=logger_data,
-            )
+            metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+        except TimeoutError:
+            reason = "microservice_timeout"
+            update_severity_error_count()
+            metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+        except Exception:
             reason = "microservice_error"
             update_severity_error_count()
-            metrics.incr("issues.severity.error")
+            metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            sentry_sdk.capture_exception()
         else:
-            logger.info(
-                "Got severity score of %s for event %s",
-                severity,
-                event.data["event_id"],
-                extra=logger_data,
-            )
             update_severity_error_count(reset=True)
 
     return severity, reason
@@ -2677,7 +2729,7 @@ def save_attachment(
     event_id: str,
     key_id: int | None = None,
     group_id: int | None = None,
-    start_time: float | int | None = None,
+    start_time: float | None = None,
 ) -> None:
     """
     Persists a cached event attachments into the file store.

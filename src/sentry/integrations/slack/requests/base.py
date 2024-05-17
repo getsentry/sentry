@@ -115,7 +115,7 @@ class SlackRequest:
         return self._integration
 
     @property
-    def channel_id(self) -> str:
+    def channel_id(self) -> str | None:
         return get_field_id(self.data, "channel")
 
     @property
@@ -123,12 +123,12 @@ class SlackRequest:
         return self.data.get("response_url", "")
 
     @property
-    def team_id(self) -> str:
-        return get_field_id(self.data, "team")
+    def team_id(self) -> str | None:
+        return _get_field_id_option(self.data, "team")
 
     @property
-    def user_id(self) -> str:
-        return get_field_id(self.data, "user")
+    def user_id(self) -> str | None:
+        return _get_field_id_option(self.data, "user")
 
     @property
     def data(self) -> Mapping[str, Any]:

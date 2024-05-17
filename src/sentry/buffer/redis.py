@@ -73,7 +73,7 @@ class BufferHookRegistry:
         try:
             callback = self._registry[buffer_hook_event]
         except KeyError:
-            return False
+            logger.exception("buffer_hook_event.missing")
 
         return callback(data)
 
@@ -136,9 +136,7 @@ class RedisBuffer(Buffer):
             value = value.pk
         return force_bytes(value, errors="replace")
 
-    def _make_key(
-        self, model: type[models.Model], filters: dict[str, models.Model | str | int]
-    ) -> str:
+    def _make_key(self, model: type[models.Model], filters: dict[str, Any]) -> str:
         """
         Returns a Redis-compatible key for the model given filters.
         """
@@ -213,7 +211,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: list[str],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, Any],
     ) -> dict[str, int]:
         """
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
@@ -250,7 +248,12 @@ class RedisBuffer(Buffer):
         return pipe.execute()[0]
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
+        value_dict = {value: time()}
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
+        logger.info(
+            "redis_buffer.push_to_sorted_set",
+            extra={"key_name": key, "value": json.dumps(value_dict)},
+        )
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         redis_set = self._execute_redis_operation(
@@ -435,7 +438,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: dict[str, int],
-        filters: dict[str, str | datetime | date | int | float],
+        filters: dict[str, Any],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> Any:

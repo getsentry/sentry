@@ -9,8 +9,6 @@ from urllib.parse import quote, urlencode
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone as django_timezone
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from packaging.version import parse as parse_version
 
@@ -18,7 +16,7 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
-from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
+from sentry.utils.strings import soft_hyphenate, truncatechars
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 
@@ -137,21 +135,6 @@ def system_origin():
 @register.simple_tag
 def security_contact():
     return options.get("system.security-email") or options.get("system.admin-email")
-
-
-@register.filter
-def pprint(value, break_after=10):
-    """
-    break_after is used to define how often a <span> is
-    inserted (for soft wrapping).
-    """
-
-    value = to_unicode(value)
-    return mark_safe(
-        "<span></span>".join(
-            escape(value[i : (i + break_after)]) for i in range(0, len(value), break_after)
-        )
-    )
 
 
 @register.filter

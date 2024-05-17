@@ -192,7 +192,7 @@ const getInstallStep = (params: Params) => [
             language: 'bash',
             code: `npm install --save @sentry/capacitor ${getNpmPackage(
               params.platformOptions.siblingOption
-            )}`,
+            )}@^7`,
           },
           {
             label: 'yarn',
@@ -200,7 +200,7 @@ const getInstallStep = (params: Params) => [
             language: 'bash',
             code: `yarn add @sentry/capacitor ${getNpmPackage(
               params.platformOptions.siblingOption
-            )} --exact`,
+            )}@^7 --exact`,
           },
         ],
       },
