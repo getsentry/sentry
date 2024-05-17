@@ -14,6 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import FilenameCell from 'sentry/views/starfish/components/tableCells/filenameCell';
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {
   OverflowEllipsisTextContainer,
@@ -155,8 +156,7 @@ export function SpanSamplesTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
-      const filename = row[SPAN_DESCRIPTION].split('/').pop().split('?')[0];
-      return <OverflowEllipsisTextContainer>{filename}</OverflowEllipsisTextContainer>;
+      return <FilenameCell url={row[SPAN_DESCRIPTION]} />;
     }
 
     if (column.key === 'profile_id') {
