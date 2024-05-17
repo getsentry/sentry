@@ -7,13 +7,12 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
@@ -29,31 +28,28 @@ ${getImportInstrumentSnippet()}
 
 // All other imports below
 ${getSentryImportSnippet('node')}
-const Koa = require("koa");
+const Fastify = require('fastify')
 
-const app = new Koa();
+const app = Fastify();
 
-Sentry.setupKoaErrorHandler(app);
+Sentry.setupFastifyErrorHandler(app);
 
-// All your controllers should live here
-
-app.listen(3000);`;
-
-const getVerifySnippet = () => `
-app.use(async function () {
-  throw new Error("My first Sentry error!");
+app.get("/", function rootHandler(req, res) {
+  res.send("Hello world!");
 });
+
+app.listen(3000);
 `;
 
 const onboarding: OnboardingConfig = {
-  install: params => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: t('Add the Sentry Node SDK as a dependency:'),
       configurations: getInstallConfig(params),
     },
   ],
-  configure: params => [
+  configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       description: t(
@@ -77,12 +73,12 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
               code1: <code />,
               code2: <code />,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/fastify/install/" />
               ),
             }
           ),
@@ -99,7 +95,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/koa/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/fastify/sourcemaps/',
       ...params,
     }),
   ],
@@ -112,48 +108,15 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: `
+          app.get("/debug-sentry", function mainHandler(req, res) {
+            throw new Error("My first Sentry error!");
+          });
+          `,
         },
       ],
     },
   ],
-};
-
-const feedbackOnboardingNode: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `import * as Sentry from "@sentry/node";
-
-const eventId = Sentry.captureMessage("User Feedback");
-// OR: const eventId = Sentry.lastEventId();
-
-const userFeedback = {
-  event_id: eventId,
-  name: "John Doe",
-  email: "john@doe.com",
-  comments: "I really like your App, thanks!",
-};
-Sentry.captureUserFeedback(userFeedback);
-`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -163,7 +126,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/koa/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/express/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],
@@ -173,7 +136,7 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingNode,
+  replayOnboardingJsLoader,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
 };

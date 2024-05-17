@@ -29,15 +29,22 @@ ${getImportInstrumentSnippet()}
 
 // All other imports below
 ${getSentryImportSnippet('node')}
-const Koa = require("koa");
+const Hapi = require('@hapi/hapi');
 
-const app = new Koa();
+const init = async () => {
+  const server = Hapi.server({
+    port: 3030,
+    host: 'localhost',
+  });
 
-Sentry.setupKoaErrorHandler(app);
+  // All your routes live here
 
-// All your controllers should live here
+  await Sentry.setupHapiErrorHandler(server);
+  await server.start();
+};
 
-app.listen(3000);`;
+init();
+`;
 
 const getVerifySnippet = () => `
 app.use(async function () {
@@ -77,12 +84,12 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
               code1: <code />,
               code2: <code />,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/hapi/install/" />
               ),
             }
           ),
@@ -99,7 +106,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/koa/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hapi/sourcemaps/',
       ...params,
     }),
   ],
@@ -163,7 +170,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/koa/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],
