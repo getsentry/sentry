@@ -231,7 +231,7 @@ def test_from_raw_missing_data(default_project):
 
     with pytest.raises(
         IncompleteSeerDataError,
-        match="Seer similar issues response missing both `parent_group_id` and `parent_hash`",
+        match="Seer similar issues response entry missing key 'parent_hash'",
     ):
         raw_similar_issue_data: Any = {
             # missing both `parent_group_id` and `parent_hash`

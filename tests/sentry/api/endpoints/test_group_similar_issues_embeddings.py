@@ -832,7 +832,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         response = self.client.get(self.path)
 
         mock_logger.exception.assert_called_with(
-            "Seer similar issues response missing both `parent_group_id` and `parent_hash`",
+            "Seer similar issues response entry missing key 'parent_hash'",
             extra={
                 "request_params": {
                     "group_id": NonNone(self.event.group_id),
