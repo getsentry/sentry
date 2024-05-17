@@ -71,7 +71,7 @@ describe('useProfileEvents', function () {
           units: {count: null},
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'profiles'})],
+      match: [MockApiClient.matchQuery({dataset: 'profiles', query: 'transaction:foo'})],
     });
 
     const {result} = renderHook(useProfileEventsStats, {
@@ -79,6 +79,7 @@ describe('useProfileEvents', function () {
       initialProps: {
         dataset: 'profiles' as const,
         yAxes,
+        query: 'transaction:foo',
         referrer: '',
       },
     });
@@ -126,7 +127,7 @@ describe('useProfileEvents', function () {
           },
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'profiles'})],
+      match: [MockApiClient.matchQuery({dataset: 'profiles', query: 'transaction:foo'})],
     });
 
     const {result} = renderHook(useProfileEventsStats, {
@@ -134,6 +135,7 @@ describe('useProfileEvents', function () {
       initialProps: {
         dataset: 'profiles' as const,
         yAxes,
+        query: 'transaction:foo',
         referrer: '',
       },
     });
@@ -146,6 +148,67 @@ describe('useProfileEvents', function () {
       ],
       meta: {
         dataset: 'profiles',
+        start: 0,
+        end: 10,
+      },
+      timestamps: [0, 5],
+    });
+  });
+
+  it('handles 1 axis using discover', async function () {
+    const {organization: organizationUsingTransactions} = initializeOrg({
+      organization: {features: ['profiling-using-transactions']},
+    });
+
+    function TestContextUsingTransactions({children}: {children?: ReactNode}) {
+      return (
+        <QueryClientProvider client={makeTestQueryClient()}>
+          <OrganizationContext.Provider value={organizationUsingTransactions}>
+            {children}
+          </OrganizationContext.Provider>
+        </QueryClientProvider>
+      );
+    }
+
+    const yAxes = ['count()'];
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {
+        data: [
+          [0, [{count: 1}]],
+          [5, [{count: 2}]],
+        ],
+        start: 0,
+        end: 10,
+        meta: {
+          fields: {count: 'integer'},
+          units: {count: null},
+        },
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          query: 'has:profile.id (transaction:foo)',
+        }),
+      ],
+    });
+
+    const {result} = renderHook(useProfileEventsStats, {
+      wrapper: TestContextUsingTransactions,
+      initialProps: {
+        dataset: 'profiles' as const,
+        yAxes,
+        query: 'transaction:foo',
+        referrer: '',
+      },
+    });
+
+    await waitFor(() => result.current.isSuccess);
+    expect(result.current.data).toEqual({
+      data: [{axis: 'count()', values: [1, 2]}],
+      meta: {
+        dataset: 'discover',
         start: 0,
         end: 10,
       },
