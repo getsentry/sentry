@@ -514,7 +514,7 @@ function BaseGroupRow({
             <EventCountsWrapper>{groupCount}</EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
+            <EventUsersCountsWrapper>{groupUsersCount}</EventUsersCountsWrapper>
           )}
           {organization.features.includes('issue-priority-ui') &&
           withColumns.includes('priority') ? (
@@ -667,6 +667,18 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
 `;
 
 const EventCountsWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 60px;
+  margin: 0 ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    width: 80px;
+  }
+`;
+
+const EventUsersCountsWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
