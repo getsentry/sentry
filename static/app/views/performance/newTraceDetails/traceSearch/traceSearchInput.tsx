@@ -161,7 +161,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        value={props.trace_state.search.query ?? ''}
+        defaultValue={props.trace_state.search.query ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
         onFocus={onSearchFocus}
