@@ -124,8 +124,18 @@ function GroupStatusChart({
 export default GroupStatusChart;
 
 const ChartWrapper = styled('div')`
+  animation: fade-in 0.5s;
   display: flex;
   flex-direction: column;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 100;
+    }
+  }
 `;
 
 const GraphText = styled('div')`
