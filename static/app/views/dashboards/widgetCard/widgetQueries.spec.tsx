@@ -142,7 +142,7 @@ describe('Dashboards > WidgetQueries', function () {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'event.type:error release:["abc@1.2.0","abc@1.3.0"] ',
+          query: '(event.type:error) release:["abc@1.2.0","abc@1.3.0"] ',
         }),
       })
     );
@@ -170,7 +170,7 @@ describe('Dashboards > WidgetQueries', function () {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'event.type:error release:"abc@1.3.0" ',
+          query: '(event.type:error) release:"abc@1.3.0" ',
         }),
       })
     );

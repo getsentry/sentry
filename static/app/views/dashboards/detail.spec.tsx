@@ -453,7 +453,8 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'event.type:transaction transaction:/api/cats release:"abc@1.2.0" ',
+              query:
+                '(event.type:transaction transaction:/api/cats) release:"abc@1.2.0" ',
             }),
           })
         )
