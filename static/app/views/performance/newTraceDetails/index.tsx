@@ -819,7 +819,7 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, [tree, shape, organization]);
 
   useLayoutEffect(() => {
-    if (!tree.root?.space) {
+    if (!tree.root?.space || tree.type !== 'trace') {
       return undefined;
     }
 
