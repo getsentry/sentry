@@ -11,9 +11,9 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
+import DropdownButton from 'sentry/components/dropdownButton';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
@@ -509,8 +509,10 @@ function BaseGroupRow({
                     'issue-stream-new-assignee-dropdown-trigger'
                   )
                     ? (props, isOpen) => (
-                        <DropdownButton
+                        <StyledDropdownButton
                           {...props}
+                          borderless
+                          showChevron={false}
                           aria-label={t('Modify issue assignee')}
                           size="zero"
                         >
@@ -525,7 +527,7 @@ function BaseGroupRow({
                             loading={assigneeLoading}
                             chevronDirection={isOpen ? 'up' : 'down'}
                           />
-                        </DropdownButton>
+                        </StyledDropdownButton>
                       )
                     : undefined
                 }
@@ -543,7 +545,7 @@ const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
 
-const DropdownButton = styled(Button)`
+const StyledDropdownButton = styled(DropdownButton)`
   font-weight: normal;
   border: none;
   padding: 0;
