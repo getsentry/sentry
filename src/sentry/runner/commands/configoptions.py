@@ -281,7 +281,7 @@ def sync(ctx: click.Context) -> None:
                             continue
                         # isset() will pull from local cache, which gets updated with every get() call.
                         # configoptions is only concerned with removing the option from the db.
-                        if not options.set_on_db(opt.name):
+                        elif not options.set_on_db(opt.name):
                             continue
                         else:
                             presenter_delegator.drift(opt.name, options.get(opt.name))
