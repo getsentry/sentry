@@ -9,10 +9,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import (
-    AlertRuleSerializer,
-    DetailedAlertRuleSerializer,
-)
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -24,6 +20,10 @@ from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    DetailedAlertRuleSerializer,
+)
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,

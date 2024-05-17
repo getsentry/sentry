@@ -12,8 +12,8 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.api.utils import get_date_range_from_params
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import (
     IncidentActivity,

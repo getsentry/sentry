@@ -107,6 +107,10 @@ from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRule
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.incidents.endpoints.team_alerts_triggered import (
+    TeamAlertsTriggeredIndexEndpoint,
+    TeamAlertsTriggeredTotalsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
@@ -605,10 +609,6 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_alerts_triggered import (
-    TeamAlertsTriggeredIndexEndpoint,
-    TeamAlertsTriggeredTotalsEndpoint,
-)
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
