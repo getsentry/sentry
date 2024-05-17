@@ -591,7 +591,7 @@ function SectionCard({
   items,
   title,
   disableTruncate,
-  enableSorting: sortItems = false,
+  enableSorting = false,
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
@@ -605,7 +605,7 @@ function SectionCard({
     return null;
   }
 
-  const cardItems = sortItems
+  const cardItems = enableSorting
     ? items.sort((a, b) => {
         return String(a.subject).localeCompare(String(b.subject));
       })
