@@ -274,7 +274,8 @@ class OptionsManager:
         """
         Check if a key has been set in the database.
         """
-        return self.store.get_store(key) is not None
+        opt = self.lookup_key(key)
+        return self.store.get_store(opt) is not None
 
     def is_set_on_disk(self, key: str) -> bool:
         """

@@ -212,43 +212,48 @@ class ConfigOptionsTest(CliTestCase):
 
         # test options set on disk with and without prioritize disk, tracked
         # and not tracked
-        # test options set on db, verify that untracked options are properly # deleted
+        # test options set on db, verify that untracked options are properly deleted
+
+        options.delete("drifted_option")
 
         rv = self.invoke(
             "-f",
             "tests/sentry/runner/commands/unsetsync.yaml",
             "sync",
         )
-        assert rv.exit_code == 2, rv.output
+        assert rv.exit_code == 0, rv.output
         expected_output = "\n".join(
             [
-                ConsolePresenter.DRIFT_MSG % "drifted_option",
-                ConsolePresenter.DB_VALUE % "drifted_option",
-                "- 1",
-                "- 2",
-                "- 3",
-                "",
                 ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
                 ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
                 ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "str_option",
                 ConsolePresenter.UNSET_MSG % "to_unset_option",
             ]
         )
 
         assert expected_output in rv.output
 
+        assert not options.set_in_db("str_option")
+
         assert options.get("int_option") == 20
-        assert options.get("str_option") == "old value"
+        assert options.get("str_option") == "blabla"
         assert options.get("map_option") == {
             "a": 1,
             "b": 2,
         }
         assert options.get("list_option") == [1, 2]
-        assert options.get("drifted_option") == [1, 2, 3]
 
-        assert not options.isset("to_unset_option")
-        assert not options.isset("int_option")
-        assert not options.isset("str_option")
+        assert not options.set_in_db("str_option")
+        assert not options.set_in_db("to_unset_option")
+
+        # assert there's no drift after unsetting
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
 
     def test_bad_patch(self):
         rv = self.invoke(

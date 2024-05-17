@@ -5,10 +5,6 @@ options:
   list_option:
     - 1
     - 2
-  drifted_option:
-    - 4
-    - 5
-    - 6
   change_channel_option:
     - 5
     - 6
