@@ -1446,25 +1446,29 @@ def _save_aggregate(
                 all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
             # If we're in this branch, we checked our grouphashes and didn't find one with a group
-            # attached. We thus want to create a new group, but we need to guard against another
-            # event with the same hash coming in before we're done here and also thinking it needs
-            # to create a new group. To prevent this, we're using double-checked locking
+            # attached. We thus want to either ask seer for a nearest neighbor group (and create a
+            # new group if one isn't found) or just create a new group without consulting seer, but
+            # either way we need to guard against another event with the same hash coming in before
+            # we're done here and also thinking it needs to talk to seer and/or create a new group.
+            # To prevent this, we're using double-checked locking
             # (https://en.wikipedia.org/wiki/Double-checked_locking).
 
             # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
-            # hashed) event is also in the process of creating a group and has grabbed the lock
-            # before us, we'll block here until it's done. If not, we've now got the lock and other
-            # identically-hashed events will have to wait for us.
+            # hashed) event is already in the process of talking to seer and/or creating a group and
+            # has grabbed the lock before us, we'll block here until it's done. If not, we've now
+            # got the lock and other identically-hashed events will have to wait for us.
             all_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
             )
 
             flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
-            # Now check again to see if any of our grouphashes have a group. In the first race
-            # condition scenario above, we'll have been blocked long enough for the other event to
-            # have created the group and updated our grouphashes with a group id, which means this
-            # time, we'll find something.
+            # Now check again to see if any of our grouphashes have a group. If we got the lock, the
+            # result won't have changed and we still won't find anything. If we didn't get it, we'll
+            # have blocked until whichever identically-hashed event *did* get the lock has either
+            # created a new group for our hashes or assigned them to a neighboring group suggessted
+            # by seer. If that happens, we'll skip this whole branch and jump down to the same one
+            # we would have landed in had we found a group to begin with.
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
@@ -1476,8 +1480,8 @@ def _save_aggregate(
             else:
                 root_hierarchical_grouphash = None
 
-            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
-            # the group.
+            # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
+            # seer and/or create the group.
             if existing_grouphash is None:
                 seer_matched_group = None
 
@@ -1546,7 +1550,9 @@ def _save_aggregate(
                         },
                     )
 
-                    # This only applies to events with stacktraces
+                    # This only applies to events with stacktraces, and we only do this for new
+                    # groups, because we assume that if Seer puts an event in an existing group, it
+                    # and the existing group have the same frame mix
                     frame_mix = event.get_event_metadata().get("in_app_frame_mix")
                     if frame_mix:
                         metrics.incr(
@@ -1560,6 +1566,15 @@ def _save_aggregate(
                         )
 
                 return GroupInfo(group, is_new, is_regression)
+
+    # If we land here, it's because either:
+    #
+    # a) There's an existing group with one of our hashes and we found it the first time we looked.
+    #
+    # b) We didn't find a group the first time we looked, but another identically-hashed event beat
+    # us to the lock and while we were waiting either created a new group or assigned our hashes to
+    # a neighboring group suggested by seer - such that when we finally got the lock and looked
+    # again, this time there was a group to find.
 
     group = Group.objects.get(id=existing_grouphash.group_id)
     if group.issue_category != GroupCategory.ERROR:
@@ -1597,9 +1612,10 @@ def _save_aggregate(
     record_calculation_metric_with_result(
         project=project,
         has_secondary_hashes=has_secondary_hashes,
-        # If at least one primary hash value isn't new, then we will have found it, since we check
-        # those before the secondary hash values. If the primary hash values are all new, then we
-        # must have found a secondary hash (or we'd be in the group-creation branch).
+        # If at least one primary hash value isn't new, then we'll definitely have found it, since
+        # we check all of the primary hashes before any secondary ones. If the primary hash values
+        # *are* all new, then we must have gotten here by finding a secondary hash (or we'd be in
+        # the group-creation/seer-consultation branch).
         result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
     )
 
