@@ -13,6 +13,9 @@ search
 term
   = (boolean_operator / paren_group / open_paren / closed_paren / filter / free_text) spaces
 
+term_no_paren
+  = (boolean_operator / paren_group /  filter / free_text) spaces
+
 boolean_operator
   = (or_operator / and_operator) {
       return tc.tokenLogicBoolean(text().toUpperCase());
@@ -22,7 +25,7 @@ paren_or_group
   = paren_group / open_paren / closed_paren
 
 paren_group
-  = open_paren spaces:spaces inner:(!open_paren !closed_paren term)* closed_paren &{
+  = open_paren spaces:spaces inner:term_no_paren* closed_paren &{
     return tc.predicateParenGroup();
   } {
       return tc.tokenLogicGroup([spaces, ...inner].flat());
