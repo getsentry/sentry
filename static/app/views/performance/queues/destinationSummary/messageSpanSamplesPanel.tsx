@@ -120,15 +120,6 @@ export function MessageSpanSamplesPanel() {
   search.addFilterValue('transaction', query.transaction);
   search.addFilterValue('messaging.destination.name', query.destination);
 
-  if (query.status.length > 0) {
-    search.addFilterValue('trace.status', query.status);
-  }
-
-  if (query.retries.length > 0) {
-    // TODO: kevin - index retry.count
-    search.addFilterValue('measurements.messaging.message.retry.count', '1');
-  }
-
   const {data: transactionMetrics, isFetching: aretransactionMetricsFetching} =
     useQueuesMetricsQuery({
       destination: query.destination,
@@ -154,6 +145,24 @@ export function MessageSpanSamplesPanel() {
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
+  if (query.status.length > 0) {
+    search.addFilterValue('trace.status', query.status);
+  }
+
+  // Note: only consumers should show the retry count filter
+  if (messageActorType === MessageActorType.CONSUMER) {
+    if (query.retries === '0') {
+      search.addFilterValue('measurements.messaging.message.retry.count', '0');
+    } else if (query.retries === '1-3') {
+      search.addFilterValues('measurements.messaging.message.retry.count', [
+        '>=1',
+        '<=3',
+      ]);
+    } else if (query.retries === '4+') {
+      search.addFilterValue('measurements.messaging.message.retry.count', '>=4');
+    }
+  }
+
   const {
     data: durationSamplesData,
     isFetching: isDurationSamplesDataFetching,
@@ -172,6 +181,7 @@ export function MessageSpanSamplesPanel() {
       SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
       SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
       SpanIndexedField.MESSAGING_MESSAGE_ID,
+      SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
       SpanIndexedField.TRACE_STATUS,
       SpanIndexedField.SPAN_DURATION,
     ],
@@ -433,33 +443,29 @@ const STATUS_OPTIONS = [
     value: '',
     label: t('All'),
   },
-  ...(
-    [
-      'ok',
-      'cancelled',
-      'unknown',
-      'unknown_error',
-      'invalid_argument',
-      'deadline_exceeded',
-      'not_found',
-      'already_exists',
-      'permission_denied',
-      'resource_exhausted',
-      'failed_precondition',
-      'aborted',
-      'out_of_range',
-      'unimplemented',
-      'internal_error',
-      'unavailable',
-      'data_loss',
-      'unauthenticated',
-    ] as const
-  ).map(status => {
+  ...[
+    'ok',
+    'cancelled',
+    'unknown',
+    'unknown_error',
+    'invalid_argument',
+    'deadline_exceeded',
+    'not_found',
+    'already_exists',
+    'permission_denied',
+    'resource_exhausted',
+    'failed_precondition',
+    'aborted',
+    'out_of_range',
+    'unimplemented',
+    'internal_error',
+    'unavailable',
+    'data_loss',
+    'unauthenticated',
+  ].map(status => {
     return {
       value: status,
-      // TODO: kevin expand status options
-      // eslint-disable-next-line sentry/no-dynamic-translations
-      label: t(status),
+      label: t('%s', status),
     };
   }),
 ];
