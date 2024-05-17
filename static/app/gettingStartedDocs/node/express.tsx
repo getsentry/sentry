@@ -19,8 +19,6 @@ import {
   getInstallConfig,
   getSdkInitSnippet,
   getSentryImportSnippet,
-  getSdkInitSnippet,
-  getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -87,7 +85,8 @@ const onboarding: OnboardingConfig = {
           description: tct(
             "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you are unable to import an external file, read about [docs:alternative installation methods in our docs].",
             {
-              code1: <code />, code2: <code />,
+              code1: <code />,
+              code2: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/express/install/" />
               ),
@@ -98,6 +97,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
+              filename: 'index.(js|mjs)',
               code: getSdkSetupSnippet(),
             },
           ],

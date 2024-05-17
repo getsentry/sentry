@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -14,21 +15,19 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
-import {
-  getInstallConfig,
-  getSdkInitSnippet,
-  getSentryImportSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
+import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
-${getSentryImportSnippet('node')}${params.isProfilingSelected ? `\nimport { nodeProfilingIntegration } from "@sentry/profiling-node";` : ''}
+const getSdkSetupSnippet = () => `
+// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
+import './instrument';
+
+import * as Sentry from '@sentry/node';
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  ${getSdkInitSnippet(params, null)}
   const app = await NestFactory.create(AppModule);
 
   const { httpAdapter } = app.get(HttpAdapterHost);
@@ -57,13 +56,46 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Initialize Sentry in your [code:main.ts/js] file:', {
-        code: <code />,
-      }),
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
+      ),
       configurations: [
         {
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
+          description: tct(
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'instrument.(js|ts)',
+              code: getSdkInitSnippet(params, 'node'),
+            },
+          ],
+        },
+        {
+          description: tct(
+            'Make sure to import [code1:instrument.js/mjs] at the top of your [code2:main.ts/js] file. Set up the error handler by passing the [code3:BaseExceptionFilter].',
+            {
+              code1: <code />,
+              code2: <code />,
+              code3: <code />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+              ),
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'main.(js|ts)',
+              code: getSdkSetupSnippet(),
+            },
+          ],
         },
       ],
     },

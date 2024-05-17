@@ -18,8 +18,6 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getSdkInitSnippet,
-  getNodeRunCommandSnippet,
-  getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -82,6 +80,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
+              filename: 'index.(js|mjs)',
               code: getSdkSetupSnippet(),
             },
           ],
