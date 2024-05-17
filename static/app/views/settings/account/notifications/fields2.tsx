@@ -226,7 +226,7 @@ export const SPEND_FIELDS = [
     help: tct(
       'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
       {
-        learnMore: <ExternalLink href={'#'} />, // TODO(isabella): replace with proper link
+        learnMore: <ExternalLink href={'https://docs.sentry.io/product/alerts/notifications/#spend-notifications'} />,
       }
     ),
     choices: [
