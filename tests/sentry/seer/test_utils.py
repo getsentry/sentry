@@ -100,14 +100,12 @@ def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
         "message": "message",
     }
 
-    similar_issue_data = {
+    similar_issue_data: Any = {
         **raw_similar_issue_data,
         "parent_group_id": similar_event.group_id,
     }
 
-    assert get_similarity_data_from_seer(params) == [
-        SeerSimilarIssueData(**similar_issue_data)  # type: ignore[arg-type]
-    ]
+    assert get_similarity_data_from_seer(params) == [SeerSimilarIssueData(**similar_issue_data)]
 
 
 @django_db_all

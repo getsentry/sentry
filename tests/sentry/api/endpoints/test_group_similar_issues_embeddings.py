@@ -807,7 +807,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics):
         # Two suggested groups, one with valid data, one missing parent hash. We should log the
         # second and return the first.
-        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+        seer_return_value: Any = {
             "responses": [
                 {
                     "message_distance": 0.05,
