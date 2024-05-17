@@ -69,7 +69,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
                 },
             )
             metrics.event(
-                f"{consumer_name}: backpressure.consumer.unhealthy",
+                "backpressure.consumer.unhealthy",
                 message=reason,
                 alert_type="error",
                 tags={
@@ -95,7 +95,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
             "backpressure.consumer.unhealthy", tags={"consumer": consumer_name, "reason": "error"}
         )
         metrics.event(
-            f"{consumer_name}: backpressure.consumer.unhealthy",
+            "backpressure.consumer.unhealthy",
             message="error",
             alert_type="error",
             tags={"consumer": consumer_name, "reason": "error"},
@@ -129,7 +129,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
 
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
                 metrics.event(
-                    f"{name}: backpressure.monitor.service.unhealthy",
+                    "backpressure.monitor.service.unhealthy",
                     message=str(unhealthy_reasons),
                     alert_type="error" if isinstance(unhealthy_reasons, Exception) else "info",
                     tags={"service": name},
@@ -151,7 +151,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
             if unhealthy_dependencies:
                 metrics.incr("backpressure.monitor.consumer.unhealthy", tags={"consumer": name})
                 metrics.event(
-                    f"{name}: backpressure.monitor.consumer.unhealthy",
+                    "backpressure.monitor.consumer.unhealthy",
                     message="error",
                     alert_type="error",
                     tags={"consumer": name},
