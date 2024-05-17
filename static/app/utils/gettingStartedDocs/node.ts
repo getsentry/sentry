@@ -86,21 +86,34 @@ export function getInstallConfig(
 }
 
 function getImport(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless'
+  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless',
+  defaultMode?: 'esm' | 'cjs'
 ): string[] {
-  return [
-    `// Import with \`import * as Sentry from "@sentry/${sdkPackage}"\` if you are using ESM`,
-    `const Sentry = require("@sentry/${sdkPackage}");`,
-  ];
+  return defaultMode === 'esm'
+    ? [
+        `// Import with \`const Sentry = require("@sentry/${sdkPackage}");\` if you are using CJS`,
+        `import * as Sentry from "@sentry/${sdkPackage}"`,
+      ]
+    : [
+        `// Import with \`import * as Sentry from "@sentry/${sdkPackage}"\` if you are using ESM`,
+        `const Sentry = require("@sentry/${sdkPackage}");`,
+      ];
+}
+
+function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
+  return defaultMode === 'esm'
+    ? `import { nodeProfilingIntegration } from "@sentry/profiling-node";`
+    : `const { nodeProfilingIntegration } = require("@sentry/profiling-node");`;
 }
 
 /**
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
 export function getSentryImportSnippet(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless'
+  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless',
+  defaultMode?: 'esm' | 'cjs'
 ): string {
-  return getImport(sdkPackage).join('\n');
+  return getImport(sdkPackage, defaultMode).join('\n');
 }
 
 /**
@@ -108,13 +121,15 @@ export function getSentryImportSnippet(
  */
 export function getDefaultNodeImports({
   productSelection,
+  defaultMode,
 }: {
   productSelection: ProductSelectionMap;
+  defaultMode?: 'esm' | 'cjs';
 }) {
-  const imports: string[] = getImport('node');
+  const imports: string[] = getImport('node', defaultMode);
 
   if (productSelection.profiling) {
-    imports.push(`import { nodeProfilingIntegration } from "@sentry/profiling-node";`);
+    imports.push(getProfilingImport(defaultMode));
   }
   return imports;
 }
@@ -122,22 +137,26 @@ export function getDefaultNodeImports({
 export function getDefaultServerlessImports({
   productSelection,
   library,
+  defaultMode,
 }: {
   library: `google-cloud-serverless` | `aws-serverless`;
   productSelection: ProductSelectionMap;
+  defaultMode?: 'esm' | 'cjs';
 }) {
-  const imports: string[] = getImport(library);
+  const imports: string[] = getImport(library, defaultMode);
 
   if (productSelection.profiling) {
-    imports.push(
-      `const { nodeProfilingIntegration } = require("@sentry/profiling-node");`
-    );
+    imports.push(getProfilingImport(defaultMode));
   }
   return imports;
 }
 
-export function getImportInstrumentSnippet(): string {
-  return `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
+export function getImportInstrumentSnippet(defaultMode?: 'esm' | 'cjs'): string {
+  return defaultMode === 'esm'
+    ? `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
+  // If you're using CommonJS (CJS) syntax, use \`require("./instrument.js");\`
+  import "./instrument.js";`
+    : `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
   // If you're using ECMAScript Modules (ESM) syntax, use \`import "./instrument.js";\`
   require("./instrument.js");`;
 }
@@ -147,23 +166,27 @@ export function getImportInstrumentSnippet(): string {
  */
 export const getSdkInitSnippet = (
   params: DocsParams,
-  sdkImport: 'node' | 'aws' | 'gpc' | null
+  sdkImport: 'node' | 'aws' | 'gpc' | null,
+  defaultMode?: 'esm' | 'cjs'
 ) => `${
   sdkImport === null
     ? ''
     : sdkImport === 'node'
-      ? getDefaultNodeImports({productSelection: getProductSelectionMap(params)}).join(
-          '\n'
-        ) + '\n'
+      ? getDefaultNodeImports({
+          productSelection: getProductSelectionMap(params),
+          defaultMode,
+        }).join('\n') + '\n'
       : sdkImport === 'aws'
         ? getDefaultServerlessImports({
             productSelection: getProductSelectionMap(params),
             library: 'aws-serverless',
+            defaultMode,
           }).join('\n') + '\n'
         : sdkImport === 'gpc'
           ? getDefaultServerlessImports({
               productSelection: getProductSelectionMap(params),
               library: 'google-cloud-serverless',
+              defaultMode,
             }).join('\n') + '\n'
           : ''
 }
@@ -179,7 +202,7 @@ Sentry.init({
     params.isPerformanceSelected
       ? `
       // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions\n`
       : ''
   }${
     params.isProfilingSelected
@@ -187,8 +210,7 @@ Sentry.init({
     // Set sampling rate for profiling - this is relative to tracesSampleRate
     profilesSampleRate: 1.0,`
       : ''
-  }
-});
+  }});
 `;
 
 export function getProductIntegrations({

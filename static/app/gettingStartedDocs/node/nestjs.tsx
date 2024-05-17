@@ -15,15 +15,20 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  getImportInstrumentSnippet,
+  getInstallConfig,
+  getSdkInitSnippet,
+  getSentryImportSnippet,
+} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
 const getSdkSetupSnippet = () => `
-// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
-import './instrument';
+${getImportInstrumentSnippet('esm')}
 
-import * as Sentry from '@sentry/node';
+// All other imports below
+${getSentryImportSnippet('node', 'esm')}
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
@@ -71,7 +76,7 @@ const onboarding: OnboardingConfig = {
               value: 'javascript',
               language: 'javascript',
               filename: 'instrument.(js|ts)',
-              code: getSdkInitSnippet(params, 'node'),
+              code: getSdkInitSnippet(params, 'node', 'esm'),
             },
           ],
         },
