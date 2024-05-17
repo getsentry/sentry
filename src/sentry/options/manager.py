@@ -259,7 +259,7 @@ class OptionsManager:
 
     def isset(self, key: str) -> bool:
         """
-        Check if a key has been set to a value and not inheriting from its default.
+        Check if a key exists on the local cache, network cache, and db in that order.
         """
         opt = self.lookup_key(key)
 
@@ -273,8 +273,6 @@ class OptionsManager:
     def set_on_db(self, key: str) -> bool:
         """
         Check if a key has been set on the database.
-        isset() will check if the option is set on local cache,
-        network cache, and db.
         """
         return self.store.get_store(key) is not None
 
