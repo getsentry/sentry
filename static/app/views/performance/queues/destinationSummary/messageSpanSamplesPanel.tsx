@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,6 +14,7 @@ import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -44,11 +46,14 @@ import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummar
 
 export function MessageSpanSamplesPanel() {
   const router = useRouter();
+  const location = useLocation();
   const query = useLocationQuery({
     fields: {
       project: decodeScalar,
       destination: decodeScalar,
       transaction: decodeScalar,
+      retries: decodeScalar,
+      status: decodeScalar,
       'span.op': decodeScalar,
     },
   });
@@ -68,6 +73,38 @@ export function MessageSpanSamplesPanel() {
     ? [query.destination, query.transaction].filter(Boolean).join(':')
     : undefined;
 
+  const handleStatusChange = newStatus => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'status',
+      new_state: newStatus.value,
+      organization,
+      source: ModuleName.QUEUE,
+    });
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        status: newStatus.value,
+      },
+    });
+  };
+
+  const handleRetriesChange = newRetries => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'retries',
+      new_state: newRetries.value,
+      organization,
+      source: ModuleName.QUEUE,
+    });
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        retries: newRetries.value,
+      },
+    });
+  };
+
   const isPanelOpen = Boolean(detailKey);
 
   const messageActorType =
@@ -82,6 +119,15 @@ export function MessageSpanSamplesPanel() {
   const search = new MutableSearch(queryFilter);
   search.addFilterValue('transaction', query.transaction);
   search.addFilterValue('messaging.destination.name', query.destination);
+
+  if (query.status.length > 0) {
+    search.addFilterValue('trace.status', query.status);
+  }
+
+  if (query.retries.length > 0) {
+    // TODO: kevin - index retry.count
+    search.addFilterValue('measurements.messaging.message.retry.count', '1');
+  }
 
   const {data: transactionMetrics, isFetching: aretransactionMetricsFetching} =
     useQueuesMetricsQuery({
@@ -220,6 +266,30 @@ export function MessageSpanSamplesPanel() {
               )}
             </MetricsRibbonContainer>
           </ModuleLayout.Full>
+
+          <ModuleLayout.Full>
+            <PanelControls>
+              <CompactSelect
+                value={query.status}
+                options={STATUS_OPTIONS}
+                onChange={handleStatusChange}
+                triggerProps={{
+                  prefix: t('Status'),
+                }}
+              />
+              {messageActorType === MessageActorType.CONSUMER && (
+                <CompactSelect
+                  value={query.retries}
+                  options={RETRIES_OPTIONS}
+                  onChange={handleRetriesChange}
+                  triggerProps={{
+                    prefix: t('Retries'),
+                  }}
+                />
+              )}
+            </PanelControls>
+          </ModuleLayout.Full>
+
           <ModuleLayout.Full>
             <DurationChart
               series={[
@@ -358,6 +428,61 @@ function ConsumerMetricsRibbon({
 
 const SAMPLE_HOVER_DEBOUNCE = 10;
 
+const STATUS_OPTIONS = [
+  {
+    value: '',
+    label: t('All'),
+  },
+  ...(
+    [
+      'ok',
+      'cancelled',
+      'unknown',
+      'unknown_error',
+      'invalid_argument',
+      'deadline_exceeded',
+      'not_found',
+      'already_exists',
+      'permission_denied',
+      'resource_exhausted',
+      'failed_precondition',
+      'aborted',
+      'out_of_range',
+      'unimplemented',
+      'internal_error',
+      'unavailable',
+      'data_loss',
+      'unauthenticated',
+    ] as const
+  ).map(status => {
+    return {
+      value: status,
+      // TODO: kevin expand status options
+      // eslint-disable-next-line sentry/no-dynamic-translations
+      label: t(status),
+    };
+  }),
+];
+
+const RETRIES_OPTIONS = [
+  {
+    value: '',
+    label: t('Any'),
+  },
+  {
+    value: '0',
+    label: t('0'),
+  },
+  {
+    value: '1-3',
+    label: t('1-3'),
+  },
+  {
+    value: '4+',
+    label: t('4+'),
+  },
+];
+
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
@@ -388,4 +513,9 @@ const MetricsRibbonContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(4)};
+`;
+
+const PanelControls = styled('div')`
+  display: flex;
+  gap: ${space(2)};
 `;
