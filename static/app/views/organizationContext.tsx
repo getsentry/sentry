@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useEffect, useRef} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -169,7 +169,9 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   function OrganizationLoaderContextProvider({children: loaderChildren}: Props) {
-    // What to do here? :O
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {}, []);
 
     return (
       <OrganizationLoaderContext.Provider
