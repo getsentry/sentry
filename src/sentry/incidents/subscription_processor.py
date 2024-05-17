@@ -240,7 +240,7 @@ class SubscriptionProcessor:
             "get_comparison_aggregation_value",
             extra={
                 "alert_rule_id": self.alert_rule.id,
-                "subscription_id": subscription_update.subscription_id,
+                "subscription_id": subscription_update.get("subscription_id"),
                 "organization_id": self.alert_rule.organization_id,
                 "comparison_aggregate": comparison_aggregate,
                 "aggregation_value": aggregation_value,
@@ -436,7 +436,7 @@ class SubscriptionProcessor:
                     "Received a comparison alert rule update",
                     extra={
                         "alert_rule_id": self.alert_rule.id,
-                        "subscription_id": subscription_update.subscription_id,
+                        "subscription_id": subscription_update.get("subscription_id"),
                         "organization_id": self.alert_rule.organization_id,
                         "comparison_delta": self.alert_rule.comparison_delta,
                         "aggregation_value": aggregation_value,
