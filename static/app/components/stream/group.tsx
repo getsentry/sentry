@@ -546,6 +546,7 @@ const StreamGroup = withOrganization(BaseGroupRow);
 export default StreamGroup;
 
 const StyledDropdownButton = styled(DropdownButton)`
+  z-index: 0;
   font-weight: normal;
   border: none;
   padding: 0;
