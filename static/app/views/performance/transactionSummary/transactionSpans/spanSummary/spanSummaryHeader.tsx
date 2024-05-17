@@ -25,7 +25,9 @@ export default function SpanSummaryHeader(props: Props) {
       <HeaderInfo data-test-id="header-operation-name">
         <StyledSectionHeading>{t('Span')}</StyledSectionHeading>
         <SectionBody>
-          <SpanLabelContainer>{spanDescription ?? emptyValue}</SpanLabelContainer>
+          <SpanLabelContainer>
+            {spanDescription ? spanDescription : emptyValue}
+          </SpanLabelContainer>
         </SectionBody>
         <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
       </HeaderInfo>
