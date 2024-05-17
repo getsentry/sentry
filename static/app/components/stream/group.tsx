@@ -11,9 +11,9 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
-import DropdownButton from 'sentry/components/dropdownButton';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
@@ -545,8 +545,7 @@ const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
 
-const StyledDropdownButton = styled(DropdownButton)`
-  z-index: 0;
+const StyledDropdownButton = styled(Button)`
   font-weight: normal;
   border: none;
   padding: 0;
