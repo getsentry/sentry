@@ -135,7 +135,11 @@ class ConfigOptionsTest(CliTestCase):
         assert_output(rv)
 
         assert options.get("int_option") == 40
-        assert options.get("str_option") == "new value"
+        assert options.get("str_option") == "blabla"
+
+        assert options.isset("int_option") is False
+        assert options.isset("str_option") is False
+
         assert options.get("map_option") == {
             "a": 1,
             "b": 2,
@@ -152,7 +156,7 @@ class ConfigOptionsTest(CliTestCase):
         )
 
         assert rv.exit_code == 2
-        assert options.get("int_option") == 40
+        assert options.get("int_option") == 20
         assert options.get("str_option") == "new value"
         assert options.get("map_option") == {
             "a": 1,
@@ -207,6 +211,50 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 2, rv.output
 
         assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
+
+    def test_sync_unset_options(self):
+
+        # test options set on disk with and without prioritize disk, tracked
+        # and not tracked
+        # test options set on db, verify that untracked options are properly # deleted
+
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 2, rv.output
+        expected_output = "\n".join(
+            [
+                ConsolePresenter.DRIFT_MSG % "drifted_option",
+                ConsolePresenter.DB_VALUE % "drifted_option",
+                "- 1",
+                "- 2",
+                "- 3",
+                "",
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                ConsolePresenter.SET_MSG % ("int_option", 40),
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
+            ]
+        )
+
+        assert expected_output in rv.output
+
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+        assert options.get("drifted_option") == [1, 2, 3]
+
+        assert not options.isset("to_unset_option")
+
+        pass
 
     def test_bad_patch(self):
         rv = self.invoke(

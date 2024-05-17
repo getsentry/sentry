@@ -279,6 +279,10 @@ def sync(ctx: click.Context) -> None:
                         # we can safely continue.
                         if options.is_set_on_disk(opt.name):
                             continue
+                        # isset() will pull from local cache, which gets updated with every get() call.
+                        # configoptions is only concerned with removing the option from the db.
+                        if not options.set_on_db(opt.name):
+                            continue
                         else:
                             presenter_delegator.drift(opt.name, options.get(opt.name))
                             drift_found = True

@@ -1,0 +1,15 @@
+options:
+  map_option:
+    a: 1
+    b: 2
+  list_option:
+    - 1
+    - 2
+  drifted_option:
+    - 4
+    - 5
+    - 6
+  change_channel_option:
+    - 5
+    - 6
+    - 7

@@ -270,6 +270,14 @@ class OptionsManager:
 
         return self.is_set_on_disk(key)
 
+    def set_on_db(self, key: str) -> bool:
+        """
+        Check if a key has been set on the database.
+        isset() will check if the option is set on local cache,
+        network cache, and db.
+        """
+        return self.store.get_store(key) is not None
+
     def is_set_on_disk(self, key: str) -> bool:
         """
         Check if a key is set on disk.
