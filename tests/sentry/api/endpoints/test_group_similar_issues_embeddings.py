@@ -721,7 +721,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         expected_seer_request_params = {
             "threshold": 0.01,
-            "group_id": self.group.id,
             "hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -835,7 +834,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "Seer similar issues response entry missing key 'parent_hash'",
             extra={
                 "request_params": {
-                    "group_id": NonNone(self.event.group_id),
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -1000,7 +998,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -1025,7 +1022,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -1051,7 +1047,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "group_id": self.group.id,
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,

@@ -94,7 +94,6 @@ def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
     mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": NonNone(event.group_id),
         "hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
@@ -120,7 +119,6 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
     mock_seer_request.return_value = HTTPResponse([])
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "group_id": NonNone(event.group_id),
         "hash": NonNone(event.get_primary_hash()),
         "project_id": default_project.id,
         "stacktrace": "string",
