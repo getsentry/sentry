@@ -108,16 +108,16 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
     message: str
+    hash: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
-    hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class RawSeerSimilarIssueData(TypedDict):
+    parent_hash: str
     stacktrace_distance: float
     message_distance: float
     should_group: bool
-    parent_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
@@ -131,13 +131,17 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
-    # TODO: See if we end up needing the hash here
-    parent_hash: str | None = None
+    parent_hash: str
 
     # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
     # definition because Python has no way to derive it from the type (nor vice-versa)
-    required_incoming_keys: ClassVar = {"stacktrace_distance", "message_distance", "should_group"}
-    optional_incoming_keys: ClassVar = {"parent_hash"}
+    required_incoming_keys: ClassVar = {
+        "stacktrace_distance",
+        "message_distance",
+        "should_group",
+        "parent_hash",
+    }
+    optional_incoming_keys: ClassVar = {}
     expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
 
     @classmethod
