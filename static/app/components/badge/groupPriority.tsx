@@ -104,7 +104,7 @@ export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps
     <StyledTag
       type={getTagTypeForPriority(priority)}
       isBigtag={organization.features.includes(
-        'organizations:issue-stream-new-assignee-dropdown-trigger'
+        'issue-stream-new-assignee-dropdown-trigger'
       )}
     >
       {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}

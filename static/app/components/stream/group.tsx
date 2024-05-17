@@ -506,7 +506,7 @@ function BaseGroupRow({
                 onClear={() => handleAssigneeChange(null)}
                 trigger={
                   organization.features.includes(
-                    'organizations:issue-stream-new-assignee-dropdown-trigger'
+                    'issue-stream-new-assignee-dropdown-trigger'
                   )
                     ? (props, isOpen) => (
                         <DropdownButton
