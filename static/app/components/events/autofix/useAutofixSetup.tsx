@@ -50,7 +50,7 @@ export function useAutofixSetup(
     hasSuccessfulSetup: Boolean(
       queryData.data?.integration.ok &&
         queryData.data?.githubWriteIntegration.ok &&
-        // queryData.data?.genAIConsent.ok &&
+        queryData.data?.genAIConsent.ok &&
         queryData.data?.codebaseIndexing.ok
     ),
   };
