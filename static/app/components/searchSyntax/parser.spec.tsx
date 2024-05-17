@@ -258,7 +258,7 @@ describe('searchSyntax/parser', function () {
       ]);
     });
 
-    it('tokenizes mismatched parens with flattenParenGroups=false', () => {
+    it('tokenizes mismatched left paren with flattenParenGroups=false', () => {
       const result = parseSearch('foo(', {
         flattenParenGroups: false,
       });
@@ -280,7 +280,29 @@ describe('searchSyntax/parser', function () {
       ]);
     });
 
-    it('does not tokenize matching parens with flattenParenGroups=false', () => {
+    it('tokenizes mismatched right paren with flattenParenGroups=false', () => {
+      const result = parseSearch('foo)', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text and a paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.R_PAREN,
+          value: ')',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('parses matching parens as logic group with flattenParenGroups=false', () => {
       const result = parseSearch('(foo)', {
         flattenParenGroups: false,
       });

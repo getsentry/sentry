@@ -674,11 +674,11 @@ export class TokenConverter {
     this.config.textOperatorKeys.has(getKeyName(key));
 
   /**
-   * When flattenParenGroups is enabled, paren tokens should be parsed.
-   * Due to the ordering of `paren` and `parenGroups`, `paren` takes precedence.
+   * When flattenParenGroups is enabled, paren groups should not be parsed,
+   * instead parsing the parens and inner group as individual tokens.
    */
-  predicateParen = (): boolean => {
-    return Boolean(this.config.flattenParenGroups);
+  predicateParenGroup = (): boolean => {
+    return !this.config.flattenParenGroups;
   };
 
   /**

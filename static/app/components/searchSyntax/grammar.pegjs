@@ -11,24 +11,22 @@ search
     }
 
 term
-  = (boolean_operator / paren_group / paren / filter / free_text) spaces
+  = (boolean_operator / paren_group / open_paren / closed_paren / filter / free_text) spaces
 
 boolean_operator
   = (or_operator / and_operator) {
       return tc.tokenLogicBoolean(text().toUpperCase());
     }
 
+paren_or_group
+  = paren_group / open_paren / closed_paren
+
 paren_group
-  = open_paren spaces:spaces inner:term* closed_paren {
+  = open_paren spaces:spaces inner:(!open_paren !closed_paren term)* closed_paren &{
+    return tc.predicateParenGroup();
+  } {
       return tc.tokenLogicGroup([spaces, ...inner].flat());
     }
-
-paren
-  = open_paren / closed_paren &{
-    return tc.predicateParen();
-  } {
-    return tc.tokenParen(text());
-  }
 
 free_text
   = free_text_quoted / free_text_unquoted
