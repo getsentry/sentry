@@ -1438,6 +1438,15 @@ def _save_aggregate(
         ):
             # These values will get overridden with whatever happens inside the lock if we do manage
             # to acquire it, so it should only end up with `wait-for-lock` if we don't
+            #
+            # TODO: If we're using this `outome` value for anything more than a count in DD (in
+            # other words, if we care about duration), we should probably update it so that when an
+            # event does have to wait, we record whether during its wait the event which got the
+            # lock first
+            #   a) created a new group without consulting Seer,
+            #   b) created a new group because Seer didn't find a close enough match, or
+            #   c) used an existing group found by Seer
+            # because which of those things happened will have an effect on how long the event had to wait.
             span.set_tag("outcome", "wait_for_lock")
             metric_tags["outcome"] = "wait_for_lock"
 
@@ -1658,6 +1667,8 @@ def _save_aggregate(
     return GroupInfo(group, is_new, is_regression)
 
 
+# TODO: None of the seer logic has been added to this version yet, so you can't simultaneously use
+# optimized transitions and seer
 def _save_aggregate_new(
     event: Event,
     job: Job,
