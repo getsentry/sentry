@@ -20,7 +20,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
-import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
   SpanFunction,
@@ -203,7 +203,7 @@ function renderBodyCell(
 }
 
 function DestinationCell({destination}: {destination: string}) {
-  const moduleURL = useQueueModuleURL();
+  const moduleURL = useModuleURL('queue');
   const {query} = useLocation();
   const queryString = {
     ...query,

@@ -18,7 +18,7 @@ export function ServiceIncidentFixture(
       {
         id: '1',
         incident_id: '1',
-        status: 'unresolved',
+        status: 'monitoring',
         body: 'Things look bad',
         affected_components: [],
         created_at: '2022-05-23T13:33:38.737-07:00',
@@ -28,7 +28,7 @@ export function ServiceIncidentFixture(
       {
         id: '2',
         incident_id: '1',
-        status: 'unresolved',
+        status: 'investigating',
         body: 'Investigating',
         affected_components: [],
         updated_at: '2022-05-23T13:45:38.737-07:00',
