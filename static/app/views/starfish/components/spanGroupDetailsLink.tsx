@@ -2,25 +2,31 @@ import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: React.ReactNode;
+  moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   group?: string;
   spanOp?: string;
 }
 
-export function SpanGroupDetailsLink({group, projectId, spanOp, description}: Props) {
+export function SpanGroupDetailsLink({
+  moduleName,
+  group,
+  projectId,
+  spanOp,
+  description,
+}: Props) {
   const location = useLocation();
-  const organization = useOrganization();
-  const routingContext = useRoutingContext();
+
+  const moduleURL = useModuleURL(moduleName);
 
   const queryString = {
     ...location.query,
@@ -33,7 +39,7 @@ export function SpanGroupDetailsLink({group, projectId, spanOp, description}: Pr
       {group ? (
         <Link
           to={normalizeUrl(
-            `/organizations/${organization.slug}${routingContext.baseURL}/spans/span/${group}/?${qs.stringify(queryString)}`
+            `${moduleURL}/spans/span/${group}/?${qs.stringify(queryString)}`
           )}
         >
           {description}

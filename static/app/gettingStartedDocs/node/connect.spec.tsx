@@ -16,8 +16,19 @@ describe('connect onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
 
     // Includes import statement
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/)
+    );
+    allMatches.forEach(match => {
+      expect(match).toBeInTheDocument();
+    });
+  });
+
+  it('includes error handler', () => {
+    renderWithOnboardingLayout(docs);
+
     expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/))
+      screen.getByText(textWithMarkupMatcher(/Sentry\.setupConnectErrorHandler\(app\)/))
     ).toBeInTheDocument();
   });
 
@@ -56,6 +67,13 @@ describe('connect onboarding docs', function () {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
     });
 
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();

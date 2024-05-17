@@ -31,5 +31,4 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
             issue_details=True,
             notification=self.notification,
             recipient=self.recipient,
-            commits=self.context.get("commits", None),
         ).build()

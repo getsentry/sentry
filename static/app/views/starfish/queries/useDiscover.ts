@@ -17,6 +17,7 @@ interface UseMetricsOptions<Fields> {
   enabled?: boolean;
   fields?: Fields;
   limit?: number;
+  pageFilters?: PageFilters;
   referrer?: string;
   search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
@@ -49,11 +50,24 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
-  const {fields = [], search = undefined, sorts = [], limit, cursor} = options;
+  const {
+    fields = [],
+    search = undefined,
+    sorts = [],
+    limit,
+    cursor,
+    pageFilters: pageFiltersFromOptions,
+  } = options;
 
   const pageFilters = usePageFilters();
 
-  const eventView = getEventView(search, fields, sorts, pageFilters.selection, dataset);
+  const eventView = getEventView(
+    search,
+    fields,
+    sorts,
+    pageFiltersFromOptions ?? pageFilters.selection,
+    dataset
+  );
 
   const result = useWrappedDiscoverQuery({
     eventView,

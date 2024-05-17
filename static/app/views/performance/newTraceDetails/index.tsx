@@ -51,12 +51,11 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -67,9 +66,9 @@ import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {searchInTraceTree} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
-import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
+import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
@@ -802,14 +801,6 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
       />
-      <TraceHeader
-        tree={tree}
-        rootEventResults={rootEvent}
-        metaResults={props.metaResults}
-        organization={props.organization}
-        traces={props.trace}
-        traceID={props.traceSlug}
-      />
       <TraceInnerLayout>
         <TraceToolbar>
           <TraceSearchInput
@@ -845,6 +836,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            metaResults={props.metaResults}
             traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
@@ -873,11 +865,24 @@ function TraceResetZoomButton(props: {
   }, [props.viewManager, props.organization]);
 
   return (
-    <Button size="xs" onClick={onResetZoom}>
+    <ResetZoomButton
+      size="xs"
+      onClick={onResetZoom}
+      ref={props.viewManager.registerResetZoomRef}
+    >
       {t('Reset Zoom')}
-    </Button>
+    </ResetZoomButton>
   );
 }
+
+const ResetZoomButton = styled(Button)`
+  transition: opacity 0.2s 0.5s ease-in-out;
+
+  &[disabled] {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+`;
 
 const TraceExternalLayout = styled('div')`
   display: flex;
@@ -893,7 +898,8 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: 0 ${space(2)} 0 ${space(2)};
+  padding: ${space(2)};
+
   background-color: ${p => p.theme.background};
 
   --info: ${p => p.theme.purple400};
@@ -920,8 +926,7 @@ const TraceGrid = styled('div')<{
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */

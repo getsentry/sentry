@@ -1,3 +1,4 @@
+import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
@@ -6,13 +7,13 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization, SentryServiceStatus} from 'sentry/types';
+import type {Organization, StatuspageIncident} from 'sentry/types';
+import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
-jest.mock('sentry/actionCreators/serviceIncidents');
+jest.mock('sentry/utils/useServiceIncidents');
 
 const sidebarAccordionFeatures = [
   'performance-view',
@@ -41,6 +42,13 @@ describe('Sidebar', function () {
     render(getElement(), {context: routerContext, organization: org});
 
   beforeEach(function () {
+    jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
+      () =>
+        ({
+          data: [ServiceIncidentFixture()],
+        }) as UseQueryResult<StatuspageIncident[]>
+    );
+
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [broadcast],
@@ -242,16 +250,6 @@ describe('Sidebar', function () {
     });
 
     it('can show Incidents in Sidebar Panel', async function () {
-      jest
-        .spyOn(incidentActions, 'loadIncidents')
-        .mockImplementation((): Promise<SentryServiceStatus | null> => {
-          return Promise.resolve({
-            incidents: [ServiceIncidentFixture()],
-            indicator: 'none',
-            url: '',
-          });
-        });
-
       renderSidebar({organization});
 
       await userEvent.click(await screen.findByText('Service status'));

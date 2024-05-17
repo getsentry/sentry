@@ -135,6 +135,13 @@ export function TransactionNodeDetails({
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
         <Sdk event={event} />
+        {event._metrics_summary ? (
+          <CustomMetricsEventData
+            metricsSummary={event._metrics_summary}
+            startTimestamp={event.startTimestamp}
+            projectId={event.projectID}
+          />
+        ) : null}
       </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
@@ -156,14 +163,6 @@ export function TransactionNodeDetails({
       <EventContexts event={event} />
 
       {project ? <EventEvidence event={event} project={project} /> : null}
-
-      {event._metrics_summary ? (
-        <CustomMetricsEventData
-          metricsSummary={event._metrics_summary}
-          startTimestamp={event.startTimestamp}
-          projectId={event.projectID}
-        />
-      ) : null}
 
       <ReplayPreview event={event} organization={organization} />
 

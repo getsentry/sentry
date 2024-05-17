@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import contextlib
 import datetime
 import decimal
 import uuid
-from collections.abc import Generator, Mapping
+from collections.abc import Callable, Collection, Generator, Mapping
 from enum import Enum
 from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
 import orjson
 import rapidjson
-import sentry_sdk
 from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
@@ -130,30 +128,11 @@ def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> Any:
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def loads(
-    value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
-) -> Any:
-    with contextlib.ExitStack() as ctx:
-        if not skip_trace:
-            ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
-        if use_rapid_json is True:
-            return rapidjson.loads(value)
-        else:
-            return _default_decoder.decode(value)
-
-
-# loads JSON with `orjson` or the default function depending on `option_name`
-# TODO: remove this once we're confident that orjson is working as expected
-def loads_experimental(option_name: str, data: str | bytes, skip_trace: bool = False) -> Any:
-    from sentry.features.rollout import in_random_rollout
-
-    if in_random_rollout(option_name):
-        with contextlib.ExitStack() as ctx:
-            if not skip_trace:
-                ctx.enter_context(sentry_sdk.start_span(op="sentry.utils.json.loads"))
-            return orjson.loads(data)
+def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) -> Any:
+    if use_rapid_json is True:
+        return rapidjson.loads(value)
     else:
-        return loads(data, skip_trace)
+        return _default_decoder.decode(value)
 
 
 # dumps JSON with `orjson` or the default function depending on `option_name`
@@ -198,6 +177,37 @@ def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TVa
     return {k: v for k, v in obj.items() if v is not None}
 
 
+def apply_key_filter(
+    obj: Mapping[TKey, TValue],
+    *,
+    keep_keys: Collection[TKey] | None = None,
+    key_filter: Callable[[TKey], bool] | None = None,
+) -> dict[TKey, TValue]:
+    """
+    A version of the built-in `filter` function which works on dictionaries, returning a (filtered)
+    shallow copy of the original.
+
+    If `keep_keys` is given, any key-value pair whose key isn't in `keep_keys` will be excluded from
+    the result.
+
+    If a `key_filter` function is given, any key-value pair for which `key_filter(key)` is False
+    will be excluded from the result.
+
+    If both are given, `keep_keys` takes precedence. If neither is given, an unfiltered shallow copy
+    of the original is returned.
+    """
+
+    if keep_keys:
+        key_filter = lambda key: key in keep_keys
+    elif not keep_keys and not key_filter:
+        key_filter = lambda _key: True
+
+    # `key_filter` can't be None by now, but mypy still thinks it might
+    assert key_filter
+
+    return {key: obj[key] for key in obj if key_filter(key)}
+
+
 __all__ = (
     "JSONDecodeError",
     "JSONEncoder",
@@ -207,6 +217,5 @@ __all__ = (
     "load",
     "loads",
     "prune_empty_keys",
-    "loads_experimental",
-    "dumps_experimental",
+    "apply_key_filter",
 )

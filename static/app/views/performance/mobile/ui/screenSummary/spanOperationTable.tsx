@@ -11,15 +11,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import type {SpanOperationTableProps} from 'sentry/views/performance/mobile/components/samplesTables';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -38,9 +37,9 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: SpanOperationTableProps) {
+  const moduleURL = useModuleURL('mobile-ui');
   const location = useLocation();
   const {selection} = usePageFilters();
-  const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
@@ -136,9 +135,7 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/ui/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,

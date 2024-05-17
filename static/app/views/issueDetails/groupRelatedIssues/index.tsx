@@ -79,9 +79,9 @@ function RelatedIssuesSection({
   // project=-1 allows ensuring that the query will show issues from any projects for the org
   // This is important for traces since issues can be for any project in the org
   const baseUrl = `/organizations/${orgSlug}/issues/?project=-1`;
-  let title;
-  let linkToTrace;
-  let openIssuesButton;
+  let title: React.ReactNode = null;
+  let linkToTrace: React.ReactNode = null;
+  let openIssuesButton: React.ReactNode = null;
   if (relationType === 'trace_connected' && traceMeta) {
     title = t('Issues in the same trace');
     linkToTrace = (
@@ -132,8 +132,8 @@ function RelatedIssuesSection({
       ) : issues.length > 0 ? (
         <Fragment>
           <TextButtonWrapper>
-            {linkToTrace ?? null}
-            {openIssuesButton ?? null}
+            {linkToTrace}
+            {openIssuesButton}
           </TextButtonWrapper>
           <GroupList
             orgSlug={orgSlug}

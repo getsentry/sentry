@@ -11,7 +11,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 @django_db_all
 @all_silo_test
-def test_audit_log_event():
+def test_audit_log_event() -> None:
     user = Factories.create_user()
     organization = Factories.create_organization()
     log_service.record_audit_log(
@@ -36,7 +36,7 @@ def test_audit_log_event():
 
 @django_db_all
 @all_silo_test
-def test_audit_log_event_bad_actor_user_id():
+def test_audit_log_event_bad_actor_user_id() -> None:
     organization = Factories.create_organization()
     with in_test_hide_transaction_boundary():
         log_service.record_audit_log(
@@ -62,7 +62,7 @@ def test_audit_log_event_bad_actor_user_id():
 
 @django_db_all
 @all_silo_test
-def test_audit_log_event_bad_target_user_id():
+def test_audit_log_event_bad_target_user_id() -> None:
     organization = Factories.create_organization()
     log_service.record_audit_log(
         event=AuditLogEvent(
@@ -88,7 +88,7 @@ def test_audit_log_event_bad_target_user_id():
 
 @django_db_all
 @all_silo_test
-def test_user_ip_event():
+def test_user_ip_event() -> None:
     user = Factories.create_user()
 
     log_service.record_user_ip(

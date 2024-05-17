@@ -55,13 +55,13 @@ export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
 
 type SpanTableRow = {
   op: string;
+  trace: string;
   transaction: {
-    id: string;
     'project.name': string;
     timestamp: string;
-    trace: string;
     'transaction.duration': number;
   };
+  'transaction.id': string;
 } & SpanSample;
 
 type Props = {
@@ -111,7 +111,7 @@ export function SpanSamplesTable({
           to={generateLinkToEventInTraceView({
             eventId: row['transaction.id'],
             timestamp: row.timestamp,
-            traceSlug: row.transaction?.trace,
+            traceSlug: row.trace,
             projectSlug: row.project,
             organization,
             location,
@@ -135,7 +135,7 @@ export function SpanSamplesTable({
           to={generateLinkToEventInTraceView({
             eventId: row['transaction.id'],
             timestamp: row.timestamp,
-            traceSlug: row.transaction?.trace,
+            traceSlug: row.trace,
             projectSlug: row.project,
             organization,
             location,

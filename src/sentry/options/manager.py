@@ -210,14 +210,6 @@ class OptionsManager:
         elif not opt.type.test(value):
             raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
-        if key == "processing.calculate-severity-on-group-creation":
-            logger.error(
-                "Option %s set to %s. previous update channel: %s",
-                key,
-                value,
-                channel,
-                stack_info=True,
-            )
         return self.store.set(opt, value, channel=channel)
 
     def lookup_key(self, key: str):
@@ -268,6 +260,12 @@ class OptionsManager:
             if result is not None:
                 return True
 
+        return self.is_set_on_disk(key)
+
+    def is_set_on_disk(self, key: str) -> bool:
+        """
+        Check if a key is set on disk.
+        """
         return key in settings.SENTRY_OPTIONS
 
     def get(self, key: str, silent=False):
@@ -476,7 +474,7 @@ class OptionsManager:
         opt = self.lookup_key(key)
         if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
             return NotWritableReason.READONLY
-        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and settings.SENTRY_OPTIONS.get(key):
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and key in settings.SENTRY_OPTIONS:
             # FLAG_PRIORITIZE_DISK does not prevent the option to be updated
             # in any circumstance. If the option is not on disk (which
             # means not in settings.SENTRY_OPTION), it can be updated.

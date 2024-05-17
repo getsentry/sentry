@@ -102,7 +102,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? []),
   });
 }
 
@@ -523,7 +523,7 @@ describe('trace view', () => {
       },
     });
     mockTraceMetaResponse();
-    mockTraceTagsResponse({});
+    mockTraceTagsResponse();
 
     render(<TraceViewWithProviders traceSlug="trace-id" />);
     expect(
@@ -726,8 +726,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
-    // this is flakey
-    // eslint-disable-next-line jest/no-disabled-tests
+    // biome-ignore lint/suspicious/noSkippedTests: Flaky test
     it.skip('arrow right expands row and fetches data', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);

@@ -8,7 +8,7 @@ import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
-import {slackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
@@ -23,6 +23,15 @@ function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend.icon = 'none';
   options.legend.left = '25';
   options.legend.top = '20';
+  options.grid = slackChartDefaults.grid;
+
+  options.yAxis = options.yAxis || {};
+  options.yAxis.axisLabel = options.yAxis.axisLabel || {};
+  options.yAxis.axisLabel.fontFamily = DEFAULT_FONT_FAMILY;
+
+  options.xAxis = options.xAxis || {};
+  options.xAxis.axisLabel = options.xAxis.axisLabel || {};
+  options.xAxis.axisLabel.fontFamily = DEFAULT_FONT_FAMILY;
 
   return {
     ...options,

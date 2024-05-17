@@ -1,9 +1,9 @@
 from functools import cached_property
 
+import orjson
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.pivotal.plugin import PivotalPlugin
 
 
@@ -44,7 +44,7 @@ class PivotalPluginTest(PluginTestCase):
             args=[self.org.slug, self.project.slug, "pivotal"],
         )
         res = self.client.get(url)
-        config = json.loads(res.content)["config"]
+        config = orjson.loads(res.content)["config"]
         token_config = [item for item in config if item["name"] == "token"][0]
         assert token_config.get("type") == "secret"
         assert token_config.get("value") is None

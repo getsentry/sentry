@@ -596,7 +596,7 @@ function SectionCard({
   title: React.ReactNode;
   disableTruncate?: boolean;
 }) {
-  const [showingAll, setShowingAll] = useState(disableTruncate ?? false);
+  const [showingAll, setShowingAll] = useState(false);
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   if (items.length === 0) {
@@ -606,7 +606,7 @@ function SectionCard({
   return (
     <Card>
       <CardContentTitle>{title}</CardContentTitle>
-      {items.slice(0, showingAll ? items.length : 5).map(item => (
+      {items.slice(0, showingAll || disableTruncate ? items.length : 5).map(item => (
         <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
       ))}
       {items.length > 5 && !disableTruncate ? (
@@ -649,12 +649,12 @@ const CardsColumn = styled('div')`
   grid-column: span 1;
 `;
 
-function CardValueWithCopy({
+function CopyableCardValueWithLink({
   value,
   linkTarget,
   linkText,
 }: {
-  value: string;
+  value: React.ReactNode;
   linkTarget?: LocationDescriptor;
   linkText?: string;
 }) {
@@ -662,7 +662,14 @@ function CardValueWithCopy({
     <CardValueContainer>
       <CardValueText>
         {value}
-        <StyledCopyToClipboardButton borderless size="zero" iconSize="xs" text={value} />
+        {typeof value === 'string' ? (
+          <StyledCopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={value}
+          />
+        ) : null}
       </CardValueText>
       {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
     </CardValueContainer>
@@ -749,7 +756,7 @@ const TraceDrawerComponents = {
   TableValueRow,
   IssuesLink,
   SectionCard,
-  CardValueWithCopy,
+  CopyableCardValueWithLink,
   EventTags,
   SectionCardGroup,
 };

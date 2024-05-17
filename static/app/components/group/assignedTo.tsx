@@ -1,21 +1,25 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
+import AssigneeSelectorDropdown, {
+  type AssignableEntity,
+} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import type {
   OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/deprecatedAssigneeSelectorDropdown';
-import {DeprecatedAssigneeSelectorDropdown} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
-import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
+import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -24,6 +28,8 @@ import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -184,6 +190,37 @@ function AssignedTo({
     }
   );
 
+  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
+    AssignableEntity | null,
+    RequestError,
+    AssignableEntity | null
+  >({
+    mutationFn: async (
+      newAssignee: AssignableEntity | null
+    ): Promise<AssignableEntity | null> => {
+      if (newAssignee) {
+        await assignToActor({
+          id: group.id,
+          orgSlug: organization.slug,
+          actor: {id: newAssignee.id, type: newAssignee.type},
+          assignedBy: 'assignee_selector',
+        });
+        return Promise.resolve(newAssignee);
+      }
+
+      await clearAssignment(group.id, organization.slug, 'assignee_selector');
+      return Promise.resolve(null);
+    },
+    onSuccess: (newAssignee: AssignableEntity | null) => {
+      if (onAssign && newAssignee) {
+        onAssign(newAssignee.type, newAssignee.assignee, newAssignee.suggestedAssignee);
+      }
+    },
+    onError: () => {
+      addErrorMessage('Failed to update assignee');
+    },
+  });
+
   useEffect(() => {
     // TODO: We should check if this is already loaded
     fetchOrgMembers(api, organization.slug, [project.id]);
@@ -215,6 +252,37 @@ function AssignedTo({
 
   const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
 
+  const makeTrigger = (props: any, isOpen: boolean) => {
+    return (
+      <DropdownButton data-test-id="assignee-selector" {...props}>
+        <ActorWrapper>
+          {assigneeLoading ? (
+            <StyledLoadingIndicator mini size={24} />
+          ) : group.assignedTo ? (
+            <ActorAvatar
+              data-test-id="assigned-avatar"
+              actor={group.assignedTo}
+              hasTooltip={false}
+              size={24}
+            />
+          ) : (
+            <IconWrapper>
+              <IconUser size="md" />
+            </IconWrapper>
+          )}
+          <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
+        </ActorWrapper>
+        {!disableDropdown && (
+          <Chevron
+            data-test-id="assigned-to-chevron-icon"
+            size="large"
+            direction={isOpen ? 'up' : 'down'}
+          />
+        )}
+      </DropdownButton>
+    );
+  };
+
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
@@ -238,63 +306,40 @@ function AssignedTo({
           </GuideAnchor>
         </Access>
       </StyledSidebarTitle>
-      <StyledSidebarSectionContent>
-        <DeprecatedAssigneeSelectorDropdown
-          organization={organization}
+      <SidebarSection.Content>
+        <StyledAssigneeSelectorDropdown
+          group={group}
           owners={owners}
-          disabled={disableDropdown}
-          id={group.id}
-          assignedTo={group.assignedTo}
-          onAssign={onAssign}
-        >
-          {({loading, isOpen, getActorProps}) => (
-            <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
-              <ActorWrapper>
-                {loading ? (
-                  <StyledLoadingIndicator mini size={24} />
-                ) : group.assignedTo ? (
-                  <ActorAvatar
-                    data-test-id="assigned-avatar"
-                    actor={group.assignedTo}
-                    hasTooltip={false}
-                    size={24}
-                  />
-                ) : (
-                  <IconWrapper>
-                    <IconUser size="md" />
-                  </IconWrapper>
-                )}
-                <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
-              </ActorWrapper>
-              {!disableDropdown && (
-                <IconChevron
-                  data-test-id="assigned-to-chevron-icon"
-                  direction={isOpen ? 'up' : 'down'}
-                />
-              )}
-            </DropdownButton>
-          )}
-        </DeprecatedAssigneeSelectorDropdown>
-      </StyledSidebarSectionContent>
+          loading={assigneeLoading}
+          onAssign={handleAssigneeChange}
+          onClear={() => handleAssigneeChange(null)}
+          trigger={makeTrigger}
+        />
+      </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
 
 export default AssignedTo;
 
+const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
+  width: 100%;
+`;
+
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: ${space(1)};
-  padding-right: ${space(0.25)};
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
 `;
 
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  max-width: 85%;
+  max-width: 100%;
   line-height: 1;
 `;
 
@@ -306,12 +351,6 @@ const IconWrapper = styled('div')`
 const ActorName = styled('div')`
   line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const StyledSidebarSectionContent = styled(SidebarSection.Content)`
-  ${AutoCompleteRoot} {
-    display: block;
-  }
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`
