@@ -168,11 +168,23 @@ export function OrganizationContextProvider({children}: Props) {
     }
   }, [orgSlug]);
 
+  function OrganizationLoaderContextProvider({children: loaderChildren}: Props) {
+    // What to do here? :O
+
+    return (
+      <OrganizationLoaderContext.Provider
+        value={{isLoading: false, loader: loadOrganization}}
+      >
+        {loaderChildren}
+      </OrganizationLoaderContext.Provider>
+    );
+  }
+
   return (
-    <OrganizationLoaderContext.Provider value={loadOrganization}>
+    <OrganizationLoaderContextProvider>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
-    </OrganizationLoaderContext.Provider>
+    </OrganizationLoaderContextProvider>
   );
 }
