@@ -6,32 +6,6 @@ from django.conf import settings
 from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.topic_definition import TopicDefinition
 
-SUPPORTED_KAFKA_CONFIGURATION = (
-    # Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
-    # for the full list of available options
-    "bootstrap.servers",
-    "compression.type",
-    "message.max.bytes",
-    "sasl.mechanism",
-    "sasl.username",
-    "sasl.password",
-    "security.protocol",
-    "socket.timeout.ms",
-    "ssl.ca.location",
-    "ssl.ca.certificate.stores",
-    "ssl.certificate.location",
-    "ssl.certificate.pem",
-    "ssl.cipher.suites",
-    "ssl.crl.location",
-    "ssl.curves.list",
-    "ssl.endpoint.identification.algorithm",
-    "ssl.key.location",
-    "ssl.key.password",
-    "ssl.key.pem",
-    "ssl.keystore.location",
-    "ssl.keystore.password",
-    "ssl.sigalgs.list",
-)
 COMMON_SECTION = "common"
 PRODUCERS_SECTION = "producers"
 CONSUMERS_SECTION = "consumers"
@@ -66,10 +40,6 @@ def _get_kafka_cluster_options(
     else:
         options.update(common_options)
         options.update(custom_options)
-        # check key validity
-        for configuration_key in options:
-            if configuration_key not in SUPPORTED_KAFKA_CONFIGURATION:
-                raise ValueError(f"The `{configuration_key}` configuration key is not supported.")
     if not isinstance(options["bootstrap.servers"], str):
         raise ValueError("bootstrap.servers must be a comma separated string")
     if override_params:

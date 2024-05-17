@@ -3392,6 +3392,8 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
+# Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
+# for the full list of available options
 KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     "default": {
         "common": {"bootstrap.servers": "127.0.0.1:9092"},
