@@ -71,7 +71,7 @@ describe('express onboarding docs', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /import \{ nodeProfilingIntegration } from "@sentry\/profiling-node"/
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
         )
       )
     ).toBeInTheDocument();
