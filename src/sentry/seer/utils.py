@@ -210,6 +210,7 @@ class SeerSimilarIssuesMetadata:
 
 
 class CreateGroupingRecordData(TypedDict):
+    group_id: int
     hash: str
     project_id: int
     message: str
@@ -223,6 +224,7 @@ class CreateGroupingRecordsRequest(TypedDict):
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
     success: bool
+    groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
 
 
 # TODO: Handle non-200 responses
