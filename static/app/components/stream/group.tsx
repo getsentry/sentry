@@ -512,7 +512,6 @@ function BaseGroupRow({
                         <StyledDropdownButton
                           {...props}
                           borderless
-                          showChevron={false}
                           aria-label={t('Modify issue assignee')}
                           size="zero"
                         >
