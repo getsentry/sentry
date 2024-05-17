@@ -1,12 +1,12 @@
 # Remote Configuration Protocol
 
-Host: https://dsn_url.com # TODO!
+Host: https://o1300299.ingest.us.sentry.io
 
 **Authors.**
 
 @cmanallen
 
-## Configuration [/configuration]
+## Configuration [/api/<project_id>/configuration/]
 
 ### Get Configuration [GET]
 
