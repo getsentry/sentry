@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {useMobileUIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -26,7 +26,7 @@ type Props = {
 };
 
 export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
-  const moduleURL = useMobileUIModuleURL();
+  const moduleURL = useModuleURL('mobile-ui');
   const location = useLocation();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 

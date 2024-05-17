@@ -29,13 +29,13 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
 
         # needs to either be a superuser or be in single org mode
 
-        last_processed_id = None
+        last_processed_index = None
         dry_run = False
-        if request.data.get("last_processed_id"):
-            last_processed_id = int(request.data["last_processed_id"])
+        if request.data.get("last_processed_index"):
+            last_processed_index = int(request.data["last_processed_index"])
 
         if request.data.get("dry_run"):
             dry_run = True
 
-        backfill_seer_grouping_records.delay(project.id, last_processed_id, dry_run)
+        backfill_seer_grouping_records.delay(project.id, last_processed_index, dry_run)
         return Response(status=204)

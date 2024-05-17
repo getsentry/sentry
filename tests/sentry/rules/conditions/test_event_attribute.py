@@ -59,6 +59,12 @@ class EventAttributeConditionTest(RuleTestCase):
                 "unreal": {
                     "crash_type": "crash",
                 },
+                "os": {
+                    "distribution": {
+                        "name": "ubuntu",
+                        "version": "22.04",
+                    }
+                },
             },
             "threads": {
                 "values": [
@@ -754,6 +760,47 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "app.in_foreground", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_os_distribution_only(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "os.distribution", "value": "irrelevant"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_os_distribution_name_and_version(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "os.distribution.name", "value": "ubuntu"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "os.distribution.version",
+                "value": "22.04",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "os.distribution.name",
+                "value": "slackware",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "os.distribution.version",
+                "value": "20.04",
+            }
         )
         self.assertDoesNotPass(rule, event)
 
