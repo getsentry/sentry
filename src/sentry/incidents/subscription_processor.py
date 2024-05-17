@@ -244,7 +244,7 @@ class SubscriptionProcessor:
                 "organization_id": self.alert_rule.organization_id,
                 "comparison_aggregate": comparison_aggregate,
                 "aggregation_value": aggregation_value,
-                "result_data": results["data"],
+                "result_data": results.get("data"),
             },
         )
 
