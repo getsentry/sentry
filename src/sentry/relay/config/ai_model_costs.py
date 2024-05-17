@@ -22,6 +22,12 @@ def ai_model_costs_config() -> AIModelCosts:
                 "costPer1kTokens": row[2],
             }
             for row in [
+                # GPT-4o input
+                ("gpt-4o", False, 0.005),
+                ("gpt-4o-2024-05-13", False, 0.005),
+                # GPT-4o output
+                ("gpt-4o", True, 0.015),
+                ("gpt-4o-2024-05-13", True, 0.015),
                 # GPT-4 input
                 ("gpt-4", False, 0.03),
                 ("gpt-4-0314", False, 0.03),

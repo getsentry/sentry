@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -153,9 +153,18 @@ export function MessageSpanSamplesPanel() {
     });
   };
 
+  const handleOpen = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: ModuleName.QUEUE,
+      });
+    }
+  }, [organization, query.transaction]);
+
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose}>
+      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>

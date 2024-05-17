@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import * as qs from 'query-string';
@@ -198,6 +198,15 @@ export function CacheSamplePanel() {
     });
   };
 
+  const handleOpen = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: ModuleName.CACHE,
+      });
+    }
+  }, [organization, query.transaction]);
+
   const handleRefetch = () => {
     refetchCacheHits();
     refetchCacheMisses();
@@ -205,7 +214,7 @@ export function CacheSamplePanel() {
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose}>
+      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>
