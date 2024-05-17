@@ -80,7 +80,7 @@ export function OrganizationContextProvider({children}: Props) {
 
   // Provided to the OrganizationLoaderContext. Loads the organization if it is
   // not already present.
-  const loadOrganization = useCallback(async () => {
+  const loadOrganization = useCallback(() => {
     // Nothing to do if we already have the organization loaded
     if (organization && organization.slug === orgSlug) {
       return;
@@ -94,11 +94,10 @@ export function OrganizationContextProvider({children}: Props) {
     // Track when the organization finishes loading so OrganizationLoaderContext
     // is up-to-date
     setIsLoading(true);
-    try {
-      await fetchOrganizationDetails(api, orgSlug, false, true);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    fetchOrganizationDetails(api, orgSlug, false, true).finally(() =>
+      setIsLoading(false)
+    );
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the
