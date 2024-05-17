@@ -130,6 +130,7 @@ function BaseGroupRow({
     isForReviewQuery(query);
 
   const {period, start, end} = selection.datetime || {};
+
   const summary =
     customStatsPeriod?.label.toLowerCase() ??
     (!!start && !!end
