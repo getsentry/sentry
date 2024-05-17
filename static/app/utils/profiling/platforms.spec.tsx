@@ -25,12 +25,15 @@ describe('getDocsPlatformSDKForPlatform', function () {
     ['python-azurefunctions', 'python'],
     ['python-gcpfunctions', 'python'],
     ['node', 'node'],
-    ['node-express', 'node'],
-    ['node-koa', 'node'],
-    ['node-connect', 'node'],
     ['node-awslambda', 'node'],
     ['node-azurefunctions', 'node'],
+    ['node-connect', 'node'],
+    ['node-express', 'node'],
+    ['node-fastify', 'node'],
     ['node-gcpfunctions', 'node'],
+    ['node-hapi', 'node'],
+    ['node-koa', 'node'],
+    ['node-nestjs', 'node'],
   ])('gets docs platform for %s', function (platform, docsPlatform) {
     expect(getDocsPlatformSDKForPlatform(platform)).toEqual(docsPlatform);
   });
@@ -57,12 +60,15 @@ describe('getProfilingDocsForPlatform', function () {
     ['python-azurefunctions', 'https://docs.sentry.io/platforms/python/profiling/'],
     ['python-gcpfunctions', 'https://docs.sentry.io/platforms/python/profiling/'],
     ['node', 'https://docs.sentry.io/platforms/node/profiling/'],
-    ['node-express', 'https://docs.sentry.io/platforms/node/profiling/'],
-    ['node-koa', 'https://docs.sentry.io/platforms/node/profiling/'],
-    ['node-connect', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-awslambda', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-azurefunctions', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['node-connect', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['node-express', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['node-fastify', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-gcpfunctions', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['node-hapi', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['node-koa', 'https://docs.sentry.io/platforms/node/profiling/'],
+    ['node-nestjs', 'https://docs.sentry.io/platforms/node/profiling/'],
   ])('gets profiling docs for %s', function (platform, docs) {
     expect(getProfilingDocsForPlatform(platform)).toEqual(docs);
   });

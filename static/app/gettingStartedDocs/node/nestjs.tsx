@@ -25,19 +25,24 @@ import {
 type Params = DocsParams;
 
 const getSdkSetupSnippet = () => `
-${getImportInstrumentSnippet()}
+${getImportInstrumentSnippet('esm')}
 
 // All other imports below
-${getSentryImportSnippet('node')}
-const Koa = require("koa");
+${getSentryImportSnippet('node', 'esm')}
+import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-const app = new Koa();
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
-Sentry.setupKoaErrorHandler(app);
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
 
-// All your controllers should live here
+  await app.listen(3000);
+}
 
-app.listen(3000);`;
+bootstrap();
+`;
 
 const getVerifySnippet = () => `
 app.use(async function () {
@@ -70,17 +75,18 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkInitSnippet(params, 'node'),
+              filename: 'instrument.(js|ts)',
+              code: getSdkInitSnippet(params, 'node', 'esm'),
             },
           ],
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            'Make sure to import [code1:instrument.js/mjs] at the top of your [code2:main.ts/js] file. Set up the error handler by passing the [code3:BaseExceptionFilter].',
             {
               code1: <code />,
               code2: <code />,
+              code3: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
               ),
@@ -91,7 +97,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'index.(js|mjs)',
+              filename: 'main.(js|ts)',
               code: getSdkSetupSnippet(),
             },
           ],
@@ -99,7 +105,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/koa/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hapi/sourcemaps/',
       ...params,
     }),
   ],
@@ -163,7 +169,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/koa/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],
