@@ -21,9 +21,6 @@ boolean_operator
       return tc.tokenLogicBoolean(text().toUpperCase());
     }
 
-paren_or_group
-  = paren_group / open_paren / closed_paren
-
 paren_group
   = open_paren spaces:spaces inner:term_no_paren* closed_paren &{
     return tc.predicateParenGroup();
