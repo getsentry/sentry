@@ -24,7 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {useScreenLoadsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -49,7 +49,7 @@ export function ScreensTable({
   onCursor,
   project,
 }: Props) {
-  const moduleURL = useScreenLoadsModuleURL();
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();

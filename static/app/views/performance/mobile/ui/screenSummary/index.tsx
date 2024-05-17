@@ -18,7 +18,7 @@ import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanS
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
 import {BASE_URL} from 'sentry/views/performance/mobile/ui/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useMobileUIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -35,7 +35,7 @@ type Query = {
 };
 
 function ScreenSummary() {
-  const moduleURL = useMobileUIModuleURL();
+  const moduleURL = useModuleURL('mobile-ui');
   const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();

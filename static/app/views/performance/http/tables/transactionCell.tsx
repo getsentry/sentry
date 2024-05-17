@@ -2,7 +2,7 @@ import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useRequestsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {
@@ -18,7 +18,7 @@ export function TransactionCell({
   transaction,
   transactionMethod,
 }: Props) {
-  const moduleURL = useRequestsModuleURL();
+  const moduleURL = useModuleURL('http');
   const location = useLocation();
 
   if (!transaction) {

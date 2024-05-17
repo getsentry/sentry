@@ -37,7 +37,7 @@ import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/scree
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useScreenLoadsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -57,7 +57,7 @@ type Query = {
 };
 
 function ScreenLoadSpans() {
-  const moduleURL = useScreenLoadsModuleURL();
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();

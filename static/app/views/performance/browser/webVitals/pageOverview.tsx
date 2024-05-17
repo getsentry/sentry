@@ -48,7 +48,7 @@ import {
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useWebVitalsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -77,7 +77,7 @@ function getCurrentTabSelection(selectedTab) {
 }
 
 export function PageOverview() {
-  const moduleURL = useWebVitalsModuleURL();
+  const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();

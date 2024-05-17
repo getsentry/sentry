@@ -18,7 +18,7 @@ import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTa
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
-import {useMobileUIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -37,7 +37,7 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: SpanOperationTableProps) {
-  const moduleURL = useMobileUIModuleURL();
+  const moduleURL = useModuleURL('mobile-ui');
   const location = useLocation();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
