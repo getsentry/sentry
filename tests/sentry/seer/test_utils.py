@@ -232,7 +232,7 @@ def test_from_raw_missing_data(default_project):
         match="Seer similar issues response entry missing key 'parent_hash'",
     ):
         raw_similar_issue_data: Any = {
-            # missing both `parent_group_id` and `parent_hash`
+            # missing `parent_hash`
             "message_distance": 0.05,
             "should_group": True,
             "stacktrace_distance": 0.01,
@@ -245,7 +245,6 @@ def test_from_raw_missing_data(default_project):
         match="Seer similar issues response entry missing key 'message_distance'",
     ):
         raw_similar_issue_data = {
-            "parent_group_id": NonNone(similar_event.group_id),
             "parent_hash": NonNone(similar_event.get_primary_hash()),
             # missing `message_distance`
             "should_group": True,
@@ -259,7 +258,6 @@ def test_from_raw_missing_data(default_project):
         match="Seer similar issues response entry missing keys 'message_distance', 'stacktrace_distance'",
     ):
         raw_similar_issue_data = {
-            "parent_group_id": NonNone(similar_event.group_id),
             "parent_hash": NonNone(similar_event.get_primary_hash()),
             # missing `message_distance`
             "should_group": True,
@@ -273,7 +271,6 @@ def test_from_raw_missing_data(default_project):
 def test_from_raw_nonexistent_group(default_project):
     with pytest.raises(SimilarGroupNotFoundError):
         raw_similar_issue_data = {
-            "parent_group_id": 1121201212312012,  # too high to be real
             "parent_hash": "not a real hash",
             "message_distance": 0.05,
             "should_group": True,

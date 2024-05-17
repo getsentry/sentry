@@ -754,21 +754,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": NonNone(over_threshold_group_event.group_id),
                     "parent_hash": NonNone(over_threshold_group_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": NonNone(under_threshold_group_event.group_id),
                     "parent_hash": NonNone(under_threshold_group_event.get_primary_hash()),
                     "should_group": False,
                     "stacktrace_distance": 0.05,  # Under threshold
@@ -808,20 +805,19 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.utils.logger")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics):
-        # Two suggested groups, one with valid data, one missing both parent group id and parent hash.
-        # We should log the second and return the first.
+        # Two suggested groups, one with valid data, one missing parent hash. We should log the
+        # second and return the first.
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
                 {
                     "message_distance": 0.05,
-                    # missing both parent group id and parent hash
+                    # missing parent hash
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -871,14 +867,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": 1121201212312012,  # too high to be real
                     "parent_hash": "not a real hash",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
@@ -976,7 +970,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_group_id": NonNone(self.similar_event.group_id),
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
