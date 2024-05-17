@@ -222,25 +222,6 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_or_create_user_by_email(
-        self,
-        *,
-        email: str,
-        ident: str | None = None,
-        referrer: str | None = None,
-    ) -> tuple[RpcUser, bool]:
-        """
-        Get or create a user with a matching email address or AuthIdentity
-
-        :param email: The email to search by.
-        :param ident: If provided, and multiple users are found with a matching email, the ident
-          is used to narrow down results.
-        :deprecated: Use get_or_create_by_email instead.
-        """
-        pass
-
-    @rpc_method
-    @abstractmethod
     def get_or_create_by_email(
         self,
         *,
