@@ -88,7 +88,7 @@ export function ServiceIncidentDetails({incident}: Props) {
         <ComponentList>
           {sortBy(incident.components, i => COMPONENT_STATUS_SORT.indexOf(i.status)).map(
             ({name, status}, key) => (
-              <ComponentStatus key={key} padding="24px" symbol={getStatusSymbol(status)}>
+              <ComponentStatus key={key} padding="20px" symbol={getStatusSymbol(status)}>
                 {name}
               </ComponentStatus>
             )
