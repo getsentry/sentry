@@ -228,7 +228,14 @@ class SubscriptionProcessor:
             comparison_aggregate = list(results["data"][0].values())[0]
 
         except Exception:
-            logger.exception("Failed to run comparison query")
+            logger.exception(
+                "Failed to run comparison query",
+                extra={
+                    "alert_rule_id": self.alert_rule.id,
+                    "subscription_id": subscription_update.get("subscription_id"),
+                    "organization_id": self.alert_rule.organization_id,
+                },
+            )
             return None
 
         if not comparison_aggregate:
