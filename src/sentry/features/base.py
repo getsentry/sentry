@@ -99,3 +99,5 @@ class FeatureHandlerStrategy(Enum):
     """Handle the feature using options. see https://develop.sentry.dev/feature-flags/#building-your-options-based-feature
     for more information.
     """
+    FLAGPOLE = 4
+    """Handle the feature using the Flagpole management service"""
