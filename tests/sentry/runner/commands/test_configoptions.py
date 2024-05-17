@@ -136,7 +136,6 @@ class ConfigOptionsTest(CliTestCase):
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"
-
         assert options.get("map_option") == {
             "a": 1,
             "b": 2,
