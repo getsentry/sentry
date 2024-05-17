@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import docs from './koa';
+import docs from './hapi';
 
-describe('koa onboarding docs', function () {
+describe('hapi onboarding docs', function () {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -29,7 +29,7 @@ describe('koa onboarding docs', function () {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.setupKoaErrorHandler\(app\)/))
+      screen.getByText(textWithMarkupMatcher(/Sentry\.setupHapiErrorHandler\(server\)/))
     ).toBeInTheDocument();
   });
 

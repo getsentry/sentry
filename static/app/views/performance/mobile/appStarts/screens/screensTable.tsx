@@ -12,7 +12,7 @@ import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdo
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {useAppStartupsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colors';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -29,7 +29,7 @@ type Props = {
 };
 
 export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) {
-  const moduleURL = useAppStartupsModuleURL();
+  const moduleURL = useModuleURL('app_start');
   const location = useLocation();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
