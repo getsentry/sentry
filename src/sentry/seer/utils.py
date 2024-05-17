@@ -15,7 +15,6 @@ from sentry.conf.server import (
     SEER_SIMILAR_ISSUES_URL,
     SEER_SIMILARITY_MODEL_VERSION,
 )
-from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
@@ -151,10 +150,10 @@ class SeerSimilarIssueData:
         using the parent hash to look up the parent group id. Needs to be run individually on each
         similar issue in the Seer response.
 
-        Throws an `IncompleteSeerDataError` if given data with both parent group id and parent hash
-        missing, and a `SimilarGroupNotFoundError` if the data points to a group which no longer
-        exists. Thus if this successfully returns, the parent group id it contains is guaranteed to
-        point to an existing group.
+        Throws an `IncompleteSeerDataError` if given data with any required keys missing, and a
+        `SimilarGroupNotFoundError` if the data points to a group which no longer exists. The latter
+        guarantees that if this successfully returns, the parent group id in the return value points
+        to an existing group.
 
         """
 
@@ -170,36 +169,25 @@ class SeerSimilarIssueData:
                 + ", ".join(map(lambda key: f"'{key}'", sorted(missing_keys)))
             )
 
-        parent_hash = raw_similar_issue_data.get("parent_hash")
-        parent_group_id = raw_similar_issue_data.get("parent_group_id")
-
-        if not parent_group_id and not parent_hash:
-            raise IncompleteSeerDataError(
-                "Seer similar issues response missing both `parent_group_id` and `parent_hash`"
+        # Now that we know we have all the right data, use the parent group's hash to look up its id
+        parent_grouphash = (
+            GroupHash.objects.filter(
+                project_id=project_id, hash=raw_similar_issue_data["parent_hash"]
             )
+            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            .first()
+        )
 
-        if parent_group_id:
-            if not Group.objects.filter(id=parent_group_id).first():
-                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+        if not parent_grouphash:
+            # TODO: Report back to seer that the hash has been deleted.
+            raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
 
-            similar_issue_data = raw_similar_issue_data
-
-        # If we don't have a parent group id, try looking one up using the parent hash
-        else:
-            parent_grouphash = (
-                GroupHash.objects.filter(project_id=project_id, hash=parent_hash)
-                .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
-                .first()
-            )
-
-            if not parent_grouphash:
-                # TODO: Report back to seer that the hash has been deleted.
-                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
-
-            similar_issue_data = {
-                **raw_similar_issue_data,
-                "parent_group_id": parent_grouphash.group_id,
-            }
+        # TODO: The `Any` casting here isn't great, but Python currently has no way to
+        # relate typeddict keys to dataclass properties
+        similar_issue_data: Any = {
+            **raw_similar_issue_data,
+            "parent_group_id": parent_grouphash.group_id,
+        }
 
         return cls(**similar_issue_data)
 
