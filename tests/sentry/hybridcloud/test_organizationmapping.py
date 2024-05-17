@@ -11,6 +11,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
+from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
 from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
@@ -69,6 +70,26 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         )
 
         assert_matching_organization_mapping(org=self.organization)
+
+    def test_upsert__customer_id(self) -> None:
+        self.organization = self.create_organization(name="test name", slug="foobar", region="us")
+
+        fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        fixture_org_mapping.delete()
+
+        assert not OrganizationMapping.objects.filter(organization_id=self.organization.id).exists()
+
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(
+                name=self.organization.name,
+                slug=self.organization.slug,
+                status=self.organization.status,
+                region_name="us",
+                customer_id=CustomerId(value="99"),
+            ),
+        )
+        assert_matching_organization_mapping(org=self.organization, customer_id="99")
 
     def test_upsert__reject_duplicate_slug(self) -> None:
         self.organization = self.create_organization(slug="alreadytaken", region="us")
