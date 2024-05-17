@@ -319,6 +319,16 @@ export function CacheSamplePanel() {
               />
             </MetricsRibbon>
           </ModuleLayout.Full>
+          <ModuleLayout.Full>
+            <CompactSelect
+              value={query.statusClass}
+              options={CACHE_STATUS_OPTIONS}
+              onChange={handleStatusClassChange}
+              triggerProps={{
+                prefix: t('Status'),
+              }}
+            />
+          </ModuleLayout.Full>
           <ModuleLayout.Half>
             <CacheHitMissChart
               isLoading={isCacheHitRateLoading}
@@ -351,17 +361,6 @@ export function CacheSamplePanel() {
               }}
             />
           </ModuleLayout.Half>
-
-          <ModuleLayout.Full>
-            <CompactSelect
-              value={query.statusClass}
-              options={CACHE_STATUS_OPTIONS}
-              onChange={handleStatusClassChange}
-              triggerProps={{
-                prefix: t('Status'),
-              }}
-            />
-          </ModuleLayout.Full>
 
           <Fragment>
             <ModuleLayout.Full>
