@@ -383,7 +383,7 @@ type ConfigData = {
   installationType?: string;
 };
 
-export interface OrganizationIntegration extends CommonIntegration {
+export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
   configOrganization: Field[];
   externalId: string;
