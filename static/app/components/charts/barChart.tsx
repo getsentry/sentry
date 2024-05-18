@@ -28,9 +28,15 @@ export function transformToBarSeries({
       stack: stacked ? 'stack1' : undefined,
       data: data?.map(({value, name, itemStyle}) => {
         if (itemStyle === undefined) {
-          return [name, value];
+          return {
+            value: [name, value],
+            itemStyle: value === 0 ? {opacity: 0, emphasis: 'disabled'} : {},
+          };
         }
-        return {value: [name, value], itemStyle};
+        return {
+          value: [name, value],
+          itemStyle: value === 0 ? {...itemStyle, opacity: 0} : itemStyle, // Don't show bar when value = 0
+        };
       }),
       animation,
       ...options,

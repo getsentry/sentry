@@ -47,7 +47,6 @@ function makeBaseChartOptions({
     },
     yAxis: {
       max: getYAxisMaxFn(height),
-      min: 0.5, // Ensures that periods with 0 events have no visible bar
       splitLine: {
         show: false,
       },
