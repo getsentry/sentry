@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -73,7 +73,7 @@ export function MessageSpanSamplesPanel() {
     ? [query.destination, query.transaction].filter(Boolean).join(':')
     : undefined;
 
-  const handleStatusChange = newStatus => {
+  const handleStatusChange = (newStatus: SelectOption<string>) => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
       filter: 'status',
       new_state: newStatus.value,
@@ -89,7 +89,7 @@ export function MessageSpanSamplesPanel() {
     });
   };
 
-  const handleRetriesChange = newRetries => {
+  const handleRetriesChange = (newRetries: SelectOption<string>) => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
       filter: 'retries',
       new_state: newRetries.value,
@@ -145,11 +145,13 @@ export function MessageSpanSamplesPanel() {
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
+  // Filter by trace status if status is set
+  // Note: filtering should only affect the sample spans in the table and not the timeseries graph
   if (query.status.length > 0) {
     search.addFilterValue('trace.status', query.status);
   }
 
-  // Note: only consumers should show the retry count filter
+  // Note: only consumer panels should allow filtering by retry count
   if (messageActorType === MessageActorType.CONSUMER) {
     if (query.retries === '0') {
       search.addFilterValue('measurements.messaging.message.retry.count', '0');
