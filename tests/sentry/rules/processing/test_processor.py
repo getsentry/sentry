@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
@@ -8,6 +9,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
+from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
@@ -47,6 +49,16 @@ class MockConditionTrue(EventCondition):
         return True
 
 
+@contextmanager
+def mock_redis_buffer():
+    buffer = RedisBuffer()
+    with patch("sentry.buffer.push_to_sorted_set", new=buffer.push_to_sorted_set), patch(
+        "sentry.buffer.push_to_hash", new=buffer.push_to_hash
+    ), patch("sentry.buffer.get_sorted_set", new=buffer.get_sorted_set):
+        yield buffer
+
+
+@mock_redis_buffer()
 class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -113,7 +125,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
 
     @with_feature("organizations:process-slow-alerts")
-    def test_delayed_rule_match_any_slow_conditionss(self):
+    def test_delayed_rule_match_any_slow_conditions(self):
         """
         Test that a rule with only 'slow' conditions and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
@@ -134,7 +146,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
@@ -178,7 +189,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
@@ -215,7 +225,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
@@ -303,7 +312,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
         project_ids = buffer.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )

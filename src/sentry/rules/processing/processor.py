@@ -10,8 +10,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, features
-from sentry.buffer.redis import RedisBuffer
+from sentry import analytics, buffer, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -263,13 +262,12 @@ class RuleProcessor:
             "rule_processor.rule_enqueued",
             extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
         )
-        self.buffer = RedisBuffer()
-        self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+        buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(
             {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
         )
-        self.buffer.push_to_hash(
+        buffer.push_to_hash(
             model=Project,
             filters={"project_id": rule.project.id},
             field=f"{rule.id}:{self.group.id}",

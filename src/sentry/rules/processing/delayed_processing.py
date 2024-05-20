@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
-from sentry import nodestore
+from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -324,7 +324,6 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     """
     # STEP 1: Fetch the rulegroup_to_event_data mapping for the project from redis
     project = Project.objects.get_from_cache(id=project_id)
-    buffer = RedisBuffer()
     rulegroup_to_event_data = buffer.get_hash(model=Project, field={"project_id": project.id})
     logger.info(
         "delayed_processing.rulegroupeventdata",
