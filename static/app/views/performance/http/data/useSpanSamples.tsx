@@ -58,11 +58,11 @@ export const useSpanSamples = <Fields extends IndexedProperty[]>(
           | SpanIndexedField.TIMESTAMP
           | SpanIndexedField.ID
           | SpanIndexedField.PROFILE_ID
+          | SpanIndexedField.SPAN_SELF_TIME
         >[]
       // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
       // eslint-disable-next-line @typescript-eslint/ban-types
       | [];
-    meta: 'hello';
   }>(
     [
       `/api/0/organizations/${organization.slug}/spans-samples/`,

@@ -6,7 +6,6 @@ from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.user import User
-from sentry.utils.json import JSONData
 
 
 @register(DocIntegration)
@@ -36,7 +35,7 @@ class DocIntegrationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User,
         **kwargs: Any,
-    ) -> JSONData:
+    ) -> Any:
         data = {
             "name": obj.name,
             "slug": obj.slug,

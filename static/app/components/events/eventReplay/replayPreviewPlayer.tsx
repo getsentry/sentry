@@ -6,6 +6,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -54,7 +55,8 @@ function ReplayPreviewPlayer({
   const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFetching, isFinished, isPlaying} = useReplayContext();
+  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
+    useReplayContext();
   const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef(null);
@@ -103,7 +105,7 @@ function ReplayPreviewPlayer({
           <PlayerContextContainer>
             {isFullscreen ? (
               <ContextContainer>
-                <ReplayCurrentUrl />
+                {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
                 <BrowserOSIcons />
                 <ReplaySidebarToggleButton
                   isOpen={isSidebarOpen}

@@ -5,13 +5,13 @@ import time
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import orjson
 from django.core.exceptions import SuspiciousFileOperation
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
-from sentry.utils import json
 from sentry.utils.canonical import CanonicalKeyDict
 
 logger = logging.getLogger(__name__)
@@ -170,8 +170,8 @@ def load_data(
         # XXX: At this point, it's assumed that `json_path` was safely found
         # within `samples_root` due to the checks above and cannot traverse
         # into paths.
-        with open(json_path) as fp:
-            data = json.load(fp)
+        with open(json_path, "rb") as fp:
+            data = orjson.loads(fp.read())
             break
 
     if data is None:
@@ -265,9 +265,9 @@ def load_data(
         data["event_id"] = event_id
 
     data["platform"] = platform
-    # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
-    if "message" not in data:
-        data["message"] = f"This is an example {sample_name or platform} exception"
+    data.setdefault(
+        "logentry", {"formatted": f"This is an example {sample_name or platform} exception"}
+    )
     data.setdefault(
         "user",
         generate_user(ip_address="127.0.0.1", username="sentry", id=1, email="sentry@example.com"),

@@ -21,6 +21,7 @@ export function useDetailedProject(
 ) {
   return useApiQuery<Project>(makeDetailedProjectQueryKey(params), {
     staleTime: Infinity,
+    retry: false,
     ...options,
   });
 }

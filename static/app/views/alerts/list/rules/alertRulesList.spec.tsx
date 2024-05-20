@@ -357,6 +357,8 @@ describe('AlertRulesList', () => {
               id: '1',
               isComplete: false,
               querySubscriptionId: '1',
+              activator: '123',
+              conditionType: '0',
             },
           ],
           latestIncident: IncidentFixture({

@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
+import orjson
 from django.conf import settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
-from sentry.utils import json
 
 
 class TestGroupAutofixUpdate(APITestCase):
@@ -35,7 +35,7 @@ class TestGroupAutofixUpdate(APITestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "run_id": 123,
                     "payload": {
@@ -44,7 +44,7 @@ class TestGroupAutofixUpdate(APITestCase):
                         "fix_id": 789,
                     },
                 }
-            ).encode("utf-8"),
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -54,7 +54,7 @@ class TestGroupAutofixUpdate(APITestCase):
 
         response = self.client.post(
             self.url,
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "run_id": 123,
                     "payload": {
@@ -63,7 +63,7 @@ class TestGroupAutofixUpdate(APITestCase):
                         "fix_id": 789,
                     },
                 }
-            ).encode("utf-8"),
+            ),
             format="json",
         )
 

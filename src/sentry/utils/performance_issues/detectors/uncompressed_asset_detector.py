@@ -127,7 +127,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 ],
             )
 
-    def _fingerprint(self, span) -> str:
+    def _fingerprint(self, span: Span) -> str:
         resource_span = fingerprint_resource_span(span)
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
@@ -137,7 +137,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def is_event_eligible(cls, event):
+    @classmethod
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         tags = event.get("tags", [])
         browser_name = next(
             (

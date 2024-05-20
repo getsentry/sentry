@@ -4,8 +4,9 @@ import io
 import tarfile
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import IO, NamedTuple
+from typing import IO, Any, NamedTuple
 
+import orjson
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -13,7 +14,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from google.cloud.kms import KeyManagementServiceClient as KeyManagementServiceClient
 from google_crc32c import value as crc32c
 
-from sentry.utils import json
 from sentry.utils.env import gcp_project_id
 
 
@@ -93,7 +93,7 @@ class GCPKMSEncryptor(Encryptor):
     def get_public_key_pem(self) -> bytes:
         if self.crypto_key_version is None:
             # Read the user supplied configuration into the proper format.
-            gcp_kms_config_json = json.load(self.__fp)
+            gcp_kms_config_json = orjson.loads(self.__fp.read())
             try:
                 self.crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
             except TypeError:
@@ -115,7 +115,7 @@ class GCPKMSEncryptor(Encryptor):
         return public_key.pem.encode("utf-8")
 
 
-def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encryptor) -> io.BytesIO:
+def create_encrypted_export_tarball(json_export: Any, encryptor: Encryptor) -> io.BytesIO:
     """
     Generate a tarball with 3 files:
 
@@ -135,9 +135,7 @@ def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encry
     pem = encryptor.get_public_key_pem()
     data_encryption_key = Fernet.generate_key()
     backup_encryptor = Fernet(data_encryption_key)
-    encrypted_json_export = backup_encryptor.encrypt(
-        json.dumps_experimental("backup.enable-orjson", json_export).encode()
-    )
+    encrypted_json_export = backup_encryptor.encrypt(orjson.dumps(json_export))
 
     # Encrypt the newly minted DEK using asymmetric public key encryption.
     dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
@@ -301,7 +299,7 @@ class GCPKMSDecryptor(Decryptor):
         gcp_kms_config_bytes = self.__fp.read()
 
         # Read the user supplied configuration into the proper format.
-        gcp_kms_config_json = json.loads_experimental("backup.enable-orjson", gcp_kms_config_bytes)
+        gcp_kms_config_json = orjson.loads(gcp_kms_config_bytes)
         try:
             crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
         except TypeError:

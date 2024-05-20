@@ -174,7 +174,7 @@ function Controls({
                 {hasCustomMetrics(organization) ? (
                   <AddWidgetButton
                     onAddWidget={onAddWidget}
-                    aria-label="Add Widget"
+                    aria-label={t('Add Widget')}
                     priority="primary"
                     data-test-id="add-widget-library"
                     disabled={widgetLimitReached}

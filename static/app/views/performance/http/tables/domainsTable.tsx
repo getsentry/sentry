@@ -16,12 +16,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {MetricsResponse} from 'sentry/views/starfish/types';
+import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
-  MetricsResponse,
+  SpanMetricsResponse,
   | 'project'
   | 'project.id'
   | 'span.domain'

@@ -1,5 +1,17 @@
+from typing import Any
+
+import orjson
+
 import django_picklefield
-from sentry.utils import json
+
+
+# TODO(@anonrig): Remove support for `bytes` as a JSON value
+def _orjson_defaults(obj: Any) -> Any:
+    if isinstance(obj, bytes):
+        return obj.decode()
+    elif isinstance(obj, set):
+        return list(obj)
+    raise TypeError
 
 
 class PickledObjectField(django_picklefield.PickledObjectField):
@@ -17,16 +29,19 @@ class PickledObjectField(django_picklefield.PickledObjectField):
 
     def get_db_prep_value(self, value, *args, **kwargs):
         if isinstance(value, bytes):
-            value = value.decode("utf-8")
+            value = value.decode()
         if value is None and self.null:
             return None
-        return json.dumps(value)
+        # TODO(@anonrig): Remove support for non-string keys.
+        return orjson.dumps(
+            value, option=orjson.OPT_NON_STR_KEYS, default=_orjson_defaults
+        ).decode()
 
     def to_python(self, value):
         if value is None:
             return None
         try:
-            return json.loads(value, skip_trace=True)
+            return orjson.loads(value)
         except (ValueError, TypeError):
             from sentry.utils import metrics
 

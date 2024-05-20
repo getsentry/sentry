@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -29,6 +30,7 @@ import {
   getMetricsSeriesId,
   getMetricsSeriesName,
   isCumulativeOp,
+  isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -95,10 +97,6 @@ export type Sample = {
   transactionSpanId: string;
 };
 
-function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
-  return !('isQueryOnly' in query) || !query.isQueryOnly;
-}
-
 export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   const filteredQueries = queries.filter(isNotQueryOnly);
 
@@ -143,6 +141,7 @@ export const MetricWidget = memo(
     focusedSeries,
     metricsSamples,
     overlays,
+    highlightedSampleId,
   }: MetricWidgetProps) => {
     const firstQuery = queries
       .filter(isNotQueryOnly)
@@ -179,7 +178,6 @@ export const MetricWidget = memo(
 
       onChange(index, {overlays: values});
     };
-
     const samples = useMemo(() => {
       if (!defined(metricsSamples)) {
         return undefined;
@@ -189,8 +187,15 @@ export const MetricWidget = memo(
         onSampleClick,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
         operation: firstQuery?.op ?? '',
+        highlightedId: highlightedSampleId,
       };
-    }, [metricsSamples, firstQuery?.mri, firstQuery?.op, onSampleClick]);
+    }, [
+      metricsSamples,
+      firstQuery?.mri,
+      firstQuery?.op,
+      onSampleClick,
+      highlightedSampleId,
+    ]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -305,7 +310,7 @@ export interface SamplesProps {
   operation: string;
   unit: string;
   data?: MetricsSamplesResults<Field>['data'];
-  higlightedId?: string;
+  highlightedId?: string;
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
 }
 
@@ -377,7 +382,7 @@ const MetricWidgetBody = memo(
 
     const chartSamples = useMetricChartSamples({
       samples: samples?.data,
-      highlightedSampleId: samples?.higlightedId,
+      highlightedSampleId: samples?.highlightedId,
       operation: samples?.operation,
       onSampleClick: samples?.onSampleClick,
       timeseries: chartSeries,
@@ -543,16 +548,18 @@ const MetricWidgetBody = memo(
           </LimitAlert>
         )}
         <TransparentLoadingMask visible={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
-          displayType={displayType}
-          height={chartHeight}
-          samples={samplesProp}
-          focusArea={focusArea}
-          releases={releasesProp}
-          group={chartGroup}
-        />
+        <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
+          <MetricChart
+            ref={chartRef}
+            series={chartSeries}
+            displayType={displayType}
+            height={chartHeight}
+            samples={samplesProp}
+            focusArea={focusArea}
+            releases={releasesProp}
+            group={chartGroup}
+          />
+        </GuideAnchor>
         <SummaryTable
           series={chartSeries}
           onSortChange={handleSortChange}

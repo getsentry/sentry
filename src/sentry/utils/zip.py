@@ -7,7 +7,7 @@ import zipfile
 from typing import IO
 
 
-def is_unsafe_path(path):
+def is_unsafe_path(path: str) -> bool:
     if os.path.isabs(path):
         return True
     for segment in path.split(os.path.sep):

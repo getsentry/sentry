@@ -51,7 +51,7 @@ export default function HighlightsSettingsForm({
         }),
         data => (updatedProject ? updatedProject : data)
       );
-      trackAnalytics('project_settings.updated_highlights', {organization});
+      trackAnalytics('highlights.project_settings.updated_manually', {organization});
       addSuccessMessage(`Successfully updated highlights for '${project.name}'`);
     },
   };

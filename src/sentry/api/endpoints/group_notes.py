@@ -50,6 +50,8 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.validated_data)
+        if "mentions" in data:
+            data["mentions"] = [m.dict() for m in data["mentions"]]
 
         if Activity.objects.filter(
             group=group,

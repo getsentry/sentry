@@ -25,7 +25,7 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases-completion-status",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -66,7 +66,7 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases-completion-status",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )

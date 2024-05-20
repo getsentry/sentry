@@ -1,3 +1,4 @@
+from django.utils.functional import empty
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,7 +12,20 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.utils.functional import extract_lazy_object
+
+
+def _extract_lazy_object(lo):
+    """
+    Unwrap a LazyObject and return the inner object. Whatever that may be.
+
+    ProTip: This is relying on `django.utils.functional.empty`, which may
+    or may not be removed in the future. It's 100% undocumented.
+    """
+    if not hasattr(lo, "_wrapped"):
+        return lo
+    if lo._wrapped is empty:
+        lo._setup()
+    return lo._wrapped
 
 
 @region_silo_endpoint
@@ -42,7 +56,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         uri = data.pop("uri")
 
         try:
-            user = extract_lazy_object(request.user)
+            user = _extract_lazy_object(request.user)
             if isinstance(user, User):
                 user = serialize_rpc_user(user)
 

@@ -10,7 +10,7 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
     MemberWriteRoleRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 PROVIDER_TO_URL = {"github": "https://github.com/"}
@@ -49,7 +49,7 @@ class MissingMembersNudgeNotification(BaseNotification):
         return [ExternalProviders.EMAIL]
 
     def get_members_list_url(
-        self, provider: ExternalProviders, recipient: RpcActor | None = None
+        self, provider: ExternalProviders, recipient: Actor | None = None
     ) -> str:
         url = self.organization.absolute_url(
             f"/settings/{self.organization.slug}/members/",
@@ -66,6 +66,6 @@ class MissingMembersNudgeNotification(BaseNotification):
             "provider": self.provider.capitalize(),
         }
 
-    def determine_recipients(self) -> list[RpcActor]:
+    def determine_recipients(self) -> list[Actor]:
         # owners and managers have org:write
-        return RpcActor.many_from_object(self.role_based_recipient_strategy.determine_recipients())
+        return Actor.many_from_object(self.role_based_recipient_strategy.determine_recipients())

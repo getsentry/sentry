@@ -5,12 +5,11 @@ from collections.abc import Mapping
 from typing import Any, Protocol
 from urllib.parse import urlparse
 
+import orjson
 from bs4 import BeautifulSoup
 from requests import Response
 from requests.adapters import RetryError
 from requests.exceptions import RequestException
-
-from sentry.utils import json
 
 __all__ = (
     "ApiConnectionResetError",
@@ -53,8 +52,8 @@ class ApiError(Exception):
         # TODO(dcramer): pull in XML support from Jira
         if text:
             try:
-                self.json = json.loads(text)
-            except (json.JSONDecodeError, ValueError):
+                self.json = orjson.loads(text)
+            except orjson.JSONDecodeError:
                 if self.text[:5] == "<?xml":
                     # perhaps it's XML?
                     self.xml = BeautifulSoup(self.text, "xml")
@@ -171,7 +170,12 @@ class DuplicateDisplayNameError(IntegrationError):
 
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors: Mapping[str, Any]) -> None:
-        super().__init__("Invalid integration action")
+        error = "Invalid integration action"
+        if field_errors:
+            error = str(field_errors)
+
+        super().__init__(error)
+
         self.field_errors = field_errors
 
 

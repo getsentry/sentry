@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -14,7 +15,7 @@ from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
 
 # to avoid a circular import
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -167,7 +168,7 @@ class DiscordClient(ApiClient):
         if resp is not None:
             # Try to get the additional error code that Discord sent us to help determine what specific error happened
             try:
-                discord_error_response = json.loads(resp.content.decode("utf-8"))
+                discord_error_response = orjson.loads(resp.content)
                 log_params["discord_error_response"] = discord_error_response
             except Exception as err:
                 self.logger.info(

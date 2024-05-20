@@ -189,3 +189,31 @@ class MiddlewareWrapper(MetricsBackend):
         return self.inner.distribution(
             key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
         )
+
+    def event(
+        self,
+        title: str,
+        message: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        priority: str | None = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        current_tags = get_current_global_tags()
+        if tags is not None:
+            current_tags.update(tags)
+
+        return self.inner.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            current_tags,
+            stacklevel + 1,
+        )

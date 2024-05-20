@@ -8,7 +8,11 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import type {Aggregate} from 'sentry/views/starfish/types';
+
+export const MODULE_TITLE = t('Queries');
+export const BASE_URL = 'database';
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',

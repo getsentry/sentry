@@ -33,7 +33,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
         Query ranges are limited to Sentry's configured time-series
         resolutions.
 
-        :pparam string organization_slug: the slug of the organization.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
         :pparam string team_id_or_slug: the id or slug of the team.
         :qparam string stat: the name of the stat to query (``"received"``,
                              ``"rejected"``)

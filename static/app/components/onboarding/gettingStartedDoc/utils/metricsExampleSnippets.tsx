@@ -1,7 +1,7 @@
 const JSCounterSnippet = `
 // Increment a counter by one for each button click.
 Sentry.metrics.increment("button_click", 1, {
-  tags: { browser: "Firefox", app_version: "1.0.0" },
+  tags: { browser: "Firefox", region: "EU" },
 });`;
 
 const JSDistributionSnippet = `
@@ -38,7 +38,7 @@ sentry_sdk.metrics.incr(
 	value=1,
 	tags={
 		"browser": "Firefox",
-		"app_version": "1.0.0"
+		"region": "EU"
 	}
 )`;
 
@@ -202,7 +202,7 @@ const phpCounterSnippet = `
     value: 1,
     tags: [
         'browser' => 'Firefox',
-        'app_version' => '1.0.0',
+        'region' => 'EU',
     ],
 )`;
 

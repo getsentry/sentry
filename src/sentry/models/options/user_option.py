@@ -13,7 +13,6 @@ from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import OptionManager, Value
-from sentry.utils.json import JSONData
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -212,7 +211,7 @@ class UserOption(Model):
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")
 
     @classmethod
-    def get_relocation_ordinal_fields(self, json_model: JSONData) -> list[str] | None:
+    def get_relocation_ordinal_fields(self, json_model: Any) -> list[str] | None:
         # "global" user options (those with no organization and/or project scope) get a custom
         # ordinal; non-global ones use the default ordering.
         org_id = json_model["fields"].get("organization_id", None)

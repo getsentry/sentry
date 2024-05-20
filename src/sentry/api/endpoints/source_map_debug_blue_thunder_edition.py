@@ -1,5 +1,6 @@
 from typing import Literal, TypedDict
 
+import orjson
 import sentry_sdk
 from django.db.models import QuerySet
 from django.utils.encoding import force_bytes, force_str
@@ -33,7 +34,6 @@ from sentry.models.releasefile import (
     ReleaseFile,
 )
 from sentry.sdk_updates import get_sdk_index
-from sentry.utils import json
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
@@ -135,7 +135,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Get Debug Information Related to Source Maps for a Given Event",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
         ],
@@ -416,7 +416,7 @@ class ReleaseLookupData:
             self._get_dist_matched_artifact_index_release_file()
         )
         if dist_matched_artifact_index_release_file is not None:
-            raw_data = json.load(dist_matched_artifact_index_release_file.file.getfile())
+            raw_data = orjson.loads(dist_matched_artifact_index_release_file.file.getfile().read())
             files = raw_data.get("files")
             for potential_source_file_name in self.matching_source_file_names:
                 matching_file = files.get(potential_source_file_name)
@@ -453,7 +453,7 @@ class ReleaseLookupData:
                     return
 
         for artifact_index_file in self._get_artifact_index_release_files():
-            raw_data = json.load(artifact_index_file.file.getfile())
+            raw_data = orjson.loads(artifact_index_file.file.getfile().read())
             files = raw_data.get("files")
             for potential_source_file_name in self.matching_source_file_names:
                 if files.get(potential_source_file_name) is not None:
@@ -534,14 +534,14 @@ class ReleaseLookupData:
             self._get_dist_matched_artifact_index_release_file()
         )
         if dist_matched_artifact_index_release_file is not None:
-            raw_data = json.load(dist_matched_artifact_index_release_file.file.getfile())
+            raw_data = orjson.loads(dist_matched_artifact_index_release_file.file.getfile().read())
             files = raw_data.get("files")
             if files.get(matching_source_map_name) is not None:
                 self.source_map_lookup_result = "found"
                 return
 
         for artifact_index_file in self._get_artifact_index_release_files():
-            raw_data = json.load(artifact_index_file.file.getfile())
+            raw_data = orjson.loads(artifact_index_file.file.getfile().read())
             files = raw_data.get("files")
             if files.get(matching_source_map_name) is not None:
                 self.source_map_lookup_result = "wrong-dist"

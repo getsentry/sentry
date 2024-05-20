@@ -5,10 +5,12 @@ import uuid
 from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
+from copy import deepcopy
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Literal
 
+import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -17,17 +19,16 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.db import router, transaction
-from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import quotas, ratelimits
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -42,6 +43,28 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
+from sentry.monitors.processing_errors.errors import (
+    CheckinEnvironmentMismatch,
+    CheckinFinished,
+    CheckinGuidProjectMismatch,
+    CheckinInvalidDuration,
+    CheckinInvalidGuid,
+    CheckinValidationFailed,
+    MonitorDisabled,
+    MonitorDisabledNoQuota,
+    MonitorEnviromentRateLimited,
+    MonitorEnvironmentLimitExceeded,
+    MonitorInvalidConfig,
+    MonitorInvalidEnvironment,
+    MonitorLimitExceeded,
+    MonitorNotFound,
+    MonitorOverQuota,
+    OrganizationKillswitchEnabled,
+    ProcessingError,
+    ProcessingErrorsException,
+    ProcessingErrorType,
+)
+from sentry.monitors.processing_errors.manager import handle_processing_errors
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -51,14 +74,14 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
-from sentry.utils import json, metrics
-from sentry.utils.actor import parse_and_validate_actor
+from sentry.types.actor import parse_and_validate_actor
+from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
-MONITOR_CODEC: Codec[IngestMonitorMessage] = get_codec("ingest-monitors")
+MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
 
 CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
@@ -97,9 +120,9 @@ def _ensure_monitor_with_config(
             },
         )
     else:
-        if owner_actor and owner_actor.type == User:
+        if owner_actor and owner_actor.is_user:
             owner_user_id = owner_actor.id
-        elif owner_actor and owner_actor.type == Team:
+        elif owner_actor and owner_actor.is_team:
             owner_team_id = owner_actor.id
 
     validator = ConfigValidator(data=config)
@@ -111,6 +134,12 @@ def _ensure_monitor_with_config(
             "errors": validator.errors,
         }
         logger.info("monitors.consumer.invalid_config", extra=extra)
+        if not monitor:
+            error: MonitorInvalidConfig = {
+                "type": ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                "errors": validator.errors,
+            }
+            raise ProcessingErrorsException([error])
         return monitor
 
     validated_config = validator.validated_data
@@ -245,12 +274,19 @@ def update_existing_check_in(
     updated_duration: float,
 ):
     monitor = monitor_environment.monitor
+    processing_errors: list[ProcessingError] = []
 
     if (
         existing_check_in.project_id != project_id
         or existing_check_in.monitor_id != monitor.id
         or existing_check_in.monitor_environment_id != monitor_environment.id
     ):
+        mismatch_error: CheckinGuidProjectMismatch = {
+            "type": ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH,
+            "guid": existing_check_in.guid.hex,
+        }
+        processing_errors.append(mismatch_error)
+
         metrics.incr(
             "monitors.checkin.result",
             tags={"source": "consumer", "status": "guid_mismatch"},
@@ -264,7 +300,6 @@ def update_existing_check_in(
                 "payload_slug": monitor.slug,
             },
         )
-        return
 
     # Check-in has already reached a user terminal status sent by a previous
     # closing check-in.
@@ -279,6 +314,11 @@ def update_existing_check_in(
     )
 
     if already_user_complete and not updated_duration_only:
+        finished_error: CheckinFinished = {
+            "type": ProcessingErrorType.CHECKIN_FINISHED,
+        }
+        processing_errors.append(finished_error)
+
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "checkin_finished"},
@@ -293,7 +333,6 @@ def update_existing_check_in(
                 "updated_status": updated_status,
             },
         )
-        return
 
     if updated_duration is None:
         # We use abs here because in some cases we might end up having checkins arrive
@@ -305,6 +344,11 @@ def update_existing_check_in(
         )
 
     if not valid_duration(updated_duration):
+        duration_error: CheckinInvalidDuration = {
+            "type": ProcessingErrorType.CHECKIN_INVALID_DURATION,
+            "duration": str(updated_duration),
+        }
+        processing_errors.append(duration_error)
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_duration_check"},
@@ -318,7 +362,9 @@ def update_existing_check_in(
                 "duration": updated_duration,
             },
         )
-        return
+
+    if processing_errors:
+        raise ProcessingErrorsException(processing_errors, monitor=monitor)
 
     updated_checkin = {
         "status": updated_status,
@@ -384,7 +430,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        killswitch_error: OrganizationKillswitchEnabled = {
+            "type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED,
+        }
+        raise ProcessingErrorsException([killswitch_error])
 
     if check_ratelimit(metric_kwargs, item):
         track_outcome(
@@ -396,7 +445,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        ratelimit_error: MonitorEnviromentRateLimited = {
+            "type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED,
+        }
+        raise ProcessingErrorsException([ratelimit_error])
 
     # Does quotas allow for this check-in to be accepted?
     quotas_outcome: PermitCheckInStatus = quotas.backend.check_accept_monitor_checkin(
@@ -413,7 +465,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        overquota_error: MonitorOverQuota = {
+            "type": ProcessingErrorType.MONITOR_OVER_QUOTA,
+        }
+        raise ProcessingErrorsException([overquota_error])
 
     guid, use_latest_checkin = transform_checkin_uuid(
         txn,
@@ -432,7 +487,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        guid_error: CheckinInvalidGuid = {
+            "type": ProcessingErrorType.CHECKIN_INVALID_GUID,
+        }
+        raise ProcessingErrorsException([guid_error])
 
     monitor_config = params.pop("monitor_config", None)
 
@@ -471,10 +529,16 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        validation_error: CheckinValidationFailed = {
+            "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+            "errors": validator.errors,
+        }
+        raise ProcessingErrorsException([validation_error])
 
     validated_params = validator.validated_data
 
+    ensure_config_errors: list[ProcessingError] = []
+    monitor = None
     # 01
     # Retrieve or upsert monitor for this check-in
     try:
@@ -483,7 +547,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             monitor_slug,
             monitor_config,
         )
-    except MonitorLimitsExceeded:
+    except ProcessingErrorsException as e:
+        ensure_config_errors = list(e.processing_errors)
+    except MonitorLimitsExceeded as e:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_monitor_limits"},
@@ -502,7 +568,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        limit_error: MonitorLimitExceeded = {
+            "type": ProcessingErrorType.MONITOR_LIMIT_EXCEEDED,
+            "reason": str(e),
+        }
+        raise ProcessingErrorsException([limit_error])
 
     # When accepting for upsert attempt to assign a seat for the monitor,
     # otherwise the monitor is marked as disabled
@@ -530,7 +600,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        monitor_missing_error: MonitorNotFound = {
+            "type": ProcessingErrorType.MONITOR_NOT_FOUND,
+        }
+        ensure_config_errors.append(monitor_missing_error)
+        raise ProcessingErrorsException(ensure_config_errors)
 
     # When a monitor was accepted for upsert but is disabled we were unable to
     # assign a seat. Discard the check-in in this case.
@@ -547,7 +621,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        quota_disabled_error: MonitorDisabledNoQuota = {
+            "type": ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA,
+        }
+        raise ProcessingErrorsException([quota_disabled_error], monitor)
 
     # Discard check-ins if the monitor is disabled
     #
@@ -570,7 +647,10 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        disabled_error: MonitorDisabled = {
+            "type": ProcessingErrorType.MONITOR_DISABLED,
+        }
+        raise ProcessingErrorsException([disabled_error], monitor)
 
     # 02
     # Retrieve or upsert monitor environment for this check-in
@@ -578,7 +658,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         monitor_environment = MonitorEnvironment.objects.ensure_environment(
             project, monitor, environment
         )
-    except MonitorEnvironmentLimitsExceeded:
+    except MonitorEnvironmentLimitsExceeded as e:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
@@ -602,8 +682,12 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
-    except MonitorEnvironmentValidationFailed:
+        env_limit_error: MonitorEnvironmentLimitExceeded = {
+            "type": ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED,
+            "reason": str(e),
+        }
+        raise ProcessingErrorsException([env_limit_error], monitor)
+    except MonitorEnvironmentValidationFailed as e:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
@@ -627,7 +711,11 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )
-        return
+        invalid_env_error: MonitorInvalidEnvironment = {
+            "type": ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT,
+            "reason": str(e),
+        }
+        raise ProcessingErrorsException([invalid_env_error], monitor)
 
     # 03
     # Create or update check-in
@@ -684,7 +772,14 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                             timestamp=start_time,
                             category=DataCategory.MONITOR,
                         )
-                        return
+
+                        existing_env = check_in.monitor_environment.get_environment().name
+
+                        env_mismatch_error: CheckinEnvironmentMismatch = {
+                            "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
+                            "existingEnvironment": str(existing_env),
+                        }
+                        raise ProcessingErrorsException([env_mismatch_error], monitor)
 
                 txn.set_tag("outcome", "process_existing_checkin")
                 update_existing_check_in(
@@ -753,7 +848,8 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                     )
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
-                    signal_first_checkin(project, monitor)
+                    with in_test_hide_transaction_boundary():
+                        signal_first_checkin(project, monitor)
                     metrics.incr(
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
@@ -799,7 +895,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "complete"},
             )
-    except Exception:
+    except Exception as e:
+        if isinstance(e, ProcessingErrorsException):
+            raise
         # Skip this message and continue processing in the consumer.
         metrics.incr(
             "monitors.checkin.result",
@@ -818,7 +916,11 @@ def process_checkin(item: CheckinItem):
             op="_process_checkin",
             name="monitors.monitor_consumer",
         ) as txn:
-            _process_checkin(item, txn)
+            # Deepcopy the checkin here so that it's not modified. We need the original when we get a
+            # `ProcessingErrorsException`
+            _process_checkin(deepcopy(item), txn)
+    except ProcessingErrorsException as e:
+        handle_processing_errors(item, e)
     except Exception:
         logger.exception("Failed to process check-in")
 
@@ -867,7 +969,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
             ts=item.timestamp,
             partition=item.partition.index,
             message=wrapper,
-            payload=json.loads(wrapper["payload"]),
+            payload=orjson.loads(wrapper["payload"]),
         )
         checkin_mapping[item.processing_key].append(item)
 
@@ -914,7 +1016,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
             ts=ts,
             partition=partition,
             message=wrapper,
-            payload=json.loads(wrapper["payload"]),
+            payload=orjson.loads(wrapper["payload"]),
         )
         process_checkin(item)
     except Exception:
@@ -944,9 +1046,11 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         mode: Literal["parallel", "serial"] | None = None,
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
+        max_workers: int | None = None,
     ) -> None:
         if mode == "parallel":
             self.parallel = True
+            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
@@ -957,9 +1061,8 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         if self.parallel_executor:
             self.parallel_executor.shutdown()
 
-    def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        self.parallel_executor = ThreadPoolExecutor()
-
+    def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        assert self.parallel_executor is not None
         batch_processor = RunTask(
             function=partial(process_batch, self.parallel_executor),
             next_step=CommitOffsets(commit),
@@ -982,6 +1085,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if self.parallel:
-            return self.create_paralell_worker(commit)
+            return self.create_parallel_worker(commit)
         else:
             return self.create_synchronous_worker(commit)

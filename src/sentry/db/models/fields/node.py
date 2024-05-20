@@ -7,12 +7,12 @@ from collections.abc import MutableMapping
 from typing import Any
 from uuid import uuid4
 
+import orjson
 from django.db.models.signals import post_delete
 from django.utils.functional import cached_property
 
 from sentry import nodestore
 from sentry.db.models.utils import Creator
-from sentry.utils import json
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.strings import decompress
 
@@ -169,7 +169,7 @@ class NodeField(GzippedDictField):
         self.ref_func = kwargs.pop("ref_func", None)
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
-        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
+        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes).decode())
         super().__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -191,7 +191,7 @@ class NodeField(GzippedDictField):
         # with a dict.
         if value and isinstance(value, str):
             try:
-                value = json.loads(value)
+                value = orjson.loads(value)
             except (ValueError, TypeError):
                 try:
                     value = pickle.loads(decompress(value))
@@ -228,7 +228,7 @@ class NodeField(GzippedDictField):
             ref_func=self.ref_func,
         )
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value) -> str | None:
         """
         Prepares the NodeData to be written in a Model.save() call.
 
@@ -244,4 +244,4 @@ class NodeField(GzippedDictField):
 
         value.save()
 
-        return json.dumps({"node_id": value.id})
+        return orjson.dumps({"node_id": value.id}).decode()

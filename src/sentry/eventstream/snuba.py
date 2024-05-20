@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-import sentry_kafka_schemas
+import orjson
 import urllib3
 
 from sentry import quotas
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
 from sentry.utils import json, snuba
@@ -166,7 +167,7 @@ class SnubaProtocolEventStream(EventStream):
             contexts = event_data.setdefault("contexts", {})
 
             # add user.geo to contexts if it exists
-            user_dict = event_data.get("user") or event_data.get("sentry.interfaces.User") or {}
+            user_dict = event_data.get("user") or {}
             geo = user_dict.get("geo", {})
             if "geo" not in contexts and isinstance(geo, dict):
                 contexts["geo"] = geo
@@ -418,16 +419,16 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if event_type == EventStreamEventType.Generic:
             entity = "search_issues"
 
-        serialized_data = json.dumps(data)
+        serialized_data = orjson.dumps(data, option=orjson.OPT_UTC_Z).decode()
 
-        codec = sentry_kafka_schemas.get_codec(
-            topic={
-                "events": "events",
-                "transactions": "transactions",
-                "search_issues": "generic-events",
-            }[entity]
-        )
-        codec.decode(serialized_data.encode("utf-8"), validate=True)
+        topic_mapping: Mapping[str, Topic] = {
+            "events": Topic.EVENTS,
+            "transactions": Topic.TRANSACTIONS,
+            "search_issues": Topic.EVENTSTREAM_GENERIC,
+        }
+
+        codec = get_topic_codec(topic_mapping[entity])
+        codec.decode(serialized_data.encode(), validate=True)
 
         try:
             resp = snuba._snuba_pool.urlopen(
@@ -438,7 +439,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             )
             if resp.status != 200:
                 raise snuba.SnubaError(
-                    f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
+                    f"HTTP {resp.status} response from Snuba! {orjson.loads(resp.data)}"
                 )
             return None
         except urllib3.exceptions.HTTPError as err:

@@ -83,7 +83,7 @@ def pr_to_issue_query(pr_id: int):
                 pr.organization_id org_id,
                 array_agg(go.group_id ORDER BY go.date_added) issues
             FROM sentry_groupowner go
-            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::int
+            JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::bigint
             JOIN sentry_pull_request pr ON c.pull_request_id = pr.id
             WHERE go.type=0
             AND pr.id={pr_id}
@@ -167,15 +167,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         return
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
+    if not top_5_issues:
+        logger.info(
+            "github.pr_comment.no_issues",
+            extra={"organization_id": org_id, "pr_id": pullrequest_id},
+        )
+        cache.delete(cache_key)
+        return
+
     top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
-    logger.info(
-        "github.pr_comment.top_5_issues",
-        extra={
-            "top_5_issue_ids": top_5_issue_ids,
-            "issue_list": issue_list,
-            "pr_id": pullrequest_id,
-        },
-    )
 
     issue_comment_contents = get_comment_contents(top_5_issue_ids)
 

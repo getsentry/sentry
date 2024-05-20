@@ -56,6 +56,10 @@ export default function getConfiguration({
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
         },
+        {
+          path: `${pathPrefix}/user-feedback/`,
+          title: t('User Feedback'),
+        },
       ],
     },
     {
@@ -120,11 +124,6 @@ export default function getConfiguration({
           title: t('Replays'),
           show: () => !!organization?.features?.includes('session-replay-ui'),
         },
-        {
-          path: `${pathPrefix}/user-feedback-processing/`,
-          title: t('User Feedback'),
-          show: () => !!organization?.features?.includes('user-feedback-ui'),
-        },
       ],
     },
     {
@@ -147,11 +146,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/security-headers/`,
           title: t('Security Headers'),
-        },
-        {
-          path: `${pathPrefix}/user-feedback/`,
-          title: t('User Feedback'),
-          description: t('Configure user feedback reporting feature'),
         },
       ],
     },

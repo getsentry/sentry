@@ -21,8 +21,14 @@ from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -503,6 +509,16 @@ class User(BaseModel, AbstractBaseUser):
 
             # Perform the remainder of the write while we're still holding the lock.
             return do_write()
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "username"))
+        sanitizer.set_string(json, SanitizableField(model_name, "session_nonce"))
 
     @classmethod
     def handle_async_deletion(

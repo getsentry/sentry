@@ -62,7 +62,6 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
-    "organizations:session-replay-video",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
@@ -71,11 +70,9 @@ EXPOSABLE_FEATURES = [
     "projects:discard-transaction",
     "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
     "projects:span-metrics-double-write-distributions-as-gauges",
+    "projects:relay-otel-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -291,8 +288,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "namespace": namespace.value,
             }
             if id in passive_limits:
-                # HACK inc-730: reduce pressure on memory by disabling limits for passive projects
-                continue
+                limit["passive"] = True
             cardinality_limits.append(limit)
             existing_ids.add(id)
 

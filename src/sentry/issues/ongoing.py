@@ -49,7 +49,6 @@ def bulk_transition_group_to_ongoing(
                 user=None,
                 transition_type="automatic",
                 sender=bulk_transition_group_to_ongoing,
-                new_substatus=GroupSubStatus.ONGOING,
             )
 
     with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):

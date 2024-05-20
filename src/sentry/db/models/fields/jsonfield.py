@@ -25,13 +25,13 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+import orjson
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models.utils import Creator
-from sentry.utils import json
 
 
 class JSONField(models.TextField):
@@ -83,8 +83,8 @@ class JSONField(models.TextField):
             if callable(default):
                 default = default()
             if isinstance(default, str):
-                return json.loads(default, skip_trace=True)
-            return json.loads(json.dumps(default), skip_trace=True)
+                return orjson.loads(default)
+            return orjson.loads(orjson.dumps(default))
         return super().get_default()
 
     def get_internal_type(self):
@@ -101,7 +101,7 @@ class JSONField(models.TextField):
                 if self.blank:
                     return ""
             try:
-                value = json.loads(value, skip_trace=True)
+                value = orjson.loads(value)
             except ValueError:
                 msg = self.error_messages["invalid"] % value
                 raise ValidationError(msg)
@@ -111,12 +111,13 @@ class JSONField(models.TextField):
     def get_db_prep_value(self, value, connection=None, prepared=None):
         return self.get_prep_value(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value) -> str | None:
         if value is None:
             if not self.null and self.blank:
                 return ""
             return None
-        return json.dumps(value)
+        # TODO(@anonrig): Remove support for non-string keys.
+        return orjson.dumps(value, option=orjson.OPT_NON_STR_KEYS).decode()
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)

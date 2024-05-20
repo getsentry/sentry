@@ -106,14 +106,21 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create", "auth:register"]
+            assert data["features"] == [
+                "organizations:create",
+                "auth:register",
+                "organizations:multi-region-selector",
+            ]
 
         with self.options({"auth.allow-registration": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:multi-region-selector",
+            ]
 
     def test_org_create_feature(self):
         with self.feature({"organizations:create": True}):
@@ -121,14 +128,17 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:multi-region-selector",
+            ]
 
         with self.feature({"organizations:create": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == []
+            assert data["features"] == ["organizations:multi-region-selector"]
 
     def test_customer_domain_feature(self):
         self.login_as(self.user)
@@ -146,21 +156,32 @@ class ClientConfigViewTest(TestCase):
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
             assert data["lastOrganization"] == self.organization.slug
-            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:customer-domains",
+                "organizations:multi-region-selector",
+            ]
 
         with self.feature({"organizations:customer-domains": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:multi-region-selector",
+            ]
 
             # Customer domain feature is injected if a customer domain is used.
             resp = self.client.get(self.path, HTTP_HOST="albertos-apples.testserver")
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+            assert data["features"] == [
+                "organizations:create",
+                "organizations:customer-domains",
+                "organizations:multi-region-selector",
+            ]
 
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
@@ -170,7 +191,7 @@ class ClientConfigViewTest(TestCase):
         data = json.loads(resp.content)
         assert not data["isAuthenticated"]
         assert data["user"] is None
-        assert data["features"] == ["organizations:create"]
+        assert data["features"] == ["organizations:create", "organizations:multi-region-selector"]
         assert data["customerDomain"] is None
 
     def test_authenticated(self):
@@ -185,7 +206,7 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
-        assert data["features"] == ["organizations:create"]
+        assert data["features"] == ["organizations:create", "organizations:multi-region-selector"]
         assert data["customerDomain"] is None
 
     def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool):

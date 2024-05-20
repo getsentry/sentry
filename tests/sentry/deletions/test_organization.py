@@ -29,7 +29,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils.actor import ActorTuple
+from sentry.types.actor import Actor
 
 
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
@@ -308,7 +308,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         alert_rule = self.create_alert_rule(
             organization=from_org,
             projects=[project],
-            owner=ActorTuple.from_actor_identifier(f"team:{from_team.id}"),
+            owner=Actor.from_identifier(f"team:{from_team.id}"),
             environment=environment,
         )
 

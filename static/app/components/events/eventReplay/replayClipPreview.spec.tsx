@@ -1,5 +1,4 @@
 import {duration} from 'moment';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -11,8 +10,6 @@ import type {DetailedOrganization} from 'sentry/types/organization';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayClipPreview from './replayClipPreview';
 
@@ -68,7 +65,8 @@ const render = (
   children: React.ReactElement,
   orgParams: Partial<DetailedOrganization> = {}
 ) => {
-  const {router, routerContext} = initializeOrg({
+  const {routerContext, organization} = initializeOrg({
+    organization: {slug: mockOrgSlug, ...orgParams},
     router: {
       routes: [
         {path: '/'},
@@ -82,23 +80,10 @@ const render = (
     },
   });
 
-  return baseRender(
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: router.params,
-        routes: router.routes,
-      }}
-    >
-      <OrganizationContext.Provider
-        value={OrganizationFixture({slug: mockOrgSlug, ...orgParams})}
-      >
-        {children}
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>,
-    {context: routerContext}
-  );
+  return baseRender(children, {
+    context: routerContext,
+    organization,
+  });
 };
 
 const mockIsFullscreen = jest.fn();

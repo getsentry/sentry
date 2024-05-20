@@ -11,7 +11,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -37,8 +37,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def determine_recipients(self) -> list[RpcActor]:
-        return RpcActor.many_from_object(self.role_based_recipient_strategy.determine_recipients())
+    def determine_recipients(self) -> list[Actor]:
+        return Actor.many_from_object(self.role_based_recipient_strategy.determine_recipients())
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -46,8 +46,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         # purposely use empty string for the notification title
         return ""
 
-    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        if recipient.actor_type == ActorType.TEAM:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
+        if recipient.is_team:
             raise NotImplementedError
 
         settings_url = self.format_url(
@@ -60,11 +60,11 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             settings_url
         )
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
-    def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
-        if recipient.actor_type == ActorType.TEAM:
+    def get_log_params(self, recipient: Actor) -> MutableMapping[str, Any]:
+        if recipient.is_team:
             raise NotImplementedError
 
         return {

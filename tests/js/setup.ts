@@ -11,8 +11,14 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
+import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
+
+/**
+ * Set locale to English
+ */
+setLocale(DEFAULT_LOCALE_DATA);
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of

@@ -6,7 +6,7 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import ScreenSummary from 'sentry/views/performance/mobile/appStarts/screenSummary';
+import {ScreenSummary} from 'sentry/views/performance/mobile/appStarts/screenSummary';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/usePageFilters');

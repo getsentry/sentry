@@ -147,9 +147,9 @@ def initialize_subprocess_state(config: MetricsIngestConfiguration) -> None:
 
     This function should ideally be kept minimal and not contain too much
     logic. Commonly reusable bits should be added to
-    sentry.utils.arroyo.RunTaskWithMultiprocessing.
+    sentry.utils.arroyo.run_task_with_multiprocessing.
 
-    We already rely on sentry.utils.arroyo.RunTaskWithMultiprocessing to copy
+    We already rely on sentry.utils.arroyo.run_task_with_multiprocessing to copy
     statsd tags into the subprocess, eventually we should do the same for
     Sentry tags.
     """

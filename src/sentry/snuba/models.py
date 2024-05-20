@@ -27,7 +27,7 @@ query_aggregation_to_snuba = {
 @region_silo_model
 class SnubaQuery(Model):
     __relocation_scope__ = RelocationScope.Organization
-    __relocation_dependencies__ = {"sentry.Actor", "sentry.Organization", "sentry.Project"}
+    __relocation_dependencies__ = {"sentry.Organization", "sentry.Project"}
 
     class Type(Enum):
         ERROR = 0

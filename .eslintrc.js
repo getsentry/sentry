@@ -38,6 +38,7 @@ module.exports = {
     'array-bracket-spacing': 'off',
     'computed-property-spacing': 'off',
     'react/no-danger-with-children': 'off',
+    'jest/no-disabled-tests': 'off',
   },
   // JSON file formatting is handled by Biome. ESLint should not be linting
   // and formatting these files.
@@ -58,6 +59,7 @@ module.exports = {
         'array-bracket-spacing': 'off',
         'computed-property-spacing': 'off',
         'react/no-danger-with-children': 'off',
+        'jest/no-disabled-tests': 'off',
       },
     },
     {

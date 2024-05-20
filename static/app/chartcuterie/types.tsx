@@ -17,6 +17,7 @@ export enum ChartType {
   SLACK_METRIC_ALERT_EVENTS = 'slack:metricAlert.events',
   SLACK_METRIC_ALERT_SESSIONS = 'slack:metricAlert.sessions',
   SLACK_PERFORMANCE_ENDPOINT_REGRESSION = 'slack:performance.endpointRegression',
+  SLACK_PERFORMANCE_FUNCTION_REGRESSION = 'slack:performance.functionRegression',
 }
 
 /**

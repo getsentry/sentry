@@ -55,8 +55,8 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
-const AIMonitoringSection = lazy(
-  () => import('sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection')
+const LLMMonitoringSection = lazy(
+  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
 
 type GroupEventDetailsContentProps = {
@@ -143,8 +143,9 @@ function DefaultGroupEventDetailsContent({
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
         .flatMap(x => x.data.values ?? [])
         .some(({value}) => {
-          const lowerText = value.toLowerCase();
+          const lowerText = value?.toLowerCase();
           return (
+            lowerText &&
             (lowerText.includes('api key') || lowerText.includes('429')) &&
             (lowerText.includes('openai') ||
               lowerText.includes('anthropic') ||
@@ -153,7 +154,7 @@ function DefaultGroupEventDetailsContent({
           );
         }) ? (
         <LazyLoad
-          LazyComponent={AIMonitoringSection}
+          LazyComponent={LLMMonitoringSection}
           event={event}
           organization={organization}
         />

@@ -46,7 +46,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -70,7 +70,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -91,7 +91,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-associate-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -119,7 +119,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -140,7 +140,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-associate-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -167,7 +167,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -182,7 +182,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-associate-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -207,7 +207,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -283,7 +283,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -318,7 +318,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -330,7 +330,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-associate-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -350,7 +350,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -424,7 +424,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-source-maps",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -469,7 +469,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-source-maps",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -507,7 +507,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-source-maps",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -529,7 +529,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-source-maps",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -548,7 +548,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )
@@ -577,7 +577,7 @@ class DebugFilesUploadTest(APITestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": other_org.slug,
+                "organization_id_or_slug": other_org.slug,
                 "project_id_or_slug": other_project.slug,
             },
         )

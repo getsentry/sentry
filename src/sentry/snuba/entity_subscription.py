@@ -626,7 +626,7 @@ def get_entity_key_from_snuba_query(
     query_builder = entity_subscription.build_query_builder(
         snuba_query.query,
         [project_id],
-        None,
+        snuba_query.environment,
         {"organization_id": organization_id},
         skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
     )
