@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PinnedPageFilter} from 'sentry/types';
+import type {PinnedPageFilter} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {

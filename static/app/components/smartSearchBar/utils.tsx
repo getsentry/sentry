@@ -20,7 +20,7 @@ import {t} from 'sentry/locale';
 
 import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
 import {ItemType, ShortcutType, invalidTypes} from './types';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {

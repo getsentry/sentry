@@ -3,7 +3,7 @@ import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData, {
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {EventsStatsSeries} from 'sentry/types';
+import type {EventsStatsSeries} from 'sentry/types/organization';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';

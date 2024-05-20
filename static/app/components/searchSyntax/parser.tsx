@@ -4,7 +4,7 @@ import moment from 'moment';
 import type {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,

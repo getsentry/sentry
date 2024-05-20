@@ -1,5 +1,4 @@
-import type {MetricType, MRI} from 'sentry/types';
-import type {ParsedMRI, UseCase} from 'sentry/types/metrics';
+import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 import {
   defaultAggregateForMRI,

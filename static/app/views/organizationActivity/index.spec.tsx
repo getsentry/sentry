@@ -3,7 +3,7 @@ import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {GroupActivityType} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types/group';
 import OrganizationActivity from 'sentry/views/organizationActivity';
 
 describe('OrganizationActivity', function () {

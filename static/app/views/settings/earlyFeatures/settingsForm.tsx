@@ -8,7 +8,8 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {OrganizationAuthProvider, Scope} from 'sentry/types';
+import type {OrganizationAuthProvider} from 'sentry/types/auth';
+import type {Scope} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

@@ -18,7 +18,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MissingMember, Organization, OrgRole} from 'sentry/types';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';

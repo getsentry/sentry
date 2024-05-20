@@ -8,7 +8,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project, ProjectKey} from 'sentry/types';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

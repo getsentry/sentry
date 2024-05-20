@@ -10,7 +10,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 

@@ -3,7 +3,8 @@ import {uuid4} from '@sentry/utils';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import storyBook from 'sentry/stories/storyBook';
-import type {Actor, Team} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Team} from 'sentry/types/organization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 

@@ -1,6 +1,6 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {MetricsOperation} from 'sentry/types';
+import type {MetricsOperation} from 'sentry/types/metrics';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,

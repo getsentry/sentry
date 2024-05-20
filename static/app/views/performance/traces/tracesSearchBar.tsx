@@ -5,7 +5,7 @@ import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

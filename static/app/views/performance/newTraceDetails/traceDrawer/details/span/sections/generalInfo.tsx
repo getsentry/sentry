@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {
   TraceTree,
   TraceTreeNode,

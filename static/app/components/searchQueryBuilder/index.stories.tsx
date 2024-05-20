@@ -5,7 +5,7 @@ import Alert from 'sentry/components/alert';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
 const SUPPORTED_KEYS: TagCollection = {

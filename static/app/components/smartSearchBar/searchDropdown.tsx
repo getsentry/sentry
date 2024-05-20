@@ -13,7 +13,7 @@ import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';

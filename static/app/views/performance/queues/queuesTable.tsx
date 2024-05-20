@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
