@@ -21,7 +21,7 @@ class StorageFormat(TypedDict):
 
 
 class APIFormat(TypedDict):
-    id: int
+    id: str
     sample_rate: float
     traces_sample_rate: float
     user_config: JSONValue
@@ -34,8 +34,9 @@ class StorageBackend:
 
     def get(self) -> APIFormat | None:
         result = self.driver.get()
-        if result is not None:
-            return self._deserialize(result)
+        if result is None:
+            return None
+        return self._deserialize(result)
 
     def set(self, value: APIFormat) -> None:
         self.driver.set(self._serialize(value))
@@ -84,8 +85,9 @@ class BlobDriver:
         except Exception:
             return None
 
-        if result is not None:
-            return json.loads(result)
+        if result is None:
+            return None
+        return json.loads(result)
 
     def set(self, value: StorageFormat) -> None:
         self.storage.save(self.key, BytesIO(json.dumps(value).encode()))

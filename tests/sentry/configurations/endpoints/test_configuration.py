@@ -10,7 +10,6 @@ class ConfiguratioAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        # self.key = ProjectKey.objects.get_or_create(project=self.project)[0]
         self.url = reverse(
             self.endpoint,
             args=(self.organization.slug, self.project.slug, self.projectkey.public_key),
