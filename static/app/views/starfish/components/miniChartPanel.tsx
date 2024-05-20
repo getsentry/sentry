@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
-import textStyles from 'sentry/styles/text';
 
 type Props = {
   children: React.ReactNode;
@@ -48,7 +47,7 @@ const Header = styled('div')`
 
 const PanelBody = styled('div')`
   padding: ${space(1.5)} ${space(2)};
-  ${textStyles};
+  ${p => p.theme.textStyles};
 `;
 
 const Subtitle = styled('span')`

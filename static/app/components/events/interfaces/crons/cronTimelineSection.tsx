@@ -8,7 +8,6 @@ import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -171,5 +170,5 @@ const EventLineLabel = styled(Overlay)<{left: number; timelineWidth: number}>`
 `;
 
 const FadeInContainer = styled('div')`
-  animation: ${fadeIn} 500ms ease-out forwards;
+  animation: ${p => p.theme.animation.fadeIn} 500ms ease-out forwards;
 `;

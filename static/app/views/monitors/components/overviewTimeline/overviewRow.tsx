@@ -11,7 +11,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -374,7 +373,7 @@ const TimelineEnvOuterContainer = styled('div')`
 const TimelineEnvContainer = styled('div')`
   position: absolute;
   inset: 0;
-  opacity: 0;
-  animation: ${fadeIn} 1.5s ease-out forwards;
+  opacity: 1;
+  animation: ${p => p.theme.animation.fadeIn} 1.5s ease-out forwards;
   contain: content;
 `;

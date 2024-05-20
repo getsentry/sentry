@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {growIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -26,7 +25,7 @@ const SubmitButtonContainer = styled('div')`
 `;
 
 const SubmitButton = styled(Button)`
-  animation: 0.1s ${growIn} ease-in;
+  animation: 0.1s ${p => p.theme.animation.growIn} ease-in;
   margin: ${space(0.5)} 0;
 `;
 

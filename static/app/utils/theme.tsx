@@ -1,8 +1,9 @@
-import {css} from '@emotion/react';
+import {css, keyframes} from '@emotion/react';
 import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import * as animation from 'sentry/styles/animations';
 import {Outcome} from 'sentry/types';
 
 /**
@@ -648,6 +649,64 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   }),
+  animation,
+  pulsingIndicator: css`
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    background: ${colors.pink300};
+    position: relative;
+
+    &:before {
+      content: '';
+      display: block;
+      position: absolute;
+      height: 100px;
+      width: 100px;
+      border-radius: 50%;
+      top: -46px;
+      left: -46px;
+      border: 4px solid ${colors.pink200};
+      transform-origin: center;
+      animation: ${keyframes`
+        0% {
+          transform: scale(0.1);
+          opacity: 1
+        }
+
+        40%, 100% {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+      `} 3s ease-out infinite;
+    }
+  `,
+  textStyles: css`
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    /* Exclude ol/ul elements inside interactive selectors/menus */
+    ul:not([role='listbox'], [role='grid'], [role='menu']),
+    ol:not([role='listbox'], [role='grid'], [role='menu']),
+    table,
+    dl,
+    blockquote,
+    form,
+    pre,
+    .auto-select-text,
+    .section,
+    [class^='highlight-'] {
+      margin-bottom: 20px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  `,
 });
 
 const generatePrismVariables = (

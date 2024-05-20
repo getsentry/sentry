@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import {IconClose} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
-import {slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 
 import type {CommonSidebarProps} from './types';
@@ -22,7 +21,7 @@ const PanelContainer = styled('div')<PositionProps>`
   border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
-  animation: 200ms ${slideInLeft};
+  animation: 200ms ${p => p.theme.animation.slideInLeft};
   z-index: ${p => p.theme.zIndex.sidebar - 1};
 
   ${p =>

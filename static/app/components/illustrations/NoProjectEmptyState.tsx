@@ -2,7 +2,6 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {makeOpacityJitter, makeShake} from 'sentry/styles/animations';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const Background = styled(motion.g)``;
@@ -200,6 +199,30 @@ const Smoke = styled('g')`
   }
   `
   )}
+`;
+
+const makeShake = (distance: number = 3) => keyframes`
+${new Array(50)
+  .fill(0)
+  .map(
+    (_, i) => `${i * 2}% {
+  transform: translate(${Math.round(Math.random() * distance)}px, ${Math.round(
+    Math.random() * distance
+  )}px);
+}`
+  )
+  .join('\n')}
+`;
+
+const makeOpacityJitter = () => keyframes`
+${new Array(50)
+  .fill(0)
+  .map(
+    (_, i) => `${i * 2}% {
+  opacity: ${Math.round(Math.random() * 10) / 10};
+}`
+  )
+  .join('\n')}
 `;
 
 function NoProjectEmptyState() {

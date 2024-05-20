@@ -9,7 +9,6 @@ import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {
   OnboardingSupplementComponentProps,
@@ -457,7 +456,7 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
 }
 
 const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
+  ${p => p.theme.pulsingIndicator};
   margin-right: ${space(1)};
 `;
 

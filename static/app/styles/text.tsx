@@ -1,5 +1,10 @@
 import {css} from '@emotion/react';
 
+/**
+ * Use `p.theme.textStyles` instead of importing this.
+ *
+ * @deprecated
+ */
 const textStyles = () => css`
   /* stylelint-disable no-descending-specificity */
   h1,

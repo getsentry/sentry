@@ -12,7 +12,6 @@ import Input from 'sentry/components/input';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
@@ -838,7 +837,7 @@ const BlankSpace = styled('div')`
 
 const ArithmeticError = styled(Tooltip)`
   color: ${p => p.theme.errorText};
-  animation: ${() => pulse(1.15)} 1s ease infinite;
+  animation: ${p => p.theme.animation.pulse(1.15)} 1s ease infinite;
   display: flex;
 `;
 

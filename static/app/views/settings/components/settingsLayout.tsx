@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {fadeIn, slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -148,7 +147,7 @@ const SidebarWrapper = styled('nav')<{isVisible: boolean; offsetTop: number}>`
     top: ${p => p.offsetTop}px;
     bottom: 0;
     overflow-y: auto;
-    animation: ${slideInLeft} 100ms ease-in-out;
+    animation: ${p => p.theme.animation.slideInLeft} 100ms ease-in-out;
     z-index: ${p => p.theme.zIndex.settingsSidebarNav};
     box-shadow: ${p => p.theme.dropShadowHeavy};
   }
@@ -163,7 +162,7 @@ const NavMask = styled('div')<{isVisible: boolean}>`
     width: 100%;
     position: absolute;
     z-index: ${p => p.theme.zIndex.settingsSidebarNavMask};
-    animation: ${fadeIn} 250ms ease-in-out;
+    animation: ${p => p.theme.animation.fadeIn} 250ms ease-in-out;
   }
 `;
 

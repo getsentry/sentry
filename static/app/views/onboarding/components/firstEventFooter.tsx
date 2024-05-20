@@ -8,7 +8,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {OnboardingRecentCreatedProject, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -124,7 +123,7 @@ AnimatedText.defaultProps = {
 };
 
 const WaitingIndicator = styled(motion.div)`
-  ${pulsingIndicatorStyles};
+  ${p => p.theme.pulsingIndicator};
   background-color: ${p => p.theme.pink300};
 `;
 

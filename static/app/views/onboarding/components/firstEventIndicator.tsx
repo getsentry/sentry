@@ -5,7 +5,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -133,7 +132,7 @@ AnimatedText.defaultProps = {
 
 const WaitingIndicator = styled(motion.div)`
   margin: 0 6px;
-  ${pulsingIndicatorStyles};
+  ${p => p.theme.pulsingIndicator};
 `;
 
 WaitingIndicator.defaultProps = {

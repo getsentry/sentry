@@ -7,7 +7,6 @@ import Card from 'sentry/components/card';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {OnboardingCustomComponentProps} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -148,7 +147,7 @@ const OnboardingTaskProjectListItem = styled(Link)`
 `;
 
 const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
+  ${p => p.theme.pulsingIndicator};
   margin-left: auto;
 `;
 const PulsingIndicatorText = styled('span')`

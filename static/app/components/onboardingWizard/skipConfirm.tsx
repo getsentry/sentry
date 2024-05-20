@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
-import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -88,7 +87,7 @@ const Confirmation = styled(({onDismiss, onSkip, visible: _, ...props}: ConfirmP
   flex-direction: column;
   justify-content: center;
   background: rgba(255, 255, 255, 0.9);
-  animation: ${fadeIn} 200ms normal forwards;
+  animation: ${p => p.theme.animation.fadeIn} 200ms normal forwards;
   font-size: ${p => p.theme.fontSizeMedium};
 
   p {

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 
 import type {CommonSidebarProps} from './types';
@@ -67,6 +66,6 @@ export const EventIndicator = styled(
 `;
 
 export const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
+  ${p => p.theme.pulsingIndicator};
   margin-right: ${space(1)};
 `;

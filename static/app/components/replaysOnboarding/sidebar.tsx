@@ -35,7 +35,6 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
@@ -508,7 +507,7 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
+  ${p => p.theme.pulsingIndicator};
   margin-right: ${space(1)};
 `;
 
