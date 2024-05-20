@@ -1,6 +1,5 @@
 from urllib.parse import parse_qs, quote
 
-import orjson
 import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
@@ -14,6 +13,7 @@ from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import json
 
 
 def get_response_text(data: SlackBody) -> str:
@@ -95,7 +95,7 @@ def get_channel(index=0):
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[index].request.body)
     assert "channel" in data
-    channel = orjson.loads(data["channel"][0])
+    channel = json.loads(data["channel"][0])
 
     return channel
 
@@ -105,7 +105,7 @@ def get_attachment(index=0):
     data = parse_qs(responses.calls[index].request.body)
     assert "text" in data
     assert "attachments" in data
-    attachments = orjson.loads(data["attachments"][0])
+    attachments = json.loads(data["attachments"][0])
 
     assert len(attachments) == 1
     return attachments[0], data["text"][0]
@@ -115,7 +115,7 @@ def get_attachment_no_text():
     assert len(responses.calls) >= 1
     data = parse_qs(responses.calls[0].request.body)
     assert "attachments" in data
-    attachments = orjson.loads(data["attachments"][0])
+    attachments = json.loads(data["attachments"][0])
     assert len(attachments) == 1
     return attachments[0]
 
@@ -125,7 +125,7 @@ def get_blocks_and_fallback_text(index=0):
     data = parse_qs(responses.calls[index].request.body)
     assert "blocks" in data
     assert "text" in data
-    blocks = orjson.loads(data["blocks"][0])
+    blocks = json.loads(data["blocks"][0])
     fallback_text = data["text"][0]
     return blocks, fallback_text
 
@@ -137,8 +137,8 @@ def get_block_kit_preview_url(index=0) -> str:
     assert data["blocks"][0]
 
     stringified_blocks = data["blocks"][0]
-    blocks = orjson.loads(data["blocks"][0])
-    stringified_blocks = orjson.dumps({"blocks": blocks}).decode()
+    blocks = json.loads(data["blocks"][0])
+    stringified_blocks = json.dumps({"blocks": blocks})
 
     encoded_blocks = quote(stringified_blocks)
     base_url = "https://app.slack.com/block-kit-builder/#"

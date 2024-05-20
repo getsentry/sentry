@@ -3,7 +3,6 @@ from typing import cast
 from unittest import mock
 from unittest.mock import patch
 
-import orjson
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
@@ -26,6 +25,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.utils import json
 from sentry.utils.safe import safe_execute
 
 pytestmark = [requires_snuba]
@@ -142,9 +142,9 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": orjson.dumps(
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
-            ).decode()
+            )
         }
 
     @with_feature("organizations:process-slow-alerts")
@@ -186,9 +186,9 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{perf_event.group.id}": orjson.dumps(
+            f"{self.rule.id}:{perf_event.group.id}": json.dumps(
                 {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
-            ).decode()
+            )
         }
 
     @with_feature("organizations:process-slow-alerts")
@@ -223,9 +223,9 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": orjson.dumps(
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
-            ).decode()
+            )
         }
 
     @with_feature("organizations:process-slow-alerts")
@@ -311,9 +311,9 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert project_ids[0][0] == self.project.id
         rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
         assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": orjson.dumps(
+            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
-            ).decode()
+            )
         }
 
     def test_ignored_issue(self):
@@ -915,7 +915,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in orjson.loads(mock_post.call_args[1]["data"]["blocks"])[0]["text"]["text"]
+            in json.loads(mock_post.call_args[1]["data"]["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-import orjson
 import urllib3
 
 from sentry import quotas
@@ -419,7 +418,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if event_type == EventStreamEventType.Generic:
             entity = "search_issues"
 
-        serialized_data = orjson.dumps(data, option=orjson.OPT_UTC_Z).decode()
+        serialized_data = json.dumps(data)
 
         topic_mapping: Mapping[str, Topic] = {
             "events": Topic.EVENTS,
@@ -428,7 +427,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         }
 
         codec = get_topic_codec(topic_mapping[entity])
-        codec.decode(serialized_data.encode(), validate=True)
+        codec.decode(serialized_data.encode("utf-8"), validate=True)
 
         try:
             resp = snuba._snuba_pool.urlopen(
@@ -439,7 +438,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             )
             if resp.status != 200:
                 raise snuba.SnubaError(
-                    f"HTTP {resp.status} response from Snuba! {orjson.loads(resp.data)}"
+                    f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
                 )
             return None
         except urllib3.exceptions.HTTPError as err:

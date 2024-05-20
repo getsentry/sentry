@@ -4,8 +4,6 @@ from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
-import orjson
-
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
 from sentry.issues.grouptype import (
@@ -18,6 +16,7 @@ from sentry.models.group import Group
 from sentry.testutils.cases import AcceptanceTestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
+from sentry.utils import json
 
 
 @no_silo_test
@@ -39,7 +38,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.dismiss_assistant()
 
     def create_sample_event(self, fixture, start_timestamp):
-        event = orjson.loads(self.load_fixture(f"events/performance_problems/{fixture}.json"))
+        event = json.loads(self.load_fixture(f"events/performance_problems/{fixture}.json"))
 
         for key in ["datetime", "location", "title"]:
             del event[key]
