@@ -22,3 +22,9 @@ export enum MessageActorType {
   PRODUCER = 'producer',
   CONSUMER = 'consumer',
 }
+
+export const ONBOARDING_CONTENT = {
+  title: t('Start collecting Insights about your Queues!'),
+  description: t('Our robot is waiting for your first background job to complete.'),
+  link: 'https://develop.sentry.dev/sdk/performance/modules/queues/',
+};

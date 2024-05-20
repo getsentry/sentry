@@ -9,10 +9,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import (
-    AlertRuleSerializer,
-    DetailedAlertRuleSerializer,
-)
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -24,6 +20,10 @@ from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    DetailedAlertRuleSerializer,
+)
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
@@ -58,9 +58,11 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                     action.get("_sentry_app_installation", {}).get("sentry_app_id", None)
                 )
     if sentry_app_ids:
+        fetched_rpc_installations = app_service.get_many(
+            filter=dict(app_ids=sentry_app_ids, organization_id=organization.id)
+        )
         sentry_app_map = {
-            install.sentry_app.id: install.sentry_app
-            for install in app_service.get_many(filter=dict(app_ids=sentry_app_ids))
+            install.sentry_app.id: install.sentry_app for install in fetched_rpc_installations
         }
 
     # Prepare AlertRuleTriggerActions that are SentryApp components

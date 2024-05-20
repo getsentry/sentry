@@ -11,7 +11,8 @@ import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunction
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';

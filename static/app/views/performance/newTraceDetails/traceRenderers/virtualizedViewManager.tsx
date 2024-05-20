@@ -216,6 +216,25 @@ export class VirtualizedViewManager {
     }
   }
 
+  updateTraceSpace(start: number, width: number) {
+    if (this.trace_space.width === width && this.to_origin === start) {
+      return;
+    }
+
+    this.to_origin = start;
+
+    // If view is scaled all the way out, then lets update it to match the new space, else
+    // we are implicitly zooming in, which may be even more confusing.
+    const preventImplicitZoom = this.trace_view.width === this.trace_space.width;
+    this.trace_space = new TraceView(0, 0, width, 1);
+    if (preventImplicitZoom) {
+      this.setTraceView({x: 0, width});
+    }
+
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPxMatrix();
+  }
+
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
     this.to_origin = space[0];
 
@@ -1287,7 +1306,8 @@ export class VirtualizedViewManager {
 
       const outside_left =
         span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
-      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+      const outside_right =
+        span.space[0] - this.to_origin - error_margin > this.trace_view.right;
 
       if (outside_left || outside_right) {
         this.hideSpanBar(this.span_bars[i], this.span_text[i]);

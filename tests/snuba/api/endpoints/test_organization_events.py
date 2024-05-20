@@ -5987,7 +5987,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "user.display": user_data["email"],
             "device": "Mac",
             "os": "",
-            "url": event.interfaces.data["request"].full_url,
+            "url": event.interfaces["request"].full_url,
             "runtime": dict(event.get_raw_data()["tags"])["runtime"],
             "replayId": replay_id.replace("-", ""),
             "profile.id": profile_id.replace("-", ""),

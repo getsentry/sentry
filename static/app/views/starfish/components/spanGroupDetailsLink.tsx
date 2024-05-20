@@ -11,7 +11,7 @@ const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: React.ReactNode;
-  moduleName: ModuleName;
+  moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   group?: string;
   spanOp?: string;

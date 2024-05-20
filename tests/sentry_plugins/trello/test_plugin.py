@@ -1,11 +1,11 @@
 from functools import cached_property
 from urllib.parse import parse_qsl, urlparse
 
+import orjson
 import responses
 from django.test import RequestFactory
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
@@ -136,7 +136,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         assert self.plugin.create_issue(request, self.group, form_data) == "rds43"
         responses_request = responses.calls[0].request
         assert responses_request.url == "https://api.trello.com/1/cards?token=7c8951d1&key=39g"
-        payload = json.loads(responses_request.body)
+        payload = orjson.loads(responses_request.body)
         assert payload == {"name": "Hello", "desc": "Fix this.", "idList": "23tds"}
 
     @responses.activate

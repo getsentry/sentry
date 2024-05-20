@@ -136,7 +136,7 @@ export function ErrorNodeDetails({
   ) : null;
 }
 
-const StackTraceWrapper = styled('td')`
+const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;

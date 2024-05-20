@@ -238,7 +238,7 @@ describe('Modals -> WidgetViewerModal', function () {
             query: expect.objectContaining({
               query:
                 // The release was injected into the discover query
-                'title:/organizations/:orgId/performance/summary/ release:"project-release@1.2.0" ',
+                '(title:/organizations/:orgId/performance/summary/) release:"project-release@1.2.0" ',
             }),
           })
         );

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,11 +6,13 @@ import type {LocationDescriptor} from 'history';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
@@ -85,6 +87,42 @@ type Props = {
   withColumns?: GroupListColumn[];
 };
 
+function GroupCheckbox({
+  group,
+  displayReprocessingLayout,
+}: {
+  group: Group;
+  displayReprocessingLayout?: boolean;
+}) {
+  const selectedGroups = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroups[group.id];
+
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+
+      if (mouseEvent.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  return (
+    <GroupCheckBoxWrapper>
+      <Checkbox
+        id={group.id}
+        aria-label={t('Select Issue')}
+        checked={isSelected}
+        disabled={!!displayReprocessingLayout}
+        onChange={onChange}
+      />
+    </GroupCheckBoxWrapper>
+  );
+}
+
 function BaseGroupRow({
   id,
   organization,
@@ -110,12 +148,7 @@ function BaseGroupRow({
   const group = groups.find(item => item.id === id) as Group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[id];
-
   const {selection} = usePageFilters();
-
-  const [assigneeLoading, setAssigneeLoading] = useState<boolean>(false);
 
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
@@ -148,7 +181,7 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-  const {mutate: handleAssigneeChange} = useMutation<
+  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
     AssignableEntity | null
@@ -156,7 +189,6 @@ function BaseGroupRow({
     mutationFn: async (
       newAssignee: AssignableEntity | null
     ): Promise<AssignableEntity | null> => {
-      setAssigneeLoading(true);
       if (newAssignee) {
         await assignToActor({
           id: group.id,
@@ -179,11 +211,9 @@ function BaseGroupRow({
           assigned_type: newAssignee.type,
         });
       }
-      setAssigneeLoading(false);
     },
     onError: () => {
       addErrorMessage('Failed to update assignee');
-      setAssigneeLoading(false);
     },
   });
 
@@ -212,19 +242,6 @@ function BaseGroupRow({
       if (evt.shiftKey) {
         SelectedGroupStore.shiftToggleItems(group.id);
         window.getSelection()?.removeAllRanges();
-      } else {
-        SelectedGroupStore.toggleSelect(group.id);
-      }
-    },
-    [group.id]
-  );
-
-  const checkboxToggle = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
-
-      if (mouseEvent.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
       }
@@ -442,13 +459,15 @@ function BaseGroupRow({
     <GuideAnchor target="issue_stream" />
   );
 
-  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
-    ? group.filtered.stats?.[statsPeriod]
-    : group.stats?.[statsPeriod];
+  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+    return group.filtered
+      ? group.filtered.stats?.[statsPeriod]
+      : group.stats?.[statsPeriod];
+  }, [group.filtered, group.stats, statsPeriod]);
 
-  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
-    ? group.stats?.[statsPeriod]
-    : [];
+  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+    return group.filtered ? group.stats?.[statsPeriod] : [];
+  }, [group.filtered, group.stats, statsPeriod]);
 
   return (
     <Wrapper
@@ -459,15 +478,10 @@ function BaseGroupRow({
       useTintRow={useTintRow ?? true}
     >
       {canSelect && (
-        <GroupCheckBoxWrapper>
-          <Checkbox
-            id={group.id}
-            aria-label={t('Select Issue')}
-            checked={isSelected}
-            disabled={!!displayReprocessingLayout}
-            onChange={checkboxToggle}
-          />
-        </GroupCheckBoxWrapper>
+        <GroupCheckbox
+          group={group}
+          displayReprocessingLayout={displayReprocessingLayout}
+        />
       )}
       <GroupSummary canSelect={canSelect}>
         <EventOrGroupHeader
@@ -542,6 +556,32 @@ function BaseGroupRow({
                   handleAssigneeChange(assignedActor)
                 }
                 onClear={() => handleAssigneeChange(null)}
+                trigger={
+                  organization.features.includes(
+                    'issue-stream-new-assignee-dropdown-trigger'
+                  )
+                    ? (props, isOpen) => (
+                        <StyledDropdownButton
+                          {...props}
+                          borderless
+                          aria-label={t('Modify issue assignee')}
+                          size="zero"
+                        >
+                          <AssigneeBadge
+                            assignedTo={group.assignedTo ?? undefined}
+                            assignmentReason={
+                              group.owners?.find(owner => {
+                                const [_ownershipType, ownerId] = owner.owner.split(':');
+                                return ownerId === group.assignedTo?.id;
+                              })?.type
+                            }
+                            loading={assigneeLoading}
+                            chevronDirection={isOpen ? 'up' : 'down'}
+                          />
+                        </StyledDropdownButton>
+                      )
+                    : undefined
+                }
               />
             </AssigneeWrapper>
           )}
@@ -555,6 +595,15 @@ function BaseGroupRow({
 const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
+
+const StyledDropdownButton = styled(Button)`
+  font-weight: normal;
+  border: none;
+  padding: 0;
+  height: unset;
+  border-radius: 10px;
+  box-shadow: none;
+`;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
