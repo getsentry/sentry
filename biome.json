@@ -93,7 +93,7 @@
     ]
   },
   "formatter": {
-    "enabled": false,
+    "enabled": true,
     "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
@@ -121,7 +121,12 @@
   },
   "overrides": [
     {
-      "include": ["biome.json", "config/tsconfig.*", "tsconfig.json", ".vscode/*"],
+      "include": [
+        "biome.json",
+        "config/tsconfig.*",
+        "tsconfig.json",
+        ".vscode/*"
+      ],
       "json": {
         "parser": {
           "allowComments": true,
