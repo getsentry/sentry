@@ -9,7 +9,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
@@ -65,12 +64,7 @@ class OrganizationRegionEndpoint(Endpoint):
 
         try:
             # We don't use the lookup since OrganizationMapping uses a BigIntField for organization_id instead of a ForeignKey
-            if (
-                id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_id_or_slug)
-                )
-                and str(organization_id_or_slug).isdecimal()
-            ):
+            if str(organization_id_or_slug).isdecimal():
                 org_mapping = OrganizationMapping.objects.get(
                     organization_id=organization_id_or_slug
                 )

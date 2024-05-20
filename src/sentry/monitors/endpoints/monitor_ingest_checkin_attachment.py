@@ -18,7 +18,6 @@ from sentry.api.authentication import (
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
@@ -92,12 +91,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
             if organization_id_or_slug:
                 try:
                     # Try lookup by id or slug first. This requires organization context.
-                    if (
-                        id_or_slug_path_params_enabled(
-                            self.convert_args.__qualname__, str(organization_id_or_slug)
-                        )
-                        and str(organization_id_or_slug).isdecimal()
-                    ):
+                    if str(organization_id_or_slug).isdecimal():
                         organization = Organization.objects.get_from_cache(
                             id=organization_id_or_slug
                         )

@@ -14,7 +14,7 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
-from sentry.api.utils import handle_query_errors, id_or_slug_path_params_enabled
+from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
@@ -101,21 +101,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         project_id_or_slug = kwargs.pop("project_id_or_slug")
 
         try:
-            if id_or_slug_path_params_enabled(
-                convert_args_class=self.convert_args.__qualname__,
-                organization_id_or_slug=organization.slug,
-            ):
-                project = Project.objects.get(
-                    slug__id_or_slug=project_id_or_slug,
-                    organization_id=organization.id,
-                    status=ObjectStatus.ACTIVE,
-                )
-            else:
-                project = Project.objects.get(
-                    slug=project_id_or_slug,
-                    organization_id=organization.id,
-                    status=ObjectStatus.ACTIVE,
-                )
+            project = Project.objects.get(
+                slug__id_or_slug=project_id_or_slug,
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
+            )
 
             kwargs["project"] = project
 

@@ -10,7 +10,6 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectWithTeamSerializer
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -52,17 +51,10 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         project = kwargs["project"]
 
         try:
-            if id_or_slug_path_params_enabled(
-                self.convert_args.__qualname__, organization_id_or_slug=project.organization.slug
-            ):
-                team = Team.objects.get(
-                    organization__slug__id_or_slug=project.organization.slug,
-                    slug__id_or_slug=team_id_or_slug,
-                )
-            else:
-                team = Team.objects.get(
-                    organization_id=project.organization_id, slug=team_id_or_slug
-                )
+            team = Team.objects.get(
+                organization__slug__id_or_slug=project.organization.slug,
+                slug__id_or_slug=team_id_or_slug,
+            )
         except Team.DoesNotExist:
             raise ResourceDoesNotExist(detail="Team does not exist.")
 
