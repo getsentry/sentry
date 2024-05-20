@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -26,6 +27,7 @@ import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {profiling} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
@@ -137,6 +139,28 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
+  const withoutProfilingSupport = useMemo((): boolean => {
+    const projectsWithProfilingSupport = new Set(
+      projects
+        .filter(project => !project.platform || profiling.includes(project.platform))
+        .map(project => project.id)
+    );
+    // if it's My Projects or All projects, only show banner if none of them
+    // has profiling support
+    if (
+      selection.projects.length === 0 ||
+      selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      return projectsWithProfilingSupport.size === 0;
+    }
+
+    // if some projects are selected using the selector, show the banner if none of them
+    // has profiling support
+    return selection.projects.every(
+      project => !projectsWithProfilingSupport.has(String(project))
+    );
+  }, [selection.projects, projects]);
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -197,40 +221,45 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                // If user is on m2, show default
-                <ProfilingOnboardingPanel
-                  content={
-                    <ProfilingAM1OrMMXUpgrade
-                      organization={organization}
-                      fallback={
-                        <Fragment>
-                          <h3>{t('Function level insights')}</h3>
-                          <p>
-                            {t(
-                              'Discover slow-to-execute or resource intensive functions within your application'
-                            )}
-                          </p>
-                        </Fragment>
-                      }
-                    />
-                  }
-                >
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    priority="primary"
-                    onClick={onSetupProfilingClick}
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} priority="primary">
-                        {t('Set Up Profiling')}
-                      </Button>
+                <Fragment>
+                  {withoutProfilingSupport && (
+                    <UnsupportedAlert featureName="Profiling" />
+                  )}
+                  <ProfilingOnboardingPanel
+                    content={
+                      // If user is on m2, show default
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
                     }
                   >
-                    {t('Set Up Profiling')}
-                  </ProfilingUpgradeButton>
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                    <ProfilingUpgradeButton
+                      organization={organization}
+                      priority="primary"
+                      onClick={onSetupProfilingClick}
+                      fallback={
+                        <Button onClick={onSetupProfilingClick} priority="primary">
+                          {t('Set Up Profiling')}
+                        </Button>
+                      }
+                    >
+                      {t('Set Up Profiling')}
+                    </ProfilingUpgradeButton>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                </Fragment>
               ) : (
                 <Fragment>
                   {organization.features.includes(
