@@ -83,6 +83,42 @@ type Props = {
   withColumns?: GroupListColumn[];
 };
 
+function GroupCheckbox({
+  group,
+  displayReprocessingLayout,
+}: {
+  group: Group;
+  displayReprocessingLayout?: boolean;
+}) {
+  const selectedGroups = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroups[group.id];
+
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+
+      if (mouseEvent.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  return (
+    <GroupCheckBoxWrapper>
+      <Checkbox
+        id={group.id}
+        aria-label={t('Select Issue')}
+        checked={isSelected}
+        disabled={!!displayReprocessingLayout}
+        onChange={onChange}
+      />
+    </GroupCheckBoxWrapper>
+  );
+}
+
 function BaseGroupRow({
   id,
   organization,
@@ -107,9 +143,6 @@ function BaseGroupRow({
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[id];
 
   const {selection} = usePageFilters();
 
@@ -209,19 +242,6 @@ function BaseGroupRow({
       if (evt.shiftKey) {
         SelectedGroupStore.shiftToggleItems(group.id);
         window.getSelection()?.removeAllRanges();
-      } else {
-        SelectedGroupStore.toggleSelect(group.id);
-      }
-    },
-    [group.id]
-  );
-
-  const checkboxToggle = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
-
-      if (mouseEvent.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
       }
@@ -458,15 +478,10 @@ function BaseGroupRow({
       useTintRow={useTintRow ?? true}
     >
       {canSelect && (
-        <GroupCheckBoxWrapper>
-          <Checkbox
-            id={group.id}
-            aria-label={t('Select Issue')}
-            checked={isSelected}
-            disabled={!!displayReprocessingLayout}
-            onChange={checkboxToggle}
-          />
-        </GroupCheckBoxWrapper>
+        <GroupCheckbox
+          group={group}
+          displayReprocessingLayout={displayReprocessingLayout}
+        />
       )}
       <GroupSummary canSelect={canSelect}>
         <EventOrGroupHeader
