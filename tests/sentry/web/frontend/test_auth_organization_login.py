@@ -3,6 +3,7 @@ from unittest import mock
 from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
+import orjson
 from django.test import override_settings
 from django.urls import reverse
 
@@ -20,7 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
@@ -85,7 +85,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
-        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+        marketing_query = urlencode({"frontend_events": orjson.dumps(frontend_events).decode()})
 
         with self.settings(
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
@@ -288,7 +288,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["login_form"]
 
         frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
-        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+        marketing_query = urlencode({"frontend_events": orjson.dumps(frontend_events).decode()})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
@@ -559,7 +559,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["login_form"]
 
         frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
-        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+        marketing_query = urlencode({"frontend_events": orjson.dumps(frontend_events).decode()})
 
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [

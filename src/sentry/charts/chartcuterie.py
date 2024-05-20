@@ -3,6 +3,7 @@ from typing import Any
 from urllib.parse import urljoin
 from uuid import uuid4
 
+import orjson
 import requests
 import sentry_sdk
 from django.conf import settings
@@ -10,7 +11,6 @@ from django.conf import settings
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.models.file import get_storage
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
@@ -76,7 +76,7 @@ class Chartcuterie(ChartRenderer):
             assert self.service_url is not None
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                data=json.dumps(payload),
+                data=orjson.dumps(payload),
                 headers={"Content-Type": "application/json"},
             )
 
