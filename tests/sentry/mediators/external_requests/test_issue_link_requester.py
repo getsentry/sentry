@@ -1,3 +1,4 @@
+import orjson
 import pytest
 import responses
 
@@ -6,7 +7,6 @@ from sentry.mediators.external_requests.issue_link_requester import IssueLinkReq
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -69,10 +69,10 @@ class TestIssueLinkRequester(TestCase):
             "project": {"id": self.project.id, "slug": self.project.slug},
             "actor": {"type": "user", "id": self.user.id, "name": self.user.name},
         }
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == data
         assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature(
-            json.dumps(payload)
+            orjson.dumps(payload).decode()
         )
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
