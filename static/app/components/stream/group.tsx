@@ -671,7 +671,8 @@ const EventCountsWrapper = styled('div')`
   justify-content: flex-end;
   align-self: center;
   width: 60px;
-  margin: 0 ${space(1)};
+  margin: 0 ${space(2)};
+  margin-left: ${space(0)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;

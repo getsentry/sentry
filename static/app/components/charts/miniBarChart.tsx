@@ -74,6 +74,7 @@ function makeBaseChartOptions({
         show: false,
         alignWithLabel: true,
       },
+      offset: showXAxisLine ? -1 : 0,
       axisLabel: {
         show: false,
       },
