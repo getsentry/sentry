@@ -617,10 +617,7 @@ def _get_recipients_by_provider(
             "teams": orjson.dumps([team.id for team in teams]).decode(),
             "teams_by_provider": orjson.dumps(teams_by_provider_dict).decode(),
             "users": orjson.dumps([user.id for user in users]).decode(),
-            # TODO(@anonrig): Remove support for non-string JSON keys.
-            "users_by_provider": orjson.dumps(
-                users_by_provider_dict, option=orjson.OPT_NON_STR_KEYS
-            ).decode(),
+            "users_by_provider": orjson.dumps(users_by_provider_dict).decode(),
         }
         logger.info("sentry.notifications.recipients_by_provider", extra=extra)
     except Exception as e:
