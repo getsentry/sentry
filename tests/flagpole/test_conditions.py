@@ -1,5 +1,6 @@
 from typing import Any
 
+import orjson
 import pytest
 from pydantic import ValidationError
 
@@ -16,7 +17,6 @@ from flagpole.conditions import (
     create_case_insensitive_set_from_list,
 )
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class TestCreateCaseInsensitiveSetFromList(TestCase):
@@ -36,7 +36,7 @@ class TestCreateCaseInsensitiveSetFromList(TestCase):
 def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]):
     for value in expected_types:
         condition_dict = dict(property="test", value=value)
-        json_condition = json.dumps(condition_dict)
+        json_condition = orjson.dumps(condition_dict).decode()
         try:
             parsed_condition = condition.parse_raw(json_condition)
         except ValidationError as exc:
@@ -49,7 +49,7 @@ def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]
 def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any]):
     for value in invalid_types:
         json_dict = dict(value=value)
-        condition_json = json.dumps(json_dict)
+        condition_json = orjson.dumps(json_dict).decode()
         try:
             condition.parse_raw(condition_json)
         except ValidationError:

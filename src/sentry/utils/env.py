@@ -2,11 +2,10 @@ import logging
 import os
 import sys
 
+import orjson
 import requests
 from django.conf import settings
 from google.auth import default
-
-from sentry.utils import json
 
 
 def in_test_environment() -> bool:
@@ -34,8 +33,8 @@ def gcp_project_id() -> str:
     except requests.exceptions.RequestException:
         adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
         if adc_path:
-            with open(adc_path) as fp:
-                adc = json.load(fp)
+            with open(adc_path, "rb") as fp:
+                adc = orjson.loads(fp.read())
                 if adc.get("quota_project_id") is not None:
                     return adc.get("quota_project_id")
 
@@ -50,8 +49,8 @@ def log_gcp_credentials_details(logger: logging.Logger) -> None:
     # Checking GOOGLE_APPLICATION_CREDENTIALS environment variable
     adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
     if adc_path:
-        with open(adc_path) as fp:
-            adc = json.load(fp)
+        with open(adc_path, "rb") as fp:
+            adc = orjson.loads(fp.read())
 
             logger.info(
                 "gcp.credentials.file_found",
