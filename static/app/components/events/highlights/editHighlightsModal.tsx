@@ -458,7 +458,7 @@ const modalBodyCss = css`
   margin: 0 -${space(4)};
   padding: 0 ${space(4)};
   max-height: 75vh;
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 const Title = styled('h3')`
