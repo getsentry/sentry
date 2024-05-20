@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
@@ -24,6 +25,7 @@ type Props = {
   groupStatus?: string;
   height?: number;
   hideZeros?: boolean;
+  loading?: boolean;
   secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
@@ -33,6 +35,7 @@ function GroupStatusChart({
   stats,
   groupStatus,
   height = 24,
+  loading = false,
   hideZeros = false,
   secondaryStats = EMPTY_STATS,
   showMarkLine = false,
@@ -104,21 +107,25 @@ function GroupStatusChart({
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
       <ChartWrapper>
-        <MiniBarChart
-          animateBars
-          showXAxisLine
-          hideZeros={hideZeros}
-          markLineLabelSide="right"
-          barOpacity={0.4}
-          height={showMarkLine ? 36 : height}
-          isGroupedByDate
-          showTimeInTooltip
-          series={graphOptions.series}
-          colors={graphOptions.colors}
-          emphasisColors={graphOptions.emphasisColors}
-          hideDelay={50}
-          showMarkLineLabel={showMarkLine}
-        />
+        {loading ? (
+          <Placeholder height={'36px'} />
+        ) : (
+          <MiniBarChart
+            animateBars
+            showXAxisLine
+            hideZeros={hideZeros}
+            markLineLabelSide="right"
+            barOpacity={0.4}
+            height={showMarkLine ? 36 : height}
+            isGroupedByDate
+            showTimeInTooltip
+            series={graphOptions.series}
+            colors={graphOptions.colors}
+            emphasisColors={graphOptions.emphasisColors}
+            hideDelay={50}
+            showMarkLineLabel={showMarkLine}
+          />
+        )}
         <GraphText>{groupStatus}</GraphText>
       </ChartWrapper>
     </LazyRender>

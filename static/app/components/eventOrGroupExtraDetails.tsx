@@ -65,7 +65,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
       )}
       {isUnhandled && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
-        <Placeholder height="14px" width="100px" />
+        <Placeholder height="12px" width="100px" />
       ) : (
         <TimesTag
           lastSeen={lifetime?.lastSeen || lastSeen}

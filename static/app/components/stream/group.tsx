@@ -363,7 +363,7 @@ function BaseGroupRow({
   };
 
   const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" width="50px" />
+    <Placeholder height="18px" width="40px" />
   ) : (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
@@ -404,7 +404,7 @@ function BaseGroupRow({
   );
 
   const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" width="50px" />
+    <Placeholder height="18px" width="40px" />
   ) : (
     <Tooltip
       isHoverable
@@ -498,18 +498,15 @@ function BaseGroupRow({
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
           {organization.features.includes('issue-stream-new-events-graph') ? (
-            !defined(groupStats) ? (
-              <Placeholder height="36px" />
-            ) : (
-              <GroupStatusChart
-                hideZeros
-                stats={groupStats}
-                secondaryStats={groupSecondaryStats}
-                showSecondaryPoints={showSecondaryPoints}
-                groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-                showMarkLine
-              />
-            )
+            <GroupStatusChart
+              hideZeros
+              loading={!defined(groupStats)}
+              stats={groupStats}
+              secondaryStats={groupSecondaryStats}
+              showSecondaryPoints={showSecondaryPoints}
+              groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+              showMarkLine
+            />
           ) : (
             <GroupChart
               stats={groupStats}
