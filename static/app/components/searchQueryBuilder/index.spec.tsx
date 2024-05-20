@@ -150,11 +150,34 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('new search tokens', function () {
+    it('breaks keys into sections', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+
+      const menu = screen.getByRole('listbox');
+      const groups = within(menu).getAllByRole('group');
+      expect(groups).toHaveLength(2);
+
+      // First group (Field) should have age, assigned, browser.name
+      const group1 = groups[0];
+      expect(within(group1).getByRole('option', {name: 'age'})).toBeInTheDocument();
+      expect(within(group1).getByRole('option', {name: 'assigned'})).toBeInTheDocument();
+      expect(
+        within(group1).getByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+
+      // Second group (Tag) should have custom_tag_name
+      const group2 = groups[1];
+      expect(
+        within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+    });
+
     it('can add a new token by clicking a key suggestion', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+      await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key
       expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
@@ -187,7 +210,7 @@ describe('SearchQueryBuilder', function () {
       // function which causes an act warning despite using userEvent.click.
       // Cannot find a way to avoid this warning.
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+      await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
       // Should have a free text token "some free text"
