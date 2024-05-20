@@ -10,7 +10,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor, SuggestedOwnerReason} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {SuggestedOwnerReason} from 'sentry/types/group';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 type AssigneeBadgeProps = {
