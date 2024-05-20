@@ -994,6 +994,46 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_gh_comment_multiple_prs_from_query(
+        self, get_jwt, mock_comment_workflow, mock_get_commit_context
+    ):
+        """No comments on suspect commit with no pr row in table"""
+        mock_get_commit_context.return_value = [self.blame]
+        organization = self.create_organization(owner=self.user)
+        project = self.create_project(organization=organization)
+        integration = self.create_integration(
+            organization=organization, external_id="123", provider="github"
+        )
+        repo = self.create_repo(project=project, name="example", integration_id=integration.id)
+        # duplicate PR in another org but same repo (duplicate repo entry)
+        pull_request = PullRequest.objects.create(
+            organization_id=self.commit.organization_id,
+            repository_id=repo.id,
+            key="99",
+            author=self.commit.author,
+            message="foo",
+            title="bar",
+            merge_commit_sha=self.commit.key,
+            date_added=before_now(days=1, seconds=1),
+        )
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            mock_comment_workflow.assert_called_once_with(
+                pullrequest_id=pull_request.id, project_id=self.event.project_id
+            )
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """No comment on pr that's older than PR_COMMENT_WINDOW"""
         mock_get_commit_context.return_value = [self.blame]
