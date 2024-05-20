@@ -4,6 +4,7 @@ from unittest import mock
 from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
+import orjson
 import pytest
 from django.conf import settings
 from django.test import override_settings
@@ -24,7 +25,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -196,7 +196,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             resp.context["register_form"].errors if resp.status_code == 200 else None
         )
         frontend_events = {"event_name": "Sign Up"}
-        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+        marketing_query = urlencode({"frontend_events": orjson.dumps(frontend_events).decode()})
         assert marketing_query in resp.headers["Location"]
 
         user = User.objects.get(username="test-a-really-long-email-address@example.com")

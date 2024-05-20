@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import pickle
 
+import orjson
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
-from sentry.utils import json
 from sentry.utils.strings import decompress
 
 __all__ = ("GzippedDictField",)
@@ -32,7 +32,7 @@ class GzippedDictField(TextField):
         try:
             if not value:
                 return {}
-            return json.loads(value)
+            return orjson.loads(value)
         except (ValueError, TypeError):
             if isinstance(value, str) and value:
                 try:
@@ -47,7 +47,7 @@ class GzippedDictField(TextField):
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value) -> str | None:
         if not value and self.null:
             # save ourselves some storage
             return None
@@ -55,7 +55,7 @@ class GzippedDictField(TextField):
             value = value.decode("utf-8")
         if value is None and self.null:
             return None
-        return json.dumps(value)
+        return orjson.dumps(value).decode()
 
     def value_to_string(self, obj):
         return self.get_prep_value(self.value_from_object(obj))

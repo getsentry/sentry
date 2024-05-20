@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 from uuid import uuid4
 
+import orjson
 import pytest
 
 from sentry import buffer
@@ -18,7 +19,6 @@ from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCa
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
-from sentry.utils import json
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
@@ -62,7 +62,7 @@ class ProcessDelayedAlertConditionsTest(
         return {"interval": interval, "id": condition_id, "value": value}
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
-        value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
+        value = orjson.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
         buffer.backend.push_to_hash(
             model=Project,
             filters={"project_id": project_id},

@@ -1,8 +1,8 @@
+import orjson
 from django.utils.functional import cached_property
 
 from sentry.interfaces.base import Interface
 from sentry.security import csp
-from sentry.utils import json
 from sentry.web.helpers import render_to_string
 
 __all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
@@ -173,7 +173,7 @@ class Csp(SecurityReport):
         return super().to_python(data, **kwargs)
 
     def to_string(self, is_public=False, **kwargs):
-        return json.dumps({"csp-report": self.get_api_context()})
+        return orjson.dumps({"csp-report": self.get_api_context()}).decode()
 
     def to_email_html(self, event, **kwargs):
         return render_to_string(
