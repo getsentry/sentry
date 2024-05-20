@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+import orjson
 from django.db.models import Q
 
 from sentry import features
@@ -35,7 +36,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
@@ -613,10 +614,10 @@ def _get_recipients_by_provider(
             "target_type": target_type,
             "target_identifier": target_identifier,
             "notification_uuid": notification_uuid,
-            "teams": json.dumps([team.id for team in teams]),
-            "teams_by_provider": json.dumps(teams_by_provider_dict),
-            "users": json.dumps([user.id for user in users]),
-            "users_by_provider": json.dumps(users_by_provider_dict),
+            "teams": orjson.dumps([team.id for team in teams]).decode(),
+            "teams_by_provider": orjson.dumps(teams_by_provider_dict).decode(),
+            "users": orjson.dumps([user.id for user in users]).decode(),
+            "users_by_provider": orjson.dumps(users_by_provider_dict).decode(),
         }
         logger.info("sentry.notifications.recipients_by_provider", extra=extra)
     except Exception as e:

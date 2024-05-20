@@ -1,4 +1,5 @@
-from sentry.utils import json
+import orjson
+
 from sentry.utils.redis import get_cluster_from_options, get_cluster_routing_client, redis_clusters
 
 from .base import BaseCache
@@ -25,7 +26,7 @@ class CommonRedisCache(BaseCache):
 
     def set(self, key, value, timeout, version=None, raw=False):
         key = self.make_key(key, version=version)
-        v = json.dumps(value) if not raw else value
+        v = orjson.dumps(value).decode() if not raw else value
         if len(v) > self.max_size:
             raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
         if timeout:
@@ -45,7 +46,7 @@ class CommonRedisCache(BaseCache):
         key = self.make_key(key, version=version)
         result = self._client(raw=raw).get(key)
         if result is not None and not raw:
-            result = json.loads(result)
+            result = orjson.loads(result)
 
         self._mark_transaction("get")
 

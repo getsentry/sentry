@@ -9,11 +9,10 @@ from typing import Any
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID, uuid4
 
+import orjson
 import petname
 from dateutil.parser import parse as parse_datetime
 from django.utils.text import slugify
-
-from sentry.utils import json
 
 UPPER_CASE_HEX = {"A", "B", "C", "D", "E", "F"}
 UPPER_CASE_NON_HEX = {
@@ -89,14 +88,14 @@ class SanitizableField:
     model: NormalizedModelName
     field: str
 
-    def validate_json_model(self, json: Any) -> None:
+    def validate_json_model(self, obj: Any) -> None:
         """
         Validates the JSON model is shaped the way we expect a serialized Django model to be,
         and that we have the right kind of model for this `SanitizableField`. Raises errors if there
         is a validation failure.
         """
 
-        model_name = json.get("model", None)
+        model_name = obj.get("model", None)
         if model_name is None:
             raise InvalidJSONError(
                 "JSON is not properly formatted, must be a serialized Django model"
@@ -106,12 +105,12 @@ class SanitizableField:
         return None
 
 
-def _get_field_value(json: Any, field: SanitizableField) -> Any | None:
-    return json.get("fields", {}).get(field.field, None)
+def _get_field_value(obj: Any, field: SanitizableField) -> Any | None:
+    return obj.get("fields", {}).get(field.field, None)
 
 
-def _set_field_value(json: Any, field: SanitizableField, value: Any) -> Any:
-    json.get("fields", {})[field.field] = value
+def _set_field_value(obj: Any, field: SanitizableField, value: Any) -> Any:
+    obj.get("fields", {})[field.field] = value
     return value
 
 
@@ -291,12 +290,12 @@ class Sanitizer:
         `set_json()` is the preferred method for doing so.
         """
 
-        old_serialized = json.dumps(old_json)
+        old_serialized = orjson.dumps(old_json).decode()
         interned = self.interned_strings.get(old_serialized)
         if interned is not None:
-            return json.loads(interned)
+            return orjson.loads(interned)
 
-        new_serialized = json.dumps(new_json)
+        new_serialized = orjson.dumps(new_json).decode()
         self.interned_strings[old_serialized] = new_serialized
         return new_json
 

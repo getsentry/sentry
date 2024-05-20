@@ -1,9 +1,9 @@
 import ast
 
+import orjson
 from django.db import models
 
 from sentry.db.models.utils import Creator
-from sentry.utils import json
 
 
 # Adapted from django-pgfields
@@ -54,8 +54,8 @@ class ArrayField(models.Field):
             value = []
         if isinstance(value, str):
             try:
-                value = json.loads(value)
-            except json.JSONDecodeError:
+                value = orjson.loads(value)
+            except orjson.JSONDecodeError:
                 # This is to accommodate the erroneous exports pre 21.4.0
                 # See getsentry/sentry#23843 for more details
                 try:
