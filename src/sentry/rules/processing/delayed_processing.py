@@ -294,7 +294,9 @@ def get_group_to_groupevent(
 
 def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
-        fetch_time = datetime.now(tz=timezone.utc)
+        # TODO: put this back once we've debugged not fetching at all
+        # fetch_time = datetime.now(tz=timezone.utc)
+        # PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
         project_ids = buffer.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, min=float("-inf"), max=float("+inf")
         )
@@ -306,7 +308,8 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
         for project_id, _ in project_ids:
             apply_delayed.delay(project_id)
 
-        buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
+        # TODO: put this back once we've debugged not fetching at all
+        # buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
 
 @instrumented_task(
