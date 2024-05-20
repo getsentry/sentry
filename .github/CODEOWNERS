@@ -174,7 +174,19 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
+<<<<<<< HEAD
 /tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
+=======
+/src/sentry/api/endpoints/notification_defaults.py                          @getsentry/alerts-notifications
+/src/sentry/api/endpoints/broadcast_details.py                              @getsentry/alerts-notifications
+/src/sentry/api/endpoints/broadcast_index.py                                @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_email.py                        @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_options_detail.py      @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_options.py             @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_providers.py           @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_details.py                      @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_subscriptions.py                             @getsentry/alerts-notifications
+>>>>>>> 14d24115b48 (chore(apis): Update ownership from issues to alerts & notifications)
 ## Endof Alerts & Notifications
 
 

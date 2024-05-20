@@ -26,7 +26,7 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserSubscriptionsEndpoint(UserEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
