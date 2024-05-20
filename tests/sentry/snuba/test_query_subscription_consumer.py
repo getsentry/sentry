@@ -87,7 +87,6 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         topic_defn = get_topic_definition(Topic.EVENTS)
         cluster_options = kafka_config.get_kafka_admin_cluster_options("default")
         admin_client = AdminClient(cluster_options)
-        result = admin_client.list_topics()
         create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
         registration_key = "registered_test_2"
