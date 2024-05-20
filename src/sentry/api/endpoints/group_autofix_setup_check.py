@@ -17,7 +17,7 @@ from sentry.api.helpers.autofix import (
     AutofixCodebaseIndexingStatus,
     get_project_codebase_indexing_status,
 )
-from sentry.api.helpers.repos import get_repos_from_project_code_mappings
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -63,7 +63,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
 
     Returns a list of repos with the "ok" key set to True if we have write access, False otherwise.
     """
-    repos = get_repos_from_project_code_mappings(project)
+    repos = get_autofix_repos_from_project_code_mappings(project)
 
     repos_and_access: list[dict] = []
     for repo in repos:
