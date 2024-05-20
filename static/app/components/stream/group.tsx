@@ -511,10 +511,18 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper>{groupCount}</EventCountsWrapper>
+            <EventCountsWrapper
+              leftMargin={
+                organization.features.includes('issue-stream-new-events-graph')
+                  ? space(0)
+                  : space(2)
+              }
+            >
+              {groupCount}
+            </EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
-            <EventUsersCountsWrapper>{groupUsersCount}</EventUsersCountsWrapper>
+            <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
           {organization.features.includes('issue-priority-ui') &&
           withColumns.includes('priority') ? (
@@ -666,25 +674,13 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   }
 `;
 
-const EventCountsWrapper = styled('div')`
+const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   display: flex;
   justify-content: flex-end;
   align-self: center;
   width: 60px;
   margin: 0 ${space(2)};
-  margin-left: ${space(0)};
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    width: 80px;
-  }
-`;
-
-const EventUsersCountsWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-self: center;
-  width: 60px;
-  margin: 0 ${space(2)};
+  margin-left: ${p => p.leftMargin ?? space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
