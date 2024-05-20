@@ -2,10 +2,10 @@ import abc
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+import orjson
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from sentry.utils import json
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -35,5 +35,5 @@ class PipelineView(BaseView, abc.ABC):
         return render_to_response(
             template="sentry/bases/react_pipeline.html",
             request=request,
-            context={"pipelineName": pipeline_name, "props": json.dumps(props)},
+            context={"pipelineName": pipeline_name, "props": orjson.dumps(props).decode()},
         )
