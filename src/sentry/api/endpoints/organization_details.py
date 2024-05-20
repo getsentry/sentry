@@ -37,8 +37,10 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
+    METRIC_ALERTS_THREAD_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -176,6 +178,18 @@ ORG_OPTIONS = (
     ),
     ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
     ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
+    (
+        "issueAlertsThreadFlag",
+        "sentry:issue_alerts_thread_flag",
+        bool,
+        ISSUE_ALERTS_THREAD_DEFAULT,
+    ),
+    (
+        "metricAlertsThreadFlag",
+        "sentry:metric_alerts_thread_flag",
+        bool,
+        METRIC_ALERTS_THREAD_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
