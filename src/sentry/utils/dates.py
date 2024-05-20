@@ -86,7 +86,14 @@ def parse_timestamp(value: Any) -> datetime | None:
     if not value:
         return None
     try:
+        # Attempt to decode without timezone
         rv = datetime.strptime(value[0].decode("ascii"), "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        # Fallback to decoding with timezone as a ISO8610 string
+        try:
+            rv = datetime.fromisoformat(value[0].decode("ascii"))
+        except Exception:
+            return None
     except Exception:
         return None
     if len(value) == 2:
