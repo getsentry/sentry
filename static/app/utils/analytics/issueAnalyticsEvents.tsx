@@ -1,6 +1,7 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {IntegrationType, PriorityLevel} from 'sentry/types';
+import type {PriorityLevel} from 'sentry/types/group';
+import type {IntegrationType} from 'sentry/types/integrations';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
