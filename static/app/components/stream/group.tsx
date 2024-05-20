@@ -11,8 +11,8 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import {Button} from 'sentry/components/button';
+import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
