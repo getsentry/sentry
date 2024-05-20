@@ -7,12 +7,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.configurations.storage import make_storage
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 
 
 class ConfigurationValidator(Serializer):
-    id = serializers.IntegerField(read_only=True)
+    id = serializers.UUIDField(read_only=True)
     sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     traces_sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     user_config = serializers.JSONField(required=True)
@@ -32,14 +34,26 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project: Project) -> Response:
+    def convert_args(self, request: Request, key_id: str, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        project = kwargs["project"]
+
+        try:
+            key = ProjectKey.objects.for_request(request).get(project=project, public_key=key_id)
+        except ProjectKey.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        kwargs["key"] = key
+        return args, kwargs
+
+    def get(self, request: Request, project: Project, key: ProjectKey) -> Response:
         """Get remote configuration from project options."""
-        remote_config = make_storage(project).get()
+        remote_config = make_storage(key).get()
         if remote_config is None:
             return Response("Not found.", status=404)
         return Response({"data": remote_config}, status=200)
 
-    def post(self, request: Request, project: Project) -> Response:
+    def post(self, request: Request, project: Project, key: ProjectKey) -> Response:
         """Set remote configuration in project options."""
         validator = ConfigurationContainerValidator(data=request.data)
         if not validator.is_valid():
@@ -48,12 +62,12 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
         result = validator.validated_data["data"]
 
         # Propagate config to Relay.
-        make_storage(project).set(result)
+        make_storage(key).set(result)
 
-        result["id"] = project.id
+        result["id"] = key.public_key
         return Response({"data": result}, status=201)
 
-    def delete(self, request: Request, project: Project) -> Response:
+    def delete(self, request: Request, project: Project, key: ProjectKey) -> Response:
         """Delete remote configuration from project options."""
-        make_storage(project).pop()
+        make_storage(key).pop()
         return Response("", status=204)

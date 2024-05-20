@@ -3,7 +3,7 @@ from typing import TypedDict
 
 from sentry import options
 from sentry.models.files.utils import get_storage
-from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.utils import json
 
 JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]
@@ -28,9 +28,9 @@ class APIFormat(TypedDict):
 
 
 class StorageBackend:
-    def __init__(self, project: Project) -> None:
-        self.driver = BlobDriver(project)
-        self.project = project
+    def __init__(self, key: ProjectKey) -> None:
+        self.driver = BlobDriver(key)
+        self.key = key
 
     def get(self) -> APIFormat | None:
         result = self.driver.get()
@@ -45,7 +45,7 @@ class StorageBackend:
 
     def _deserialize(self, result: StorageFormat) -> APIFormat:
         return {
-            "id": self.project.id,
+            "id": self.key.public_key,
             "sample_rate": result["options"]["sample_rate"],
             "traces_sample_rate": result["options"]["traces_sample_rate"],
             "user_config": result["options"]["user_config"],
@@ -63,12 +63,14 @@ class StorageBackend:
 
 
 class BlobDriver:
-    def __init__(self, project: Project) -> None:
-        self.project = project
+    def __init__(self, project_key: ProjectKey) -> None:
+        self.project_key = project_key
 
     @property
     def key(self):
-        return f"configurations/{self.project.id}/production"
+        return (
+            f"configurations/{self.project_key.project_id}/{self.project_key.public_key}/production"
+        )
 
     @property
     def storage(self):
@@ -105,5 +107,5 @@ class BlobDriver:
             return None
 
 
-def make_storage(project):
-    return StorageBackend(project)
+def make_storage(key: ProjectKey):
+    return StorageBackend(key)

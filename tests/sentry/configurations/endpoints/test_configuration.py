@@ -10,16 +10,20 @@ class ConfiguratioAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug))
+        # self.key = ProjectKey.objects.get_or_create(project=self.project)[0]
+        self.url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, self.projectkey.public_key),
+        )
 
     @property
     def storage(self):
-        return StorageBackend(self.project)
+        return StorageBackend(self.projectkey)
 
     def test_get_configuration(self):
         self.storage.set(
             {
-                "id": 1,
+                "id": self.projectkey.public_key,
                 "sample_rate": 0.5,
                 "traces_sample_rate": 0,
                 "user_config": {"abc": "def"},
@@ -30,7 +34,7 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 200
         assert response.json() == {
             "data": {
-                "id": self.project.id,
+                "id": self.projectkey.public_key,
                 "sample_rate": 0.5,
                 "traces_sample_rate": 0,
                 "user_config": {"abc": "def"},
@@ -58,7 +62,7 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 201, response.content
         assert response.json() == {
             "data": {
-                "id": self.project.id,
+                "id": self.projectkey.public_key,
                 "sample_rate": 1.0,
                 "traces_sample_rate": 0.2,
                 "user_config": {
@@ -86,7 +90,12 @@ class ConfiguratioAPITestCase(APITestCase):
 
     def test_delete_configuration(self):
         self.storage.set(
-            {"id": 1, "sample_rate": 1.0, "traces_sample_rate": 1.0, "user_config": None}
+            {
+                "id": self.projectkey.public_key,
+                "sample_rate": 1.0,
+                "traces_sample_rate": 1.0,
+                "user_config": None,
+            }
         )
         assert self.storage.get() is not None
 

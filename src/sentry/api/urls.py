@@ -2318,7 +2318,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-associate-dsym-files",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/configuration/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/configuration/$",
         ProjectConfigurationEndpoint.as_view(),
         name="sentry-api-0-project-configuration",
     ),
