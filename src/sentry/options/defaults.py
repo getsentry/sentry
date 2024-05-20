@@ -2528,3 +2528,11 @@ register(
 register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+
+
+register(
+    "sentry.save_event_attachments.project-per-5-minute-limit",
+    type=int,
+    default=20000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

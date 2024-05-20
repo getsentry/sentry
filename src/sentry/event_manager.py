@@ -2710,7 +2710,10 @@ def save_attachment(
     from sentry import ratelimits as ratelimiter
 
     is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
-        key="event_attachment.save", limit=10000, project=project, window=300
+        key="event_attachment.save",
+        limit=features.get("sentry.save_event_attachments.project-per-5-minute-limit"),
+        project=project,
+        window=60,
     )
     if is_limited:
         track_outcome(
