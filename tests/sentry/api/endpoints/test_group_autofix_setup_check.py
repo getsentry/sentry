@@ -59,10 +59,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "subprocessorConsent": {
-                "ok": True,
-                "reason": None,
-            },
             "genAIConsent": {
                 "ok": True,
                 "reason": None,
