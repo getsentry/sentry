@@ -14,9 +14,9 @@ field, check OAuthBackend class for details on how to extend it.
 from urllib.error import HTTPError
 from urllib.request import Request
 
+import orjson
 from django.conf import settings
 
-from sentry.utils import json
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
 from social_auth.utils import dsa_urlopen
@@ -46,7 +46,7 @@ class GithubBackend(OAuthBackend):
         )
 
         try:
-            data = json.load(dsa_urlopen(req))
+            data = orjson.loads(dsa_urlopen(req).read())
         except (ValueError, HTTPError):
             data = []
         return data
@@ -93,7 +93,7 @@ class GithubAuth(BaseOAuth2):
         req = Request(GITHUB_USER_DATA_URL, headers={"Authorization": "token %s" % access_token})
 
         try:
-            data = json.load(dsa_urlopen(req))
+            data = orjson.loads(dsa_urlopen(req).read())
         except ValueError:
             data = None
 

@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.conf import settings
 from django.test import override_settings
@@ -14,8 +15,8 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
+from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,
@@ -40,7 +41,6 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 pytestmark = [requires_snuba]
@@ -785,7 +785,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             url=url,
             status=status,
             content_type="application/json",
-            body=json.dumps(body),
+            body=orjson.dumps(body).decode(),
         )
 
     def _organization_alert_rule_api_call(

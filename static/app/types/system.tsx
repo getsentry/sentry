@@ -357,7 +357,7 @@ export interface StatusPageIncidentUpdate {
   /**
    * Status of the incident for tihs update
    */
-  status: 'resolved' | 'unresolved';
+  status: 'resolved' | 'monitoring' | 'investigating';
   /**
    * ISO Update update time
    */

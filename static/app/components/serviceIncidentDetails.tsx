@@ -5,6 +5,7 @@ import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
 import {LinkButton} from 'sentry/components/button';
+import {DateTime} from 'sentry/components/dateTime';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
@@ -20,8 +21,13 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {StatuspageIncident, StatusPageServiceStatus} from 'sentry/types';
+import type {
+  StatuspageIncident,
+  StatusPageIncidentUpdate,
+  StatusPageServiceStatus,
+} from 'sentry/types';
 import marked from 'sentry/utils/marked';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 interface Props {
   incident: StatuspageIncident;
@@ -35,6 +41,36 @@ const COMPONENT_STATUS_SORT: StatusPageServiceStatus[] = [
 ];
 
 export function ServiceIncidentDetails({incident}: Props) {
+  const isResolved = incident.status === 'resolved';
+  const start = incident.started_at ?? incident.created_at;
+
+  const affectedText = isResolved
+    ? tct(
+        'From [start] until [end] we experienced problems with the following services',
+        {
+          start: (
+            <strong>
+              <DateTime date={start} />
+            </strong>
+          ),
+          end: (
+            <strong>
+              <DateTime date={incident.resolved_at} />
+            </strong>
+          ),
+        }
+      )
+    : tct(
+        "This incident started [timeAgo]. We're experiencing problems with the following services",
+        {
+          timeAgo: (
+            <strong>
+              <TimeSince date={start} />
+            </strong>
+          ),
+        }
+      );
+
   return (
     <Fragment>
       <Title>{incident.name}</Title>
@@ -48,20 +84,11 @@ export function ServiceIncidentDetails({incident}: Props) {
         {t('Full Incident Details')}
       </LinkButton>
       <AffectedServices>
-        {tct(
-          "This incident started [timeAgo]. We're experiencing the following problems with our services",
-          {
-            timeAgo: (
-              <strong>
-                <TimeSince date={incident.created_at} />
-              </strong>
-            ),
-          }
-        )}
+        {affectedText}
         <ComponentList>
           {sortBy(incident.components, i => COMPONENT_STATUS_SORT.indexOf(i.status)).map(
             ({name, status}, key) => (
-              <ComponentStatus key={key} padding="24px" symbol={getStatusSymbol(status)}>
+              <ComponentStatus key={key} padding="20px" symbol={getStatusSymbol(status)}>
                 {name}
               </ComponentStatus>
             )
@@ -70,12 +97,18 @@ export function ServiceIncidentDetails({incident}: Props) {
       </AffectedServices>
 
       <UpdatesList>
-        {incident.incident_updates.map(({status, body, updated_at}, key) => (
+        {incident.incident_updates.map(({status, body, display_at, created_at}, key) => (
           <ListItem key={key}>
-            <UpdateHeading>
+            <UpdateHeading status={status}>
               <StatusTitle>{startCase(status)}</StatusTitle>
               <StatusDate>
-                {tct('([time])', {time: <TimeSince date={updated_at} />})}
+                {tct('([time])', {
+                  time: isResolved ? (
+                    <DateTime date={display_at ?? created_at} />
+                  ) : (
+                    <TimeSince date={display_at ?? created_at} />
+                  ),
+                })}
               </StatusDate>
             </UpdateHeading>
             <Text dangerouslySetInnerHTML={{__html: marked(body)}} />
@@ -144,7 +177,15 @@ const UpdatesList = styled(List)`
   }
 `;
 
-const UpdateHeading = styled('div')`
+type UpdateStatus = StatusPageIncidentUpdate['status'];
+
+const indicatorColor: Record<UpdateStatus, ColorOrAlias> = {
+  investigating: 'red200',
+  monitoring: 'yellow200',
+  resolved: 'green200',
+};
+
+const UpdateHeading = styled('div')<{status: UpdateStatus}>`
   margin-bottom: ${space(0.5)};
   display: flex;
   align-items: center;
@@ -159,7 +200,7 @@ const UpdateHeading = styled('div')`
     width: 8px;
     margin-left: -15px;
     border-radius: 50%;
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme[indicatorColor[p.status]]};
   }
 `;
 

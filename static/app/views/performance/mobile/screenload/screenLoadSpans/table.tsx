@@ -39,7 +39,7 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import {useScreenLoadsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -67,7 +67,7 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
   project,
 }: Props) {
-  const moduleURL = useScreenLoadsModuleURL();
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();

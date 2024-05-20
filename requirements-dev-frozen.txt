@@ -183,7 +183,7 @@ sentry-forked-djangorestframework-stubs==3.15.0.post1
 sentry-kafka-schemas==0.1.81
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.64
+sentry-relay==0.8.66
 sentry-sdk==2.2.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6

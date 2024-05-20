@@ -103,7 +103,11 @@ export function CronTimelineSection({event, organization, project}: Props) {
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
         <StyledGridLineTimeLabels timeWindowConfig={timeWindowConfig} />
-        <GridLineOverlay showCursor={!isLoading} timeWindowConfig={timeWindowConfig} />
+        <GridLineOverlay
+          timeWindowConfig={timeWindowConfig}
+          showCursor={!isLoading}
+          showIncidents={!isLoading}
+        />
         {monitorStats && !isLoading ? (
           <Fragment>
             <EventLineTick left={eventTickLeft} />

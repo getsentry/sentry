@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -15,7 +16,6 @@ from sentry.api.base import Endpoint, control_silo_endpoint, region_silo_endpoin
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.types.region import Region, RegionCategory
-from sentry.utils import json
 
 
 @control_silo_endpoint
@@ -79,11 +79,11 @@ def verify_request_body(body, headers):
 
     def request_callback(request):
         if request.headers.get("content-type") == "application/json":
-            assert json.load(request.body) == body
+            assert orjson.loads(request.body.read()) == body
         else:
             assert request.body.read() == body
         assert (request.headers[key] == headers[key] for key in headers)
-        return 200, {}, json.dumps({"proxy": True})
+        return 200, {}, orjson.dumps({"proxy": True}).decode()
 
     return request_callback
 
@@ -93,7 +93,7 @@ def verify_request_headers(headers):
 
     def request_callback(request):
         assert (request.headers[key] == headers[key] for key in headers)
-        return 200, {}, json.dumps({"proxy": True})
+        return 200, {}, orjson.dumps({"proxy": True}).decode()
 
     return request_callback
 
@@ -110,7 +110,7 @@ def verify_request_params(params, headers):
                 assert request_params[key] == params[key]
             else:
                 assert request_params[key][0] == params[key]
-        return 200, {}, json.dumps({"proxy": True})
+        return 200, {}, orjson.dumps({"proxy": True}).decode()
 
     return request_callback
 
@@ -121,7 +121,7 @@ def verify_file_body(file_body, headers):
     def request_callback(request):
         assert file_body in request.body.read()
         assert (request.headers[key] == headers[key] for key in headers)
-        return 200, {}, json.dumps({"proxy": True})
+        return 200, {}, orjson.dumps({"proxy": True}).decode()
 
     return request_callback
 
@@ -150,14 +150,14 @@ class ApiGatewayTestCase(APITestCase):
         responses.add(
             responses.GET,
             f"{self.REGION.address}/get",
-            body=json.dumps({"proxy": True}),
+            body=orjson.dumps({"proxy": True}).decode(),
             content_type="application/json",
             adding_headers={"test": "header"},
         )
         responses.add(
             responses.GET,
             f"{self.REGION.address}/error",
-            body=json.dumps({"proxy": True}),
+            body=orjson.dumps({"proxy": True}).decode(),
             status=400,
             content_type="application/json",
             adding_headers={"test": "header"},
@@ -167,12 +167,12 @@ class ApiGatewayTestCase(APITestCase):
 
         # Echos the request body and header back for verification
         def return_request_body(request):
-            return (200, request.headers, request.body)
+            return 200, request.headers, request.body
 
         # Echos the query params and header back for verification
         def return_request_params(request):
             params = parse_qs(request.url.split("?")[1])
-            return (200, request.headers, json.dumps(params).encode())
+            return 200, request.headers, orjson.dumps(params)
 
         responses.add_callback(responses.GET, f"{self.REGION.address}/echo", return_request_params)
         responses.add_callback(responses.POST, f"{self.REGION.address}/echo", return_request_body)
