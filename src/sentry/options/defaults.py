@@ -2533,7 +2533,7 @@ register(
 register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
     type=Int,
-    default=20000,
+    default=20000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
