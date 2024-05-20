@@ -50,7 +50,9 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
 
   return (
     <GroupExtra>
-      <GroupStatusBadge status={status} substatus={substatus} />
+      {!organization.features.includes('issue-stream-new-events-graph') && (
+        <GroupStatusBadge status={status} substatus={substatus} />
+      )}
       {shortId && (
         <InboxShortId
           shortId={shortId}

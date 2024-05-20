@@ -23,6 +23,7 @@ type Props = {
   stats: ReadonlyArray<TimeseriesValue>;
   groupStatus?: string;
   height?: number;
+  hideZeros?: boolean;
   secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
@@ -32,6 +33,7 @@ function GroupStatusChart({
   stats,
   groupStatus,
   height = 24,
+  hideZeros = false,
   secondaryStats = EMPTY_STATS,
   showMarkLine = false,
   showSecondaryPoints = false,
@@ -62,6 +64,7 @@ function GroupStatusChart({
 
       return {colors: undefined, emphasisColors: undefined, series};
     }
+
     const series: Series[] = [
       {
         seriesName: t('Events'),
@@ -85,6 +88,7 @@ function GroupStatusChart({
                 label: {
                   show: true,
                   position: 'end',
+                  opacity: 1,
                   color: `${theme.gray300}`,
                   fontFamily: 'Rubik',
                   fontSize: 10,
@@ -94,7 +98,7 @@ function GroupStatusChart({
             : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
+    return {colors: [theme.gray300], emphasisColors: [theme.gray300], series};
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
@@ -103,6 +107,7 @@ function GroupStatusChart({
         <MiniBarChart
           animateBars
           showXAxisLine
+          hideZeros={hideZeros}
           markLineLabelSide="right"
           barOpacity={0.4}
           height={showMarkLine ? 36 : height}
@@ -113,7 +118,6 @@ function GroupStatusChart({
           emphasisColors={graphOptions.emphasisColors}
           hideDelay={50}
           showMarkLineLabel={showMarkLine}
-          width={136}
         />
         <GraphText>{groupStatus}</GraphText>
       </ChartWrapper>
@@ -124,8 +128,18 @@ function GroupStatusChart({
 export default GroupStatusChart;
 
 const ChartWrapper = styled('div')`
+  animation: fade-in 0.5s;
   display: flex;
   flex-direction: column;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 100;
+    }
+  }
 `;
 
 const GraphText = styled('div')`
