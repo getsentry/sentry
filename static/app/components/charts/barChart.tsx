@@ -12,15 +12,15 @@ export interface BarChartSeries
     Series {}
 
 export interface BarChartProps extends BaseChartProps {
-  barOpacity: number;
   series: BarChartSeries[];
   animation?: boolean;
+  barOpacity?: number;
   hideZeros?: boolean;
   stacked?: boolean;
 }
 
 export function transformToBarSeries({
-  barOpacity,
+  barOpacity = 0.6,
   series,
   stacked,
   hideZeros = false,
