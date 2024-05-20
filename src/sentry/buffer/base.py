@@ -35,6 +35,7 @@ class Buffer(Service):
         "get_sorted_set",
         "get_hash",
         "delete_hash",
+        "delete_key",
     )
 
     def get(
@@ -74,6 +75,9 @@ class Buffer(Service):
         filters: dict[str, models.Model | str | int],
         fields: list[str],
     ) -> None:
+        return None
+
+    def delete_key(self, key: str, min: float, max: float) -> None:
         return None
 
     def incr(

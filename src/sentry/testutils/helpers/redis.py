@@ -20,6 +20,8 @@ def mock_redis_buffer():
         "sentry.buffer.delete_hash", new=buffer.delete_hash
     ), patch(
         "sentry.buffer.get_sorted_set", new=buffer.get_sorted_set
+    ), patch(
+        "sentry.buffer.delete_key", new=buffer.delete_key
     ):
         yield buffer
 
