@@ -61,7 +61,6 @@ class ProcessDelayedAlertConditionsTest(
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
         return {"interval": interval, "id": condition_id, "value": value}
 
-    @mock_redis_buffer()
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
         buffer.push_to_hash(
@@ -71,14 +70,15 @@ class ProcessDelayedAlertConditionsTest(
             value=value,
         )
 
-    @mock_redis_buffer()
     def assert_buffer_cleared(self, project_id):
         rule_group_data = buffer.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 
-    @mock_redis_buffer()
     def setUp(self):
         super().setUp()
+        self.mock_redis_buffer = mock_redis_buffer()
+        self.mock_redis_buffer.__enter__()
+
         self.event_frequency_condition = self.create_event_frequency_condition()
         self.event_frequency_condition2 = self.create_event_frequency_condition(value=2)
         self.event_frequency_condition3 = self.create_event_frequency_condition(
@@ -159,7 +159,9 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
         self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
 
-    @mock_redis_buffer()
+    def tearDown(self):
+        self.mock_redis_buffer.__exit__(None, None, None)
+
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
         # To get the correct mapping, we need to return the correct
@@ -177,7 +179,6 @@ class ProcessDelayedAlertConditionsTest(
         )
         assert project_ids == []
 
-    @mock_redis_buffer()
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_apply_delayed_rules_to_fire(self):
         """
@@ -216,7 +217,6 @@ class ProcessDelayedAlertConditionsTest(
         rule_group_data = buffer.get_hash(Project, {"project_id": self.project_two.id})
         assert rule_group_data == {}
 
-    @mock_redis_buffer()
     def test_apply_delayed_issue_platform_event(self):
         """
         Test that we fire rules triggered from issue platform events
@@ -259,7 +259,6 @@ class ProcessDelayedAlertConditionsTest(
         assert (rule5.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @mock_redis_buffer()
     def test_apply_delayed_snoozed_rule(self):
         """
         Test that we do not fire a rule that's been snoozed (aka muted)
@@ -291,7 +290,6 @@ class ProcessDelayedAlertConditionsTest(
         assert len(rule_fire_histories) == 0
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @mock_redis_buffer()
     def test_apply_delayed_same_condition_diff_value(self):
         """
         Test that two rules with the same condition and interval but a different value are both fired
@@ -325,7 +323,6 @@ class ProcessDelayedAlertConditionsTest(
         assert (rule5.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @mock_redis_buffer()
     def test_apply_delayed_same_condition_diff_interval(self):
         """
         Test that two rules with the same condition and value but a different interval are both fired
@@ -357,7 +354,6 @@ class ProcessDelayedAlertConditionsTest(
         assert (diff_interval_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @mock_redis_buffer()
     def test_apply_delayed_same_condition_diff_env(self):
         """
         Test that two rules with the same condition, value, and interval but different environment are both fired
@@ -390,7 +386,6 @@ class ProcessDelayedAlertConditionsTest(
         assert (diff_env_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @mock_redis_buffer()
     def test_apply_delayed_two_rules_one_fires(self):
         """
         Test that with two rules in one project where one rule hasn't met the trigger threshold, only one is fired
@@ -428,7 +423,6 @@ class ProcessDelayedAlertConditionsTest(
         assert (self.rule1.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @mock_redis_buffer()
     def test_apply_delayed_action_match_all(self):
         """
         Test that a rule with multiple conditions and an action match of 'all' is fired
