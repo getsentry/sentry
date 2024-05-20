@@ -1,12 +1,12 @@
 from functools import cached_property
 from unittest.mock import patch
 
-import orjson
 from django.test import RequestFactory
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class HealthCheckTest(TestCase):
@@ -36,7 +36,7 @@ class HealthCheckTest(TestCase):
         req = self.factory.get("/_health/?full")
         resp = self.middleware.process_request(req)
         assert resp.status_code == 200, resp
-        body = orjson.loads(resp.content)
+        body = json.loads(resp.content)
         assert "problems" in body
         assert "healthy" in body
         assert check_all.call_count == 1
@@ -47,7 +47,7 @@ class HealthCheckTest(TestCase):
         req = self.factory.get("/_health/?full")
         resp = self.middleware.process_request(req)
         assert resp.status_code == 500, resp
-        body = orjson.loads(resp.content)
+        body = json.loads(resp.content)
         assert "problems" in body
         assert "healthy" in body
         assert check_all.call_count == 1

@@ -1,9 +1,9 @@
-import orjson
 from django.core.exceptions import ValidationError
 from django.db.models import TextField
 from django.utils.encoding import smart_str
 
 from sentry.db.models.utils import Creator
+from sentry.utils import json
 
 
 class JSONField(TextField):
@@ -28,8 +28,8 @@ class JSONField(TextField):
             return None
         if isinstance(value, str):
             try:
-                return orjson.loads(value)
-            except orjson.JSONDecodeError as e:
+                return json.loads(value)
+            except Exception as e:
                 raise ValidationError(str(e))
         else:
             return value
@@ -40,15 +40,15 @@ class JSONField(TextField):
         if isinstance(value, str):
             super().validate(value, model_instance)
             try:
-                orjson.loads(value)
-            except orjson.JSONDecodeError as e:
+                json.loads(value)
+            except Exception as e:
                 raise ValidationError(str(e))
 
-    def get_prep_value(self, value) -> str:
+    def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
-            return orjson.dumps(value).decode()
-        except orjson.JSONEncodeError as e:
+            return json.dumps(value)
+        except Exception as e:
             raise ValidationError(str(e))
 
     def value_to_string(self, obj):

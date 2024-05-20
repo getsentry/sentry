@@ -10,7 +10,6 @@ from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-import orjson
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -103,6 +102,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
+from sentry.utils import json
 
 __all__ = [
     "export_to_file",
@@ -153,8 +153,8 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
-    with open(json_file_path, "rb") as tmp_file:
-        output = orjson.loads(tmp_file.read())
+    with open(json_file_path) as tmp_file:
+        output = json.load(tmp_file)
     return output
 
 
@@ -224,7 +224,7 @@ def export_to_encrypted_tarball(
     # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
     # present and contain the data we expect.
     with open(tar_file_path, "rb") as f:
-        return orjson.loads(
+        return json.loads(
             decrypt_encrypted_tarball(f, LocalFileDecryptor.from_bytes(private_key_pem))
         )
 
@@ -682,40 +682,32 @@ class BackupTestCase(TransactionTestCase):
 
     @cached_property
     def _json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
-        with open(
-            get_fixture_path("backup", "user-with-maximum-privileges.json"), "rb"
-        ) as backup_file:
-            return orjson.loads(backup_file.read())
+        with open(get_fixture_path("backup", "user-with-maximum-privileges.json")) as backup_file:
+            return json.load(backup_file)
 
     def json_of_exhaustive_user_with_maximum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_maximum_privileges)
 
     @cached_property
     def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
-        with open(
-            get_fixture_path("backup", "user-with-minimum-privileges.json"), "rb"
-        ) as backup_file:
-            return orjson.loads(backup_file.read())
+        with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
+            return json.load(backup_file)
 
     def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
     @cached_property
     def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
-        with open(
-            get_fixture_path("backup", "user-with-roles-no-superadmin.json"), "rb"
-        ) as backup_file:
-            return orjson.loads(backup_file.read())
+        with open(get_fixture_path("backup", "user-with-roles-no-superadmin.json")) as backup_file:
+            return json.load(backup_file)
 
     def json_of_exhaustive_user_with_roles_no_superadmin(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_roles_no_superadmin)
 
     @cached_property
     def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
-        with open(
-            get_fixture_path("backup", "user-with-superadmin-no-roles.json"), "rb"
-        ) as backup_file:
-            return orjson.loads(backup_file.read())
+        with open(get_fixture_path("backup", "user-with-superadmin-no-roles.json")) as backup_file:
+            return json.load(backup_file)
 
     def json_of_exhaustive_user_with_superadmin_no_roles(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_superadmin_no_roles)
@@ -767,5 +759,5 @@ class BackupTestCase(TransactionTestCase):
         """
 
         data = self.generate_tmp_users_json()
-        with open(tmp_path, "wb+") as tmp_file:
-            tmp_file.write(orjson.dumps(data))
+        with open(tmp_path, "w+") as tmp_file:
+            json.dump(data, tmp_file)

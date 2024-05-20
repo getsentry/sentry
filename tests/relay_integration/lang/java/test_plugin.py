@@ -2,7 +2,6 @@ import zipfile
 from io import BytesIO
 from uuid import uuid4
 
-import orjson
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -14,6 +13,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
+from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\
@@ -1026,7 +1026,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         with zipfile.ZipFile(file_like, "a") as zip:
             for path, contents in source_files.items():
                 zip.writestr(f"files/_/_/{path}", contents)
-            zip.writestr("manifest.json", orjson.dumps(manifest).decode())
+            zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
         file = File.objects.create(

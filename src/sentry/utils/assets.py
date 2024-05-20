@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import os.path
 
-import orjson
 from cachetools.func import ttl_cache
 from django.conf import settings
+
+from sentry.utils import json
 
 
 @ttl_cache(ttl=60)
 def _frontend_versions() -> dict[str, str]:
     try:
         with open(
-            os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json"), "rb"
+            os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json")
         ) as f:
-            return orjson.loads(f.read())  # getsentry path
+            return json.load(f)  # getsentry path
     except OSError:
         return {}  # common case for self-hosted
 

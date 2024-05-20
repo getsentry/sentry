@@ -5,11 +5,12 @@ from collections.abc import Mapping
 from typing import Any, Protocol
 from urllib.parse import urlparse
 
-import orjson
 from bs4 import BeautifulSoup
 from requests import Response
 from requests.adapters import RetryError
 from requests.exceptions import RequestException
+
+from sentry.utils import json
 
 __all__ = (
     "ApiConnectionResetError",
@@ -52,8 +53,8 @@ class ApiError(Exception):
         # TODO(dcramer): pull in XML support from Jira
         if text:
             try:
-                self.json = orjson.loads(text)
-            except orjson.JSONDecodeError:
+                self.json = json.loads(text)
+            except (json.JSONDecodeError, ValueError):
                 if self.text[:5] == "<?xml":
                     # perhaps it's XML?
                     self.xml = BeautifulSoup(self.text, "xml")

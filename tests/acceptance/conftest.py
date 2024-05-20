@@ -3,7 +3,7 @@ import subprocess
 import sys
 import time
 
-import orjson
+from sentry.utils import json
 
 
 def pytest_configure(config):
@@ -21,8 +21,8 @@ def pytest_configure(config):
         return
 
     try:
-        with open("./.webpack.meta", "rb") as f:
-            data = orjson.loads(f.read())
+        with open("./.webpack.meta") as f:
+            data = json.load(f)
 
             # If built within last hour, do not build again
             last_built = int(time.time()) - data["built"]

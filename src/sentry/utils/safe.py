@@ -2,7 +2,6 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, Union
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import transaction
@@ -10,6 +9,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
 PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
@@ -68,7 +68,7 @@ def trim(
 
     if _depth > max_depth:
         if not isinstance(value, str):
-            value = orjson.dumps(value).decode()
+            value = json.dumps(value)
         return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
@@ -125,8 +125,8 @@ def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
     logger_data = {}
     if should_log:
         logger_data = {
-            "path_searchable": orjson.dumps(data).decode(),
-            "path_arg": orjson.dumps(path).decode(),
+            "path_searchable": json.dumps(data),
+            "path_arg": json.dumps(path),
         }
 
     for p in path:
@@ -136,7 +136,7 @@ def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
             data = data[p]
         else:
             if should_log:
-                logger_data["invalid_path"] = orjson.dumps(p).decode()
+                logger_data["invalid_path"] = json.dumps(p)
                 logger.info("sentry.safe.get_path.invalid_path_section", extra=logger_data)
             return default
 
@@ -144,7 +144,7 @@ def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
         if data is None:
             logger.info("sentry.safe.get_path.iterated_path_is_none", extra=logger_data)
         else:
-            logger_data["iterated_path"] = orjson.dumps(data).decode()
+            logger_data["iterated_path"] = json.dumps(data)
 
     if f and data and isinstance(data, (list, tuple)):
         data = list(filter((lambda x: x is not None) if f is True else f, data))

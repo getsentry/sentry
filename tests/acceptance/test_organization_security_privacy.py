@@ -1,7 +1,6 @@
-import orjson
-
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.utils import json
 
 
 @no_silo_test
@@ -55,7 +54,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.load_organization_helper()
 
     def test_renders_advanced_data_scrubbing_with_rules(self):
-        relayPiiConfig = orjson.dumps(
+        relayPiiConfig = json.dumps(
             {
                 "rules": {
                     "0": {
@@ -66,7 +65,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
                 },
                 "applications": {"password": ["0"], "$message": ["1"]},
             }
-        ).decode()
+        )
         self.org.update_option("sentry:relay_pii_config", relayPiiConfig)
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

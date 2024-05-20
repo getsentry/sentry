@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, overload
 
-import orjson
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
@@ -12,7 +11,7 @@ from redis.client import Pipeline
 from requests.models import Response
 
 from sentry.models.integrations.sentry_app import VALID_EVENTS
-from sentry.utils import redis
+from sentry.utils import json, redis
 
 if TYPE_CHECKING:
     from sentry.models.integrations.sentry_app import SentryApp
@@ -37,13 +36,6 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "alert_rule_action.requested",
     "alert_rule_action.error",
 )
-
-
-# TODO(@anonrig): Remove support for `bytes` JSON values.
-def _orjson_defaults(obj: Any) -> Any:
-    if isinstance(obj, bytes):
-        return obj.decode()
-    raise TypeError
 
 
 class SentryAppWebhookRequestsBuffer:
@@ -71,7 +63,7 @@ class SentryAppWebhookRequestsBuffer:
         Convert the request string stored in Redis to a python dict
         Add the event type to the dict so that the request can be identified correctly
         """
-        request = orjson.loads(redis_request)
+        request = json.loads(redis_request)
         request["event_type"] = event
 
         return request
@@ -84,7 +76,7 @@ class SentryAppWebhookRequestsBuffer:
         This does not execute the pipeline's commands.
         """
 
-        pipeline.lpush(buffer_key, orjson.dumps(item, default=_orjson_defaults).decode())
+        pipeline.lpush(buffer_key, json.dumps(item))
         pipeline.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
@@ -174,16 +166,16 @@ class SentryAppWebhookRequestsBuffer:
             if response is not None:
                 if response.content is not None:
                     try:
-                        orjson.loads(response.content)
+                        json.loads(response.content)
                         # if the type is jsonifiable, treat it as such
-                        prettified_response_body = orjson.dumps(response.content).decode()
+                        prettified_response_body = json.dumps(response.content)
                         request_data["response_body"] = prettified_response_body[:MAX_SIZE]
-                    except (orjson.JSONDecodeError, TypeError):
+                    except (json.JSONDecodeError, TypeError):
                         request_data["response_body"] = response.content[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
                     if request_body is not None:
-                        prettified_request_body = orjson.dumps(request_body).decode()
+                        prettified_request_body = json.dumps(request_body)
                         request_data["request_body"] = prettified_request_body[:MAX_SIZE]
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway

@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-import orjson
 import responses
 from django.test import RequestFactory
 from django.urls import reverse
@@ -16,6 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
+from sentry.utils import json
 
 
 @control_silo_test
@@ -29,7 +29,7 @@ class AsyncSlackResponseTest(TestCase):
         super().setUp()
         self.response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         slack_payload = {"team_id": "TXXXXXXX1", "response_url": self.response_url}
-        data = {"payload": orjson.dumps(slack_payload).decode()}
+        data = {"payload": json.dumps(slack_payload)}
         action_request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
         self.payload = create_async_request_payload(action_request)
 
