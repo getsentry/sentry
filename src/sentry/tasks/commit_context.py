@@ -93,12 +93,16 @@ def queue_comment_task_if_needed(
     merge_commit_sha = response[0]["merge_commit_sha"]
 
     # get first PR that merged the commit
-    pr_query = PullRequest.objects.filter(
-        organization_id=commit.organization_id,
-        repository_id=commit.repository_id,
-        merge_commit_sha=merge_commit_sha,
-    ).order_by("date_added")
-    if not pr_query.exists():
+    pr = (
+        PullRequest.objects.filter(
+            organization_id=commit.organization_id,
+            repository_id=commit.repository_id,
+            merge_commit_sha=merge_commit_sha,
+        )
+        .order_by("date_added")
+        .first()
+    )
+    if not pr:
         logger.info(
             "github.pr_comment.queue_comment_check.missing_pr",
             extra={
@@ -109,7 +113,6 @@ def queue_comment_task_if_needed(
         )
         return
 
-    pr = pr_query.first()
     # need to query explicitly for merged PR comments since we can have multiple comments per PR
     merged_pr_comment_query = PullRequestComment.objects.filter(
         pull_request_id=pr.id, comment_type=CommentType.MERGED_PR
