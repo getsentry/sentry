@@ -4,11 +4,9 @@ import time
 from datetime import datetime
 from enum import IntEnum
 
-import orjson
-
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
-from sentry.utils import kafka_config, metrics
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -107,7 +105,7 @@ def track_outcome(
     # Send a snuba metrics payload.
     publisher.publish(
         topic_name,
-        orjson.dumps(
+        json.dumps(
             {
                 "timestamp": timestamp,
                 "org_id": org_id,
@@ -119,7 +117,7 @@ def track_outcome(
                 "category": category,
                 "quantity": quantity,
             }
-        ).decode(),
+        ),
     )
 
     metrics.incr(
