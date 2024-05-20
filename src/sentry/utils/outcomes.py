@@ -118,7 +118,8 @@ def track_outcome(
                 "event_id": event_id,
                 "category": category,
                 "quantity": quantity,
-            }
+            },
+            option=orjson.OPT_UTC_Z
         ).decode(),
     )
 
