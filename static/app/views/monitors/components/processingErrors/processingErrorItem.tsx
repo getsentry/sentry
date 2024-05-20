@@ -22,7 +22,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       );
     case ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH:
       return tct(
-        'The [checkinTooltip:check-in] GUID provided matched a project different than the associated DSN project. Use the correct project DSN to successfully process check-ins',
+        'The [checkinTooltip:check-in] GUID provided matched to an existing check-in for a project that is different than the associated project DSN. Use the correct DSN to successfully update your check-in.',
         {checkinTooltip}
       );
     case ProcessingErrorType.CHECKIN_INVALID_DURATION:
