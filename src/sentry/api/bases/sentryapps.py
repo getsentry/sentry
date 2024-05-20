@@ -15,7 +15,6 @@ from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
@@ -257,10 +256,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ):
         try:
-            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
-                sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
-            else:
-                sentry_app = SentryApp.objects.get(slug=sentry_app_id_or_slug)
+            sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
         except SentryApp.DoesNotExist:
             raise Http404
 
@@ -277,10 +273,7 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ):
-        if (
-            id_or_slug_path_params_enabled(self.convert_args.__qualname__)
-            and str(sentry_app_id_or_slug).isdecimal()
-        ):
+        if str(sentry_app_id_or_slug).isdecimal():
             sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_id_or_slug))
         else:
             sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_id_or_slug)
@@ -331,12 +324,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
         if not is_active_superuser(request):
             extra_args["user_id"] = request.user.id
 
-        if (
-            id_or_slug_path_params_enabled(
-                self.convert_args.__qualname__, str(organization_id_or_slug)
-            )
-            and str(organization_id_or_slug).isdecimal()
-        ):
+        if str(organization_id_or_slug).isdecimal():
             organization = organization_service.get_org_by_id(
                 id=int(organization_id_or_slug), **extra_args
             )
