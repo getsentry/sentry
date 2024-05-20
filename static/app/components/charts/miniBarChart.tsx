@@ -36,7 +36,7 @@ function makeBaseChartOptions({
   showMarkLineLabel?: boolean;
   tooltipFormatter?: (value: number) => string;
   yAxisOptions?: BarChartProps['yAxis'];
-}): Omit<BarChartProps, 'series'> {
+}): Omit<BarChartProps, 'series' | 'barOpacity'> {
   return {
     tooltip: {
       trigger: 'axis',
@@ -74,7 +74,6 @@ function makeBaseChartOptions({
         show: false,
         alignWithLabel: true,
       },
-      offset: showXAxisLine ? -1 : 0, // Brings the x-axis up 1 pixel so it is congruent with the bar's feet
       axisLabel: {
         show: false,
       },
@@ -161,6 +160,11 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
   hideDelay?: number;
 
   /**
+   * Whether to hide the bar for zero values in the chart.
+   */
+  hideZeros?: boolean;
+
+  /**
    * Show max/min values on yAxis
    */
   labelYAxisExtents?: boolean;
@@ -225,6 +229,7 @@ function MiniBarChart({
   emphasisColors,
   series,
   hideDelay,
+  hideZeros = false,
   tooltipFormatter,
   colors,
   stacked = false,
@@ -267,22 +272,12 @@ function MiniBarChart({
         updated.stack = 'stack1';
       }
       set(updated, 'itemStyle.color', colorList[i]);
-      set(updated, 'itemStyle.opacity', barOpacity); // Opacity of each bar
       set(updated, 'itemStyle.borderRadius', [1, 1, 0, 0]); // Rounded corners on top of the bar
-      set(updated, 'emphasis.itemStyle.opacity', 1.0);
       set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
       chartSeries.push(updated);
     }
     return chartSeries;
-  }, [
-    barOpacity,
-    series,
-    emphasisColors,
-    stacked,
-    colors,
-    theme.gray200,
-    theme.purple300,
-  ]);
+  }, [series, emphasisColors, stacked, colors, theme.gray200, theme.purple300]);
 
   const chartOptions = useMemo(() => {
     const yAxisOptions = labelYAxisExtents
@@ -317,7 +312,16 @@ function MiniBarChart({
     xAxisLineColor,
   ]);
 
-  return <BarChart series={updatedSeries} height={height} {...chartOptions} {...props} />;
+  return (
+    <BarChart
+      barOpacity={barOpacity}
+      hideZeros={hideZeros}
+      series={updatedSeries}
+      height={height}
+      {...chartOptions}
+      {...props}
+    />
+  );
 }
 
 export default MiniBarChart;

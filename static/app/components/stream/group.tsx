@@ -488,6 +488,7 @@ function BaseGroupRow({
               <Placeholder height="36px" />
             ) : (
               <GroupStatusChart
+                hideZeros
                 stats={groupStats}
                 secondaryStats={groupSecondaryStats}
                 showSecondaryPoints={showSecondaryPoints}

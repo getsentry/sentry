@@ -23,6 +23,7 @@ type Props = {
   stats: ReadonlyArray<TimeseriesValue>;
   groupStatus?: string;
   height?: number;
+  hideZeros?: boolean;
   secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
@@ -32,6 +33,7 @@ function GroupStatusChart({
   stats,
   groupStatus,
   height = 24,
+  hideZeros = false,
   secondaryStats = EMPTY_STATS,
   showMarkLine = false,
   showSecondaryPoints = false,
@@ -105,6 +107,7 @@ function GroupStatusChart({
         <MiniBarChart
           animateBars
           showXAxisLine
+          hideZeros={hideZeros}
           markLineLabelSide="right"
           barOpacity={0.4}
           height={showMarkLine ? 36 : height}
