@@ -266,7 +266,7 @@ def backfill_seer_grouping_records(
                 ex=60 * 60 * 24 * 7,
             )
 
-            if last_processed_index <= len(group_id_message_data):
+            if last_processed_index < len(group_id_message_data):
                 logger.info(
                     "calling next backfill task",
                     extra={
