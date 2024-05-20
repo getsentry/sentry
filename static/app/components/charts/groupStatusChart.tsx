@@ -108,7 +108,7 @@ function GroupStatusChart({
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
       <ChartWrapper>
         {loading ? (
-          <Placeholder height={`36px`} />
+          <Placeholder height={'36px'} />
         ) : (
           <MiniBarChart
             animateBars
