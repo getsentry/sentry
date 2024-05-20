@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Literal, Self, Union, overload
 
+import orjson
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
@@ -19,7 +20,7 @@ from sentry.models.integrations.utils import is_response_error, is_response_succ
 from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
@@ -332,7 +333,7 @@ class BaseApiClient(TrackResponseMixin):
         data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
-            query = json.dumps(kwargs.get("params"))
+            query = orjson.dumps(kwargs.get("params")).decode()
 
         key = self.get_cache_key(path, query, data)
         result: BaseApiResponseX | None = self.check_cache(key)

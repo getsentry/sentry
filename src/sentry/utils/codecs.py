@@ -2,9 +2,8 @@ import zlib
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
+import orjson
 import zstandard
-
-from sentry.utils import json
 
 T = TypeVar("T")
 
@@ -71,10 +70,10 @@ class JSONCodec(Codec[Any, str]):
     """
 
     def encode(self, value: Any) -> str:
-        return str(json.dumps(value))
+        return orjson.dumps(value).decode()
 
     def decode(self, value: str) -> Any:
-        return json.loads(value)
+        return orjson.loads(value)
 
 
 class ZlibCodec(Codec[bytes, bytes]):

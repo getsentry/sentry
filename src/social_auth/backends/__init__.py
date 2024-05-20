@@ -18,6 +18,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request
 
+import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth import authenticate, load_backend
@@ -25,7 +26,6 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from social_auth.exceptions import (
     AuthCanceled,
@@ -631,7 +631,7 @@ class BaseOAuth2(OAuthAuth):
         )
 
         try:
-            response = json.loads(dsa_urlopen(request).read())
+            response = orjson.loads(dsa_urlopen(request).read())
         except HTTPError as e:
             logger.exception(
                 "plugins.auth.error",

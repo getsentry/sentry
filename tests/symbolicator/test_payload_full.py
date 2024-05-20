@@ -4,6 +4,7 @@ from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
 
+import orjson
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -22,7 +23,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
-from sentry.utils import json
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
 # IMPORTANT:
@@ -287,7 +287,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/test.min.js": {
@@ -307,7 +307,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
         bundle_file = File.objects.create(name="bundle.zip", type="artifact.bundle")
