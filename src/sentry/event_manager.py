@@ -2781,6 +2781,7 @@ def save_attachment(
         window=60,
     )
     if is_limited:
+        metrics.incr("event_manager.attachments.rate_limited")
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
