@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
@@ -10,7 +9,6 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -26,6 +24,7 @@ from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RulePr
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -47,15 +46,6 @@ class MockConditionTrue(EventCondition):
 
     def passes(self, event, state):
         return True
-
-
-@contextmanager
-def mock_redis_buffer():
-    buffer = RedisBuffer()
-    with patch("sentry.buffer.push_to_sorted_set", new=buffer.push_to_sorted_set), patch(
-        "sentry.buffer.push_to_hash", new=buffer.push_to_hash
-    ), patch("sentry.buffer.get_sorted_set", new=buffer.get_sorted_set):
-        yield buffer
 
 
 @mock_redis_buffer()

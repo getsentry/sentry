@@ -1,10 +1,27 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
+from unittest.mock import patch
 
 from django.test.utils import override_settings
 
+from sentry.buffer.redis import RedisBuffer
 from sentry.testutils.helpers import override_options
+
+
+@contextmanager
+def mock_redis_buffer():
+    buffer = RedisBuffer()
+    with patch("sentry.buffer.push_to_sorted_set", new=buffer.push_to_sorted_set), patch(
+        "sentry.buffer.push_to_hash", new=buffer.push_to_hash
+    ), patch("sentry.buffer.get_sorted_set", new=buffer.get_sorted_set), patch(
+        "sentry.buffer.get_hash", new=buffer.get_hash
+    ), patch(
+        "sentry.buffer.delete_hash", new=buffer.delete_hash
+    ), patch(
+        "sentry.buffer.get_sorted_set", new=buffer.get_sorted_set
+    ):
+        yield buffer
 
 
 @contextmanager

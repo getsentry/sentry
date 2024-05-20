@@ -1,13 +1,11 @@
 import copy
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-
+import orjson
 from sentry import buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -19,25 +17,11 @@ from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils import json
+
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
-
-
-@contextmanager
-def mock_redis_buffer():
-    buffer = RedisBuffer()
-    with patch("sentry.buffer.push_to_sorted_set", new=buffer.push_to_sorted_set), patch(
-        "sentry.buffer.push_to_hash", new=buffer.push_to_hash
-    ), patch("sentry.buffer.get_sorted_set", new=buffer.get_sorted_set), patch(
-        "sentry.buffer.get_hash", new=buffer.get_hash
-    ), patch(
-        "sentry.buffer.delete_hash", new=buffer.delete_hash
-    ), patch(
-        "sentry.buffer.get_sorted_set", new=buffer.get_sorted_set
-    ):
-        yield buffer
 
 
 @mock_redis_buffer()
