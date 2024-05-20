@@ -15,6 +15,7 @@ import zipfile
 from collections.abc import Container, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
+import orjson
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -36,7 +37,6 @@ from sentry.db.models import (
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
-from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -540,8 +540,8 @@ def detect_dif_from_path(
             raise BadDif("Missing debug_id for il2cpp")
         try:
             with open(path, "rb") as fp:
-                json.load(fp)
-        except json.JSONDecodeError as e:
+                orjson.loads(fp.read())
+        except orjson.JSONDecodeError as e:
             logger.debug("File failed to load as il2cpp: %s", path)
             raise BadDif("Invalid il2cpp: %s" % e)
         else:

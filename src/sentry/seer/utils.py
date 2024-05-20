@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
@@ -17,8 +18,8 @@ from sentry.conf.server import (
 )
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
-from sentry.utils import json, metrics
-from sentry.utils.json import JSONDecodeError, apply_key_filter
+from sentry.utils import metrics
+from sentry.utils.json import apply_key_filter
 
 logger = logging.getLogger(__name__)
 
@@ -77,14 +78,14 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     response = seer_breakpoint_connection_pool.urlopen(
         "POST",
         "/trends/breakpoint-detector",
-        body=json.dumps(breakpoint_request),
+        body=orjson.dumps(breakpoint_request).decode(),
         headers={"content-type": "application/json;charset=utf-8"},
     )
 
     if response.status >= 200 and response.status < 300:
         try:
-            return json.loads(response.data)
-        except ValueError as e:
+            return orjson.loads(response.data)
+        except orjson.JSONDecodeError as e:
             # seer failed to return valid json, report the error
             # and assume no breakpoints were found
             sentry_sdk.capture_exception(e)
@@ -229,16 +230,18 @@ def get_similarity_data_from_seer(
     response = seer_grouping_connection_pool.urlopen(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
-        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}),
+        body=orjson.dumps(
+            {"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}
+        ).decode(),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 
     try:
-        response_data = json.loads(response.data.decode("utf-8"))
+        response_data = orjson.loads(response.data)
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
-        JSONDecodeError,
+        orjson.JSONDecodeError,
     ):
         logger.exception(
             "Failed to parse seer similar issues response",
@@ -287,7 +290,7 @@ def post_bulk_grouping_records(
         return {"success": True}
 
     extra = {
-        "group_ids": json.dumps(grouping_records_request["group_id_list"]),
+        "group_ids": orjson.dumps(grouping_records_request["group_id_list"]).decode(),
         "project_id": grouping_records_request["data"][0]["project_id"],
     }
 
@@ -295,7 +298,7 @@ def post_bulk_grouping_records(
         response = seer_grouping_connection_pool.urlopen(
             "POST",
             SEER_GROUPING_RECORDS_URL,
-            body=json.dumps(grouping_records_request),
+            body=orjson.dumps(grouping_records_request).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
@@ -306,7 +309,7 @@ def post_bulk_grouping_records(
 
     if response.status >= 200 and response.status < 300:
         logger.info("seer.post_bulk_grouping_records.success", extra=extra)
-        return json.loads(response.data.decode("utf-8"))
+        return orjson.loads(response.data)
     else:
         extra.update({"reason": response.reason})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)

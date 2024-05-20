@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 import orjson
 from cryptography.fernet import Fernet
@@ -15,9 +14,9 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.staff import has_staff_option
 from sentry.backup.crypto import (
-    CryptoKeyVersion,
     GCPKMSDecryptor,
     get_default_crypto_key_version,
+    orjson_crypto_key_version_default,
     unwrap_encrypted_export_tarball,
 )
 from sentry.models.files.utils import get_relocation_storage
@@ -28,12 +27,6 @@ ERR_NEED_RELOCATION_ADMIN = (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _orjson_default(obj: Any) -> Any:
-    if isinstance(obj, CryptoKeyVersion):
-        return obj._asdict()
-    raise TypeError
 
 
 @region_silo_endpoint
@@ -91,7 +84,9 @@ class RelocationArtifactDetailsEndpoint(Endpoint):
 
             unwrapped = unwrap_encrypted_export_tarball(fp)
             decryptor = GCPKMSDecryptor.from_bytes(
-                orjson.dumps(get_default_crypto_key_version(), default=_orjson_default)
+                orjson.dumps(
+                    get_default_crypto_key_version(), default=orjson_crypto_key_version_default
+                )
             )
             plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
             fernet = Fernet(plaintext_data_encryption_key)

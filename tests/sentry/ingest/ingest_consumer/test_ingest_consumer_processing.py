@@ -32,7 +32,6 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.usage_accountant import accountant
 from sentry.utils.eventuser import EventUser
-from sentry.utils.json import loads
 
 pytestmark = [requires_snuba]
 
@@ -203,7 +202,7 @@ def test_accountant_transaction(default_project):
     assert msg1 is not None
     payload = msg1.payload
     assert payload is not None
-    formatted = loads(payload.value.decode("utf-8"))
+    formatted = orjson.loads(payload.value)
     assert formatted["shared_resource_id"] == settings.EVENT_PROCESSING_STORE
     assert formatted["app_feature"] == "transactions"
     assert formatted["usage_unit"] == "bytes"

@@ -1,5 +1,6 @@
 from unittest import mock
 
+import orjson
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
@@ -9,7 +10,6 @@ from usageaccountant import UsageUnit
 from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.usage_accountant import accountant, record
-from sentry.utils.json import loads
 
 
 def assert_msg(
@@ -23,7 +23,7 @@ def assert_msg(
     assert message is not None
     payload = message.payload
     assert payload is not None
-    formatted = loads(payload.value.decode("utf-8"))
+    formatted = orjson.loads(payload.value)
     assert formatted == {
         "timestamp": timestamp,
         "shared_resource_id": resource_id,

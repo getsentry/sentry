@@ -4,10 +4,9 @@ Generic way to sign and unsign data for use in urls.
 
 import base64
 
+import orjson
 from django.core.signing import TimestampSigner
 from django.utils.encoding import force_bytes, force_str
-
-from sentry.utils.json import dumps, loads
 
 SALT = "sentry-generic-signing"
 
@@ -19,7 +18,7 @@ def sign(**kwargs):
     """
     return force_str(
         base64.urlsafe_b64encode(
-            TimestampSigner(salt=SALT).sign(dumps(kwargs)).encode("utf-8")
+            TimestampSigner(salt=SALT).sign(orjson.dumps(kwargs).decode()).encode()
         ).rstrip(b"=")
     )
 
@@ -28,8 +27,8 @@ def unsign(data, max_age=60 * 60 * 24 * 2):
     """
     Unsign a signed base64 string. Accepts the base64 value as a string or bytes
     """
-    return loads(
-        TimestampSigner(salt=SALT).unsign(urlsafe_b64decode(data).decode("utf-8"), max_age=max_age)
+    return orjson.loads(
+        TimestampSigner(salt=SALT).unsign(urlsafe_b64decode(data).decode(), max_age=max_age)
     )
 
 

@@ -3,6 +3,7 @@ import os
 from datetime import timedelta
 from unittest.mock import patch
 
+import orjson
 import pytest
 from django.test import SimpleTestCase
 from django.utils import timezone
@@ -20,7 +21,6 @@ from sentry.constants import MODULE_ROOT
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils import json
 
 fixture_path = "fixtures/search-syntax"
 abs_fixtures_path = os.path.join(MODULE_ROOT, os.pardir, os.pardir, fixture_path)
@@ -44,8 +44,8 @@ def register_fixture_tests(cls, skipped):
     for file in (f for f in os.listdir(abs_fixtures_path)):
         name = file[: len(".json") * -1]
 
-        with open(os.path.join(abs_fixtures_path, file)) as fp:
-            tests = json.load(fp)
+        with open(os.path.join(abs_fixtures_path, file), "rb") as fp:
+            tests = orjson.loads(fp.read())
         assign_test_case(name, tests)
 
 

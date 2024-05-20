@@ -6,13 +6,12 @@ import abc
 from collections.abc import Callable, Generator, Mapping, Sequence
 from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
+import orjson
 import pydantic
 
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
-from sentry.utils import json
-from sentry.utils.json import JSONDecodeError
 
 if TYPE_CHECKING:
     pass
@@ -80,8 +79,8 @@ class SiloCacheBackedCallable(Generic[_R]):
         version: int
         if isinstance(value, str):
             try:
-                return self.type_(**json.loads(value))
-            except (pydantic.ValidationError, JSONDecodeError, TypeError):
+                return self.type_(**orjson.loads(value))
+            except (pydantic.ValidationError, orjson.JSONDecodeError, TypeError):
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value

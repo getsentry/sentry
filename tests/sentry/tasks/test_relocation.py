@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
+import orjson
 import pytest
 import yaml
 from django.core.files.storage import Storage
@@ -80,7 +81,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BustTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, OrderedTask
 
 IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -144,7 +144,7 @@ class RelocationTaskTestCase(TestCase):
                 f.write(pub_key_pem)
 
             with open(IMPORT_JSON_FILE_PATH, "rb") as f:
-                data = json.load(f)
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     file = File.objects.create(name="export.tar", type=RELOCATION_FILE_TYPE)
                     self.tarball = create_encrypted_export_tarball(
@@ -164,8 +164,8 @@ class RelocationTaskTestCase(TestCase):
                 f.write(self.priv_key_pem)
             with open(tmp_pub_key_path, "wb") as f:
                 f.write(self.pub_key_pem)
-            with open(get_fixture_path("backup", fixture_name)) as f:
-                data = json.load(f)
+            with open(get_fixture_path("backup", fixture_name), "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     self.tarball = create_encrypted_export_tarball(
                         data, LocalFileEncryptor(p)
@@ -695,9 +695,9 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert "filter-usernames.txt" in files
         assert "raw-relocation-data.tar" in files
 
-        kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
+        kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json", "rb")
         with kms_file:
-            json.load(kms_file)
+            orjson.loads(kms_file.read())
 
     def test_retry_if_attempts_left(
         self,
@@ -782,7 +782,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert "baseline-config.tar" in files
 
         with self.relocation_storage.open(f"runs/{self.uuid}/in/baseline-config.tar") as fp:
-            json_models = json.loads(
+            json_models = orjson.loads(
                 decrypt_encrypted_tarball(fp, LocalFileDecryptor.from_bytes(self.priv_key_pem))
             )
         assert len(json_models) > 0
@@ -894,7 +894,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert "colliding-users.tar" in files
 
         with self.relocation_storage.open(f"runs/{self.uuid}/in/colliding-users.tar") as fp:
-            json_models = json.loads(
+            json_models = orjson.loads(
                 decrypt_encrypted_tarball(fp, LocalFileDecryptor.from_bytes(self.priv_key_pem))
             )
         assert len(json_models) > 0

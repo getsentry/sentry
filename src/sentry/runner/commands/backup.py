@@ -32,7 +32,6 @@ from sentry.backup.sanitize import sanitize
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.silo.base import SiloMode
-from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 DEFAULT_INDENT = 2
@@ -416,8 +415,8 @@ def compare(
 
         # Now read the input string into memory as json data.
         try:
-            data = json.load(input)
-        except json.JSONDecodeError:
+            data = orjson.loads(input.read())
+        except orjson.JSONDecodeError:
             click.echo(f"Invalid {side.name} JSON", err=True)
             raise
 
@@ -439,7 +438,7 @@ def compare(
         else:
             click.echo("\n\nDone, found 0 differences!")
             write_findings(findings_file, [], printer)
-    except (DecryptionError, json.JSONDecodeError):
+    except (DecryptionError, orjson.JSONDecodeError):
         # Already reported to the user from the `load_data` function.
         pass
 
@@ -522,8 +521,8 @@ def encrypt(
         )
 
     try:
-        data = json.load(src)
-    except json.JSONDecodeError:
+        data = orjson.loads(src.read())
+    except orjson.JSONDecodeError:
         click.echo("Invalid input JSON", err=True)
     else:
         encrypted = create_encrypted_export_tarball(data, encryptor)
@@ -593,8 +592,8 @@ def sanitize_(
 
     # Now read the input string into memory as json data.
     try:
-        unsanitized_json = json.load(input)
-    except json.JSONDecodeError:
+        unsanitized_json = orjson.loads(input.read())
+    except orjson.JSONDecodeError:
         click.echo("Invalid JSON", err=True)
         raise
 

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from dateutil.parser import parse as parse_datetime
 from django.core.serializers import serialize
@@ -479,8 +480,8 @@ class SanitizationIntegrationTests(IntegrationTestCase):
     """
 
     def test_fresh_install(self):
-        with open(get_fixture_path("backup", "fresh-install.json")) as backup_file:
-            unsanitized_json = json.load(backup_file)
+        with open(get_fixture_path("backup", "fresh-install.json"), "rb") as backup_file:
+            unsanitized_json = orjson.loads(backup_file.read())
             self.sanitize_and_compare(unsanitized_json)
 
 

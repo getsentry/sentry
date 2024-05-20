@@ -18,6 +18,12 @@ from sentry.utils import json
 from sentry.utils.env import gcp_project_id
 
 
+def orjson_crypto_key_version_default(obj: Any) -> Any:
+    if isinstance(obj, CryptoKeyVersion):
+        return obj._asdict()
+    raise TypeError
+
+
 class CryptoKeyVersion(NamedTuple):
     """
     A structured version of a Google Cloud KMS CryptoKeyVersion, as described here:

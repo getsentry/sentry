@@ -6,6 +6,7 @@ from threading import Thread
 from time import sleep
 from zipfile import ZipFile
 
+import orjson
 import pytest
 
 from sentry import options
@@ -20,7 +21,6 @@ from sentry.models.releasefile import (
     update_artifact_index,
 )
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.utils import json
 
 
 @pytest.mark.parametrize(
@@ -131,7 +131,7 @@ class ReleaseArchiveTestCase(TestCase):
         )
         buffer = BytesIO()
         with ZipFile(buffer, mode="w") as zf:
-            zf.writestr("manifest.json", json.dumps(manifest))
+            zf.writestr("manifest.json", orjson.dumps(manifest).decode())
             for filename, content in files.items():
                 zf.writestr(filename, content)
 

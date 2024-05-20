@@ -11,6 +11,7 @@ from tempfile import TemporaryDirectory
 from typing import IO, ClassVar, Self
 from urllib.parse import urlunsplit
 
+import orjson
 import sentry_sdk
 from django.core.files.base import File as FileObj
 from django.db import models, router
@@ -30,7 +31,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.models.release import Release
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.urls import urlsplit_best_effort
@@ -222,7 +223,7 @@ class ReleaseArchive:
 
     def _read_manifest(self) -> dict:
         manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        return orjson.loads(manifest_bytes)
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
         """Return file-like object and headers.
@@ -299,7 +300,7 @@ class _ArtifactIndexGuard:
             else:
                 fp = releasefile.file.getfile()
             with fp:
-                return json.load(fp)
+                return orjson.loads(fp.read())
 
     @contextmanager
     def writable_data(self, create: bool, initial_artifact_count=None):
@@ -332,7 +333,7 @@ class _ArtifactIndexGuard:
                     source_file = releasefile.file
                     if source_file.type != ARTIFACT_INDEX_TYPE:
                         raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data = json.load(source_file.getfile())
+                    raw_data = orjson.loads(source_file.getfile().read())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
@@ -345,7 +346,7 @@ class _ArtifactIndexGuard:
                         name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
                     )
 
-                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
+                target_file.putfile(BytesIO(orjson.dumps(index_data.data, option=orjson.OPT_UTC_Z)))
 
                 artifact_count = index_data.num_files
                 if not created:

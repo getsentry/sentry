@@ -68,8 +68,8 @@ def create_encryption_test_files(tmp_dir: str) -> tuple[Path, Path, Path]:
     """
 
     (tmp_priv_key_path, tmp_pub_key_path) = create_encryption_key_files(tmp_dir)
-    with open(GOOD_FILE_PATH) as f:
-        data = json.load(f)
+    with open(GOOD_FILE_PATH, "rb") as f:
+        data = orjson.loads(f.read())
 
     tmp_tar_path = Path(tmp_dir).joinpath("input.tar")
     with open(tmp_tar_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
@@ -129,8 +129,8 @@ class GoodCompareCommandTests(TestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-            with open(tmp_findings) as findings_file:
-                findings = json.load(findings_file)
+            with open(tmp_findings, "rb") as findings_file:
+                findings = orjson.loads(findings_file.read())
                 assert len(findings) == 0
 
     def test_compare_unequal(self):
@@ -147,8 +147,8 @@ class GoodCompareCommandTests(TestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-            with open(tmp_findings) as findings_file:
-                findings = json.load(findings_file)
+            with open(tmp_findings, "rb") as findings_file:
+                findings = orjson.loads(findings_file.read())
                 assert len(findings) > 0
 
 
@@ -201,8 +201,8 @@ class GoodCompareCommandEncryptionTests(TestCase):
                 rv = CliRunner().invoke(backup, args)
                 assert rv.exit_code == 0, rv.output
 
-                with open(tmp_findings) as findings_file:
-                    findings = json.load(findings_file)
+                with open(tmp_findings, "rb") as findings_file:
+                    findings = orjson.loads(findings_file.read())
                     assert len(findings) == 0
 
     @patch(
@@ -257,8 +257,8 @@ class GoodCompareCommandEncryptionTests(TestCase):
                 rv = CliRunner().invoke(backup, args)
                 assert rv.exit_code == 0, rv.output
 
-                with open(tmp_findings) as findings_file:
-                    findings = json.load(findings_file)
+                with open(tmp_findings, "rb") as findings_file:
+                    findings = json.loads(findings_file.read())
                     assert len(findings) == 0
                     assert fake_kms_client.asymmetric_decrypt.call_count == len(
                         [arg for arg in args if arg == str(gcp_kms_config_path)]
@@ -303,8 +303,8 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
             assert rv.exit_code == 0, rv.output
 
             with open(GOOD_FILE_PATH, "rb") as source, open(tmp_decrypted_path, "rb") as target:
-                source_json = json.load(source)
-                target_json = json.load(target)
+                source_json = orjson.loads(source.read())
+                target_json = orjson.loads(target.read())
                 assert source_json == target_json
 
     @patch(
@@ -377,8 +377,8 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
             assert fake_kms_client.asymmetric_decrypt.call_count == 1
 
             with open(GOOD_FILE_PATH, "rb") as source, open(tmp_decrypted_path, "rb") as target:
-                source_json = json.load(source)
-                target_json = json.load(target)
+                source_json = orjson.loads(source.read())
+                target_json = orjson.loads(target.read())
                 assert source_json == target_json
 
 
@@ -506,8 +506,8 @@ def cli_import_then_export(
             + ([] if import_args is None else import_args),
         )
         assert rv.exit_code == 0, rv.output
-        with open(tmp_in_findings) as f:
-            findings = json.load(f)
+        with open(tmp_in_findings, "rb") as f:
+            findings = orjson.loads(f.read())
             assert len(findings) == 0
 
         tmp_out_findings = Path(tmp_dir).joinpath(
@@ -520,8 +520,8 @@ def cli_import_then_export(
             + ([] if export_args is None else export_args),
         )
         assert rv.exit_code == 0, rv.output
-        with open(tmp_out_findings) as f:
-            findings = json.load(f)
+        with open(tmp_out_findings, "rb") as f:
+            findings = orjson.loads(f.read())
             assert len(findings) == 0
 
 
@@ -772,11 +772,11 @@ class BadImportExportCommandTests(TestCase):
     def test_import_invalid_json(self):
         with TemporaryDirectory() as tmp_dir:
             tmp_invalid_json = Path(tmp_dir).joinpath(f"{self._testMethodName}.invalid.json")
-            with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-                models = json.load(backup_file)
+            with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+                models = orjson.loads(backup_file.read())
                 models[0]["fields"]["invalid_field"] = "invalid_data"
-                with open(tmp_invalid_json, "w") as invalid_input_file:
-                    json.dump(models, invalid_input_file)
+                with open(tmp_invalid_json, "wb") as invalid_input_file:
+                    invalid_input_file.write(orjson.dumps(models))
 
             for scope in {"users", "organizations", "config", "global"}:
                 tmp_findings = Path(tmp_dir).joinpath(
@@ -794,8 +794,8 @@ class BadImportExportCommandTests(TestCase):
                 )
                 assert rv.exit_code == 1, rv.output
 
-                with open(tmp_findings) as findings_file:
-                    findings = json.load(findings_file)
+                with open(tmp_findings, "rb") as findings_file:
+                    findings = orjson.loads(findings_file.read())
                     assert len(findings) == 1
                     assert findings[0]["finding"] == "RpcImportError"
                     assert findings[0]["kind"] == "DeserializationFailed"

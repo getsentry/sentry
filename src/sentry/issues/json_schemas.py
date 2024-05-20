@@ -3,7 +3,7 @@ import pathlib
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.utils import json
+import orjson
 
 logger = logging.getLogger(__name__)
 
@@ -166,8 +166,8 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
 _EVENT_PAYLOAD_SCHEMA_JSON_FILE = pathlib.PurePath(__file__).with_name("event.schema.json")
 
 try:
-    with open(_EVENT_PAYLOAD_SCHEMA_JSON_FILE) as f:
-        EVENT_PAYLOAD_SCHEMA = json.load(f)
+    with open(_EVENT_PAYLOAD_SCHEMA_JSON_FILE, "rb") as f:
+        EVENT_PAYLOAD_SCHEMA = orjson.loads(f.read())
 
 except Exception:
     logger.exception(

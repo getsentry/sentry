@@ -1,8 +1,9 @@
+from typing import Any
 from uuid import uuid4
 
+import orjson
 import sentry_sdk
 
-from sentry.utils.json import dumps, loads
 from sentry.utils.redis import clusters
 
 EXPIRATION_TTL = 10 * 60
@@ -80,7 +81,12 @@ class RedisSessionStore:
         self.request.session[self.session_key] = redis_key
         self.mark_session()
 
-        value = dumps(initial_state)
+        def _orjson_defaults(obj: Any) -> Any:
+            if isinstance(obj, frozenset):
+                return list(obj)
+            raise TypeError
+
+        value = orjson.dumps(initial_state, default=_orjson_defaults).decode()
         self._client.setex(redis_key, self.ttl, value)
 
     def clear(self):
@@ -105,8 +111,8 @@ class RedisSessionStore:
             return None
 
         try:
-            return loads(state_json)
-        except Exception as e:
+            return orjson.loads(state_json)
+        except orjson.JSONDecodeError as e:
             sentry_sdk.capture_exception(e)
         return None
 
@@ -129,6 +135,6 @@ def redis_property(key: str):
             return
 
         state[key] = value
-        store._client.setex(store.redis_key, store.ttl, dumps(state))
+        store._client.setex(store.redis_key, store.ttl, orjson.dumps(state).decode())
 
     return property(getter, setter)

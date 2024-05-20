@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 from django.db import models
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
@@ -312,8 +313,10 @@ class RpcImportErrorTests(TestCase):
 
     @cached_property
     def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
-        with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
-            return json.load(backup_file)
+        with open(
+            get_fixture_path("backup", "user-with-minimum-privileges.json"), "rb"
+        ) as backup_file:
+            return orjson.loads(backup_file.read())
 
     def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)

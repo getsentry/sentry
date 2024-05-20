@@ -9,6 +9,7 @@ from string import Template
 from typing import Any
 from zipfile import ZipFile
 
+import orjson
 import yaml
 from celery.app.task import Task
 from cryptography.fernet import Fernet
@@ -23,6 +24,7 @@ from sentry.backup.crypto import (
     GCPKMSDecryptor,
     GCPKMSEncryptor,
     get_default_crypto_key_version,
+    orjson_crypto_key_version_default,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.dependencies import NormalizedModelName, get_model
@@ -48,7 +50,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 from sentry.utils.relocation import (
@@ -252,17 +253,19 @@ def preprocessing_scan(uuid: str) -> None:
             ):
                 log_gcp_credentials_details(logger)
                 decryptor = GCPKMSDecryptor.from_bytes(
-                    json.dumps(get_default_crypto_key_version()).encode("utf-8")
+                    orjson.dumps(
+                        get_default_crypto_key_version(), default=orjson_crypto_key_version_default
+                    )
                 )
                 plaintext_data_encryption_key = decryptor.decrypt_data_encryption_key(unwrapped)
                 fernet = Fernet(plaintext_data_encryption_key)
-                json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
+                json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode()
 
             # Grab usernames and org slugs from the JSON data.
             usernames = []
             org_slugs = []
             try:
-                for json_model in json.loads(json_data):
+                for json_model in orjson.loads(json_data):
                     model_name = NormalizedModelName(json_model["model"])
                     if get_model(model_name) == Organization:
                         org_slugs.append(json_model["fields"]["slug"])
@@ -394,7 +397,9 @@ def preprocessing_transfer(uuid: str) -> None:
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
         log_gcp_credentials_details(logger)
-        kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
+        kms_config_bytes = orjson.dumps(
+            get_default_crypto_key_version(), default=orjson_crypto_key_version_default
+        )
         relocation_storage.save(f"runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
 
         # Now, upload the relocation data proper.
@@ -972,9 +977,9 @@ def validating_complete(uuid: str, build_id: str) -> None:
             if file.startswith("artifacts-"):
                 continue
 
-            findings_file = storage.open(f"runs/{uuid}/findings/{file}")
+            findings_file = storage.open(f"runs/{uuid}/findings/{file}", "rb")
             with findings_file:
-                findings = json.load(findings_file)
+                findings = orjson.loads(findings_file.read())
                 if len(findings) > 0:
                     final_status = ValidationStatus.INVALID
                     break
@@ -1053,7 +1058,11 @@ def importing(uuid: str) -> None:
         )
         relocation_data_fp = raw_relocation_file.file.getfile()
         log_gcp_credentials_details(logger)
-        kms_config_fp = BytesIO(json.dumps(get_default_crypto_key_version()).encode("utf-8"))
+        kms_config_fp = BytesIO(
+            orjson.dumps(
+                get_default_crypto_key_version(), default=orjson_crypto_key_version_default
+            )
+        )
 
         with relocation_data_fp, kms_config_fp:
             import_in_organization_scope(

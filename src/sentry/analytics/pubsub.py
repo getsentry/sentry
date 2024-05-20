@@ -5,9 +5,8 @@ __all__ = ("PubSubAnalytics",)
 import logging
 
 import google.cloud.pubsub_v1 as pubsub_v1  # weird import for python/mypy#10360
+import orjson
 from google.auth.exceptions import GoogleAuthError
-
-from sentry.utils.json import dumps
 
 from . import Analytics, Event
 
@@ -38,4 +37,4 @@ class PubSubAnalytics(Analytics):
 
     def record_event(self, event: Event) -> None:
         if self.publisher is not None:
-            self.publisher.publish(self.topic, data=dumps(event.serialize()).encode("utf-8"))
+            self.publisher.publish(self.topic, data=orjson.dumps(event.serialize()))
