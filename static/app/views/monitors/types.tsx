@@ -196,3 +196,106 @@ export interface StatusNotice {
   icon: React.ReactNode;
   label?: React.ReactNode;
 }
+
+// Derived from backend enum: /src/sentry/monitors/processing_errors/errors.py
+export enum ProcessingErrorType {
+  CHECKIN_ENVIRONMENT_MISMATCH = 0,
+  CHECKIN_FINISHED = 1,
+  CHECKIN_GUID_PROJECT_MISMATCH = 2,
+  CHECKIN_INVALID_DURATION = 3,
+  CHECKIN_INVALID_GUID = 4,
+  CHECKIN_VALIDATION_FAILED = 5,
+  MONITOR_DISABLED = 6,
+  MONITOR_DISABLED_NO_QUOTA = 7,
+  MONITOR_INVALID_CONFIG = 8,
+  MONITOR_INVALID_ENVIRONMENT = 9,
+  MONITOR_LIMIT_EXCEEDED = 10,
+  MONITOR_NOT_FOUND = 11,
+  MONITOR_OVER_QUOTA = 12,
+  MONITOR_ENVIRONMENT_LIMIT_EXCEEDED = 13,
+  MONITOR_ENVIRONMENT_RATELIMITED = 14,
+  ORGANIZATION_KILLSWITCH_ENABLED = 15,
+}
+
+interface CheckinEnvironmentMismatch {
+  existingEnvironment: string;
+  type: ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH;
+}
+
+interface CheckinGuidProjectMismatch {
+  guid: string;
+  type: ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH;
+}
+
+interface CheckinInvalidDuration {
+  duration: string;
+  type: ProcessingErrorType.CHECKIN_INVALID_DURATION;
+}
+
+interface CheckinValidationFailed {
+  errors: Record<string, string[]>;
+  type: ProcessingErrorType.CHECKIN_VALIDATION_FAILED;
+}
+
+interface MonitorInvalidConfig {
+  errors: Record<string, string[]>;
+  type: ProcessingErrorType.MONITOR_INVALID_CONFIG;
+}
+
+interface MonitorInvalidEnvironment {
+  reason: string;
+  type: ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT;
+}
+
+interface MonitorLimitExceeded {
+  reason: string;
+  type: ProcessingErrorType.MONITOR_LIMIT_EXCEEDED;
+}
+
+interface MonitorEnvironmentLimitExceeded {
+  reason: string;
+  type: ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED;
+}
+
+type ProcessingErrorWithExtra =
+  | CheckinEnvironmentMismatch
+  | CheckinGuidProjectMismatch
+  | CheckinInvalidDuration
+  | CheckinValidationFailed
+  | MonitorInvalidConfig
+  | MonitorInvalidEnvironment
+  | MonitorLimitExceeded
+  | MonitorEnvironmentLimitExceeded;
+
+interface SimpleProcessingError {
+  type: Exclude<ProcessingErrorType, ProcessingErrorWithExtra['type']>;
+}
+
+export type ProcessingError = SimpleProcessingError | ProcessingErrorWithExtra;
+
+export interface CheckInPayload {
+  message: {
+    message_type: 'check_in';
+    payload: string;
+    project_id: number;
+    retention_days: number;
+    sdk: string;
+    start_time: number;
+    type: 'check_in';
+  };
+  partition: number;
+  payload: {
+    check_in_id: string;
+    environment: string;
+    monitor_slug: string;
+    status: string;
+    monitor_config?: MonitorConfig;
+  };
+  ts: string;
+}
+
+export interface CheckinProcessingError {
+  checkin: CheckInPayload;
+  errors: ProcessingError[];
+  id: string;
+}
