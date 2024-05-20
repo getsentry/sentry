@@ -10,7 +10,6 @@ from random import randrange
 from typing import Any
 
 import lxml.html
-import orjson
 import toronado
 from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_str
@@ -23,7 +22,7 @@ from sentry.models.group import Group
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_string
 
@@ -117,7 +116,7 @@ class MessageBuilder:
         # If a "type" is specified, add it to the headers to categorize the emails if not already set
         if type is not None and "X-SMTPAPI" not in self.headers:
             self.headers = {
-                "X-SMTPAPI": orjson.dumps({"category": type}).decode(),
+                "X-SMTPAPI": json.dumps({"category": type}),
                 **(self.headers),
             }
 
