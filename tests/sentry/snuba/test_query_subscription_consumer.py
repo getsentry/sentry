@@ -8,7 +8,6 @@ import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
-from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas import get_codec
 
@@ -26,8 +25,8 @@ from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactor
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
-from sentry.utils import json, kafka_config
-from sentry.utils.batching_kafka_consumer import wait_for_topics
+from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
 pytestmark = [requires_snuba, requires_kafka]
@@ -85,9 +84,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
     def test_arroyo_consumer(self):
         topic_defn = get_topic_definition(Topic.EVENTS)
-        cluster_options = kafka_config.get_kafka_admin_cluster_options("default")
-        admin_client = AdminClient(cluster_options)
-        wait_for_topics(admin_client, [topic_defn["real_topic_name"]])
+        create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
         registration_key = "registered_test_2"
         mock_callback = mock.Mock()
