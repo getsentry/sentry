@@ -2778,7 +2778,7 @@ def save_attachment(
         key="event_attachment.save",
         limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
         project=project,
-        window=60,
+        window=5 * 60,
     )
     if is_limited:
         metrics.incr("event_manager.attachments.rate_limited")
