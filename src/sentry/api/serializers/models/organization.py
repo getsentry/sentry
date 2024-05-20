@@ -278,10 +278,14 @@ class OrganizationSerializer(Serializer):
 
         with sentry_sdk.start_span(op="features.check", description="check individual features"):
             # Remaining features should not be checked via the entity handler
+
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):
                     # Remove the organization scope prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+        if features.has("organizations:do_a_barrel_roll", obj, actor=user):
+            feature_list.add("do_a_barrel_roll")
 
         # Do not include the onboarding feature if OrganizationOptions exist
         if (
