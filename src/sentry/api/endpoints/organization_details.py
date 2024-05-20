@@ -236,6 +236,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    issueAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricAlertsThreadFlag = serializers.BooleanField(required=False)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
