@@ -147,7 +147,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             return Response([])  # No exception, stacktrace or in-app frames
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
-            "group_id": group.id,
             "hash": latest_event.get_primary_hash(),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
