@@ -346,7 +346,7 @@ function BaseGroupRow({
   };
 
   const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" />
+    <Placeholder height="18px" width="50px" />
   ) : (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
@@ -387,7 +387,7 @@ function BaseGroupRow({
   );
 
   const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" />
+    <Placeholder height="18px" width="50px" />
   ) : (
     <Tooltip
       isHoverable

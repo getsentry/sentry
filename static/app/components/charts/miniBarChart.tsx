@@ -67,7 +67,7 @@ function makeBaseChartOptions({
             lineStyle: {
               color: xAxisLineColor,
             },
-            onZero: false,
+            onZero: false, // Enables offset for x-axis line
           }
         : {show: false},
       axisTick: {
