@@ -19,7 +19,7 @@ class SeerEventManagerGroupingTest(TestCase):
     def test_obeys_seer_similarity_flags(self):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=existing_event.get_primary_hash(),
+            parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
             message_distance=0.05,
@@ -168,7 +168,7 @@ class SeerEventManagerGroupingTest(TestCase):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=existing_event.get_primary_hash(),
+            parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
             message_distance=0.05,
@@ -194,7 +194,7 @@ class SeerEventManagerGroupingTest(TestCase):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=existing_event.get_primary_hash(),
+            parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
             message_distance=0.05,
@@ -223,7 +223,7 @@ class SeerEventManagerGroupingTest(TestCase):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         no_cigar_data = SeerSimilarIssueData(
-            parent_hash=existing_event.get_primary_hash(),
+            parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.10,
             message_distance=0.05,

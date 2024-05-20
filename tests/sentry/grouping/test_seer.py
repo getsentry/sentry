@@ -74,7 +74,7 @@ class GetSeerSimilarIssuesTest(TestCase):
     @with_feature({"projects:similarity-embeddings-grouping": False})
     def test_returns_metadata_but_no_group_if_seer_grouping_flag_off(self):
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=self.existing_event.get_primary_hash(),
+            parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
             stacktrace_distance=0.01,
             message_distance=0.05,
@@ -98,7 +98,7 @@ class GetSeerSimilarIssuesTest(TestCase):
     @with_feature("projects:similarity-embeddings-grouping")
     def test_returns_metadata_and_group_if_sufficiently_close_group_found(self):
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=self.existing_event.get_primary_hash(),
+            parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
             stacktrace_distance=0.01,
             message_distance=0.05,
@@ -122,7 +122,7 @@ class GetSeerSimilarIssuesTest(TestCase):
     @with_feature("projects:similarity-embeddings-grouping")
     def test_returns_metadata_but_no_group_if_similar_group_insufficiently_close(self):
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=self.existing_event.get_primary_hash(),
+            parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
             stacktrace_distance=0.08,
             message_distance=0.12,
