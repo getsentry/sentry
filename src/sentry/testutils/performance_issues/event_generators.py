@@ -4,8 +4,9 @@ import os
 from copy import deepcopy
 from typing import Any
 
+import orjson
+
 from sentry.testutils.factories import get_fixture_path
-from sentry.utils import json
 
 from .span_builder import SpanBuilder
 
@@ -27,8 +28,8 @@ for (dirpath, dirnames, filenames) in os.walk(_fixture_path):
 
         [full_event_name, _] = relative_path.split(".")
 
-        with open(filepath) as f:
-            event = json.load(f)
+        with open(filepath, "rb") as f:
+            event = orjson.loads(f.read())
             event["project"] = PROJECT_ID
 
         EVENTS[full_event_name] = event
