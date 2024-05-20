@@ -211,10 +211,6 @@ describe('EventReplay', function () {
   });
 
   describe('replay clip', function () {
-    const orgWithClipFlag = OrganizationFixture({
-      features: [...organization.features, 'issue-details-inline-replay-viewer'],
-    });
-
     beforeEach(() => {
       MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
         hasOrgSentReplays: true,
@@ -249,9 +245,7 @@ describe('EventReplay', function () {
           })}
           group={GroupFixture({id: '101'})}
         />,
-        {
-          organization: orgWithClipFlag,
-        }
+        {organization}
       );
 
       // Event that matches ID 1 should be shown as "This Event"
