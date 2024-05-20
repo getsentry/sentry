@@ -119,7 +119,7 @@ def track_outcome(
                 "category": category,
                 "quantity": quantity,
             },
-            option=orjson.OPT_UTC_Z
+            option=orjson.OPT_UTC_Z,
         ).decode(),
     )
 
