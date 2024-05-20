@@ -216,6 +216,22 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         }
 
     @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        return_value=[],
+    )
+    def test_repo_write_access_no_repos(self, mock_get_repos_and_access):
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["githubWriteIntegration"] == {
+            "ok": False,
+            "repos": [],
+        }
+
+    @patch(
         "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
         return_value=AutofixCodebaseIndexingStatus.NOT_INDEXED,
     )

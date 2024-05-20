@@ -113,7 +113,7 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         integration_check = get_autofix_integration_setup_problems(organization=org)
 
         repos = get_repos_and_access(group.project)
-        write_access_ok = all(repo["ok"] for repo in repos)
+        write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
 
         codebase_indexing_status = get_project_codebase_indexing_status(group.project)
 
