@@ -2529,6 +2529,14 @@ register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+
+register(
+    "sentry.save-event-attachments.project-per-5-minute-limit",
+    type=Int,
+    default=20000000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
 # also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
 register(
