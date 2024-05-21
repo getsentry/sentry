@@ -18,7 +18,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual('project:1');
+    expect(updatedQuery.query).toEqual('project:"1"');
     expect(updatedQuery.groupBy).toEqual([]);
   });
 
@@ -27,7 +27,7 @@ describe('updateQueryWithSeriesFilter', () => {
       mri: 'd:transactions/duration@milisecond' as MRI,
       op: 'count',
       groupBy: [],
-      query: 'release:latest AND (environment:production OR environment:staging)',
+      query: 'release:"latest" AND (environment:production OR environment:staging)',
     };
 
     const updatedQuery = updateQueryWithSeriesFilter(
@@ -37,7 +37,7 @@ describe('updateQueryWithSeriesFilter', () => {
     );
 
     expect(updatedQuery.query).toEqual(
-      '( release:latest AND ( environment:production OR environment:staging ) ) project:1'
+      '( release:latest AND ( environment:production OR environment:staging ) ) project:"1"'
     );
     expect(updatedQuery.groupBy).toEqual([]);
   });
@@ -56,7 +56,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.EXCLUDE
     );
 
-    expect(updatedQuery.query).toEqual('!project:1');
+    expect(updatedQuery.query).toEqual('!project:"1"');
     expect(updatedQuery.groupBy).toEqual([]);
   });
 
@@ -75,7 +75,7 @@ describe('updateQueryWithSeriesFilter', () => {
     );
 
     expect(updatedQuery.query).toEqual(
-      '( environment:prod1 OR environment:prod2 ) !project:2'
+      '( environment:prod1 OR environment:prod2 ) !project:"2"'
     );
     expect(updatedQuery.groupBy).toEqual([]);
   });
@@ -94,7 +94,7 @@ describe('updateQueryWithSeriesFilter', () => {
       MetricSeriesFilterUpdateType.ADD
     );
 
-    expect(updatedQuery.query).toEqual('project:1 release:latest');
+    expect(updatedQuery.query).toEqual('project:"1" release:"latest"');
     expect(updatedQuery.groupBy).toEqual(['environment']);
   });
 });
@@ -108,6 +108,17 @@ describe('ensureQuotedTextFilters', () => {
     // transaction.duration defaults to a number filter
     expect(ensureQuotedTextFilters('transaction.duration:100')).toEqual(
       'transaction.duration:100'
+    );
+  });
+
+  it('handles negated filters', () => {
+    expect(ensureQuotedTextFilters('!transaction:/{organization_slug}/')).toEqual(
+      '!transaction:"/{organization_slug}/"'
+    );
+
+    // transaction.duration defaults to a number filter
+    expect(ensureQuotedTextFilters('!transaction.duration:100')).toEqual(
+      '!transaction.duration:100'
     );
   });
 
