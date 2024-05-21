@@ -1,4 +1,4 @@
-import {type RefObject, useCallback, useState} from 'react';
+import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -188,6 +188,13 @@ export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): 
   }, [elementRef]);
 
   const [columnCount, setColumnCount] = useState(calculateColumnCount());
+
+  // If the ref was undefined, calculate the column count again
+  useLayoutEffect(() => {
+    if (elementRef.current) {
+      setColumnCount(calculateColumnCount());
+    }
+  }, [calculateColumnCount, elementRef]);
 
   const onResize = useCallback(() => {
     const count = calculateColumnCount();
