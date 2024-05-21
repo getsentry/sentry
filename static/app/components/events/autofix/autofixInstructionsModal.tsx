@@ -29,7 +29,7 @@ export function AutofixInstructionsModal({
       }}
     >
       <Header>
-        <h4>{t('Give the Autofix Agent Some Instructions')}</h4>
+        <h4>{t('Provide context to Autofix')}</h4>
       </Header>
 
       <div>
@@ -38,7 +38,7 @@ export function AutofixInstructionsModal({
             <FullSizeTextAreaField
               id={id}
               name={name}
-              aria-label={t('Provide instructions')}
+              aria-label={t('Provide context')}
               placeholder={t(
                 'This error seems to be caused by ... go look at path/file to make sure it does …'
               )}
@@ -76,9 +76,14 @@ const FullSizeTextAreaField = styled(TextareaAutosize)`
   width: 100%;
   border: none;
   resize: none;
+  min-height: 100px;
 
   &:focus {
     outline: none;
+  }
+
+  &::placeholder {
+    color: ${p => p.theme.subText};
   }
 `;
 
