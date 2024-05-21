@@ -1567,6 +1567,12 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const insightsRoutes = (
+    <Route path="/insights/" withOrgPath>
+      {insightsSubRoutes}
+    </Route>
+  );
+
   const performanceRoutes = (
     <Route
       path="/performance/"
@@ -2072,6 +2078,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {insightsRoutes}
       {llmMonitoringRoutes}
       {profilingRoutes}
       {metricsRoutes}
