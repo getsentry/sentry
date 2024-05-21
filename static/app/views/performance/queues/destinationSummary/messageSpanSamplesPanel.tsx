@@ -27,11 +27,15 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
+import decodeRetryCount from 'sentry/views/performance/queues/queryParameterDecoders/retryCount';
+import decodeTraceStatus from 'sentry/views/performance/queues/queryParameterDecoders/traceStatus';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
   CONSUMER_QUERY_FILTER,
   MessageActorType,
   PRODUCER_QUERY_FILTER,
+  RETRY_COUNT_OPTIONS,
+  TRACE_STATUS_OPTIONS,
 } from 'sentry/views/performance/queues/settings';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
@@ -52,8 +56,8 @@ export function MessageSpanSamplesPanel() {
       project: decodeScalar,
       destination: decodeScalar,
       transaction: decodeScalar,
-      retries: decodeScalar,
-      status: decodeScalar,
+      retryCount: decodeRetryCount,
+      traceStatus: decodeTraceStatus,
       'span.op': decodeScalar,
     },
   });
@@ -73,10 +77,10 @@ export function MessageSpanSamplesPanel() {
     ? [query.destination, query.transaction].filter(Boolean).join(':')
     : undefined;
 
-  const handleStatusChange = (newStatus: SelectOption<string>) => {
+  const handleTraceStatusChange = (newTraceStatus: SelectOption<string>) => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
-      filter: 'status',
-      new_state: newStatus.value,
+      filter: 'trace_status',
+      new_state: newTraceStatus.value,
       organization,
       source: ModuleName.QUEUE,
     });
@@ -84,15 +88,15 @@ export function MessageSpanSamplesPanel() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        status: newStatus.value,
+        traceStatus: newTraceStatus.value,
       },
     });
   };
 
-  const handleRetriesChange = (newRetries: SelectOption<string>) => {
+  const handleRetryCountChange = (newRetryCount: SelectOption<string>) => {
     trackAnalytics('performance_views.sample_spans.filter_updated', {
-      filter: 'retries',
-      new_state: newRetries.value,
+      filter: 'retry_count',
+      new_state: newRetryCount.value,
       organization,
       source: ModuleName.QUEUE,
     });
@@ -100,7 +104,7 @@ export function MessageSpanSamplesPanel() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        retries: newRetries.value,
+        retryCount: newRetryCount.value,
       },
     });
   };
@@ -116,9 +120,31 @@ export function MessageSpanSamplesPanel() {
       ? PRODUCER_QUERY_FILTER
       : CONSUMER_QUERY_FILTER;
 
-  const search = new MutableSearch(queryFilter);
-  search.addFilterValue('transaction', query.transaction);
-  search.addFilterValue('messaging.destination.name', query.destination);
+  const timeseriesFilters = new MutableSearch(queryFilter);
+  timeseriesFilters.addFilterValue('transaction', query.transaction);
+  timeseriesFilters.addFilterValue('messaging.destination.name', query.destination);
+
+  const sampleFilters = new MutableSearch(queryFilter);
+  sampleFilters.addFilterValue('transaction', query.transaction);
+  sampleFilters.addFilterValue('messaging.destination.name', query.destination);
+
+  if (query.traceStatus.length > 0) {
+    sampleFilters.addFilterValue('trace.status', query.traceStatus);
+  }
+
+  // Note: only consumer panels should allow filtering by retry count
+  if (messageActorType === MessageActorType.CONSUMER) {
+    if (query.retryCount === '0') {
+      sampleFilters.addFilterValue('measurements.messaging.message.retry.count', '0');
+    } else if (query.retryCount === '1-3') {
+      sampleFilters.addFilterValues('measurements.messaging.message.retry.count', [
+        '>=1',
+        '<=3',
+      ]);
+    } else if (query.retryCount === '4+') {
+      sampleFilters.addFilterValue('measurements.messaging.message.retry.count', '>=4');
+    }
+  }
 
   const {data: transactionMetrics, isFetching: aretransactionMetricsFetching} =
     useQueuesMetricsQuery({
@@ -136,7 +162,7 @@ export function MessageSpanSamplesPanel() {
     error: durationError,
   } = useSpanMetricsSeries(
     {
-      search,
+      search: timeseriesFilters,
       yAxis: [`avg(span.duration)`],
       enabled: isPanelOpen,
     },
@@ -145,33 +171,13 @@ export function MessageSpanSamplesPanel() {
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
-  // Filter by trace status if status is set
-  // Note: filtering should only affect the sample spans in the table and not the timeseries graph
-  if (query.status.length > 0) {
-    search.addFilterValue('trace.status', query.status);
-  }
-
-  // Note: only consumer panels should allow filtering by retry count
-  if (messageActorType === MessageActorType.CONSUMER) {
-    if (query.retries === '0') {
-      search.addFilterValue('measurements.messaging.message.retry.count', '0');
-    } else if (query.retries === '1-3') {
-      search.addFilterValues('measurements.messaging.message.retry.count', [
-        '>=1',
-        '<=3',
-      ]);
-    } else if (query.retries === '4+') {
-      search.addFilterValue('measurements.messaging.message.retry.count', '>=4');
-    }
-  }
-
   const {
     data: durationSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
-    search,
+    search: sampleFilters,
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
@@ -282,18 +288,18 @@ export function MessageSpanSamplesPanel() {
             <PanelControls>
               <CompactSelect
                 searchable
-                value={query.status}
-                options={STATUS_OPTIONS}
-                onChange={handleStatusChange}
+                value={query.traceStatus}
+                options={TRACE_STATUS_SELECT_OPTIONS}
+                onChange={handleTraceStatusChange}
                 triggerProps={{
                   prefix: t('Status'),
                 }}
               />
               {messageActorType === MessageActorType.CONSUMER && (
                 <CompactSelect
-                  value={query.retries}
-                  options={RETRIES_OPTIONS}
-                  onChange={handleRetriesChange}
+                  value={query.retryCount}
+                  options={RETRY_COUNT_SELECT_OPTIONS}
+                  onChange={handleRetryCountChange}
                   triggerProps={{
                     prefix: t('Retries'),
                   }}
@@ -440,55 +446,30 @@ function ConsumerMetricsRibbon({
 
 const SAMPLE_HOVER_DEBOUNCE = 10;
 
-const STATUS_OPTIONS = [
+const TRACE_STATUS_SELECT_OPTIONS = [
   {
     value: '',
     label: t('All'),
   },
-  ...[
-    'ok',
-    'cancelled',
-    'unknown',
-    'unknown_error',
-    'invalid_argument',
-    'deadline_exceeded',
-    'not_found',
-    'already_exists',
-    'permission_denied',
-    'resource_exhausted',
-    'failed_precondition',
-    'aborted',
-    'out_of_range',
-    'unimplemented',
-    'internal_error',
-    'unavailable',
-    'data_loss',
-    'unauthenticated',
-  ].map(status => {
+  ...TRACE_STATUS_OPTIONS.map(status => {
     return {
       value: status,
-      label: t('%s', status),
+      label: status,
     };
   }),
 ];
 
-const RETRIES_OPTIONS = [
+const RETRY_COUNT_SELECT_OPTIONS = [
   {
     value: '',
     label: t('Any'),
   },
-  {
-    value: '0',
-    label: t('0'),
-  },
-  {
-    value: '1-3',
-    label: t('1-3'),
-  },
-  {
-    value: '4+',
-    label: t('4+'),
-  },
+  ...RETRY_COUNT_OPTIONS.map(status => {
+    return {
+      value: status,
+      label: status,
+    };
+  }),
 ];
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
