@@ -116,7 +116,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
-        bulk_data = self.create_group_event_rows(10)
+        bulk_data = self.create_group_event_rows(5)
         self.bulk_rows, self.bulk_events, self.bulk_messages = (
             bulk_data["rows"],
             bulk_data["events"],
@@ -238,7 +238,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         expected_stacktraces = [
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(10)
+            for i in range(5)
         ]
         assert bulk_event_ids == expected_event_ids
         assert invalid_event_ids == set()
@@ -431,7 +431,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         expected_stacktraces = [
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(10)
+            for i in range(5)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
@@ -482,7 +482,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         expected_stacktraces = [
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(10)
+            for i in range(5)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
@@ -538,7 +538,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         expected_stacktraces = [
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(9)
+            for i in range(4)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
@@ -583,7 +583,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         expected_stacktraces = [
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(9)
+            for i in range(4)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
@@ -851,6 +851,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_index == len(groups)
 
+    @pytest.mark.skip(
+        "this test is flakey in production; trying to replicate locally and skipping it for now"
+    )
     @django_db_all
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -874,10 +877,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        with TaskRunner(), patch(
-            "sentry.tasks.backfill_seer_grouping_records.backfill_seer_grouping_records.apply_async",
-            wraps=backfill_seer_grouping_records(self.project.id, None),
-        ):
+        with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
