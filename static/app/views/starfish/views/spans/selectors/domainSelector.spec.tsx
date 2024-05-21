@@ -9,17 +9,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DomainSelector', function () {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
