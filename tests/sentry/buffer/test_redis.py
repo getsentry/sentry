@@ -276,6 +276,14 @@ class TestRedisBuffer:
         redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         assert mock.call_count == 1
 
+    @mock.patch("sentry.rules.processing.delayed_processing.metrics.timer")
+    def test_callback(self, mock_metrics_timer):
+        from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
+
+        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+        self.buf.process_batch()
+        assert mock_metrics_timer.call_count == 1
+
     def test_process_batch(self):
         """Test that the registry's callbacks are invoked when we process a batch"""
         mock = Mock()
