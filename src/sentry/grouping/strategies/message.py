@@ -54,28 +54,31 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
     normalized = parameterizer.parametrize_w_regex(trimmed)
 
     def _shoudl_run_experiment(experiment_name: str) -> bool:
-        return event.project_id and (
-            in_rollout_group(
-                f"grouping.experiments.parameterization.{experiment_name}", event.project_id
+        return bool(
+            event.project_id
+            and (
+                in_rollout_group(
+                    f"grouping.experiments.parameterization.{experiment_name}", event.project_id
+                )
+                or event.project_id
+                in [  # Active internal Sentry projects
+                    155735,
+                    4503972821204992,
+                    1267915,
+                    221969,
+                    11276,
+                    1269704,
+                    4505469596663808,
+                    1,
+                    54785,
+                    1492057,
+                    162676,
+                    6690737,
+                    300688,
+                    4506400311934976,
+                    6424467,
+                ]
             )
-            or event.project_id
-            in [  # Active internal Sentry projects
-                155735,
-                4503972821204992,
-                1267915,
-                221969,
-                11276,
-                1269704,
-                4505469596663808,
-                1,
-                54785,
-                1492057,
-                162676,
-                6690737,
-                300688,
-                4506400311934976,
-                6424467,
-            ]
         )
 
     normalized = parameterizer.parametrize_w_experiments(normalized, _shoudl_run_experiment)

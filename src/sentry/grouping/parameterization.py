@@ -174,7 +174,7 @@ DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAM
 @dataclasses.dataclass
 class ParameterizationCallable:
     name: str  # name of the pattern also used as group name in combined regex
-    apply: Callable[[str, Callable[[str, int], str]], str]  # function to modifying the input string
+    apply: Callable[[str], tuple[str, int]]  # function to modifying the input string
     counter: int = 0
 
 
@@ -183,7 +183,7 @@ class ParameterizationCallableExperiment(ParameterizationCallable):
     def run(self, content: str, callback: Callable[[str, int], None]) -> str:
         content, count = self.apply(content)
         if count:
-            callback(key=self.name, count=count)
+            callback(self.name, count)
         return content
 
 
@@ -326,10 +326,24 @@ class Parameterizer:
         def _incr_counter(key: str, count: int) -> None:
             self.matches_counter[key] += count
 
+        def _handle_regex_match(match: re.Match[str]) -> str:
+            # Find the first (should be only) non-None match entry, and sub in the placeholder. For
+            # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
+            # replacement for the original value in the string.
+            for key, value in match.groupdict().items():
+                if value is not None:
+                    self.matches_counter[key] += 1
+                    return f"<{key}>"
+            return ""
+
         for experiment in self._experiments:
             if not should_run(experiment.name):
                 continue
-            content = experiment.run(content, _incr_counter)
+            if isinstance(experiment, ParameterizationCallableExperiment):
+                content = experiment.run(content, _incr_counter)
+            else:
+                content = experiment.run(content, _handle_regex_match)
+
         return content
 
     def get_successful_experiments(self) -> Sequence[ParameterizationExperiment]:
