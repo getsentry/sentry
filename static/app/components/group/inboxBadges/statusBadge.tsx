@@ -11,7 +11,7 @@ interface SubstatusBadgeProps {
   substatus?: Group['substatus'];
 }
 
-function getBadgeProperties(
+export function getBadgeProperties(
   status: Group['status'],
   substatus: Group['substatus']
 ): {status: string; tagType: keyof Theme['tag']; tooltip?: string} | undefined {

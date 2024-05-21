@@ -698,13 +698,13 @@ const SPECIAL_FIELDS: SpecialFields = {
   'span.status_code': {
     sortField: 'span.status_code',
     renderFunc: data => (
-      <NumberContainer>
+      <Container>
         {data['span.status_code'] ? (
           <ResponseStatusCodeCell code={parseInt(data['span.status_code'], 10)} />
         ) : (
           t('Unknown')
         )}
-      </NumberContainer>
+      </Container>
     ),
   },
 };

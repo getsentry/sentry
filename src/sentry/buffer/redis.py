@@ -241,6 +241,8 @@ class RedisBuffer(Buffer):
     def _execute_redis_operation(
         self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
     ) -> Any:
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str)
         pipe = self.get_redis_connection(self.pending_key)
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:

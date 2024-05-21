@@ -1,13 +1,15 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {MetricsOperation} from 'sentry/types';
+import type {MetricsAggregate, MetricType, MRI} from 'sentry/types/metrics';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
+  getDefaultAggregate,
   getFormattedMQL,
   getMetricsInterval,
   isFormattedMQL,
 } from 'sentry/utils/metrics';
+import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 
 describe('getDDMInterval', () => {
   it('should return the correct interval for non-"1m" intervals', () => {
@@ -77,7 +79,7 @@ describe('getFormattedMQL', () => {
 
   it('defaults to an empty string', () => {
     const result = getFormattedMQL({
-      op: '' as MetricsOperation,
+      op: '' as MetricsAggregate,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
       query: '',
@@ -153,5 +155,20 @@ describe('getAbsoluteDateTimeRange', () => {
       start: '2023-12-25T00:00:00.000Z',
       end: '2024-01-01T00:00:00.000Z',
     });
+  });
+});
+
+describe('getDefaultAggregate', () => {
+  it.each(['c', 'd', 'g', 's'])(
+    'should give default aggregate - metric type %s',
+    metricType => {
+      const mri = `${metricType as MetricType}:custom/xyz@test` as MRI;
+
+      expect(getDefaultAggregate(mri)).toBe(DEFAULT_AGGREGATES[metricType]);
+    }
+  );
+
+  it('should fallback to sum', () => {
+    expect(getDefaultAggregate('b:roken/MRI@none' as MRI)).toBe('sum');
   });
 });
