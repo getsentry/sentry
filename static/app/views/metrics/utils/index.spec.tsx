@@ -1,7 +1,7 @@
 import type {MRI} from 'sentry/types/metrics';
 import {MetricSeriesFilterUpdateType} from 'sentry/utils/metrics/types';
 
-import {updateQueryWithSeriesFilter} from './index';
+import {ensureQuotedTextFilters, updateQueryWithSeriesFilter} from './index';
 
 describe('updateQueryWithSeriesFilter', () => {
   it('should add a filter an empty query stirng', () => {
@@ -96,5 +96,32 @@ describe('updateQueryWithSeriesFilter', () => {
 
     expect(updatedQuery.query).toEqual('project:1 release:latest');
     expect(updatedQuery.groupBy).toEqual(['environment']);
+  });
+});
+
+describe('ensureQuotedTextFilters', () => {
+  it('returns a query with all text filters quoted', () => {
+    expect(ensureQuotedTextFilters('transaction:/{organization_slug}/')).toEqual(
+      'transaction:"/{organization_slug}/"'
+    );
+
+    // transaction.duration defaults to a number filter
+    expect(ensureQuotedTextFilters('transaction.duration:100')).toEqual(
+      'transaction.duration:100'
+    );
+  });
+
+  it('applies config overrides', () => {
+    expect(
+      ensureQuotedTextFilters('transaction:100', {
+        numericKeys: new Set(['transaction']),
+      })
+    ).toEqual('transaction:100');
+
+    expect(
+      ensureQuotedTextFilters('transaction.duration:100', {
+        numericKeys: new Set([]),
+      })
+    ).toEqual('transaction.duration:"100"');
   });
 });
