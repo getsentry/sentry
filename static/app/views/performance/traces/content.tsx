@@ -255,7 +255,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
             <ProjectRenderer projectSlug={trace.project} hideName />
           ) : null}
           {trace.name ? (
-            trace.name
+            <WrappingText>{trace.name}</WrappingText>
           ) : (
             <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
           )}
@@ -513,7 +513,7 @@ const TracePanelContent = styled('div')`
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 141px 85px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 133px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -546,7 +546,13 @@ const StyledPanelItem = styled(PanelItem)<{
       : p.align === 'left' || p.align === 'right'
         ? `text-align: ${p.align};`
         : undefined}
-  ${p => p.span && `grid-column: auto / span ${p.span}`}
+  ${p => p.span && `grid-column: auto / span ${p.span};`}
+  white-space: nowrap;
+`;
+
+const WrappingText = styled('div')`
+  width: 100%;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledSpanPanelItem = styled(StyledPanelItem)`
