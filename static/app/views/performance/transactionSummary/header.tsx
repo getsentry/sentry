@@ -114,10 +114,6 @@ function TransactionHeader({
   });
   const replaysCount = getReplayCountForTransaction(transactionName);
 
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
-
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -200,10 +196,7 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS} hidden={hasTransactionSummaryCleanupFlag}>
-                {t('Spans')}
-              </TabList.Item>
-
+              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
                 key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}

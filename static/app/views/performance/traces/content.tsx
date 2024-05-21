@@ -177,7 +177,7 @@ export function Content() {
       />
       <StyledPanel>
         <TracePanelContent>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader align="left" lightText>
             {t('Trace ID')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
@@ -186,7 +186,7 @@ export function Content() {
           <StyledPanelHeader align="right" lightText>
             {t('Total Spans')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
@@ -210,7 +210,9 @@ export function Content() {
           )}
           {isEmpty && (
             <StyledPanelItem span={7} overflow>
-              <EmptyStateWarning withIcon />
+              <EmptyStateWarning withIcon>
+                <div>{t('No traces available')}</div>
+              </EmptyStateWarning>
             </StyledPanelItem>
           )}
           {data?.map(trace => <TraceRow key={trace.trace} trace={trace} />)}
@@ -521,7 +523,6 @@ const SpanPanelContent = styled('div')`
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
-  padding: ${space(2)} ${space(1)};
 `;
 
 const Description = styled('div')`
@@ -538,7 +539,7 @@ const StyledPanelItem = styled(PanelItem)<{
   span?: number;
 }>`
   align-items: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
   ${p => (p.overflow ? p.theme.overflowEllipsis : null)};

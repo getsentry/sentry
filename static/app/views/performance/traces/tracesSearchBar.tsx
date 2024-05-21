@@ -19,7 +19,11 @@ interface TracesSearchBarProps {
 }
 
 const getSpanName = (index: number) => {
-  const spanNames = [t('Span A'), t('Span B'), t('Span C')];
+  const spanNames = [
+    t('Find traces where a span is'),
+    t('and another span where'),
+    t('and another span where'),
+  ];
   return spanNames[index];
 };
 
@@ -99,9 +103,7 @@ export function TracesSearchBar({
             searchSource="trace-explorer"
             query={query}
             onSearch={(queryString: string) => handleSearch(index, queryString)}
-            placeholder={t(
-              'Search for traces containing a span matching these attributes'
-            )}
+            placeholder={t('Search for span attributes')}
             organization={organization}
             metricAlert={false}
             supportedTags={supportedTags}
@@ -152,7 +154,8 @@ const SpanLetter = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)} ${space(2)};
-
+  text-align: center;
+  min-width: 220px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: 800;
