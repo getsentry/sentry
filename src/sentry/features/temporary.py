@@ -87,7 +87,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:issue-details-autofix-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:issue-details-inline-replay-viewer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

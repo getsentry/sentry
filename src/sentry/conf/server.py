@@ -1613,8 +1613,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enables the UI for Autofix in issue details
     "organizations:issue-details-autofix-ui": False,
-    # Enables the inline replay viewer on the issue details page
-    "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
     # Enable tag improvements in the issue details page
