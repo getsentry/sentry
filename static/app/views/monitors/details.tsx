@@ -19,6 +19,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -27,7 +29,7 @@ import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {StatusToggleButton} from './components/statusToggleButton';
-import type {Monitor} from './types';
+import type {CheckinProcessingError, Monitor} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
@@ -64,6 +66,14 @@ function MonitorDetails({params, location}: Props) {
       return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
     },
   });
+
+  const {data: checkinErrors} = useApiQuery<CheckinProcessingError[]>(
+    makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug),
+    {
+      staleTime: 0,
+      refetchOnWindowFocus: true,
+    }
+  );
 
   function onUpdate(data: Monitor) {
     const updatedMonitor = {
@@ -133,6 +143,9 @@ function MonitorDetails({params, location}: Props) {
               >
                 {t('This monitor is disabled and is not accepting check-ins.')}
               </Alert>
+            )}
+            {!!checkinErrors?.length && (
+              <MonitorProcessingErrors checkinErrors={checkinErrors} />
             )}
             {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding monitor={monitor} />

@@ -33,6 +33,10 @@ describe('Monitor Details', () => {
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/checkins/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/processing-errors/`,
+      body: [],
+    });
   });
 
   it('renders', async function () {
