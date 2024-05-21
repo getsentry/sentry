@@ -26,6 +26,7 @@ from sentry.tasks.backfill_seer_grouping_records import (
     make_backfill_redis_key,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -93,7 +94,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data = {
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
-                )
+                ),
+                "timestamp": iso_format(before_now(seconds=3)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             events.append(event)
@@ -112,6 +114,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash="".join(choice(ascii_uppercase) for i in range(32)),
             )
+        self.wait_for_event_count(self.project.id, 5)
+
         return {"rows": rows, "events": events, "messages": messages}
 
     def setUp(self):
@@ -123,7 +127,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             bulk_data["messages"],
         )
         self.event = self.store_event(
-            data={"exception": EXCEPTION}, project_id=self.project.id, assert_no_errors=False
+            data={"exception": EXCEPTION, "timestamp": iso_format(before_now(seconds=3))},
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
         self.event.group.times_seen = 5
         self.event.group.save()
@@ -597,7 +603,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
 
-    @django_db_all
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_success_simple(self, mock_post_bulk_grouping_records):
@@ -619,7 +624,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_index == len(groups)
 
-    @django_db_all
     @patch("time.sleep", return_value=None)
     @patch("sentry.nodestore.backend.get_multi")
     @patch("sentry.tasks.backfill_seer_grouping_records.lookup_event")
@@ -642,7 +646,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("seer_similarity")
 
-    @django_db_all
     def test_backfill_seer_grouping_records_no_feature(self):
         """
         Test that the function does not create records when there is no feature flag
@@ -655,7 +658,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("seer_similarity")
 
-    @django_db_all
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
     @patch("sentry.tasks.backfill_seer_grouping_records.delete_grouping_records")
@@ -698,7 +700,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data = {
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
-                )
+                ),
+                "timestamp": iso_format(before_now(seconds=3)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             groups_seen_once.append(event.group)
@@ -742,7 +745,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data = {
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
-                )
+                ),
+                "timestamp": iso_format(before_now(seconds=3)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -808,7 +812,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values(
                 "another_function!", "AnotherError!", "error with value"
-            )
+            ),
+            "timestamp": iso_format(before_now(seconds=3)),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -854,7 +859,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @pytest.mark.skip(
         "this test is flakey in production; trying to replicate locally and skipping it for now"
     )
-    @django_db_all
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_multiple_batches(self, mock_post_bulk_grouping_records):
@@ -869,7 +873,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data = {
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
-                )
+                ),
+                "timestamp": iso_format(before_now(seconds=3)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
