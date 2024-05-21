@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from enum import Enum
 
 from sentry import options
@@ -23,32 +24,29 @@ METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.lcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
 }
 
-# Currently there are no default per-use case aggregation overrides
-# They are all set via options
-USE_CASE_AGG_OPTION = {}
-
-
-def set_use_case_aggregation_options():
-    # As of now this option is still restricted
-    # to the scope of the custom use case
-    if options.get("sentry-metrics.10s-granularity"):
-        USE_CASE_AGG_OPTION[UseCaseID.CUSTOM] = {
-            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
-        }
-
-    for use_case in options.get("sentry-metrics.drop-percentiles.per-use-case"):
-        USE_CASE_AGG_OPTION[UseCaseID(use_case)] = {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
+# Currently there are no default per-use case aggregation options
+# They are all set via specific overrides, so we removed the global mapping
 
 
 def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, TimeWindow] | None:
 
-    # Set various aggregation options that
-    # are use case-wide aggregations
-    set_use_case_aggregation_options()
-
+    drop_uc_org_override: Mapping[str, Sequence[int]] = options.get(
+        "sentry-metrics.drop-percentiles.per-use-case.with-org-override"
+    )
     use_case_id: UseCaseID = extract_use_case_id(mri)
+    use_case_agg_options: Mapping[UseCaseID, Mapping[AggregationOption, TimeWindow]] = {}
+
+    # As of now this option is still restricted
+    # to the scope of the custom use case
+    if options.get("sentry-metrics.10s-granularity"):
+        use_case_agg_options[UseCaseID.CUSTOM] = {
+            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
+        }
+
+    for use_case in drop_uc_org_override:
+        use_case_agg_options[UseCaseID(use_case)] = {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
 
     # We check first if the org ID has disabled percentiles
     if org_id in options.get("sentry-metrics.drop-percentiles.per-org"):
@@ -57,7 +55,8 @@ def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, Ti
     elif mri in METRIC_ID_AGG_OPTION:
         return METRIC_ID_AGG_OPTION[mri]
     # And move to the use case if not
-    elif use_case_id in USE_CASE_AGG_OPTION:
-        return USE_CASE_AGG_OPTION[use_case_id]
+    elif use_case_id in use_case_agg_options:
+        if org_id not in drop_uc_org_override.get(use_case_id.value, []):
+            return use_case_agg_options[use_case_id]
 
     return None
