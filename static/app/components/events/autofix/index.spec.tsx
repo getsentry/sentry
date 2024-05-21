@@ -102,7 +102,7 @@ describe('Autofix', () => {
     expect(screen.getByText('Try Autofix')).toBeInTheDocument();
 
     // Clicking the fix button should show the initial state "Starting Autofix..." and call the api
-    await userEvent.click(screen.getByRole('button', {name: 'Gimme Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Get root causes'}));
     expect(await screen.findByText('Starting Autofix...')).toBeInTheDocument();
     expect(triggerAutofixMock).toHaveBeenCalledTimes(1);
   });
