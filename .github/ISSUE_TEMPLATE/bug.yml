@@ -50,6 +50,7 @@ body:
         - 'Projects - Project Creation'
         - 'Projects - Project Details'
         - 'Performance'
+        - 'Insights'
         - 'Performance - Queries'
         - 'Performance - Interactions'
         - 'Performance - Web Vitals'

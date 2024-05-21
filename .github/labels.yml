@@ -180,6 +180,8 @@
   color: '8D5494'
 - name: 'Product Area: Performance'
   color: '8D5494'
+- name: 'Product Area: Insights'
+  color: '8D5494'
 - name: 'Product Area: Performance - Queries'
   color: '8D5494'
 - name: 'Product Area: Performance - Interactions'
