@@ -113,9 +113,13 @@ export default function ContextCard({
     project,
   });
 
-  const content = contextItems.map((item, i) => (
-    <ContextCardContent key={`context-card-${i}`} meta={meta} item={item} />
-  ));
+  const content = contextItems
+    .sort((a, b) => {
+      return a.subject.localeCompare(b.subject);
+    })
+    .map((item, i) => (
+      <ContextCardContent key={`context-card-${i}`} meta={meta} item={item} />
+    ));
 
   return (
     <Card>

@@ -874,9 +874,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        with TaskRunner():
+        with TaskRunner(), patch(
+            "sentry.tasks.backfill_seer_grouping_records.backfill_seer_grouping_records.apply_async",
+            wraps=backfill_seer_grouping_records(self.project.id, None),
+        ):
             backfill_seer_grouping_records(self.project.id, None)
-
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
             assert group.data["metadata"].get("seer_similarity") is not None

@@ -71,7 +71,7 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
       <Fragment>
         <p>
           {tct(
-            'You have an active GitHub installation, but no linked repositories. Add repositories to the integration on the [integration settings page].',
+            'You have an active GitHub installation, but no code mappings for this project. Add code mappings by visiting the [link:integration settings page] and editing your configuration.',
             {
               link: <ExternalLink href={`/settings/integrations/github/`} />,
             }
@@ -217,8 +217,9 @@ function AutofixCodebaseIndexingStep({
   const {startIndexing} = useAutofixCodebaseIndexing({projectId, groupId});
 
   const canIndex =
-    // autofixSetup.genAIConsent.ok &&
-    autofixSetup.integration.ok && autofixSetup.githubWriteIntegration.ok;
+    autofixSetup.genAIConsent.ok &&
+    autofixSetup.integration.ok &&
+    autofixSetup.githubWriteIntegration.ok;
 
   return (
     <Fragment>
