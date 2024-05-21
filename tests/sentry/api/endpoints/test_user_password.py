@@ -61,7 +61,7 @@ class UserPasswordTest(APITestCase):
             **{
                 "password": "wrongpassword",
                 "passwordNew": "testpassword",
-                "passwordVerify": "passworddoesntmatch",
+                "passwordVerify": "testpassword",
             },
         )
 
