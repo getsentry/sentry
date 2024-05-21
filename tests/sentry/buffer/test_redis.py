@@ -273,9 +273,8 @@ class TestRedisBuffer:
         mock = Mock()
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
 
-        redis_buffer_registry.callback(BufferHookEvent.FLUSH, self.buf)
+        redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.buf
 
     def test_process_batch(self):
         """Test that the registry's callbacks are invoked when we process a batch"""
@@ -283,7 +282,6 @@ class TestRedisBuffer:
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
         self.buf.process_batch()
         assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.buf
 
     def test_delete_batch(self):
         """Test that after we add things to redis we can clean it up"""
