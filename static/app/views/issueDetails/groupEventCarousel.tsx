@@ -241,7 +241,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(group.project);
+    projectCanLinkToReplay(organization, group.project);
 
   const downloadJson = () => {
     const host = organization.links.regionUrl;
