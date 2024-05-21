@@ -91,16 +91,15 @@ function SudoModal({
 
   useEffect(() => {
     const getAuthenticators = () => {
+      if (!loadOrganization) return;
       try {
-        if (loadOrganization) {
-          loadOrganization().then(async () => {
-            const fetchedAuthenticators = await api.requestPromise('/authenticators/');
-            setState(prevState => ({
-              ...prevState,
-              authenticators: fetchedAuthenticators ?? [],
-            }));
-          });
-        }
+        loadOrganization().then(async () => {
+          const fetchedAuthenticators = await api.requestPromise('/authenticators/');
+          setState(prevState => ({
+            ...prevState,
+            authenticators: fetchedAuthenticators ?? [],
+          }));
+        });
       } catch {
         // ignore errors
       }
