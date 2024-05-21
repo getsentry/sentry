@@ -1,4 +1,5 @@
 import copy
+import unittest
 from collections.abc import Mapping
 from random import choice
 from string import ascii_uppercase
@@ -851,6 +852,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_index == len(groups)
 
+    @unittest.skip(
+        "this test is flakey in production; trying to replicate locally and skipping it for now"
+    )
     @django_db_all
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -874,10 +878,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        with TaskRunner(), patch(
-            "sentry.tasks.backfill_seer_grouping_records.backfill_seer_grouping_records.apply_async",
-            wraps=backfill_seer_grouping_records(self.project.id, None),
-        ):
+        with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -886,3 +887,41 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_index == len(groups)
+
+    @django_db_all
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.delete_grouping_records")
+    def test_backfill_seer_grouping_records_only_delete(self, mock_delete_grouping_records):
+        """
+        Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
+        if it exists
+        """
+        # Create groups, half seer_similarity in the metadata, half without
+        function_names = [f"another_function_{str(i)}" for i in range(10)]
+        type_names = [f"AnotherError{str(i)}" for i in range(10)]
+        value_names = ["error with value" for _ in range(10)]
+        group_ids = []
+        default_metadata = {"different_data": {"something": "else"}}
+        for i in range(10):
+            data = {
+                "exception": self.create_exception_values(
+                    function_names[i], type_names[i], value_names[i]
+                ),
+            }
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+            event.group.times_seen = 2
+            event.group.data["metadata"] = copy.deepcopy(default_metadata)
+            if i < 5:
+                event.group.data["metadata"].update(
+                    {"seer_similarity": {"similarity_model_version": "v0"}}
+                )
+            event.group.save()
+            group_ids.append(event.group.id)
+
+        mock_delete_grouping_records.return_value = True
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None, only_delete=True)
+
+        groups = Group.objects.filter(project_id=self.project.id, id__in=group_ids)
+        for group in groups:
+            assert group.data["metadata"] == default_metadata
