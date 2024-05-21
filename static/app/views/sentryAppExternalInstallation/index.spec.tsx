@@ -156,6 +156,53 @@ describe('SentryAppExternalInstallation', () => {
 
       (window.location.assign as jest.Mock).mockClear();
     });
+
+    it('installs and redirects with state', async () => {
+      const installUrl = `/organizations/${org1.slug}/sentry-app-installations/`;
+      const install = {
+        uuid: 'fake-id',
+        code: 'some-code',
+      };
+      const installMock = MockApiClient.addMockResponse({
+        url: installUrl,
+        method: 'POST',
+        body: install,
+      });
+
+      const state = 'some-state';
+      const location = {
+        ...RouteComponentPropsFixture(),
+        location: {
+          ...RouteComponentPropsFixture().location,
+          query: {state},
+        },
+      };
+
+      render(
+        <SentryAppExternalInstallation
+          {...location}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
+
+      await userEvent.click(await screen.findByTestId('install')); // failing currently
+
+      expect(installMock).toHaveBeenCalledWith(
+        installUrl,
+        expect.objectContaining({
+          data: {slug: sentryApp.slug},
+        })
+      );
+
+      await waitFor(() => {
+        expect(window.location.assign).toHaveBeenCalledWith(
+          `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}&state=${state}`
+        );
+      });
+
+      (window.location.assign as jest.Mock).mockClear();
+    });
   });
 
   describe('multiple organizations', () => {

@@ -176,16 +176,20 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     }
 
     if (sentryApp.redirectUrl) {
-      const queryParams = {
+      const queryParams: Record<string, string | undefined> = {
         installationId: install.uuid,
         code: install.code,
         orgSlug: organization.slug,
       };
+      const state = props.location.query.state;
+      if (state) {
+        queryParams.state = state;
+      }
       const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
       return window.location.assign(redirectUrl);
     }
     return onClose();
-  }, [api, organization, sentryApp, onClose]);
+  }, [api, organization, sentryApp, onClose, props.location.query.state]);
 
   if (sentryAppLoading || orgsLoading || !sentryApp) {
     return <LoadingIndicator />;
