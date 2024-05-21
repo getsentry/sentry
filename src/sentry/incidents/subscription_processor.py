@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
-from snuba_sdk import Column, Condition, Entity, Limit, Op
+from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
@@ -216,20 +216,11 @@ class SubscriptionProcessor:
                     "end": end,
                 },
             )
-            entity_key = get_entity_key_from_query_builder(query_builder)
-            time_col = ENTITY_TIME_COLUMNS[entity_key]
+            time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
             query_builder.add_conditions(
                 [
-                    Condition(
-                        Column(time_col, entity=Entity(entity_key.value, alias="events")),
-                        Op.GTE,
-                        start,
-                    ),
-                    Condition(
-                        Column(time_col, entity=Entity(entity_key.value, alias="events")),
-                        Op.LT,
-                        end,
-                    ),
+                    Condition(Column(time_col), Op.GTE, start),
+                    Condition(Column(time_col), Op.LT, end),
                 ]
             )
             query_builder.limit = Limit(1)
