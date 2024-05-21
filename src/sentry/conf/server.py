@@ -1877,6 +1877,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Measure usage by spans instead of transactions
+    "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
