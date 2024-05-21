@@ -23,6 +23,12 @@ const TRANSACTION_NUMERIC_KEYS: (keyof TraceTree.Transaction)[] = [
 ];
 const TRANSACTION_DURATION_KEYS: (keyof TraceTree.Transaction)[] = [
   'transaction.duration',
+  // The keys below are not real keys returned by the API, but are instead
+  // mapped by the frontend to the correct keys for convenience and UX reasons
+  // @ts-expect-error
+  'transaction.total_time',
+  // @TODO for consistency with spans, this should be implemented
+  // 'transaction.self_time'
 ];
 
 // @TODO the current date parsing does not support timestamps, so we
@@ -48,7 +54,18 @@ const SPAN_NUMERIC_KEYS: (keyof TraceTree.Span)[] = ['timestamp', 'start_timesta
 const SPAN_DURATION_KEYS: (keyof TraceTree.Span)[] = [
   // @TODO create aliases for self_time total_time and duration.
   'exclusive_time',
+  // The keys below are not real keys returned by the API, but are instead
+  // mapped by the frontend to the correct keys for convenience and UX reasons
+  // @ts-expect-error
+  'span.duration',
+  // @ts-expect-error
+  'span.total_time',
+  // @ts-expect-error
+  'span.self_time',
+  // @ts-expect-error
+  'span.exclusive_time',
 ];
+
 // @TODO the current date parsing does not support timestamps, so we
 // exclude these keys for now and parse them as numeric keys
 const SPAN_DATE_KEYS: (keyof TraceTree.Span)[] = [
