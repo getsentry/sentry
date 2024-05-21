@@ -113,7 +113,7 @@ export function Request({event}: {event: EventTransaction}) {
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.query, meta?.query)}
               title={t('Query String')}
-              enableSorting
+              sortAlphabetically
             />
           ) : null}
           {defined(data.fragment) ? (
@@ -139,21 +139,21 @@ export function Request({event}: {event: EventTransaction}) {
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.cookies, meta)}
               title={t('Cookies')}
-              enableSorting
+              sortAlphabetically
             />
           ) : null}
           {defined(data.headers) ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.headers, meta)}
               title={t('Headers')}
-              enableSorting
+              sortAlphabetically
             />
           ) : null}
           {defined(data.env) ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.env, meta)}
               title={t('Environment')}
-              enableSorting
+              sortAlphabetically
             />
           ) : null}
         </TraceDrawerComponents.SectionCardGroup>

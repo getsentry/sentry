@@ -33,6 +33,10 @@ export function Sdk({event}: {event: EventTransaction}) {
   ];
 
   return (
-    <TraceDrawerComponents.SectionCard items={items} title={t('Sdk')} enableSorting />
+    <TraceDrawerComponents.SectionCard
+      items={items}
+      title={t('Sdk')}
+      sortAlphabetically
+    />
   );
 }

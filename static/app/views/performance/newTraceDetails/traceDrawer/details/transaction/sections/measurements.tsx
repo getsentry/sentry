@@ -153,7 +153,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
       <TraceDrawerComponents.SectionCard
         items={items}
         title={t('Measurements')}
-        enableSorting
+        sortAlphabetically
       />
     </Wrapper>
   );

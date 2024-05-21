@@ -94,7 +94,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     <TraceDrawerComponents.SectionCard
       items={formattedDataItems}
       title={title}
-      enableSorting
+      sortAlphabetically
     />
   );
 }
