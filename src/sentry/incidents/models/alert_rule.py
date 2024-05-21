@@ -451,7 +451,7 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
 @region_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
-    This model represents an action that occurs when a trigger is fired. This is
+    This model represents an action that occurs when a trigger (over/under) is fired. This is
     typically some sort of notification.
     """
 

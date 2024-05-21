@@ -709,15 +709,21 @@ urlpatterns += [
     ),
     # AI Monitoring
     re_path(
-        r"^ai-monitoring/",
+        r"^llm-monitoring/",
         react_page_view,
-        name="ai-monitoring",
+        name="llm-monitoring",
     ),
     # Performance
     re_path(
         r"^performance/",
         react_page_view,
         name="performance",
+    ),
+    # Insights
+    re_path(
+        r"^insights/",
+        react_page_view,
+        name="insights",
     ),
     # Profiling
     re_path(

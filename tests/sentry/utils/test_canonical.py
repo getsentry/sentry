@@ -1,6 +1,15 @@
 import unittest
 
+import pytest
+
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
+
+
+@pytest.fixture(autouse=True)
+def _disable_fallback_logging():
+    with override_options({"canonical-fallback.send-error-to-sentry": 0}):
+        yield
 
 
 class CanonicalKeyViewTests(unittest.TestCase):
@@ -209,3 +218,24 @@ class DoubleAliasingTests(unittest.TestCase):
         assert view["logentry"] == "foo"
         assert view["sentry.interfaces.Message"] == "foo"
         assert view["message"] == "foo"
+
+
+def _trigger_canonical_fallback():
+    CanonicalKeyDict({"message": "hi"})
+
+
+@override_options({"canonical-fallback.send-error-to-sentry": 0})
+def test_canonical_no_logging_to_sentry_when_disabled(caplog):
+    _trigger_canonical_fallback()
+
+    assert not caplog.records
+
+
+@override_options({"canonical-fallback.send-error-to-sentry": 1})
+def test_canonical_logging_to_sentry_when_enabled(caplog):
+    _trigger_canonical_fallback()
+
+    (record,) = caplog.records
+    assert record.levelname == "ERROR"
+    assert record.exc_info == (None, None, None)
+    assert record.message == "canonical fallback"

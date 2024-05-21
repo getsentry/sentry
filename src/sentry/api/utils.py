@@ -4,7 +4,6 @@ import datetime
 import logging
 import re
 import sys
-import time
 import traceback
 from collections.abc import Generator, Mapping, MutableMapping
 from contextlib import contextmanager
@@ -465,25 +464,6 @@ def handle_query_errors() -> Generator[None, None, None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
-
-
-class Timer:
-    def __enter__(self):
-        self._start = time.time()
-        self._duration = None
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._end = time.time()
-        self._duration = self._end - self._start
-
-    @property
-    def duration(self):
-        # If _duration is set, return it; otherwise, calculate ongoing duration
-        if self._duration is not None:
-            return self._duration
-        else:
-            return time.time() - self._start
 
 
 def id_or_slug_path_params_enabled(

@@ -53,6 +53,7 @@ allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigne
 UNSUPPORTED_SNUBA_FILTERS = [
     "issue.priority",  # coming soon
     "firstRelease",  # coming soon
+    "first_release",  # coming soon
 ]
 
 

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -9,6 +9,7 @@ import Link from 'sentry/components/links/link';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -31,6 +32,7 @@ import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples'
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
 import {Referrer} from 'sentry/views/performance/http/referrers';
+import {BASE_FILTERS} from 'sentry/views/performance/http/settings';
 import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -86,6 +88,12 @@ export function HTTPSamplesPanel() {
     : undefined;
 
   const handlePanelChange = newPanelName => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'panel',
+      new_state: newPanelName,
+      organization,
+      source: ModuleName.HTTP,
+    });
     router.replace({
       pathname: location.pathname,
       query: {
@@ -96,6 +104,12 @@ export function HTTPSamplesPanel() {
   };
 
   const handleResponseCodeClassChange = newResponseCodeClass => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'status_code',
+      new_state: newResponseCodeClass.value,
+      organization,
+      source: ModuleName.HTTP,
+    });
     router.replace({
       pathname: location.pathname,
       query: {
@@ -109,7 +123,7 @@ export function HTTPSamplesPanel() {
 
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
   const ribbonFilters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
@@ -117,7 +131,7 @@ export function HTTPSamplesPanel() {
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
@@ -258,9 +272,18 @@ export function HTTPSamplesPanel() {
     });
   };
 
+  const handleOpen = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: ModuleName.HTTP,
+      });
+    }
+  }, [organization, query.transaction]);
+
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose}>
+      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>
@@ -435,7 +458,15 @@ export function HTTPSamplesPanel() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <Button onClick={() => refetchDurationSpanSamples()}>
+                <Button
+                  onClick={() => {
+                    trackAnalytics(
+                      'performance_views.sample_spans.try_different_samples_clicked',
+                      {organization, source: ModuleName.HTTP}
+                    );
+                    refetchDurationSpanSamples();
+                  }}
+                >
                   {t('Try Different Samples')}
                 </Button>
               </ModuleLayout.Full>
@@ -468,7 +499,15 @@ export function HTTPSamplesPanel() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <Button onClick={() => refetchResponseCodeSpanSamples()}>
+                <Button
+                  onClick={() => {
+                    trackAnalytics(
+                      'performance_views.sample_spans.try_different_samples_clicked',
+                      {organization, source: ModuleName.HTTP}
+                    );
+                    refetchResponseCodeSpanSamples();
+                  }}
+                >
                   {t('Try Different Samples')}
                 </Button>
               </ModuleLayout.Full>

@@ -7,7 +7,7 @@ export type DDMEventParameters = {
     source: 'global' | 'widget';
   };
   'ddm.open-onboarding': {
-    source: 'onboarding_panel' | 'header';
+    source: 'onboarding_panel' | 'header' | 'banner';
   };
   'ddm.opt_in_modal_closed': {
     source: 'im_in' | 'learn_more' | 'close_button';
@@ -18,6 +18,7 @@ export type DDMEventParameters = {
     target: 'event-id' | 'description' | 'trace-id' | 'profile';
   };
   'ddm.set-default-query': {};
+  'ddm.view_performance_metrics': {};
   'ddm.widget.add': {
     type: 'query' | 'equation';
   };
@@ -38,6 +39,7 @@ export const ddmEventMap: Record<keyof DDMEventParameters, string> = {
   'ddm.remove-default-query': 'DDM: Remove Default Query',
   'ddm.set-default-query': 'DDM: Set Default Query',
   'ddm.open-onboarding': 'DDM: Open Onboarding',
+  'ddm.view_performance_metrics': 'DDM: View Performance Metrics',
   'ddm.widget.add': 'DDM: Widget Added',
   'ddm.widget.sort': 'DDM: Group By Sort Changed',
   'ddm.widget.duplicate': 'DDM: Widget Duplicated',

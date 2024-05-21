@@ -99,17 +99,12 @@ export function MockTimelineVisualization({schedule}: Props) {
         </Fragment>
       ) : (
         <Fragment>
-          <AlignedGridLineLabels
-            timeWindowConfig={timeWindowConfig}
-            width={timelineWidth}
-          />
+          <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
           <AlignedGridLineOverlay
             showCursor={!isLoading}
             timeWindowConfig={timeWindowConfig}
-            width={timelineWidth}
           />
           <MockCheckInTimeline
-            width={timelineWidth}
             mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
             timeWindowConfig={timeWindowConfig}
           />

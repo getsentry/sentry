@@ -180,7 +180,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     @override_options({"indexed-spans.agg-span-waterfall.enable": True})
@@ -563,7 +563,7 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     @django_db_all

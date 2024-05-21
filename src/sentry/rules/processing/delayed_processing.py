@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
 from sentry import nodestore
-from sentry.buffer.redis import RedisBuffer
+from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -296,7 +296,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
         project_ids = buffer.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, min=float("-inf"), max=float("+inf")
         )
         log_str = ""
         for project_id, timestamp in project_ids:
@@ -310,7 +310,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
 
 
 @instrumented_task(
-    name="sentry.delayed_processing.tasks.apply_delayed",
+    name="sentry.rules.processing.delayed_processing",
     queue="delayed_rules",
     default_retry_delay=5,
     max_retries=5,
@@ -410,3 +410,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         filters={"project_id": project_id},
         fields=hashes_to_delete,
     )
+
+
+if not redis_buffer_registry.has(BufferHookEvent.FLUSH):
+    redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)

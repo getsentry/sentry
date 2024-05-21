@@ -5,7 +5,9 @@ import pytest
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule_activations import AlertRuleActivationsSerializer
+from sentry.incidents.endpoints.serializers.alert_rule_activations import (
+    AlertRuleActivationsSerializer,
+)
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase

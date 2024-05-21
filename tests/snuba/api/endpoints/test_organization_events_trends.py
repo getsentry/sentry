@@ -50,7 +50,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {"organizations:performance-view": True}
 
@@ -403,7 +403,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {"organizations:performance-view": True}
 
@@ -833,7 +833,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)

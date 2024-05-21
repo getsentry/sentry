@@ -49,6 +49,19 @@ export function useQueryBuilderGrid(
       // The default behavior will capture some keys such as Enter and Space, which
       // we want to handle ourselves.
       onKeyDownCapture: () => {},
+      onFocus: () => {
+        if (state.selectionManager.isFocused) {
+          return;
+        }
+
+        // Ensure that the state is updated correctly
+        state.selectionManager.setFocused(true);
+
+        // If nothing is has been focused yet , default to last item
+        if (!state.selectionManager.focusedKey) {
+          state.selectionManager.setFocusedKey(state.collection.getLastKey());
+        }
+      },
     },
   };
 }

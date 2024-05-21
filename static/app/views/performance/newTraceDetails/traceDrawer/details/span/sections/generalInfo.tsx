@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -80,7 +80,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
       subject: t('Description'),
       value:
         span.op && span.hash ? (
-          <TraceDrawerComponents.CardValueWithCopy
+          <TraceDrawerComponents.CopyableCardValueWithLink
             value={span.description}
             linkTarget={spanDetailsRouteWithQuery({
               orgSlug: props.organization.slug,
@@ -92,7 +92,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
             linkText={t('View Similar Spans')}
           />
         ) : (
-          <TraceDrawerComponents.CardValueWithCopy value={span.description} />
+          <TraceDrawerComponents.CopyableCardValueWithLink value={span.description} />
         ),
     });
   }

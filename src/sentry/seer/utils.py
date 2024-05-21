@@ -1,17 +1,28 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import NotRequired, Self, TypedDict
+from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
+from urllib3.exceptions import ReadTimeoutError
 
-from sentry.conf.server import SEER_SIMILAR_ISSUES_URL, SEER_SIMILARITY_MODEL_VERSION
-from sentry.models.group import Group
+from sentry.conf.server import (
+    SEER_GROUPING_RECORDS_DELETE_URL,
+    SEER_GROUPING_RECORDS_URL,
+    SEER_MAX_GROUPING_DISTANCE,
+    SEER_SIMILAR_ISSUES_URL,
+    SEER_SIMILARITY_MODEL_VERSION,
+)
 from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
-from sentry.utils import json
-from sentry.utils.json import JSONDecodeError
+from sentry.utils import json, metrics
+from sentry.utils.json import JSONDecodeError, apply_key_filter
+
+logger = logging.getLogger(__name__)
+
+POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +60,6 @@ class BreakpointResponse(TypedDict):
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
-    retries=Retry(
-        total=5,
-        status_forcelist=[408, 429, 502, 503, 504],
-    ),
     timeout=settings.SEER_GROUPING_TIMEOUT,
 )
 
@@ -100,18 +107,16 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
     message: str
+    hash: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
-    group_id: NotRequired[int]  # TODO: Remove this once we stop sending it to seer
-    hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class RawSeerSimilarIssueData(TypedDict):
+    parent_hash: str
     stacktrace_distance: float
     message_distance: float
     should_group: bool
-    parent_group_id: NotRequired[int]  # TODO: Remove this once seer stops sending it
-    parent_hash: NotRequired[str]  # TODO: Make this required once id -> hash change is done
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
@@ -125,63 +130,106 @@ class SeerSimilarIssueData:
     message_distance: float
     should_group: bool
     parent_group_id: int
-    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
-    # TODO: See if we end up needing the hash here
-    parent_hash: str | None = None
+    parent_hash: str
+
+    # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
+    # definition because Python has no way to derive it from the type (nor vice-versa)
+    required_incoming_keys: ClassVar = {
+        "stacktrace_distance",
+        "message_distance",
+        "should_group",
+        "parent_hash",
+    }
+    optional_incoming_keys: ClassVar = {}
+    expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
 
     @classmethod
-    def from_raw(cls, project_id: int, raw_similar_issue_data: RawSeerSimilarIssueData) -> Self:
+    def from_raw(cls, project_id: int, raw_similar_issue_data: Mapping[str, Any]) -> Self:
         """
         Create an instance of `SeerSimilarIssueData` from the raw data that comes back from Seer,
         using the parent hash to look up the parent group id. Needs to be run individually on each
         similar issue in the Seer response.
 
-        Throws an `IncompleteSeerDataError` if given data with both parent group id and parent hash
-        missing, and a `SimilarGroupNotFoundError` if the data points to a group which no longer
-        exists. Thus if this successfully returns, the parent group id it contains is guaranteed to
-        point to an existing group.
+        Throws an `IncompleteSeerDataError` if given data with any required keys missing, and a
+        `SimilarGroupNotFoundError` if the data points to a group which no longer exists. The latter
+        guarantees that if this successfully returns, the parent group id in the return value points
+        to an existing group.
 
         """
-        similar_issue_data = raw_similar_issue_data
-        parent_hash = raw_similar_issue_data.get("parent_hash")
-        parent_group_id = raw_similar_issue_data.get("parent_group_id")
 
-        if not parent_group_id and not parent_hash:
+        # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
+        raw_similar_issue_data = apply_key_filter(
+            raw_similar_issue_data, keep_keys=cls.expected_incoming_keys
+        )
+        missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
+        if missing_keys:
             raise IncompleteSeerDataError(
-                "Seer similar issues response missing both `parent_group_id` and `parent_hash`"
+                "Seer similar issues response entry missing "
+                + ("keys " if len(missing_keys) > 1 else "key ")
+                + ", ".join(map(lambda key: f"'{key}'", sorted(missing_keys)))
             )
 
-        if parent_group_id:
-            if not Group.objects.filter(id=parent_group_id).first():
-                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
-
-        else:
-            parent_grouphash = (
-                GroupHash.objects.filter(project_id=project_id, hash=parent_hash)
-                .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
-                .first()
+        # Now that we know we have all the right data, use the parent group's hash to look up its id
+        parent_grouphash = (
+            GroupHash.objects.filter(
+                project_id=project_id, hash=raw_similar_issue_data["parent_hash"]
             )
+            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            .first()
+        )
 
-            if not parent_grouphash:
-                # TODO: Report back to seer that the hash has been deleted.
-                raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
+        if not parent_grouphash:
+            # TODO: Report back to seer that the hash has been deleted.
+            raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
 
-            similar_issue_data = {
-                **raw_similar_issue_data,
-                "parent_group_id": parent_grouphash.group_id,
-            }
+        # TODO: The `Any` casting here isn't great, but Python currently has no way to
+        # relate typeddict keys to dataclass properties
+        similar_issue_data: Any = {
+            **raw_similar_issue_data,
+            "parent_group_id": parent_grouphash.group_id,
+        }
 
         return cls(**similar_issue_data)
 
 
-def get_similar_issues_embeddings(
+@dataclass
+class SeerSimilarIssuesMetadata:
+    request_hash: str
+    results: list[SeerSimilarIssueData]
+    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
+
+
+class CreateGroupingRecordData(TypedDict):
+    group_id: int
+    hash: str
+    project_id: int
+    message: str
+
+
+class CreateGroupingRecordsRequest(TypedDict):
+    group_id_list: list[int]
+    data: list[CreateGroupingRecordData]
+    stacktrace_list: list[str]
+
+
+class BulkCreateGroupingRecordsResponse(TypedDict):
+    success: bool
+    groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
+
+
+# TODO: Handle non-200 responses
+def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
-    """Request similar issues data from seer and normalize the results."""
+    """
+    Request similar issues data from seer and normalize the results. Returns similar groups
+    sorted in order of descending similarity.
+    """
+
     response = seer_grouping_connection_pool.urlopen(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
-        body=json.dumps(similar_issues_request),
+        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 
@@ -210,7 +258,11 @@ def get_similar_issues_embeddings(
                     similar_issues_request["project_id"], raw_similar_issue_data
                 )
             )
-        except (IncompleteSeerDataError, SimilarGroupNotFoundError) as err:
+            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "found"})
+        except IncompleteSeerDataError as err:
+            metrics.incr(
+                "seer.similar_issue_request.parent_issue", tags={"outcome": "incomplete_data"}
+            )
             logger.exception(
                 str(err),
                 extra={
@@ -218,5 +270,74 @@ def get_similar_issues_embeddings(
                     "raw_similar_issue_data": raw_similar_issue_data,
                 },
             )
+        except SimilarGroupNotFoundError:
+            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"})
 
-    return normalized
+    return sorted(
+        normalized,
+        key=lambda issue_data: issue_data.stacktrace_distance,
+    )
+
+
+def post_bulk_grouping_records(
+    grouping_records_request: CreateGroupingRecordsRequest,
+) -> BulkCreateGroupingRecordsResponse:
+    """Call /v0/issues/similar-issues/grouping-record endpoint from seer."""
+    if not grouping_records_request.get("data"):
+        return {"success": True}
+
+    extra = {
+        "group_ids": json.dumps(grouping_records_request["group_id_list"]),
+        "project_id": grouping_records_request["data"][0]["project_id"],
+    }
+
+    try:
+        response = seer_grouping_connection_pool.urlopen(
+            "POST",
+            SEER_GROUPING_RECORDS_URL,
+            body=json.dumps(grouping_records_request),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        )
+    except ReadTimeoutError:
+        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
+        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+        return {"success": False}
+
+    if response.status >= 200 and response.status < 300:
+        logger.info("seer.post_bulk_grouping_records.success", extra=extra)
+        return json.loads(response.data.decode("utf-8"))
+    else:
+        extra.update({"reason": response.reason})
+        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
+        return {"success": False}
+
+
+def delete_grouping_records(
+    project_id: int,
+) -> bool:
+    try:
+        response = seer_grouping_connection_pool.urlopen(
+            "GET",
+            f"{SEER_GROUPING_RECORDS_DELETE_URL}/{project_id}",
+            headers={"Content-Type": "application/json;charset=utf-8"},
+            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        )
+    except ReadTimeoutError:
+        logger.exception(
+            "seer.delete_grouping_records.timeout",
+            extra={"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT},
+        )
+        return False
+
+    if response.status >= 200 and response.status < 300:
+        logger.info(
+            "seer.delete_grouping_records.success",
+            extra={"project_id": project_id},
+        )
+        return True
+    else:
+        logger.error(
+            "seer.delete_grouping_records.failure",
+        )
+        return False
