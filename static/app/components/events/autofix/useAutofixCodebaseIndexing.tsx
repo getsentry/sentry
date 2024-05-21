@@ -10,6 +10,7 @@ import {
   useApiQuery,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -32,6 +33,7 @@ const isPolling = (status: AutofixCodebaseIndexingStatus | undefined) =>
 
 export interface CodebaseIndexingStatusResponse {
   status: AutofixCodebaseIndexingStatus;
+  reason?: string;
 }
 
 export function useAutofixCodebaseIndexing({
@@ -62,6 +64,7 @@ export function useAutofixCodebaseIndexing({
   );
 
   const status = apiData?.status ?? null;
+  const reason = apiData?.reason ?? null;
   const prevStatus = usePrevious(status);
 
   const startIndexing = useCallback(async () => {
@@ -85,9 +88,17 @@ export function useAutofixCodebaseIndexing({
           method: 'POST',
         }
       );
-    } catch {
-      addErrorMessage(
-        t('Something went wrong while Autofix was indexing your codebase.')
+    } catch (e) {
+      const detail = e instanceof RequestError ? e.message : undefined;
+
+      addErrorMessage(detail ?? t('Autofix was unable to start indexing the codebase.'));
+
+      setApiQueryData<CodebaseIndexingStatusResponse>(
+        queryClient,
+        makeCodebaseIndexStatusQueryKey(organization.slug, projectSlug),
+        {
+          status: AutofixCodebaseIndexingStatus.ERRORED,
+        }
       );
     }
   }, [api, queryClient, organization.slug, projectSlug]);
@@ -101,5 +112,5 @@ export function useAutofixCodebaseIndexing({
     }
   }, [queryClient, groupId, prevStatus, status]);
 
-  return {status, startIndexing};
+  return {status, reason, startIndexing};
 }
