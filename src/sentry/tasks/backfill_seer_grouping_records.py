@@ -172,9 +172,7 @@ def backfill_seer_grouping_records(
             Condition(
                 Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
             ),
-            Condition(
-                Column("timestamp", entity=events_entity), Op.LT, time_now + timedelta(days=1)
-            ),
+            Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
         ],
         orderby=[OrderBy(Column("group_id"), Direction.ASC)],
     )

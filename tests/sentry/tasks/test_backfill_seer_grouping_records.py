@@ -114,7 +114,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash="".join(choice(ascii_uppercase) for i in range(32)),
             )
-        self.wait_for_event_count(self.project.id, 5)
 
         return {"rows": rows, "events": events, "messages": messages}
 
@@ -133,6 +132,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
         self.event.group.times_seen = 5
         self.event.group.save()
+
+        self.wait_for_event_count(self.project.id, 6)
+
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
