@@ -78,7 +78,6 @@ const FlexColumn = styled('section')`
 `;
 
 const StoryArea = styled('div')`
-  overflow: scroll;
   display: flex;
   flex-direction: column;
   gap: ${space(4)};
