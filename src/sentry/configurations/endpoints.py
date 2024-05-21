@@ -21,7 +21,7 @@ class ConfigurationValidator(Serializer):
 
 
 class ConfigurationContainerValidator(Serializer):
-    data = ConfigurationValidator()
+    data = ConfigurationValidator()  # type: ignore[assignment]
 
 
 @region_silo_endpoint

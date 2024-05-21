@@ -45,6 +45,7 @@ class StorageBackend:
         self.driver.pop()
 
     def _deserialize(self, result: StorageFormat) -> APIFormat:
+        assert self.key.public_key is not None
         return {
             "id": self.key.public_key,
             "sample_rate": result["options"]["sample_rate"],
@@ -69,6 +70,7 @@ class BlobDriver:
 
     @property
     def key(self):
+        assert self.project_key.public_key is not None
         return (
             f"configurations/{self.project_key.project_id}/{self.project_key.public_key}/production"
         )
