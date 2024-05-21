@@ -1011,7 +1011,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = "[]"
         else:
             redacted_sources = redact_source_secrets(sources)
-            serialized_sources = orjson.dumps(redacted_sources).decode()
+            serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         data.update(
             {
