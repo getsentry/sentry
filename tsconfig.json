@@ -4,6 +4,7 @@
     "allowJs": true
   },
   "include": [
+    ".eslintrc.js",
     "static/app",
     "tests/js",
     "fixtures/js-stubs",

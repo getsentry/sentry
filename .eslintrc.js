@@ -1,8 +1,19 @@
 /* eslint-env node */
 
+const detectDeprecations = !!process.env.SENTRY_DETECT_DEPRECATIONS;
+
 module.exports = {
   root: true,
-  extends: ['sentry-app/strict'],
+  extends: detectDeprecations
+    ? ['sentry-app/strict', 'plugin:deprecation/recommended']
+    : ['sentry-app/strict'],
+
+  parserOptions: detectDeprecations
+    ? {
+        project: './tsconfig.json',
+      }
+    : {},
+
   globals: {
     require: false,
     expect: false,
