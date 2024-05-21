@@ -40,9 +40,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(limit=10, window=60),
+            RateLimitCategory.USER: RateLimit(limit=10, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
         }
     }
 
