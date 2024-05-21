@@ -221,12 +221,12 @@ class SubscriptionProcessor:
             query_builder.add_conditions(
                 [
                     Condition(
-                        Column(time_col, entity=Entity(entity_key.value, alias="entity")),
+                        Column(time_col, entity=Entity(entity_key.value, alias="events")),
                         Op.GTE,
                         start,
                     ),
                     Condition(
-                        Column(time_col, entity=Entity(entity_key.value, alias="entity")),
+                        Column(time_col, entity=Entity(entity_key.value, alias="events")),
                         Op.LT,
                         end,
                     ),
