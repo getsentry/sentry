@@ -10,7 +10,6 @@
 *.egg
 *.db
 *.pid
-MANIFEST
 test.conf
 pip-log.txt
 celerybeat-schedule

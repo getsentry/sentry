@@ -32,22 +32,21 @@ RUN set -x \
   && chmod +x /usr/local/bin/tini \
   && apt-get purge -y --auto-remove $buildDeps
 
-# Sane defaults for pip
+WORKDIR /usr/src/sentry
+
+ENV PATH=/.venv/bin:$PATH PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN python3 -m venv /.venv
+
 ENV \
-  PIP_NO_CACHE_DIR=1 \
-  PIP_DISABLE_PIP_VERSION_CHECK=1 \
   # Sentry config params
   SENTRY_CONF=/etc/sentry \
-  # Disable some unused uWSGI features, saving dependencies
-  # Thank to https://stackoverflow.com/a/25260588/90297
-  UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
   # UWSGI dogstatsd plugin
   UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
 # Install dependencies first to leverage Docker layer caching.
-COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
+COPY requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
   # uwsgi-dogstatsd
@@ -76,12 +75,19 @@ RUN set -x \
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
   && mkdir -p $SENTRY_CONF
 
-COPY /dist/*.whl /tmp/dist/
-RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
-RUN sentry help && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
+COPY . .
+RUN python3 -m tools.fast_editable --path .
+RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
 COPY ./self-hosted/docker-entrypoint.sh /
+
+RUN : double-check some built files are available \
+    && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
+    && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
+    && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js \
+    && sentry help \
+    && :
 
 EXPOSE 9000
 VOLUME /data
