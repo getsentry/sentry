@@ -2047,8 +2047,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     @with_feature("organizations:metric-alert-ignore-archived")
-    def test_is_unresolved_query(self):
+    def test_is_unresolved_comparison_query(self):
+        """
+        Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity
+        """
         rule = self.comparison_rule_above
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
         update_alert_rule(rule, query="(event.type:error) AND (is:unresolved)")
         trigger = self.trigger
         processor = self.send_update(
@@ -2064,6 +2068,56 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for i in range(4):
+                self.store_event(
+                    data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                    project_id=self.project.id,
+                )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
+        # no change
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 7/4 == 175% > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident, [self.action], [(175.0, IncidentStatus.CRITICAL, mock.ANY)]
+        )
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident, [self.action], [(150, IncidentStatus.CLOSED, mock.ANY)]
         )
 
     def test_comparison_alert_different_aggregate(self):

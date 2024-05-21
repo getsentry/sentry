@@ -128,6 +128,9 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, QueryBuilder):
         )
 
     def add_conditions(self, conditions: list[Condition]) -> None:
+        """
+        Override the base implementation to add entity data
+        """
         entity_key = get_entity_key_from_query_builder(self)
         time_col = ENTITY_TIME_COLUMNS[entity_key]
         entity = Entity(entity_key.value, alias="events")
