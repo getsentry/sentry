@@ -23,7 +23,9 @@ from snuba_sdk import (
     Direction,
     Entity,
     Function,
+    Identifier,
     Join,
+    Lambda,
     Limit,
     Op,
     OrderBy,
@@ -111,8 +113,6 @@ def map_field_name_from_format_search_filter(field: str) -> str:
     """
     if field == "date":
         return "timestamp"
-    # if field == "notHandled":
-    #     return "notHandled()"
     return field
 
 
@@ -1201,7 +1201,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
-        return query_builder.convert_search_filter_to_condition(search_filter)
+        output = query_builder.convert_search_filter_to_condition(search_filter)
+        return output
 
     def get_assigned(
         self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
@@ -1451,6 +1452,54 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             alias="score",
         )
 
+    def get_handled_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the handled and unhandled lookup for a search filter.
+        Does not use the functions that Snbua has, instead replicates that logic
+        and queries the exception_stacks.mechanism_handled colunn directly
+        """
+        if search_filter.key.name == "error.handled":
+            check_handled = search_filter.value.raw_value == 1
+        elif search_filter.key.name == "error.unhandled":
+            check_handled = search_filter.value.raw_value == 0
+
+        if check_handled:
+            outer_function_operator = "arrayAll"
+            inner_function_operator = "or"
+            is_null_check = "isNull"
+            inner_equality_check = "notEquals"
+        else:
+            outer_function_operator = "arrayExists"
+            inner_function_operator = "and"
+            is_null_check = "isNotNull"
+            inner_equality_check = "equals"
+
+        return Condition(
+            Function(
+                outer_function_operator,
+                [
+                    Lambda(
+                        ["x"],
+                        Function(
+                            inner_function_operator,
+                            [
+                                Function(is_null_check, [Identifier("x")]),
+                                Function(
+                                    inner_equality_check,
+                                    [Function("assumeNotNull", [Identifier("x")]), 0],
+                                ),
+                            ],
+                        ),
+                    ),
+                    Column("exception_stacks.mechanism_handled", joined_entity),
+                ],
+            ),
+            Op.EQ,
+            1,
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
@@ -1467,6 +1516,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
+        "error.handled": (get_handled_condition, Clauses.WHERE),
+        "error.unhandled": (get_handled_condition, Clauses.WHERE),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")

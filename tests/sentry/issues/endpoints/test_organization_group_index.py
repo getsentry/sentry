@@ -3625,13 +3625,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         unhandled_event = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=300)),
+                "level": "error",
                 "fingerprint": ["unhandled-group"],
                 "exception": {
                     "values": [
                         {
-                            "type": "Error",
+                            "type": "UncaughtExceptionHandler",
                             "value": "Unhandled exception",
-                            "mechanism": {"handled": False},
+                            "mechanism": {"handled": False, "type": "generic"},
                         }
                     ]
                 },
@@ -3640,7 +3641,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         # Create an event with a handled exception
-        self.store_event(
+        handled_event = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=300)),
                 "fingerprint": ["handled-group"],
@@ -3649,7 +3650,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                         {
                             "type": "Error",
                             "value": "Handled exception",
-                            "mechanism": {"handled": True},
+                            "mechanism": {"handled": True, "type": "generic"},
                         }
                     ]
                 },
@@ -3661,14 +3662,26 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Fetch unhandled exceptions
         response_unhandled = self.get_response(query="error.handled:false", useGroupSnubaDataset=1)
         assert response_unhandled.status_code == 200
-        assert len(response_unhandled.data) == 2
+        assert len(response_unhandled.data) == 1
         assert int(response_unhandled.data[0]["id"]) == unhandled_event.group.id
 
         # Fetch handled exceptions
-        # response_handled = self.get_response(query="error.handled:true", useGroupSnubaDataset=1)
-        # assert response_handled.status_code == 200
-        # assert len(response_handled.data) == 1
-        # assert int(response_handled.data[0]["id"]) == handled_event.group.id
+        response_handled = self.get_response(query="error.handled:true", useGroupSnubaDataset=1)
+        assert response_handled.status_code == 200
+        assert len(response_handled.data) == 1
+        assert int(response_handled.data[0]["id"]) == handled_event.group.id
+
+        # Test for error.unhandled:1 (equivalent to error.handled:false)
+        response_unhandled_1 = self.get_response(query="error.unhandled:1", useGroupSnubaDataset=1)
+        assert response_unhandled_1.status_code == 200
+        assert len(response_unhandled_1.data) == 1
+        assert int(response_unhandled_1.data[0]["id"]) == unhandled_event.group.id
+
+        # Test for error.unhandled:0 (equivalent to error.handled:true)
+        response_handled_0 = self.get_response(query="error.unhandled:0", useGroupSnubaDataset=1)
+        assert response_handled_0.status_code == 200
+        assert len(response_handled_0.data) == 1
+        assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
