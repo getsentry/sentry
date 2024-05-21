@@ -132,6 +132,16 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
+  const getErrorMessage = err => {
+    if (typeof err.responseJSON?.detail === 'string') {
+      return err.responseJSON?.detail;
+    }
+    if (typeof err.responseJSON?.detail?.message === 'string') {
+      return err.responseJSON?.detail.message;
+    }
+    return null;
+  };
+
   const loadOrganization = () => {
     return new Promise(async resolve => {
       let org: Organization | undefined = undefined;
@@ -145,12 +155,7 @@ export function fetchOrganizationDetails(
         OrganizationStore.onFetchOrgError(err);
 
         if (err.status === 403 || err.status === 401) {
-          const errMessage =
-            typeof err.responseJSON?.detail === 'string'
-              ? err.responseJSON?.detail
-              : typeof err.responseJSON?.detail?.message === 'string'
-                ? err.responseJSON?.detail.message
-                : null;
+          const errMessage = getErrorMessage(err);
 
           if (errMessage) {
             addErrorMessage(errMessage);
