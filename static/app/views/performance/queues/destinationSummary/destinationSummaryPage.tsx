@@ -28,7 +28,6 @@ import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinati
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
-  BASE_URL,
   DESTINATION_TITLE,
   MODULE_TITLE,
   RELEASE_LEVEL,
@@ -170,7 +169,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

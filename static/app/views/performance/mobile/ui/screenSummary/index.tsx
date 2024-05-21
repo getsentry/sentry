@@ -16,7 +16,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
-import {BASE_URL} from 'sentry/views/performance/mobile/ui/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -142,7 +141,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />
