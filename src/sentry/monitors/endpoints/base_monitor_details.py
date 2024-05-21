@@ -122,7 +122,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
         # Attempt to assign a monitor seat
         if params["status"] == ObjectStatus.ACTIVE and monitor.status != ObjectStatus.ACTIVE:
-            outcome = quotas.backend.assign_monitor_seat(monitor)
+            outcome = quotas.backend.assign_monitor_seat(monitor, request)
             # The MonitorValidator checks if a seat assignment is available.
             # This protects against a race condition
             if outcome != Outcome.ACCEPTED:
@@ -130,7 +130,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
         # Attempt to unassign the monitor seat
         if params["status"] == ObjectStatus.DISABLED and monitor.status != ObjectStatus.DISABLED:
-            quotas.backend.disable_monitor_seat(monitor)
+            quotas.backend.disable_monitor_seat(monitor, request)
 
         # Update monitor slug in billing
         if "slug" in result:

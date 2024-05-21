@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from django.conf import settings
 from django.core.cache import cache
+from django.http import HttpRequest
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -609,7 +610,11 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
-    def assign_monitor_seat(self, monitor: Monitor) -> int:
+    def assign_monitor_seat(
+        self,
+        monitor: Monitor,
+        request: HttpRequest | None = None,
+    ) -> int:
         """
         Assigns a monitor a seat if possible, resulting in a Outcome.ACCEPTED.
         If the monitor cannot be assigned a seat it will be
@@ -619,7 +624,11 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
-    def disable_monitor_seat(self, monitor: Monitor) -> None:
+    def disable_monitor_seat(
+        self,
+        monitor: Monitor,
+        request: HttpRequest | None = None,
+    ) -> None:
         """
         Removes a monitor from it's assigned seat.
         """

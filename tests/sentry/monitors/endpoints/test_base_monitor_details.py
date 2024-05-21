@@ -827,7 +827,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     ):
         check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
 
-        def dummy_assign(monitor):
+        def dummy_assign(monitor, request=None):
             assert monitor.slug == old_slug
             return Outcome.ACCEPTED
 

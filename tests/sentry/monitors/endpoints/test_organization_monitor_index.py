@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.conf import settings
 from django.test.utils import override_settings
@@ -480,7 +480,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
 
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_monitor_seat.assert_called_with(monitor, ANY)
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_monitor_seat")

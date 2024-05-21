@@ -316,7 +316,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond({type(e).__name__: str(e)}, status=403)
 
         # Attempt to assign a seat for this monitor
-        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        seat_outcome = quotas.backend.assign_monitor_seat(monitor, request)
         if seat_outcome != Outcome.ACCEPTED:
             monitor.update(status=ObjectStatus.DISABLED)
 
@@ -390,14 +390,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Monitor)):
                 # Attempt to assign a monitor seat
                 if status == ObjectStatus.ACTIVE:
-                    outcome = quotas.backend.assign_monitor_seat(monitor)
+                    outcome = quotas.backend.assign_monitor_seat(monitor, request)
                     if outcome != Outcome.ACCEPTED:
                         errored.append(monitor)
                         continue
 
                 # Attempt to unassign the monitor seat
                 if status == ObjectStatus.DISABLED:
-                    quotas.backend.disable_monitor_seat(monitor)
+                    quotas.backend.disable_monitor_seat(monitor, request)
 
                 monitor.update(**result)
                 updated.append(monitor)
