@@ -27,6 +27,7 @@ import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingC
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
   DEFAULT_QUERY_FILTER,
   MODULE_TITLE,
@@ -118,11 +119,11 @@ function QueuesLandingPage() {
               referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
-                <LatencyChart />
+                <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Half>
-                <ThroughputChart />
+                <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>

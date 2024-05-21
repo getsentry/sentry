@@ -25,6 +25,7 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
   CONSUMER_QUERY_FILTER,
   MessageActorType,
@@ -87,6 +88,7 @@ export function MessageSpanSamplesPanel() {
       destination: query.destination,
       transaction: query.transaction,
       enabled: isPanelOpen,
+      referrer: Referrer.QUEUES_SAMPLES_PANEL,
     });
 
   const avg = transactionMetrics?.[0]?.['avg(span.duration)'];

@@ -4,6 +4,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 
 jest.mock('sentry/utils/useOrganization');
 
@@ -23,7 +24,9 @@ describe('latencyChart', () => {
     });
   });
   it('renders', async () => {
-    render(<LatencyChart destination="events" />);
+    render(
+      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />
+    );
     screen.getByText('Avg Latency');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
