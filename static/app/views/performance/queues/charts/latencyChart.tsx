@@ -7,9 +7,9 @@ import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 interface Props {
+  referrer: Referrer;
   destination?: string;
   error?: Error | null;
-  referrer?: Referrer;
 }
 
 export function LatencyChart({error, destination, referrer}: Props) {
