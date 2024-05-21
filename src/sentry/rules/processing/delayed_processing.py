@@ -295,7 +295,7 @@ def get_group_to_groupevent(
 def process_delayed_alert_conditions() -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, min=float("-inf"), max=float("+inf")
         )
         log_str = ""
@@ -306,7 +306,7 @@ def process_delayed_alert_conditions() -> None:
         for project_id, _ in project_ids:
             apply_delayed.delay(project_id)
 
-        buffer.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
+        buffer.backend.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp())
 
 
 @instrumented_task(
@@ -324,7 +324,9 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     """
     # STEP 1: Fetch the rulegroup_to_event_data mapping for the project from redis
     project = Project.objects.get_from_cache(id=project_id)
-    rulegroup_to_event_data = buffer.get_hash(model=Project, field={"project_id": project.id})
+    rulegroup_to_event_data = buffer.backend.get_hash(
+        model=Project, field={"project_id": project.id}
+    )
     logger.info(
         "delayed_processing.rulegroupeventdata",
         extra={"rulegroupdata": rulegroup_to_event_data},
@@ -404,7 +406,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     hashes_to_delete = [
         f"{rule}:{group}" for rule, groups in rules_to_groups.items() for group in groups
     ]
-    buffer.delete_hash(
+    buffer.backend.delete_hash(
         model=Project,
         filters={"project_id": project_id},
         fields=hashes_to_delete,

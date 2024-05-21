@@ -63,7 +63,7 @@ class ProcessDelayedAlertConditionsTest(
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        buffer.push_to_hash(
+        buffer.backend.push_to_hash(
             model=Project,
             filters={"project_id": project_id},
             field=f"{rule_id}:{group_id}",
@@ -151,8 +151,8 @@ class ProcessDelayedAlertConditionsTest(
             self.project.id: self.rulegroup_event_mapping_one,
             self.project_two.id: self.rulegroup_event_mapping_two,
         }
-        buffer.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
-        buffer.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
+        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
+        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
 
         self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
         self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
@@ -174,7 +174,7 @@ class ProcessDelayedAlertConditionsTest(
         ):
             assert mock_apply_delayed.delay.call_count == 2
 
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         assert project_ids == []
@@ -184,7 +184,7 @@ class ProcessDelayedAlertConditionsTest(
         """
         Test that rules of various event frequency conditions, projects, environments, etc. are properly fired
         """
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -214,7 +214,7 @@ class ProcessDelayedAlertConditionsTest(
         assert (self.rule3.id, self.group3.id) in rule_fire_histories
         assert (self.rule4.id, self.group4.id) in rule_fire_histories
 
-        rule_group_data = buffer.get_hash(Project, {"project_id": self.project_two.id})
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project_two.id})
         assert rule_group_data == {}
 
     def test_apply_delayed_issue_platform_event(self):
@@ -244,7 +244,7 @@ class ProcessDelayedAlertConditionsTest(
             event5.event_id,
             occurrence_id=event5.occurrence_id,
         )
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -277,7 +277,7 @@ class ProcessDelayedAlertConditionsTest(
         assert self.group1
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -307,7 +307,7 @@ class ProcessDelayedAlertConditionsTest(
         assert self.group1
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -339,7 +339,7 @@ class ProcessDelayedAlertConditionsTest(
         assert self.group1
         self.push_to_hash(self.project.id, diff_interval_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -371,7 +371,7 @@ class ProcessDelayedAlertConditionsTest(
         assert self.group1
         self.push_to_hash(self.project.id, diff_env_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -408,7 +408,7 @@ class ProcessDelayedAlertConditionsTest(
         assert self.group1
         self.push_to_hash(self.project.id, no_fire_rule.id, group5.id, event5.event_id)
 
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0], project_ids[0][1])
@@ -452,7 +452,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(
             self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
         )
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
         apply_delayed(project_ids[0][0])

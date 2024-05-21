@@ -12,21 +12,7 @@ from sentry.testutils.helpers import override_options
 @contextmanager
 def mock_redis_buffer():
     buffer = RedisBuffer()
-    with patch("sentry.buffer.push_to_sorted_set", new=buffer.push_to_sorted_set), patch(
-        "sentry.buffer.push_to_hash", new=buffer.push_to_hash
-    ), patch("sentry.buffer.get_sorted_set", new=buffer.get_sorted_set), patch(
-        "sentry.buffer.get_hash", new=buffer.get_hash
-    ), patch(
-        "sentry.buffer.delete_hash", new=buffer.delete_hash
-    ), patch(
-        "sentry.buffer.get_sorted_set", new=buffer.get_sorted_set
-    ), patch(
-        "sentry.buffer.delete_key", new=buffer.delete_key
-    ), patch(
-        "sentry.buffer.get", new=buffer.get
-    ), patch(
-        "sentry.buffer.incr", new=buffer.incr
-    ):
+    with patch("sentry.buffer.backend", new=buffer):
         yield buffer
 
 

@@ -15,8 +15,6 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry import buffer
-
-# from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
@@ -427,8 +425,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         with (
-            mock.patch("sentry.buffer.backend.get", buffer.get),
-            mock.patch("sentry.buffer.backend.incr", buffer.incr),
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
             patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
             patch("sentry.rules.rules", init_registry()) as rules,
         ):
@@ -1682,8 +1680,8 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         with (
-            mock.patch("sentry.buffer.backend.get", buffer.get),
-            mock.patch("sentry.buffer.backend.incr", buffer.incr),
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id

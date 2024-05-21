@@ -136,12 +136,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
@@ -179,12 +181,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
                 {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
@@ -215,12 +219,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
@@ -302,12 +308,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
