@@ -1730,6 +1730,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-onboarding-checklist": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable span search bar in Insights module sample panels
+    "organizations:performance-sample-panel-search": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
