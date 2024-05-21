@@ -261,8 +261,6 @@ UniqueIdExperiment = ParameterizationCallableExperiment(
     name=_UniqueId.NAME, apply=_UniqueId.replace_uniq_ids_in_str
 )
 
-EXPERIMENTS = [UniqueIdExperiment]
-
 
 ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
 

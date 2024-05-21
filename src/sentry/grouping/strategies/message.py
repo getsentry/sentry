@@ -5,7 +5,7 @@ from sentry import analytics
 from sentry.eventstore.models import Event
 from sentry.features.rollout import in_rollout_group
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.parameterization import EXPERIMENTS, Parameterizer
+from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -48,7 +48,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
             "quoted_str",
             "bool",
         ),
-        experiments=EXPERIMENTS,
+        experiments=(UniqueIdExperiment,),
     )
 
     normalized = parameterizer.parametrize_w_regex(trimmed)
