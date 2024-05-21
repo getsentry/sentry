@@ -1,5 +1,4 @@
 import copy
-import unittest
 from collections.abc import Mapping
 from random import choice
 from string import ascii_uppercase
@@ -852,7 +851,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_index == len(groups)
 
-    @unittest.skip(
+    @pytest.mark.skip(
         "this test is flakey in production; trying to replicate locally and skipping it for now"
     )
     @django_db_all
