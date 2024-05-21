@@ -26,7 +26,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types/organization';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

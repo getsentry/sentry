@@ -23,7 +23,6 @@ import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
 import {
   BASE_FILTERS,
-  BASE_URL,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
   RELEASE_LEVEL,
@@ -215,7 +214,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-cache-view"
     >
       <CacheLandingPage />

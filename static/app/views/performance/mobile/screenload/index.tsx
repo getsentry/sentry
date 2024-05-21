@@ -21,7 +21,6 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import {BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -103,11 +102,7 @@ export function PageloadModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={t('Screen Loads')}
-      baseURL={`/performance/${BASE_URL}`}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders title={t('Screen Loads')} features="spans-first-ui">
       <PageloadModule />
     </ModulePageProviders>
   );

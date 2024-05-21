@@ -28,6 +28,7 @@ const TRANSACTION_NUMERIC_KEYS: TransactionKey[] = [
   'start_timestamp',
   'timestamp',
 ];
+
 const TRANSACTION_DURATION_KEYS: TransactionKey[] = ['transaction.duration'];
 
 const TRANSACTION_DURATION_SYNTHETIC_KEYS: TransactionKey[] = [
@@ -60,6 +61,7 @@ const SPAN_TEXT_KEYS: SpanKey[] = [
   'trace_id',
   'status',
 ];
+
 const SPAN_NUMERIC_KEYS: SpanKey[] = ['timestamp', 'start_timestamp'];
 
 const SPAN_DURATION_KEYS: SpanKey[] = ['exclusive_time'];
@@ -74,6 +76,7 @@ const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = [
   // @ts-expect-error
   'self_time',
 ];
+
 // @TODO the current date parsing does not support timestamps, so we
 // exclude these keys for now and parse them as numeric keys
 const SPAN_DATE_KEYS: SpanKey[] = [

@@ -86,21 +86,30 @@ class NoGroupsHandler extends Component<Props, State> {
     let firstEventQuery: {project?: number[]} = {};
     const projectsQuery: {per_page: number; query?: string} = {per_page: 1};
 
-    if (selectedProjectIds?.length) {
+    if (selectedProjectIds?.length && !selectedProjectIds.includes(-1)) {
       firstEventQuery = {project: selectedProjectIds};
       projectsQuery.query = selectedProjectIds.map(id => `id:${id}`).join(' ');
     }
 
-    [{sentFirstEvent}, projects] = await Promise.all([
-      // checks to see if selection has sent a first event
-      api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
-        query: firstEventQuery,
-      }),
-      // retrieves a single project to feed to WaitingForEvents from renderStreamBody
-      api.requestPromise(`/organizations/${organization.slug}/projects/`, {
-        query: projectsQuery,
-      }),
-    ]);
+    try {
+      [{sentFirstEvent}, projects] = await Promise.all([
+        // checks to see if selection has sent a first event
+        api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
+          query: firstEventQuery,
+        }),
+        // retrieves a single project to feed to WaitingForEvents from renderStreamBody
+        api.requestPromise(`/organizations/${organization.slug}/projects/`, {
+          query: projectsQuery,
+        }),
+      ]);
+    } catch {
+      this.setState({
+        fetchingSentFirstEvent: false,
+        sentFirstEvent: true,
+        firstEventProjects: undefined,
+      });
+      return;
+    }
 
     // See comment where this property is initialized
     // FIXME
