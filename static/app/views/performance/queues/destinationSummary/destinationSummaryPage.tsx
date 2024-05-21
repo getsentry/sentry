@@ -29,16 +29,15 @@ import {TransactionsTable} from 'sentry/views/performance/queues/destinationSumm
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
-  BASE_URL,
   DESTINATION_TITLE,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
-import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
-  const moduleURL = useQueueModuleURL();
+  const moduleURL = useModuleURL('queue');
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -180,7 +179,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

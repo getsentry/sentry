@@ -2,7 +2,7 @@ import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useCacheModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function TransactionCell({project, transaction}: Props) {
-  const moduleURL = useCacheModuleURL();
+  const moduleURL = useModuleURL('cache');
   const location = useLocation();
 
   if (!transaction) {

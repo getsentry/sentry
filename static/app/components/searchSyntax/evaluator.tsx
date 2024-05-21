@@ -90,3 +90,69 @@ export function insertImplicitAND(
 
   return with_implicit_and;
 }
+
+function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+  const flattened = toFlattened(tokens);
+  const withImplicitAnd = insertImplicitAND(flattened);
+
+  return withImplicitAnd;
+}
+
+function isBooleanOR(token: ProcessedTokenResult): boolean {
+  return token?.type === Token.LOGIC_BOOLEAN && token?.value === BooleanOperator.OR;
+}
+
+// https://en.wikipedia.org/wiki/Shunting_yard_algorithm
+export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+  const processed = processTokenResults(tokens);
+
+  const result: ProcessedTokenResult[] = [];
+  const stack: ProcessedTokenResult[] = [];
+
+  for (const token of processed) {
+    switch (token.type) {
+      case Token.LOGIC_BOOLEAN: {
+        while (
+          // Establishes higher precedence for OR operators.
+          // Whenever the current stack top operator is an OR,
+          stack.length > 0 &&
+          token.value === BooleanOperator.AND &&
+          stack[stack.length - 1].type === Token.LOGIC_BOOLEAN &&
+          stack[stack.length - 1].type !== 'L_PAREN' &&
+          isBooleanOR(stack[stack.length - 1])
+        ) {
+          result.push(stack.pop()!);
+        }
+        stack.push(token);
+        break;
+      }
+      case 'L_PAREN':
+        stack.push(token);
+        break;
+      case 'R_PAREN': {
+        while (stack.length > 0) {
+          const top = stack[stack.length - 1];
+          if (top.type === 'L_PAREN') {
+            stack.pop();
+            break;
+          }
+          // we dont need to check for balanced parens as the parser grammar will only succeed
+          // in parsing the input string if the parens are balanced.
+          result.push(stack.pop() as ProcessedTokenResult);
+        }
+        break;
+      }
+      default: {
+        result.push(token);
+        break;
+      }
+    }
+  }
+
+  // Push the remained of the operators to the output
+  while (stack.length > 0) {
+    result.push(stack.pop() as ProcessedTokenResult);
+  }
+
+  return result;
+}

@@ -29,7 +29,6 @@ import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughput
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
-  BASE_URL,
   DEFAULT_QUERY_FILTER,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
@@ -149,7 +148,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <QueuesLandingPage />
