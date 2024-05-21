@@ -174,6 +174,11 @@ DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAM
 
 @dataclasses.dataclass
 class ParameterizationCallable:
+    """
+    Represents a callable that can be used to modify a string, which can give
+    us more felxibility than just using regex.
+    """
+
     name: str  # name of the pattern also used as group name in combined regex
     apply: Callable[[str], tuple[str, int]]  # function to modifying the input string
     counter: int = 0
@@ -197,7 +202,7 @@ class ParameterizationRegexExperiment(ParameterizationRegex):
         return self.compiled_pattern.sub(callback, content)
 
 
-class UniqueId:
+class _UniqueId:
     # just a namespace for the uniq_id logic, no need to instantiate
 
     NAME = "uniq_id"
@@ -210,7 +215,7 @@ class UniqueId:
     @staticmethod
     def num_tokens_from_string(token_str: str) -> int:
         """Returns the number of tokens in a text string."""
-        num_tokens = len(UniqueId.tiktoken_encoding().encode(token_str))
+        num_tokens = len(_UniqueId.tiktoken_encoding().encode(token_str))
         return num_tokens
 
     # These are all somewhat arbitrary based on examples.
@@ -224,19 +229,19 @@ class UniqueId:
     @staticmethod
     def is_probably_uniq_id(token_str: str) -> bool:
         token_str = token_str.strip("\"'[]{}():;")
-        if len(token_str) < UniqueId.TOKEN_LENGTH_MINIMUM:
+        if len(token_str) < _UniqueId.TOKEN_LENGTH_MINIMUM:
             return False
         if (
             token_str[0] == "<" and token_str[-1] == ">"
         ):  # Don't replace already-parameterized tokens
             return False
-        token_length_ratio = UniqueId.num_tokens_from_string(token_str) / len(token_str)
+        token_length_ratio = _UniqueId.num_tokens_from_string(token_str) / len(token_str)
         if (
-            len(token_str) > UniqueId.TOKEN_LENGTH_LONG
-            and token_length_ratio > UniqueId.TOKEN_LENGTH_RATIO_LONG
+            len(token_str) > _UniqueId.TOKEN_LENGTH_LONG
+            and token_length_ratio > _UniqueId.TOKEN_LENGTH_RATIO_LONG
         ):
             return True
-        return token_length_ratio > UniqueId.TOKEN_LENGTH_RATIO_DEFAULT
+        return token_length_ratio > _UniqueId.TOKEN_LENGTH_RATIO_DEFAULT
 
     @staticmethod
     def replace_uniq_ids_in_str(string: str) -> tuple[str, int]:
@@ -246,18 +251,17 @@ class UniqueId:
         strings = string.split(" ")
         count = 0
         for i, s in enumerate(strings):
-            if UniqueId.is_probably_uniq_id(s):
+            if _UniqueId.is_probably_uniq_id(s):
                 strings[i] = "<uniq_id>"
                 count += 1
         return (" ".join(strings), count)
 
 
 UniqueIdExperiment = ParameterizationCallableExperiment(
-    name=UniqueId.NAME, apply=UniqueId.replace_uniq_ids_in_str
+    name=_UniqueId.NAME, apply=_UniqueId.replace_uniq_ids_in_str
 )
 
 EXPERIMENTS = [UniqueIdExperiment]
-EXPERIMENTS_NAMES = {e.name for e in EXPERIMENTS}
 
 
 ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
