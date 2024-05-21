@@ -1,4 +1,3 @@
-from collections import defaultdict
 from itertools import islice
 from typing import Any
 
@@ -32,8 +31,6 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
     if trimmed != message:
         trimmed += "..."
 
-    trimmed_value_counter: defaultdict[str, int] = defaultdict(int)
-
     parameterizer = Parameterizer(
         regex_pattern_keys=(
             "email",
@@ -50,19 +47,16 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
             "int",
             "quoted_str",
             "bool",
-        )
+        ),
+        experiments=EXPERIMENTS,
     )
 
     normalized = parameterizer.parametrize_w_regex(trimmed)
-    trimmed_value_counter = parameterizer.matches_counter
 
-    def _incr_counter(key: str, count: int) -> None:
-        trimmed_value_counter[key] += count
-
-    for experiment in EXPERIMENTS:
-        if event.project_id and (
+    def _shoudl_run_experiment(experiment_name: str) -> bool:
+        return event.project_id and (
             in_rollout_group(
-                f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+                f"grouping.experiments.parameterization.{experiment_name}", event.project_id
             )
             or event.project_id
             in [  # Active internal Sentry projects
@@ -82,23 +76,23 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
                 4506400311934976,
                 6424467,
             ]
-        ):
-            experiment_output = experiment.run(normalized, _incr_counter)
-            if experiment_output != normalized:
-                # Register 100 (arbitrary, bounded number) analytics events per experiment per instance restart
-                # This generates samples for review consistently but creates a hard cap on
-                # analytics event volume
-                if share_analytics and experiment.counter < 100:
-                    experiment.counter += 1
-                    analytics.record(
-                        "grouping.experiments.parameterization",
-                        experiment_name=experiment.name,
-                        project_id=event.project_id,
-                        event_id=event.event_id,
-                    )
-                normalized = experiment_output
+        )
 
-    for key, value in trimmed_value_counter.items():
+    normalized = parameterizer.parametrize_w_experiments(normalized, _shoudl_run_experiment)
+    for experiment in EXPERIMENTS:
+        if experiment.name not in parameterizer.matches_counter:
+            continue
+
+        if share_analytics and experiment.counter < 100:
+            experiment.counter += 1
+            analytics.record(
+                "grouping.experiments.parameterization",
+                experiment_name=experiment.name,
+                project_id=event.project_id,
+                event_id=event.event_id,
+            )
+
+    for key, value in parameterizer.matches_counter.items():
         # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
         # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
         metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})

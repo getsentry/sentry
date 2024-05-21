@@ -256,11 +256,19 @@ UniqueIdExperiment = ParameterizationCallableExperiment(
 )
 
 EXPERIMENTS = [UniqueIdExperiment]
+EXPERIMENTS_NAMES = {e.name for e in EXPERIMENTS}
 
 
 class Parameterizer:
-    def __init__(self, regex_pattern_keys: Sequence[str]):
+    def __init__(
+        self,
+        regex_pattern_keys: Sequence[str],
+        experiments: Sequence[
+            ParameterizationCallableExperiment | ParameterizationRegexExperiment
+        ] = (),
+    ):
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
+        self._experiments = experiments
 
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
@@ -303,3 +311,22 @@ class Parameterizer:
             return ""
 
         return self._parameterization_regex.sub(_handle_regex_match, content)
+
+    def parametrize_w_experiments(
+        self, content: str, should_run: Callable[[str], bool] = lambda _: True
+    ) -> str:
+        """
+        Apply all experiments to the content.
+
+        @param content: The string to apply experiments to.
+        @returns: The content with all experiments applied.
+        """
+
+        def _incr_counter(key: str, count: int) -> None:
+            self.matches_counter[key] += count
+
+        for experiment in self._experiments:
+            if not should_run(experiment.name):
+                continue
+            content = experiment.run(content, _incr_counter)
+        return content
