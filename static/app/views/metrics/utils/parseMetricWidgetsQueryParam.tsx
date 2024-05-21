@@ -1,11 +1,11 @@
-import type {MRI} from 'sentry/types';
-import {getDefaultMetricOp} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types/metrics';
+import {getDefaultAggregate} from 'sentry/utils/metrics';
 import {
   DEFAULT_SORT_STATE,
   emptyMetricsQueryWidget,
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
-import {defaultAggregateForMRI, isMRI} from 'sentry/utils/metrics/mri';
+import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type BaseWidgetParams,
   type FocusedMetricsSeries,
@@ -141,7 +141,7 @@ function parseQueryWidget(
 
   return {
     mri,
-    op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
+    op: parseStringParam(widget, 'op') ?? getDefaultAggregate(mri),
     query: parseStringParam(widget, 'query') ?? '',
     groupBy: parseArrayParam(widget, 'groupBy', entry =>
       typeof entry === 'string' ? entry : undefined
@@ -291,7 +291,7 @@ export function parseMetricWidgetsQueryParam(
     queries.push({
       ...emptyMetricsQueryWidget,
       mri,
-      op: defaultAggregateForMRI(mri),
+      op: getDefaultAggregate(mri),
     });
   }
 

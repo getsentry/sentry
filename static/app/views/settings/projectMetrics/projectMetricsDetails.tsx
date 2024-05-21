@@ -16,7 +16,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
-  MetricsOperation,
+  MetricsAggregate,
   MetricType,
   MRI,
   Organization,
@@ -38,7 +38,7 @@ import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
 
-function getSettingsOperationForType(type: MetricType): MetricsOperation {
+function getSettingsOperationForType(type: MetricType): MetricsAggregate {
   switch (type) {
     case 'c':
       return 'sum';

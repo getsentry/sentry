@@ -1,6 +1,6 @@
 import type {DateString} from 'sentry/types/core';
 
-export type MetricsOperation =
+export type MetricsAggregate =
   | 'sum'
   | 'count_unique'
   | 'avg'
@@ -102,7 +102,7 @@ export type MetricMeta = {
   mri: MRI;
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
-  operations: MetricsOperation[];
+  operations: MetricsAggregate[];
   projectIds: number[];
   type: MetricType;
   unit: string;
