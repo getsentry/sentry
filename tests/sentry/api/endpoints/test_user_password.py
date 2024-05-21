@@ -2,6 +2,7 @@ from django.test import override_settings
 
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 
 
@@ -61,7 +62,7 @@ class UserPasswordTest(APITestCase):
             **{
                 "password": "wrongpassword",
                 "passwordNew": "testpassword",
-                "passwordVerify": "passworddoesntmatch",
+                "passwordVerify": "testpassword",
             },
         )
 
@@ -125,3 +126,18 @@ class UserPasswordTest(APITestCase):
                 "passwordVerify": "newpassword",
             },
         )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limit(self):
+        with freeze_time("2024-05-21"):
+            for _ in range(5):
+                self.test_require_current_password()
+            self.get_error_response(
+                "me",
+                status_code=429,
+                **{
+                    "password": "wrongguess",
+                    "passwordNew": "newpassword",
+                    "passwordVerify": "newpassword",
+                },
+            )

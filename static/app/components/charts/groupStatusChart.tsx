@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
@@ -23,6 +24,8 @@ type Props = {
   stats: ReadonlyArray<TimeseriesValue>;
   groupStatus?: string;
   height?: number;
+  hideZeros?: boolean;
+  loading?: boolean;
   secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
@@ -32,6 +35,8 @@ function GroupStatusChart({
   stats,
   groupStatus,
   height = 24,
+  loading = false,
+  hideZeros = false,
   secondaryStats = EMPTY_STATS,
   showMarkLine = false,
   showSecondaryPoints = false,
@@ -62,6 +67,7 @@ function GroupStatusChart({
 
       return {colors: undefined, emphasisColors: undefined, series};
     }
+
     const series: Series[] = [
       {
         seriesName: t('Events'),
@@ -85,6 +91,7 @@ function GroupStatusChart({
                 label: {
                   show: true,
                   position: 'end',
+                  opacity: 1,
                   color: `${theme.gray300}`,
                   fontFamily: 'Rubik',
                   fontSize: 10,
@@ -94,27 +101,33 @@ function GroupStatusChart({
             : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
+    return {colors: [theme.gray300], emphasisColors: [theme.gray300], series};
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
       <ChartWrapper>
-        <MiniBarChart
-          animateBars
-          showXAxisLine
-          markLineLabelSide="right"
-          barOpacity={0.4}
-          height={showMarkLine ? 36 : height}
-          isGroupedByDate
-          showTimeInTooltip
-          series={graphOptions.series}
-          colors={graphOptions.colors}
-          emphasisColors={graphOptions.emphasisColors}
-          hideDelay={50}
-          showMarkLineLabel={showMarkLine}
-          width={136}
-        />
+        {loading ? (
+          <Placeholder height={'36px'} />
+        ) : (
+          <ChartAnimationWrapper>
+            <MiniBarChart
+              animateBars
+              showXAxisLine
+              hideZeros={hideZeros}
+              markLineLabelSide="right"
+              barOpacity={0.4}
+              height={showMarkLine ? 36 : height}
+              isGroupedByDate
+              showTimeInTooltip
+              series={graphOptions.series}
+              colors={graphOptions.colors}
+              emphasisColors={graphOptions.emphasisColors}
+              hideDelay={50}
+              showMarkLineLabel={showMarkLine}
+            />
+          </ChartAnimationWrapper>
+        )}
         <GraphText>{groupStatus}</GraphText>
       </ChartWrapper>
     </LazyRender>
@@ -123,11 +136,25 @@ function GroupStatusChart({
 
 export default GroupStatusChart;
 
+const ChartAnimationWrapper = styled('div')`
+  animation: fade-in 0.5s;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 100;
+    }
+  }
+`;
+
 const ChartWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 `;
 
 const GraphText = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
 `;

@@ -25,7 +25,6 @@ import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputCh
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
-  BASE_URL,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
@@ -255,7 +254,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <HTTPLandingPage />

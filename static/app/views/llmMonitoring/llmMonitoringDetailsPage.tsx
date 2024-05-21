@@ -20,7 +20,6 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
-import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -180,7 +179,6 @@ function PageWithProviders({params}: Props) {
   return (
     <ModulePageProviders
       title={[spanDescription ?? t('(no name)'), t('Pipeline Details')].join(' — ')}
-      baseURL={BASE_URL}
       features="ai-analytics"
     >
       <LLMMonitoringPage params={params} />

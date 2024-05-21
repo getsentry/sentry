@@ -34,7 +34,6 @@ import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
-  BASE_URL,
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
@@ -360,7 +359,6 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      baseURL={`/performance/${BASE_URL}`}
       title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="spans-first-ui"
     >
