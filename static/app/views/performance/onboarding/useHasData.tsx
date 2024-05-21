@@ -17,7 +17,7 @@ export function useHasData(mutableSearch: MutableSearch, referrer: string) {
   const {data, isLoading, error} = useSpanMetrics(
     {
       search: mutableSearch,
-      fields: ['count()'],
+      fields: ['count()', 'transaction'],
       pageFilters: ninetyDayPageFilters,
     },
     referrer
