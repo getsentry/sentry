@@ -42,7 +42,7 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
       <ProjectRenderer projectSlug={span.project} hideName />
       <strong>{span['span.op']}</strong>
       <em>{'\u2014'}</em>
-      {span['span.description']}
+      <WrappingText>{span['span.description']}</WrappingText>
       {<StatusTag status={span['span.status']} />}
     </Description>
   );
@@ -66,6 +66,11 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
     </Projects>
   );
 }
+
+const WrappingText = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+`;
 
 export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   position: relative;
