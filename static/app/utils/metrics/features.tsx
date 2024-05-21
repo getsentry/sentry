@@ -1,4 +1,6 @@
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {Organization} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function hasMetricsExperimentalFeature(organization: Organization) {
@@ -16,11 +18,22 @@ export function hasCustomMetrics(organization: Organization) {
   );
 }
 
+export function hasRolledOutMetrics(organization: Organization) {
+  return organization.features.includes('metrics-launch-rollout');
+}
+
 export function canSeeMetricsPage(organization: Organization) {
-  return (
-    hasCustomMetrics(organization) ||
-    organization.features.includes('metrics-launch-rollout')
-  );
+  return hasCustomMetrics(organization) || hasRolledOutMetrics(organization);
+}
+
+export function MetricsFeatureBadge() {
+  const organization = useOrganization();
+
+  if (hasRolledOutMetrics(organization)) {
+    return <FeatureBadge type="new" />;
+  }
+
+  return <FeatureBadge type="beta" />;
 }
 
 /**

@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -13,7 +12,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics, MetricsFeatureBadge} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -139,7 +138,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
         key: DataSet.METRICS,
         label: t('Custom Metrics'),
         onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: <FeatureBadge type="beta" />,
+        trailingItems: <MetricsFeatureBadge />,
       });
     }
 
