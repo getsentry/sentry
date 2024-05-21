@@ -408,6 +408,8 @@ function statusToTagType(status: string) {
   return STATUS_TO_TAG_TYPE[status];
 }
 
+const OMITTED_SPAN_STATUS = ['unknown'];
+
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
@@ -415,6 +417,10 @@ export function StatusTag({status, onClick}: {status: string; onClick?: () => vo
   const tagType = statusToTagType(status);
 
   if (!tagType) {
+    return null;
+  }
+
+  if (OMITTED_SPAN_STATUS.includes(status)) {
     return null;
   }
   return (
