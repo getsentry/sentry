@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useEffect, useRef} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -16,6 +16,15 @@ import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
+interface OrganizationLoaderContextProps {
+  isLoading: boolean;
+  loadOrganization: () => void;
+}
+
+interface Props {
+  children: React.ReactNode;
+}
+
 /**
  * Holds the current organization if loaded.
  */
@@ -24,18 +33,15 @@ export const OrganizationContext = createContext<Organization | null>(null);
 /**
  * Holds a function to load the organization.
  */
-const OrganizationLoaderContext = createContext<null | (() => void)>(null);
-
-interface Props {
-  children: React.ReactNode;
-}
+export const OrganizationLoaderContext =
+  createContext<OrganizationLoaderContextProps | null>(null);
 
 /**
  * Ensures that an organization is loaded when the hook is used. This will only
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const loadOrganization = useContext(OrganizationLoaderContext);
+  const loadOrganization = useContext(OrganizationLoaderContext)?.loadOrganization;
 
   // XXX(epurkhiser): The loadOrganization function is stable as long as the
   // organization slug is stable. A change to the organization slug will cause
@@ -70,6 +76,8 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
+  const [isLoading, setIsLoading] = useState(false);
+
   // Provided to the OrganizationLoaderContext. Loads the organization if it is
   // not already present.
   const loadOrganization = useCallback(() => {
@@ -83,7 +91,12 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
-    fetchOrganizationDetails(api, orgSlug, false, true);
+    // Track when the organization finishes loading so OrganizationLoaderContext
+    // is up-to-date
+    setIsLoading(true);
+    fetchOrganizationDetails(api, orgSlug, false, true).finally(() =>
+      setIsLoading(false)
+    );
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the
@@ -93,7 +106,6 @@ export function OrganizationContextProvider({children}: Props) {
       if (organization === null) {
         return;
       }
-
       metric.measure({
         name: 'app.component.perf',
         start: 'organization-details-fetch-start',
@@ -162,7 +174,7 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={loadOrganization}>
+    <OrganizationLoaderContext.Provider value={{isLoading, loadOrganization}}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
