@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {Data, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -27,7 +27,7 @@ import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = ['github'];
+const integrationFeatures = ['github', 'slack'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -330,12 +330,54 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  renderFeatures() {
+  getSlackFeatures(): [JsonFormObject[], Data] {
     const {configurations} = this.state;
     const {organization} = this.props;
     const hasIntegration = configurations ? configurations.length > 0 : false;
-    const endpoint = `/organizations/${organization.slug}/`;
-    const hasOrgWrite = organization.access.includes('org:write');
+
+    const forms: JsonFormObject[] = [
+      {
+        fields: [
+          {
+            name: 'issueAlertsThreadFlag',
+            type: 'boolean',
+            label: t('Enable Slack threads on Issue Alerts'),
+            help: t(
+              'Allow Slack integration to post replies in threads for an Issue Alert notification.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a Slack integration to enable this feature.'
+            ),
+          },
+          {
+            name: 'metricAlertsThreadFlag',
+            type: 'boolean',
+            label: t('Enable Slack threads on Metric Alerts'),
+            help: t(
+              'Allow Slack integration to post replies in threads for an Metric Alert notification.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a Slack integration to enable this feature.'
+            ),
+          },
+        ],
+      },
+    ];
+
+    const initialData = {
+      issueAlertsThreadFlag: organization.issueAlertsThreadFlag,
+      metricAlertsThreadFlag: organization.metricAlertsThreadFlag,
+    };
+
+    return [forms, initialData];
+  }
+
+  getGithubFeatures(): [JsonFormObject[], Data] {
+    const {configurations} = this.state;
+    const {organization} = this.props;
+    const hasIntegration = configurations ? configurations.length > 0 : false;
 
     const forms: JsonFormObject[] = [
       {
@@ -385,6 +427,28 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       githubOpenPRBot: organization.githubOpenPRBot,
       githubNudgeInvite: organization.githubNudgeInvite,
     };
+
+    return [forms, initialData];
+  }
+
+  renderFeatures() {
+    const {organization} = this.props;
+    const endpoint = `/organizations/${organization.slug}/`;
+    const hasOrgWrite = organization.access.includes('org:write');
+
+    let forms: JsonFormObject[], initialData: Data;
+    switch (this.provider.key) {
+      case 'github': {
+        [forms, initialData] = this.getGithubFeatures();
+        break;
+      }
+      case 'slack': {
+        [forms, initialData] = this.getSlackFeatures();
+        break;
+      }
+      default:
+        return null;
+    }
 
     return (
       <Form

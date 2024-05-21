@@ -23,10 +23,12 @@ export interface OrganizationSummary {
   githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
+  issueAlertsThreadFlag: boolean;
   links: {
     organizationUrl: string;
     regionUrl: string;
   };
+  metricAlertsThreadFlag: boolean;
   name: string;
   require2FA: boolean;
   slug: string;
