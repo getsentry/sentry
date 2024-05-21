@@ -168,13 +168,16 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             org_id=self.organization.id,
             string=SessionMRI.RAW_SESSION.value,
         )
-        assert (
-            self.get_response(
-                self.organization.slug,
-                metric=[SessionMetricKey.CRASH_FREE_RATE.value],
-            ).data
-            == []
+        response = self.get_response(
+            self.organization.slug,
+            metric=[SessionMetricKey.CRASH_FREE_RATE.value],
         )
+        assert (
+            response.json()["detail"]
+            == "The following metrics ['e:sessions/crash_free_rate@ratio'] do not exist in the dataset"
+        )
+
+        assert response.status_code == 404
 
     def test_derived_metric_tags(self):
         self.store_session(

@@ -106,6 +106,10 @@ from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRule
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.incidents.endpoints.team_alerts_triggered import (
+    TeamAlertsTriggeredIndexEndpoint,
+    TeamAlertsTriggeredTotalsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
@@ -604,10 +608,6 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_alerts_triggered import (
-    TeamAlertsTriggeredIndexEndpoint,
-    TeamAlertsTriggeredTotalsEndpoint,
-)
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
@@ -2545,7 +2545,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-rule-task-details",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/backfill-similar-embeddings-records/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/backfill-similar-embeddings-records/$",
         ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
         name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),

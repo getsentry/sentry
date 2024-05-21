@@ -20,8 +20,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
-  IntegrationWithConfig,
   Organization,
+  OrganizationIntegration,
   PluginWithProjectList,
 } from 'sentry/types';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -95,7 +95,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     isError: isErrorIntegration,
     refetch: refetchIntegration,
     remove: removeIntegration,
-  } = useApiQuery<IntegrationWithConfig>(
+  } = useApiQuery<OrganizationIntegration>(
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
@@ -254,7 +254,6 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         <LinkButton
           aria-label={t('Open this server in the Discord app')}
           size="sm"
-          // @ts-ignore - the type of integration here is weird.
           href={`discord://discord.com/channels/${integration.externalId}`}
         >
           {t('Open in Discord')}

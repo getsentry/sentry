@@ -1,5 +1,7 @@
 import logging
 import uuid
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 
@@ -15,7 +17,7 @@ SENT_NOTIFICATION_OPTION = "sentry:sent_failed_event_hint"
 logger = logging.getLogger("sentry.events")
 
 
-def event_supports_reprocessing(data):
+def event_supports_reprocessing(data: Mapping[str, Any]) -> bool:
     """Only events of a certain format support reprocessing."""
     from sentry.lang.native.utils import NATIVE_PLATFORMS
     from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS

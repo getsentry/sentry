@@ -24,18 +24,19 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
+import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {
-  BASE_URL,
   DESTINATION_TITLE,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
+  const moduleURL = useModuleURL('queue');
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -57,9 +58,7 @@ function DestinationSummaryPage() {
               },
               {
                 label: MODULE_TITLE,
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/queues/`
-                ),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {
@@ -161,7 +160,7 @@ function DestinationSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-      <MessageSamplesPanel />
+      <MessageSpanSamplesPanel />
     </Fragment>
   );
 }
@@ -170,7 +169,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

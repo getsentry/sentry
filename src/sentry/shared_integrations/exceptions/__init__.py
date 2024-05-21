@@ -177,6 +177,8 @@ class IntegrationFormError(IntegrationError):
 
         super().__init__(error)
 
+        self.field_errors = field_errors
+
 
 class ClientError(RequestException):
     """4xx Error Occurred"""

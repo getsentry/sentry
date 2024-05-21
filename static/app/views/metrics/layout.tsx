@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
@@ -22,12 +24,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import BackgroundSpace from 'sentry/views/discover/backgroundSpace';
+import {
+  MetricsOnboardingPanelPrimaryAction,
+  MetricsSubscriptionAlert,
+} from 'sentry/views/metrics/billing';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
@@ -75,8 +82,17 @@ export const MetricsLayout = memo(() => {
     emptyStateDismiss();
   }, [emptyStateDismiss, organization]);
 
+  if (!canSeeMetricsPage(organization)) {
+    return (
+      <Layout.Page withPadding>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Layout.Page>
+    );
+  }
+
   return (
     <Fragment>
+      <MetricsSubscriptionAlert organization={organization} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -133,19 +149,20 @@ export const MetricsLayout = memo(() => {
             <LoadingIndicator />
           ) : hasCustomMetrics || isEmptyStateDismissed ? (
             <Fragment>
+              <GuideAnchor target="metrics_onboarding" />
               <Queries />
               <MetricScratchpad />
               <WidgetDetails />
             </Fragment>
           ) : (
             <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
-              <h3>{t('Get started with custom metrics')}</h3>
+              <h3>{t('Track and solve what matters')}</h3>
               <p>
                 {t(
-                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                  'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
                 )}
               </p>
-              <div>
+              <MetricsOnboardingPanelPrimaryAction organization={organization}>
                 <ButtonList gap={1}>
                   <Button
                     priority="primary"
@@ -162,7 +179,7 @@ export const MetricsLayout = memo(() => {
                     </Button>
                   )}
                 </ButtonList>
-              </div>
+              </MetricsOnboardingPanelPrimaryAction>
             </OnboardingPanel>
           )}
         </Layout.Main>

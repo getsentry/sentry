@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
@@ -19,12 +20,8 @@ import type {MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import type {
-  FocusedMetricsSeries,
-  MetricsQueryWidget,
-  MetricsWidget,
-} from 'sentry/utils/metrics/types';
-import {MetricExpressionType} from 'sentry/utils/metrics/types';
+import type {FocusedMetricsSeries, MetricsWidget} from 'sentry/utils/metrics/types';
+import {isMetricsEquationWidget} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -57,12 +54,11 @@ export function WidgetDetails() {
     [setHighlightedSampleId]
   );
 
-  // TODO(aknaus): better fallback
-  if (selectedWidget?.type === MetricExpressionType.EQUATION) {
-    <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
+  if (!selectedWidget || isMetricsEquationWidget(selectedWidget)) {
+    return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, op, query, focusedSeries} = selectedWidget as MetricsQueryWidget;
+  const {mri, op, query, focusedSeries} = selectedWidget;
 
   return (
     <MetricDetails
@@ -164,7 +160,11 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
+            <TabList.Item key={Tab.SAMPLES}>
+              <GuideAnchor target="metrics_table" position="top">
+                {t('Span Samples')}
+              </GuideAnchor>
+            </TabList.Item>
             <TabList.Item
               textValue={t('Code Location')}
               key={Tab.CODE_LOCATIONS}

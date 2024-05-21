@@ -296,7 +296,7 @@ def process_delayed_alert_conditions(buffer: RedisBuffer) -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
         project_ids = buffer.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, min=float("-inf"), max=float("+inf")
         )
         log_str = ""
         for project_id, timestamp in project_ids:

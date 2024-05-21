@@ -27,7 +27,7 @@ import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleLis
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Props = {
   groupId: string;
@@ -78,9 +78,12 @@ export function SampleList({
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
-      trackAnalytics('starfish.panel.open', {organization});
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: moduleName,
+      });
     }
-  }, [organization, query.transaction]);
+  }, [organization, query.transaction, moduleName]);
 
   const label =
     transactionMethod && !transactionName.startsWith(transactionMethod)
@@ -115,12 +118,18 @@ export function SampleList({
 
   if (moduleName === ModuleName.RESOURCE) {
     additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
 
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
       {
         key: HTTP_RESPONSE_CONTENT_LENGTH,
         name: t('Encoded Size'),
+        width: COL_WIDTH_UNDEFINED,
+      },
+      {
+        key: SPAN_DESCRIPTION,
+        name: t('Resource Name'),
         width: COL_WIDTH_UNDEFINED,
       },
     ];

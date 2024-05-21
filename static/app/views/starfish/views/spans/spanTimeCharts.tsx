@@ -98,6 +98,8 @@ export function SpanTimeCharts({
       ? [{title: DataTitles.bundleSize, Comp: BundleSizeChart}]
       : [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
+    [ModuleName.AI]: [],
+    [ModuleName.MOBILE_UI]: [],
     [ModuleName.OTHER]: [],
   };
 
