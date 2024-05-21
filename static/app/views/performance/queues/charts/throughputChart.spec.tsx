@@ -4,6 +4,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import useOrganization from 'sentry/utils/useOrganization';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 
 jest.mock('sentry/utils/useOrganization');
 
@@ -23,7 +24,7 @@ describe('throughputChart', () => {
     });
   });
   it('renders', async () => {
-    render(<ThroughputChart />);
+    render(<ThroughputChart referrer={Referrer.QUEUES_SUMMARY_CHARTS} />);
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',

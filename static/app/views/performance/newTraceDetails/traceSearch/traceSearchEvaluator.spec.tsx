@@ -1,5 +1,7 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {EventTransaction} from 'sentry/types';
 import {
   type TraceTree,
   TraceTreeNode,
@@ -23,6 +25,20 @@ function makeTransaction(
   } as TraceTree.Transaction;
 }
 
+function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
+  return {
+    span_id: '',
+    op: '',
+    description: '',
+    start_timestamp: 0,
+    timestamp: 10,
+    data: {},
+    trace_id: '',
+    childTransactions: [],
+    event: undefined as unknown as EventTransaction,
+    ...overrides,
+  };
+}
 const makeTree = (list: TraceTree.NodeValue[]): TraceTree => {
   return {
     list: list.map(
@@ -31,10 +47,10 @@ const makeTree = (list: TraceTree.NodeValue[]): TraceTree => {
   } as unknown as TraceTree;
 };
 
-const search = (query: string, list: TraceTree.NodeValue[], cb: any) => {
+const search = (query: string, tree: TraceTree, cb: any) => {
   searchInTraceTreeTokens(
-    makeTree(list),
-    // @ts-expect-error test failed parse
+    tree,
+    // @ts-expect-error dont care if this fails
     parseTraceSearch(query),
     null,
     cb
@@ -43,10 +59,10 @@ const search = (query: string, list: TraceTree.NodeValue[], cb: any) => {
 
 describe('TraceSearchEvaluator', () => {
   it('empty string', async () => {
-    const list = [
+    const list = makeTree([
       makeTransaction({'transaction.op': 'operation'}),
       makeTransaction({'transaction.op': 'other'}),
-    ];
+    ]);
 
     const cb = jest.fn();
     search('', list, cb);
@@ -68,10 +84,10 @@ describe('TraceSearchEvaluator', () => {
     ['()'],
     ['(invalid_query)'],
   ])('invalid grammar %s', async query => {
-    const list = [
+    const list = makeTree([
       makeTransaction({'transaction.op': 'operation'}),
       makeTransaction({'transaction.op': 'other'}),
-    ];
+    ]);
 
     const cb = jest.fn();
     search(query, list, cb);
@@ -81,5 +97,239 @@ describe('TraceSearchEvaluator', () => {
     expect(cb.mock.calls[0][0][0]).toEqual([]);
     expect(cb.mock.calls[0][0][1].size).toBe(0);
     expect(cb.mock.calls[0][0][2]).toBe(null);
+  });
+
+  it('AND query', async () => {
+    const tree = makeTree([
+      makeTransaction({'transaction.op': 'operation', transaction: 'something'}),
+      makeTransaction({'transaction.op': 'other'}),
+    ]);
+
+    const cb = jest.fn();
+    search('transaction.op:operation AND transaction:something', tree, cb);
+    await waitFor(() => {
+      expect(cb).toHaveBeenCalled();
+    });
+    expect(cb.mock.calls[0][0][1].size).toBe(1);
+    expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+    expect(cb.mock.calls[0][0][2]).toBe(null);
+  });
+
+  it('OR query', async () => {
+    const tree = makeTree([
+      makeTransaction({'transaction.op': 'operation'}),
+      makeTransaction({'transaction.op': 'other'}),
+    ]);
+
+    const cb = jest.fn();
+    search('transaction.op:operation OR transaction.op:other', tree, cb);
+    await waitFor(() => {
+      expect(cb).toHaveBeenCalled();
+    });
+    expect(cb.mock.calls[0][0][0]).toEqual([
+      {index: 0, value: tree.list[0]},
+      {index: 1, value: tree.list[1]},
+    ]);
+    expect(cb.mock.calls[0][0][1].size).toBe(2);
+    expect(cb.mock.calls[0][0][2]).toBe(null);
+  });
+
+  it('OR with AND respects precedence', async () => {
+    const tree = makeTree([
+      makeTransaction({'transaction.op': 'operation', transaction: 'something'}),
+      makeTransaction({'transaction.op': 'other', transaction: ''}),
+    ]);
+
+    const cb = jest.fn();
+    // @TODO check if this makes sense with some users. We might only want to do this only if we have a set of parens.
+    search(
+      // (transaction.op:operation OR transaction.op:other) AND transaction:something
+      'transaction.op:operation AND transaction:something OR transaction.op:other',
+      tree,
+      cb
+    );
+    await waitFor(() => {
+      expect(cb).toHaveBeenCalled();
+    });
+    expect(cb.mock.calls[0][0][1].size).toBe(1);
+    expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+    expect(cb.mock.calls[0][0][2]).toBe(null);
+  });
+
+  describe('transaction', () => {
+    it('text filter', async () => {
+      const tree = makeTree([
+        makeTransaction({'transaction.op': 'operation'}),
+        makeTransaction({'transaction.op': 'other'}),
+      ]);
+
+      const cb = jest.fn();
+      search('transaction.op:operation', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('text filter with prefix', async () => {
+      const tree = makeTree([makeTransaction({transaction: 'operation'})]);
+
+      const cb = jest.fn();
+      search('transaction.transaction:operation', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('transaction.duration (milliseconds)', async () => {
+      const tree = makeTree([
+        makeTransaction({'transaction.duration': 1000}),
+        makeTransaction({'transaction.duration': 500}),
+      ]);
+
+      const cb = jest.fn();
+      search('transaction.duration:>500ms', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('transaction.duration (seconds)', async () => {
+      const tree = makeTree([
+        makeTransaction({'transaction.duration': 1000}),
+        makeTransaction({'transaction.duration': 500}),
+      ]);
+
+      const cb = jest.fn();
+      search('transaction.duration:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('transaction.total_time', async () => {
+      const tree = makeTree([
+        makeTransaction({start_timestamp: 0, timestamp: 1}),
+        makeTransaction({start_timestamp: 0, timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('transaction.total_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    // For consistency between spans and txns, should should be implemented
+    // it('transaction.self_time', () => {});
+  });
+
+  describe('span', () => {
+    it('text filter', async () => {
+      const tree = makeTree([makeSpan({op: 'db'}), makeSpan({op: 'http'})]);
+
+      const cb = jest.fn();
+      search('op:db', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('text filter with prefix', async () => {
+      const tree = makeTree([makeSpan({op: 'db'}), makeSpan({op: 'http'})]);
+
+      const cb = jest.fn();
+      search('span.op:db', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('span.duration (milliseconds)', async () => {
+      const tree = makeTree([
+        makeSpan({start_timestamp: 0, timestamp: 1}),
+        makeSpan({start_timestamp: 0, timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.duration:>500ms', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('span.duration (seconds)', async () => {
+      const tree = makeTree([
+        makeSpan({start_timestamp: 0, timestamp: 1}),
+        makeSpan({start_timestamp: 0, timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.duration:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+
+    it('span.total_time', async () => {
+      const tree = makeTree([
+        makeSpan({start_timestamp: 0, timestamp: 1}),
+        makeSpan({start_timestamp: 0, timestamp: 0.5}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.total_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+    it('span.self_time', async () => {
+      const tree = makeTree([
+        makeSpan({exclusive_time: 1000}),
+        makeSpan({exclusive_time: 500}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.self_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+    it('span.exclusive_time', async () => {
+      const tree = makeTree([
+        makeSpan({exclusive_time: 1000}),
+        makeSpan({exclusive_time: 500}),
+      ]);
+
+      const cb = jest.fn();
+      search('span.exclusive_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+    it('exclusive_time', async () => {
+      const tree = makeTree([
+        makeSpan({exclusive_time: 1000}),
+        makeSpan({exclusive_time: 500}),
+      ]);
+
+      const cb = jest.fn();
+      search('exclusive_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
   });
 });

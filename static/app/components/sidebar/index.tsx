@@ -56,6 +56,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
+  CACHE_BASE_URL,
   MODULE_TITLE as CACHE_MODULE_TITLE,
   releaseLevelAsBadgeProps as CacheModuleBadgeProps,
 } from 'sentry/views/performance/cache/settings';
@@ -299,7 +300,7 @@ function Sidebar() {
                       {CACHE_MODULE_TITLE}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/performance/cache/`}
+                  to={`/organizations/${organization.slug}${CACHE_BASE_URL}/`}
                   id="performance-cache"
                   icon={<SubitemDot collapsed />}
                   {...CacheModuleBadgeProps}
