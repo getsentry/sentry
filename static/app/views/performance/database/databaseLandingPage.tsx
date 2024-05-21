@@ -18,7 +18,6 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
@@ -28,6 +27,7 @@ import {useSelectedDurationAggregate} from 'sentry/views/performance/database/us
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -135,22 +135,13 @@ export function DatabaseLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
+  const crumbs = useModuleBreadcrumbs('db');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Queries',
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>{t('Queries')}</Layout.Title>
         </Layout.HeaderContent>

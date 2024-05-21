@@ -18,8 +18,6 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
@@ -34,6 +32,7 @@ import {
   ONBOARDING_CONTENT,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const DEFAULT_SORT = {
@@ -42,7 +41,6 @@ const DEFAULT_SORT = {
 };
 
 function QueuesLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
 
   const query = useLocationQuery({
@@ -74,22 +72,13 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
+  const crumbs = useModuleBreadcrumbs('queue');
+
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
             {MODULE_TITLE}

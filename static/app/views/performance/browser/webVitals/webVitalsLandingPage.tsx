@@ -22,7 +22,6 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FID_DEPRECATION_DATE} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
@@ -35,6 +34,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function WebVitalsLandingPage() {
   const organization = useOrganization();
@@ -67,22 +67,13 @@ export function WebVitalsLandingPage() {
   const fidDeprecationTimestampString =
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
+  const crumbs = useModuleBreadcrumbs('vital');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Web Vitals',
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>{t('Web Vitals')}</Layout.Title>
         </Layout.HeaderContent>
