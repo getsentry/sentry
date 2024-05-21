@@ -3204,10 +3204,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.1.tgz#0ab8be23fd494d80dd0e4ec8ae5f3d13f805b13d"
   integrity sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==
 
-"@sentry/status-page-list@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.1.0.tgz#49e8683091de0531aba96fc95f19891970929701"
-  integrity sha512-wXWu3IihxFO0l5WQkr6V138ZJKHpL8G7fw/9l0Dl6Nl1ggWcJZOaBN/o5sXasS1e0Atvy2dL9DiPsKmBq8D4MA==
+"@sentry/status-page-list@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.2.0.tgz#f82dec256ccf412cc97d71245bd87300ec56deca"
+  integrity sha512-Ulu7dhQrkB8zDA1f6nDPGOB4nIQj7QBI3Mk3fHn9W9KMVYeY7wi+0u01aV2aO7JnCkXHihzRnuLyTgulVJuQWg==
 
 "@sentry/types@8.0.0", "@sentry/types@^8.0.0":
   version "8.0.0"
