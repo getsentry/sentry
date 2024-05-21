@@ -184,7 +184,7 @@ export function fetchOrganizationDetails(
       } else {
         TeamStore.loadInitialData(teams);
       }
-      resolve(projects);
+      resolve([projects, teams]);
     });
   };
 
