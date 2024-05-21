@@ -789,7 +789,7 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
   // defaulting to an empty string which in turn will fallback to env var or
   // determine merge commit sha from git
-  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? "";
+  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
 
   appConfig.plugins?.push(
     codecovWebpackPlugin({
