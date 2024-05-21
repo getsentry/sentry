@@ -15,7 +15,6 @@ import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -99,7 +98,7 @@ export default function FeedbackList() {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <OverflowPanelItem noPadding>
+      <FeedbackListItems>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
@@ -151,14 +150,13 @@ export default function FeedbackList() {
             </Tooltip>
           ) : null}
         </FloatingContainer>
-      </OverflowPanelItem>
+      </FeedbackListItems>
     </Fragment>
   );
 }
 
-const OverflowPanelItem = styled(PanelItem)`
+const FeedbackListItems = styled('div')`
   display: grid;
-  overflow: auto;
   flex-grow: 1;
   min-height: 300px;
 `;
