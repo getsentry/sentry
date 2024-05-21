@@ -218,9 +218,14 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
+        extra = ""
+        if subscription.query_extra:
+            if snuba_query.query:
+                extra = " and "
+            extra += subscription.query_extra
         snql_query = build_query_builder(
             entity_subscription=entity_subscription,
-            query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',
+            query=f"{snuba_query.query}{extra}",
             project_ids=[subscription.project_id],
             environment=snuba_query.environment,
             params={
