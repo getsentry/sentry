@@ -9,7 +9,6 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -57,7 +56,7 @@ class MonitorEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
+        organization_id_or_slug: int | str,
         monitor_id_or_slug: int | str,
         environment: str | None = None,
         checkin_id: str | None = None,
@@ -65,15 +64,10 @@ class MonitorEndpoint(Endpoint):
         **kwargs,
     ):
         try:
-            if (
-                id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_slug)
-                )
-                and str(organization_slug).isdigit()
-            ):
-                organization = Organization.objects.get_from_cache(id=organization_slug)
+            if str(organization_id_or_slug).isdigit():
+                organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
             else:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -134,9 +128,7 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         try:
-            if id_or_slug_path_params_enabled(self.convert_args.__qualname__) and is_uuid(
-                monitor_id_or_slug
-            ):
+            if is_uuid(monitor_id_or_slug):
                 kwargs["monitor"] = Monitor.objects.get(
                     project_id=kwargs["project"].id, guid=monitor_id_or_slug
                 )
@@ -212,9 +204,7 @@ def get_monitor_by_org_id_or_slug(
     # end up with multiple monitors here. Since we have no idea which project the user wants,
     # we just get the oldest monitor and use that.
     # This is a temporary measure until we remove these org level endpoints
-    if id_or_slug_path_params_enabled(
-        ProjectMonitorEnvironmentEndpoint.convert_args.__qualname__, str(organization.slug)
-    ) and is_uuid(monitor_id_or_slug):
+    if is_uuid(monitor_id_or_slug):
         monitors = list(
             Monitor.objects.filter(organization_id=organization.id, guid=monitor_id_or_slug)
         )

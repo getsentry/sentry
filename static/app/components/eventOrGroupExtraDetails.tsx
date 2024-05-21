@@ -50,7 +50,9 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
 
   return (
     <GroupExtra>
-      <GroupStatusBadge status={status} substatus={substatus} />
+      {!organization.features.includes('issue-stream-new-events-graph') && (
+        <GroupStatusBadge status={status} substatus={substatus} />
+      )}
       {shortId && (
         <InboxShortId
           shortId={shortId}
@@ -63,7 +65,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
       )}
       {isUnhandled && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
-        <Placeholder height="14px" width="100px" />
+        <Placeholder height="12px" width="100px" />
       ) : (
         <TimesTag
           lastSeen={lifetime?.lastSeen || lastSeen}

@@ -20,6 +20,7 @@ import {
 } from 'sentry/components/events/highlights/util.spec';
 import ModalStore from 'sentry/stores/modalStore';
 import type {Project} from 'sentry/types';
+import * as analytics from 'sentry/utils/analytics';
 
 describe('EditHighlightsModal', function () {
   const organization = OrganizationFixture();
@@ -54,6 +55,7 @@ describe('EditHighlightsModal', function () {
     tags: ['presetTag'],
   };
   const closeModal = jest.fn();
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   function renderModal(editHighlightModalProps?: Partial<EditHighlightsModalProps>) {
     act(() => {
@@ -85,14 +87,18 @@ describe('EditHighlightsModal', function () {
     renderModal({highlightContext: {}, highlightTags: []});
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-preview-section')).toBeInTheDocument();
-    expect(screen.getByTestId('highlights-empty-message')).toBeInTheDocument();
+    expect(screen.getByTestId('highlights-empty-preview')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-save-info')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-tag-section')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-context-section')).toBeInTheDocument();
 
     const defaultButton = screen.getByRole('button', {name: 'Use Defaults'});
     await userEvent.click(defaultButton);
-    expect(screen.queryByTestId('highlights-empty-message')).not.toBeInTheDocument();
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.use_default_clicked',
+      expect.anything()
+    );
+    expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
 
     const updateProjectMock = MockApiClient.addMockResponse({
       url,
@@ -101,6 +107,10 @@ describe('EditHighlightsModal', function () {
     });
     const cancelButton = screen.getByRole('button', {name: 'Cancel'});
     await userEvent.click(cancelButton);
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.cancel_clicked',
+      expect.anything()
+    );
     expect(updateProjectMock).not.toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
 
@@ -109,6 +119,10 @@ describe('EditHighlightsModal', function () {
     renderModal({highlightContext: {}, highlightTags: []});
     const saveButton = screen.getByRole('button', {name: 'Apply to Project'});
     await userEvent.click(saveButton);
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.save_clicked',
+      expect.anything()
+    );
     expect(updateProjectMock).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   });
@@ -123,8 +137,7 @@ describe('EditHighlightsModal', function () {
 
     // Existing Tags and Context Keys should be highlighted
     const previewSection = screen.getByTestId('highlights-preview-section');
-    expect(screen.queryByTestId('highlights-empty-message')).not.toBeInTheDocument();
-
+    expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
     highlightTags.forEach(tag => {
       const tagItem = within(previewSection).getByText(tag, {selector: 'div'});
       expect(tagItem).toBeInTheDocument();
@@ -136,8 +149,27 @@ describe('EditHighlightsModal', function () {
       const contextItem = within(previewSection).getByText(titleString);
       expect(contextItem).toBeInTheDocument();
     });
+
     const previewCtxButtons = screen.queryAllByTestId('highlights-remove-ctx');
     expect(previewCtxButtons).toHaveLength(highlightContextTitles.length);
+
+    await userEvent.click(previewTagButtons[0]);
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.remove_tag',
+      expect.anything()
+    );
+    expect(screen.queryAllByTestId('highlights-remove-tag')).toHaveLength(
+      previewTagButtons.length - 1
+    );
+
+    await userEvent.click(previewCtxButtons[0]);
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.remove_context_key',
+      expect.anything()
+    );
+    expect(screen.queryAllByTestId('highlights-remove-ctx')).toHaveLength(
+      previewCtxButtons.length - 1
+    );
 
     // Default should unselect the current values
     const defaultButton = screen.getByRole('button', {name: 'Use Defaults'});
@@ -204,6 +236,11 @@ describe('EditHighlightsModal', function () {
       expect(removeButton).toBeEnabled();
     });
     await Promise.all(tagTestPromises);
+    expect(analyticsSpy).toHaveBeenCalledTimes(8);
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.add_tag',
+      expect.anything()
+    );
 
     // All event tags should be present now
     await userEvent.click(screen.getByRole('button', {name: 'Apply to Project'}));
@@ -265,8 +302,12 @@ describe('EditHighlightsModal', function () {
       }
     );
     await Promise.all(ctxTestPromises);
-
-    // These come from the event, and existing highlights
+    expect(analyticsSpy).toHaveBeenCalledTimes(5);
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.edit_modal.add_context_key',
+      expect.anything()
+    );
+    // Combine existing highlight context titles, with new ones that were selected above
     const allHighlightCtxTitles = highlightContextTitles.concat([
       'Keyboard: switches',
       'Client Os: Version',
@@ -299,5 +340,34 @@ describe('EditHighlightsModal', function () {
       })
     );
     expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('should update sections from search input', async function () {
+    renderModal();
+    const tagCount = TEST_EVENT_TAGS.length;
+    expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
+    const tagInput = screen.getByTestId('highlights-tag-search');
+    await userEvent.type(tagInput, 'le');
+    expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(3); // handled, level, release
+    await userEvent.clear(tagInput);
+    await userEvent.type(tagInput, 'gibberish');
+    expect(screen.queryAllByTestId('highlight-tag-option')).toHaveLength(0);
+    expect(screen.getByTestId('highlights-empty-tags')).toBeInTheDocument();
+    await userEvent.clear(tagInput);
+    expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
+
+    const ctxCount = Object.values(TEST_EVENT_CONTEXTS)
+      .flatMap(Object.keys)
+      .filter(k => k !== 'type').length;
+    expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(ctxCount);
+    const contextInput = screen.getByTestId('highlights-context-search');
+    await userEvent.type(contextInput, 'name'); // client_os.name, runtime.name
+    expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(2);
+    await userEvent.clear(contextInput);
+    await userEvent.type(contextInput, 'gibberish');
+    expect(screen.queryAllByTestId('highlight-context-option')).toHaveLength(0);
+    expect(screen.getByTestId('highlights-empty-context')).toBeInTheDocument();
+    await userEvent.clear(contextInput);
+    expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(ctxCount);
   });
 });

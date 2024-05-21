@@ -11,15 +11,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/performance/mobile/appStarts/screens';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {PRIMARY_RELEASE_COLOR} from 'sentry/views/starfish/colors';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 interface Props {
@@ -90,14 +89,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
     return transformData(data?.data, appStartType);
   }, [data, appStartType]);
 
-  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
-  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
+  const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 
   return (
     <ScreensBarChart
@@ -116,8 +108,8 @@ export function AverageComparisonChart({chartHeight}: Props) {
           subtitle: primaryRelease
             ? t(
                 '%s v. %s',
-                truncatedPrimaryChart,
-                secondaryRelease ? truncatedSecondaryChart : ''
+                truncatedPrimaryRelease,
+                secondaryRelease ? truncatedSecondaryRelease : ''
               )
             : '',
         },

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from random import choice, randint
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID, uuid4
 
@@ -12,7 +13,7 @@ import petname
 from dateutil.parser import parse as parse_datetime
 from django.utils.text import slugify
 
-from sentry.utils.json import JSONData
+from sentry.utils import json
 
 UPPER_CASE_HEX = {"A", "B", "C", "D", "E", "F"}
 UPPER_CASE_NON_HEX = {
@@ -88,7 +89,7 @@ class SanitizableField:
     model: NormalizedModelName
     field: str
 
-    def validate_json_model(self, json: JSONData) -> None:
+    def validate_json_model(self, json: Any) -> None:
         """
         Validates the JSON model is shaped the way we expect a serialized Django model to be,
         and that we have the right kind of model for this `SanitizableField`. Raises errors if there
@@ -105,11 +106,11 @@ class SanitizableField:
         return None
 
 
-def _get_field_value(json: JSONData, field: SanitizableField) -> JSONData | None:
+def _get_field_value(json: Any, field: SanitizableField) -> Any | None:
     return json.get("fields", {}).get(field.field, None)
 
 
-def _set_field_value(json: JSONData, field: SanitizableField, value: JSONData) -> JSONData:
+def _set_field_value(json: Any, field: SanitizableField, value: Any) -> Any:
     json.get("fields", {})[field.field] = value
     return value
 
@@ -185,11 +186,11 @@ class Sanitizer:
     `set_name()`, etc), but all of these ultimately call into `set_string()` and `set_datetime()`.
     """
 
-    json: JSONData
+    json: Any
     interned_strings: dict[str, str]
     interned_datetimes: dict[datetime, datetime]
 
-    def __init__(self, export: JSONData, datetime_offset: timedelta | None = None):
+    def __init__(self, export: Any, datetime_offset: timedelta | None = None):
         self.json = export
         self.interned_strings = {"": ""}  # Always map empty string to itself.
         self.interned_datetimes = dict()
@@ -278,6 +279,26 @@ class Sanitizer:
             elif isinstance(old_ip, IPv6Address):
                 self.interned_strings[old] = random_ipv6()
             return self.interned_strings[old]
+
+    def map_json(self, old_json: Any, new_json: Any) -> Any:
+        """
+        Maps a JSON object. If the `old` JSON object has already been seen, the already-generated
+        value for that existing key will be used instead. If it has not, we'll generate a new one.
+        This ensures that all identical existing JSON objects are swapped with identical
+        replacements everywhere they occur.
+
+        If you wish to update an actual model in-place with this newly generated name,
+        `set_json()` is the preferred method for doing so.
+        """
+
+        old_serialized = json.dumps(old_json)
+        interned = self.interned_strings.get(old_serialized)
+        if interned is not None:
+            return json.loads(interned)
+
+        new_serialized = json.dumps(new_json)
+        self.interned_strings[old_serialized] = new_serialized
+        return new_json
 
     def map_name(self, old: str) -> str:
         """
@@ -378,7 +399,7 @@ class Sanitizer:
 
         return self.map_string(old, lambda _: str(uuid4()))
 
-    def set_datetime(self, json: JSONData, field: SanitizableField) -> datetime | None:
+    def set_datetime(self, json: Any, field: SanitizableField) -> datetime | None:
         """
         Replaces a datetime by replacing it with a different, but still correctly ordered,
         alternative.
@@ -404,7 +425,7 @@ class Sanitizer:
 
         return None if parsed is None else _set_field_value(json, field, self.map_datetime(parsed))
 
-    def set_email(self, json: JSONData, field: SanitizableField) -> str | None:
+    def set_email(self, json: Any, field: SanitizableField) -> str | None:
         """
         Replaces an email in a manner that retains domain relationships - ie, all sanitized emails
         from domain `@foo` will now be from `@bar`. If the `old` string is not a valid email (ie,
@@ -429,7 +450,7 @@ class Sanitizer:
 
     def set_ip(
         self,
-        json: JSONData,
+        json: Any,
         field: SanitizableField,
     ) -> str | None:
         """
@@ -455,9 +476,36 @@ class Sanitizer:
 
         return _set_field_value(json, field, self.map_ip(old))
 
+    def set_json(
+        self,
+        json: Any,
+        field: SanitizableField,
+        replace_with: Any,
+    ) -> Any | None:
+        """
+        Replaces a JSON object with a randomly generated value. If the existing value of the JSON
+        object has already been seen, the already-generated value for that existing key will be used
+        instead. If it has not, we'll generate a new one. This ensures that all identical existing
+        JSON objects are swapped with identical replacements everywhere they occur.
+
+        This method updates the owning model in-place if the specified field is a non-null value,
+        then returns the newly generated replacement. If the specified field could not be found in
+        the supplied owning model, `None` is returned instead.
+
+        If you wish to merely generate a string without updating the owning model in-place, consider
+        using `map_json()` instead.
+        """
+
+        field.validate_json_model(json)
+        old = _get_field_value(json, field)
+        if old is None:
+            return None
+
+        return _set_field_value(json, field, self.map_json(old, replace_with))
+
     def set_name(
         self,
-        json: JSONData,
+        json: Any,
         field: SanitizableField,
     ) -> str | None:
         """
@@ -485,7 +533,7 @@ class Sanitizer:
         return _set_field_value(json, field, self.map_name(old))
 
     def set_name_and_slug_pair(
-        self, json: JSONData, name_field: SanitizableField, slug_field: SanitizableField
+        self, json: Any, name_field: SanitizableField, slug_field: SanitizableField
     ) -> tuple[str | None, str | None]:
         """
         Replaces a pair of a proper noun name and its matching slug with some randomly generated
@@ -526,7 +574,7 @@ class Sanitizer:
 
     def set_string(
         self,
-        json: JSONData,
+        json: Any,
         field: SanitizableField,
         generate: Callable[[str], str] = default_string_sanitizer,
     ) -> str | None:
@@ -555,7 +603,7 @@ class Sanitizer:
 
     def set_url(
         self,
-        json: JSONData,
+        json: Any,
         field: SanitizableField,
     ) -> str | None:
         """
@@ -586,7 +634,7 @@ class Sanitizer:
 
     def set_uuid(
         self,
-        json: JSONData,
+        json: Any,
         field: SanitizableField,
     ) -> str | None:
         """
@@ -616,7 +664,7 @@ class Sanitizer:
         return _set_field_value(json, field, self.map_uuid(old))
 
 
-def sanitize(export: JSONData, datetime_offset: timedelta | None = None) -> JSONData:
+def sanitize(export: Any, datetime_offset: timedelta | None = None) -> Any:
     """
     Sanitize an entire export JSON.
     """
@@ -625,7 +673,7 @@ def sanitize(export: JSONData, datetime_offset: timedelta | None = None) -> JSON
     from sentry.backup.dependencies import NormalizedModelName, get_model
 
     sanitizer = Sanitizer(export, datetime_offset)
-    sanitized: list[JSONData] = []
+    sanitized: list[Any] = []
     for item in sanitizer.json:
         clone = deepcopy(item)
         model_name = NormalizedModelName(clone["model"])

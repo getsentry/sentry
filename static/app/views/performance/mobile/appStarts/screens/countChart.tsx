@@ -12,9 +12,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/performance/mobile/appStarts/screens';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
@@ -23,7 +23,6 @@ import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
@@ -107,14 +106,7 @@ export function CountChart({chartHeight}: Props) {
     }
   );
 
-  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
-  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_CHART_RELEASE_CHARS
-  );
+  const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 
   return (
     <MiniChartPanel
@@ -123,8 +115,8 @@ export function CountChart({chartHeight}: Props) {
         primaryRelease
           ? t(
               '%s v. %s',
-              truncatedPrimaryChart,
-              secondaryRelease ? truncatedSecondaryChart : ''
+              truncatedPrimaryRelease,
+              secondaryRelease ? truncatedSecondaryRelease : ''
             )
           : ''
       }

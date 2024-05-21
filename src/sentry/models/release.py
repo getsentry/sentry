@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from time import time
 from typing import ClassVar
 
+import orjson
 import sentry_sdk
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Sum, When
@@ -346,7 +347,7 @@ class Release(Model):
             return False
 
         try:
-            version_info = parse_release(version)
+            version_info = parse_release(version, json_loads=orjson.loads)
             version_parsed = version_info.get("version_parsed")
             return version_parsed is not None and all(
                 validate_bigint(version_parsed[field])
@@ -488,7 +489,7 @@ class Release(Model):
     @cached_property
     def version_info(self):
         try:
-            return parse_release(self.version)
+            return parse_release(self.version, json_loads=orjson.loads)
         except RelayError:
             # This can happen on invalid legacy releases
             return None

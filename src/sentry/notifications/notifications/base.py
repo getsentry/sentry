@@ -13,7 +13,7 @@ from sentry.db.models import Model
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.safe import safe_execute
 
@@ -98,7 +98,7 @@ class BaseNotification(abc.ABC):
         """
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         # Basically a noop.
         return {**extra_context}
@@ -109,23 +109,23 @@ class BaseNotification(abc.ABC):
         """The subject line when sending this notifications as a chat notification."""
         raise NotImplementedError
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         raise NotImplementedError
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         raise NotImplementedError
 
-    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         raise NotImplementedError
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return None
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
@@ -133,11 +133,11 @@ class BaseNotification(abc.ABC):
             "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
         }
-        if recipient.actor_type == ActorType.USER:
+        if recipient.is_user:
             params["user_id"] = recipient.id
         return params
 
-    def get_custom_analytics_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_custom_analytics_params(self, recipient: Actor) -> Mapping[str, Any]:
         """
         Returns a mapping of params used to record the event associated with self.analytics_event.
         By default, use the log params.
@@ -145,7 +145,7 @@ class BaseNotification(abc.ABC):
         return self.get_log_params(recipient)
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         return []
 
@@ -162,7 +162,7 @@ class BaseNotification(abc.ABC):
     def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
         analytics.record(event_name, *args, **kwargs)
 
-    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+    def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         with sentry_sdk.start_span(op="notification.send", description="record_notification_sent"):
             # may want to explicitly pass in the parameters for this event
             self.record_analytics(
@@ -180,7 +180,7 @@ class BaseNotification(abc.ABC):
                     **self.get_custom_analytics_params(recipient),
                 )
 
-    def get_referrer(self, provider: ExternalProviders, recipient: RpcActor | None = None) -> str:
+    def get_referrer(self, provider: ExternalProviders, recipient: Actor | None = None) -> str:
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
@@ -190,7 +190,7 @@ class BaseNotification(abc.ABC):
     def get_sentry_query_params(
         self,
         provider: ExternalProviders,
-        recipient: RpcActor | None = None,
+        recipient: Actor | None = None,
         set_organization_id: bool = False,
     ) -> str:
         """
@@ -210,10 +210,10 @@ class BaseNotification(abc.ABC):
         query = urlencode(q_params)
         return f"?{query}"
 
-    def get_settings_url(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def get_settings_url(self, recipient: Actor, provider: ExternalProviders) -> str:
         set_organization_id = False
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
-        if recipient.actor_type == ActorType.TEAM:
+        if recipient.is_team:
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
@@ -232,7 +232,7 @@ class BaseNotification(abc.ABC):
             )
         )
 
-    def determine_recipients(self) -> list[RpcActor]:
+    def determine_recipients(self) -> list[Actor]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
@@ -242,8 +242,8 @@ class BaseNotification(abc.ABC):
         return notification_providers()
 
     def filter_to_accepting_recipients(
-        self, recipients: Iterable[RpcActor]
-    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+        self, recipients: Iterable[Actor]
+    ) -> Mapping[ExternalProviders, Iterable[Actor]]:
         from sentry.notifications.utils.participants import get_notification_recipients
 
         setting_type = (
@@ -257,7 +257,7 @@ class BaseNotification(abc.ABC):
             organization_id=self.organization.id,
         )
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
         # need a notification_setting_type_enum to call this function
         if not self.notification_setting_type_enum:
             raise NotImplementedError
@@ -297,10 +297,10 @@ class ProjectNotification(BaseNotification, abc.ABC):
             f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
         )
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}
 
-    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         settings_url = self.get_settings_url(recipient, provider)
 
         parent = getattr(self, "project", self.organization)

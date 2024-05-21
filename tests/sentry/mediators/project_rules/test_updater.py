@@ -2,6 +2,7 @@ from sentry.mediators.project_rules.updater import Updater
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.types.actor import Actor
 
 
 class TestUpdater(TestCase):
@@ -20,8 +21,7 @@ class TestUpdater(TestCase):
         assert self.rule.label == "Cool New Rule"
 
     def test_update_owner(self):
-        self.updater.owner_team_id = None
-        self.updater.owner_user_id = self.user.id
+        self.updater.owner = Actor.from_id(user_id=self.user.id)
         self.updater.call()
         with assume_test_silo_mode_of(User):
             self.user = User.objects.get(id=self.user.id)
@@ -29,14 +29,12 @@ class TestUpdater(TestCase):
         assert self.rule.owner_team_id is None
 
         team = self.create_team()
-        self.updater.owner_team_id = team.id
-        self.updater.owner_user_id = None
+        self.updater.owner = Actor.from_id(team_id=team.id)
         self.updater.call()
         assert self.rule.owner_team_id == team.id
         assert self.rule.owner_user_id is None
 
-        self.updater.owner_user_id = None
-        self.updater.owner_team_id = None
+        self.updater.owner = None
         self.updater.call()
         assert self.rule.owner_team_id is None
         assert self.rule.owner_user_id is None

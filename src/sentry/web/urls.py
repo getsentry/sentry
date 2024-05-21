@@ -709,9 +709,9 @@ urlpatterns += [
     ),
     # AI Monitoring
     re_path(
-        r"^ai-monitoring/",
+        r"^llm-monitoring/",
         react_page_view,
-        name="ai-monitoring",
+        name="llm-monitoring",
     ),
     # Performance
     re_path(
@@ -719,11 +719,11 @@ urlpatterns += [
         react_page_view,
         name="performance",
     ),
-    # Starfish
+    # Insights
     re_path(
-        r"^starfish/",
+        r"^insights/",
         react_page_view,
-        name="starfish",
+        name="insights",
     ),
     # Profiling
     re_path(

@@ -18,9 +18,9 @@ class SetRemoteAddrFromForwardedForTestCase(TestCase):
 
     def test_ipv4(self):
         request = HttpRequest()
-        request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8:80,8.8.4.4"
+        request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8,8.8.4.4:80"
         self.middleware.process_request(request)
-        assert request.META["REMOTE_ADDR"] == "8.8.8.8"
+        assert request.META["REMOTE_ADDR"] == "8.8.4.4"
 
     def test_ipv4_whitespace(self):
         request = HttpRequest()
@@ -32,7 +32,7 @@ class SetRemoteAddrFromForwardedForTestCase(TestCase):
         request = HttpRequest()
         request.META["HTTP_X_FORWARDED_FOR"] = "2001:4860:4860::8888,2001:4860:4860::8844"
         self.middleware.process_request(request)
-        assert request.META["REMOTE_ADDR"] == "2001:4860:4860::8888"
+        assert request.META["REMOTE_ADDR"] == "2001:4860:4860::8844"
 
 
 test_region = Region(

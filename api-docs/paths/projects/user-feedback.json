@@ -5,9 +5,9 @@
     "operationId": "List a Project's User Feedback",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The id or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -72,9 +72,9 @@
     "operationId": "Submit User Feedback",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The id or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"

@@ -90,8 +90,8 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.types.actor import Actor
 from sentry.utils import json
-from sentry.utils.actor import ActorTuple
 
 pytestmark = [pytest.mark.sentry_metrics]
 
@@ -671,7 +671,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             AlertRuleThresholdType.ABOVE,
             1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         assert alert_rule_1.user_id == self.user.id
         assert alert_rule_1.team_id is None
@@ -684,7 +684,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             AlertRuleThresholdType.ABOVE,
             1,
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule_2.user_id is None
         assert alert_rule_2.team_id == self.team.id
@@ -1042,28 +1042,28 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
             AlertRuleThresholdType.ABOVE,
             1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=ActorTuple.from_actor_identifier(f"user:{self.user.id}"),
+            owner=Actor.from_identifier(f"user:{self.user.id}"),
         )
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
         update_alert_rule(
             alert_rule=alert_rule,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None

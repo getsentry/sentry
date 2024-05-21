@@ -17,8 +17,6 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -99,9 +97,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             owner = result["owner"]
             params["owner_user_id"] = None
             params["owner_team_id"] = None
-            if owner and owner.type == User:
+            if owner and owner.is_user:
                 params["owner_user_id"] = owner.id
-            elif owner and owner.type == Team:
+            elif owner and owner.is_team:
                 params["owner_team_id"] = owner.id
         if "config" in result:
             params["config"] = result["config"]
@@ -178,13 +176,15 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         Delete a monitor or monitor environments.
         """
         environment_names = request.query_params.getlist("environment")
+        env_ids = None
+        if environment_names:
+            env_ids = list(
+                Environment.objects.filter(
+                    organization_id=project.organization_id, name__in=environment_names
+                ).values_list("id", flat=True)
+            )
         with transaction.atomic(router.db_for_write(MonitorEnvironment)):
-            if environment_names:
-                env_ids = list(
-                    Environment.objects.filter(
-                        organization_id=project.organization_id, name__in=environment_names
-                    ).values_list("id", flat=True)
-                )
+            if env_ids:
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(
                         environment_id__in=env_ids, monitor_id=monitor.id
@@ -201,8 +201,10 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                             MonitorStatus.DELETION_IN_PROGRESS,
                         ]
                     )
+                    .select_related("monitor")
                 )
                 event = audit_log.get_event_id("MONITOR_ENVIRONMENT_REMOVE")
+                issue_alert_rule_id = None
             else:
                 monitor_objects = Monitor.objects.filter(id=monitor.id).exclude(
                     status__in=[
@@ -215,36 +217,6 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 # Mark rule for deletion if present and monitor is being deleted
                 monitor = monitor_objects.first()
                 issue_alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
-                if issue_alert_rule_id:
-                    rule = (
-                        Rule.objects.filter(
-                            project_id=monitor.project_id,
-                            id=issue_alert_rule_id,
-                        )
-                        .exclude(
-                            status__in=[
-                                ObjectStatus.PENDING_DELETION,
-                                ObjectStatus.DELETION_IN_PROGRESS,
-                            ]
-                        )
-                        .first()
-                    )
-                    if rule:
-                        rule.update(status=ObjectStatus.PENDING_DELETION)
-                        RuleActivity.objects.create(
-                            rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-                        )
-                        scheduled_rule = RegionScheduledDeletion.schedule(
-                            rule, days=0, actor=request.user
-                        )
-                        self.create_audit_entry(
-                            request=request,
-                            organization=project.organization,
-                            target_object=rule.id,
-                            event=audit_log.get_event_id("RULE_REMOVE"),
-                            data=rule.get_audit_log_data(),
-                            transaction_id=scheduled_rule,
-                        )
 
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
@@ -260,6 +232,8 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                     quotas.backend.update_monitor_slug(monitor.slug, new_slug, monitor.project_id)
                     monitor_object.update(slug=new_slug)
 
+        with transaction.atomic(router.db_for_write(Rule)):
+            for monitor_object in monitor_objects_list:
                 schedule = RegionScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user
                 )
@@ -271,5 +245,36 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                     data=monitor_object.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
+            # Mark rule for deletion if present and monitor is being deleted
+            if issue_alert_rule_id:
+                rule = (
+                    Rule.objects.filter(
+                        project_id=monitor.project_id,
+                        id=issue_alert_rule_id,
+                    )
+                    .exclude(
+                        status__in=[
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .first()
+                )
+                if rule:
+                    rule.update(status=ObjectStatus.PENDING_DELETION)
+                    RuleActivity.objects.create(
+                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    )
+                    scheduled_rule = RegionScheduledDeletion.schedule(
+                        rule, days=0, actor=request.user
+                    )
+                    self.create_audit_entry(
+                        request=request,
+                        organization=project.organization,
+                        target_object=rule.id,
+                        event=audit_log.get_event_id("RULE_REMOVE"),
+                        data=rule.get_audit_log_data(),
+                        transaction_id=scheduled_rule,
+                    )
 
         return self.respond(status=202)

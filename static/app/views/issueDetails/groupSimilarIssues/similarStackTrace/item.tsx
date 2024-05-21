@@ -189,6 +189,7 @@ const Details = styled('div')`
   ${p => p.theme.overflowEllipsis};
 
   display: grid;
+  align-items: start;
   gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   margin-left: ${space(2)};
@@ -224,6 +225,7 @@ const StyledCount = styled(Count)`
 `;
 
 const Diff = styled('div')`
+  height: 100%;
   display: flex;
   align-items: center;
   margin-right: ${space(0.25)};

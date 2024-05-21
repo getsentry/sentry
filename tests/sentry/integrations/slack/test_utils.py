@@ -1,3 +1,4 @@
+import orjson
 import pytest
 import responses
 
@@ -7,7 +8,6 @@ from sentry.shared_integrations.exceptions import ApiRateLimitedError, Duplicate
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -29,7 +29,7 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/%s.list" % list_type,
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", result_name: channels}),
+            body=orjson.dumps({"ok": "true", result_name: channels}),
         )
 
     def add_msg_response(self, channel_id, result_name="channel"):
@@ -43,7 +43,7 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
@@ -58,7 +58,7 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/chat.deleteScheduledMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": True}),
+            body=orjson.dumps({"ok": True}),
         )
         self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
 
@@ -69,7 +69,7 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/chat.deleteScheduledMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": True}),
+            body=orjson.dumps({"ok": True}),
         )
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
@@ -126,7 +126,7 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "ratelimited"}),
+            body=orjson.dumps({"ok": False, "error": "ratelimited"}),
         )
         with pytest.raises(ApiRateLimitedError):
             get_channel_id(self.organization, self.integration, "@user")

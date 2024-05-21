@@ -117,7 +117,7 @@ class PushEventWebhookTest(APITestCase):
             status=204,
         )
 
-        mock_get_jwt.return_value = b""
+        mock_get_jwt.return_value = ""
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(
@@ -240,7 +240,7 @@ class PushEventWebhookTest(APITestCase):
             status=204,
         )
 
-        mock_get_jwt.return_value = b""
+        mock_get_jwt.return_value = ""
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(

@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import type {
   MetricsSummary,
   MetricsSummaryItem,
@@ -36,6 +36,11 @@ import {MetricChart} from 'sentry/views/metrics/chart/chart';
 import type {Series} from 'sentry/views/metrics/chart/types';
 import {getChartTimeseries} from 'sentry/views/metrics/widget';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from '../performance/newTraceDetails/traceDrawer/details/styles';
 
 function flattenMetricsSummary(
   metricsSummary: MetricsSummary
@@ -77,6 +82,7 @@ export function CustomMetricsEventData({
   startTimestamp: number;
   metricsSummary?: MetricsSummary;
 }) {
+  const hasNewTagsUI = useHasNewTagsUI();
   const organization = useOrganization();
   const start = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS).toISOString();
   const end = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS).toISOString();
@@ -179,6 +185,51 @@ export function CustomMetricsEventData({
 
   if (!hasCustomMetrics(organization) || metricsSummaryEntries.length === 0) {
     return null;
+  }
+
+  if (hasNewTagsUI) {
+    const items: SectionCardKeyValueList = [];
+
+    dataRows.forEach(dataRow => {
+      const {mri, summaryItem} = dataRow;
+      const name = formatMRI(mri);
+      items.push({
+        key: `metric-${name}`,
+        subject: name,
+        value: (
+          <TraceDrawerComponents.CopyableCardValueWithLink
+            value={
+              <Fragment>
+                <ValueRenderer dataRow={dataRow} />{' '}
+                <DeviationRenderer dataRow={dataRow} startTimestamp={startTimestamp} />
+                <br />
+                <TagsRenderer tags={dataRow.summaryItem.tags} />
+              </Fragment>
+            }
+            linkText={t('View Metric')}
+            linkTarget={getMetricsUrl(organization.slug, {
+              start: normalizeDateTimeString(start),
+              end: normalizeDateTimeString(end),
+              interval: '10s',
+              widgets: [
+                {
+                  mri: mri,
+                  displayType: MetricDisplayType.LINE,
+                  op: getDefaultMetricOp(mri),
+                  query: Object.entries(summaryItem.tags ?? {})
+                    .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
+                    .join(' '),
+                },
+              ],
+            })}
+          />
+        ),
+      });
+    });
+
+    return (
+      <TraceDrawerComponents.SectionCard title={t('Emitted Metrics')} items={items} />
+    );
   }
 
   return (
@@ -318,14 +369,6 @@ function DeviationRenderer({
   const theme = useTheme();
   const parsedMRI = parseMRI(mri);
   const type = parsedMRI?.type ?? 'c';
-
-  if (!totalAvg) {
-    return (
-      <ValueCell>
-        <LoadingPanel height="20px" />
-      </ValueCell>
-    );
-  }
 
   if (
     !defined(totalAvg) ||

@@ -33,7 +33,6 @@ import {Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
 import {Sdk} from './sections/sdk';
-import {EventTags} from './sections/tags';
 
 export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
@@ -125,7 +124,7 @@ export function TransactionNodeDetails({
 
       <IssueList node={node} organization={organization} issues={issues} />
 
-      <div>
+      <TraceDrawerComponents.SectionCardGroup>
         <GeneralInfo
           node={node}
           onParentClick={onParentClick}
@@ -136,7 +135,14 @@ export function TransactionNodeDetails({
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
         <Sdk event={event} />
-      </div>
+        {event._metrics_summary ? (
+          <CustomMetricsEventData
+            metricsSummary={event._metrics_summary}
+            startTimestamp={event.startTimestamp}
+            projectId={event.projectID}
+          />
+        ) : null}
+      </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
 
@@ -149,24 +155,14 @@ export function TransactionNodeDetails({
         />
       ) : null}
 
-      <EventTags
-        node={node}
-        organization={organization}
+      <TraceDrawerComponents.EventTags
+        projectSlug={node.value.project_slug}
         event={event}
-        location={location}
       />
 
       <EventContexts event={event} />
 
       {project ? <EventEvidence event={event} project={project} /> : null}
-
-      {event._metrics_summary ? (
-        <CustomMetricsEventData
-          metricsSummary={event._metrics_summary}
-          startTimestamp={event.startTimestamp}
-          projectId={event.projectID}
-        />
-      ) : null}
 
       <ReplayPreview event={event} organization={organization} />
 

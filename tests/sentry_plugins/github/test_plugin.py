@@ -1,5 +1,6 @@
 from functools import cached_property
 
+import orjson
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
@@ -7,7 +8,6 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.utils import json
 from sentry_plugins.github.plugin import GitHubPlugin
 
 
@@ -66,7 +66,7 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.create_issue(request, group, form_data) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer foo"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"title": "Hello", "body": "Fix this.", "assignee": None}
 
     @responses.activate
@@ -100,5 +100,5 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.link_issue(request, group, form_data) == {"title": "Hello world"}
         request = responses.calls[-1].request
         assert request.headers["Authorization"] == "Bearer foo"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "Hello"}

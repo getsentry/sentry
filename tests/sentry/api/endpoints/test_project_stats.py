@@ -46,7 +46,7 @@ class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
         url = reverse(
             "sentry-api-0-project-stats",
             kwargs={
-                "organization_slug": project1.organization.slug,
+                "organization_id_or_slug": project1.organization.slug,
                 "project_id_or_slug": project1.slug,
             },
         )
@@ -92,7 +92,7 @@ class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
         url = reverse(
             "sentry-api-0-project-stats",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )

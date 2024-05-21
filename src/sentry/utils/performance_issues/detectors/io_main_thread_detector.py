@@ -50,14 +50,14 @@ class BaseIOMainThreadDetector(PerformanceDetector):
         self.mapper: ProguardMapper | None = None
         self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
 
-    def visit_span(self, span: Span):
+    def visit_span(self, span: Span) -> None:
         if self._is_io_on_main_thread(span) and span.get("op", "").lower().startswith(
             self.SPAN_PREFIX
         ):
             parent_span_id = span["parent_span_id"]
             self.parent_to_blocked_span[parent_span_id].append(span)
 
-    def on_complete(self):
+    def on_complete(self) -> None:
         for parent_span_id, span_list in self.parent_to_blocked_span.items():
             span_list = [
                 span for span in span_list if "start_timestamp" in span and "timestamp" in span
@@ -127,7 +127,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     def is_detector_enabled(cls) -> bool:
         return not options.get("performance_issues.file_io_main_thread.disabled")
 
-    def _prepare_deobfuscation(self):
+    def _prepare_deobfuscation(self) -> None:
         event = self._event
         if "debug_meta" in event:
             images = event["debug_meta"].get("images", [])
@@ -162,7 +162,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         else:
             return module
 
-    def _deobfuscate_function(self, frame):
+    def _deobfuscate_function(self, frame: dict[str, Any]) -> str:
         if self.mapper is not None and "module" in frame and "function" in frame:
             functions = self.mapper.remap_frame(
                 frame["module"], frame["function"], frame.get("lineno") or 0
@@ -224,10 +224,10 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)
 
-    def _fingerprint(self, span_list) -> str:
+    def _fingerprint(self, span_list: list[Span]) -> str:
         description_strings = []
         for span in span_list:
-            description_strings.append(span.get("description"))
+            description_strings.append(span.get("description", ""))
         # Use set to remove dupes, and list index to preserve order
         joined_queries = "-".join(
             sorted(set(description_strings), key=lambda c: description_strings.index(c))

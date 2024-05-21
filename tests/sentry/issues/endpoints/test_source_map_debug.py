@@ -39,9 +39,9 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
     def setUp(self) -> None:
         self.login_as(self.user)
-        return super().setUp()
+        super().setUp()
 
-    def test_url_prefix(self):
+    def test_url_prefix(self) -> None:
         cases = [
             ("~/v1/scripts/footer/bundle.js", "~/v1/assets/footer/bundle.js", "assets/"),
             ("~/v1/scripts/footer/bundle.js", "~/v1/next/scripts/footer/bundle.js", "next/"),
@@ -52,7 +52,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         for filename, artifact_name, expected in cases:
             assert _find_url_prefix(filename, artifact_name) == expected
 
-    def test_missing_event(self):
+    def test_missing_event(self) -> None:
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -63,7 +63,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Event not found"
 
-    def test_no_frame_given(self):
+    def test_no_frame_given(self) -> None:
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
@@ -75,7 +75,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
 
-    def test_non_integer_frame_given(self):
+    def test_non_integer_frame_given(self) -> None:
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
@@ -88,7 +88,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' must be an integer"
 
-    def test_non_integer_exception_given(self):
+    def test_non_integer_exception_given(self) -> None:
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
         )
@@ -102,7 +102,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'exception_idx' must be an integer"
 
-    def test_frame_out_of_bounds(self):
+    def test_frame_out_of_bounds(self) -> None:
         event = self.store_event(
             data=self.base_data,
             project_id=self.project.id,
@@ -117,7 +117,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is out of bounds"
 
-    def test_no_exception(self):
+    def test_no_exception(self) -> None:
         event_data = self.base_data.copy()
         del event_data["exception"]
         event = self.store_event(data=event_data, project_id=self.project.id)
@@ -132,7 +132,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         assert resp.data["detail"] == "Event does not contain an exception"
 
-    def test_exception_out_of_bounds(self):
+    def test_exception_out_of_bounds(self) -> None:
         event = self.store_event(
             data=self.base_data,
             project_id=self.project.id,
@@ -147,7 +147,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'exception_idx' is out of bounds"
 
-    def test_event_frame_has_source_maps(self):
+    def test_event_frame_has_source_maps(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -186,7 +186,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         error = resp.data["errors"]
         assert error == []
 
-    def test_event_has_no_release(self):
+    def test_event_has_no_release(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -222,7 +222,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_release_on_event"
         assert error["message"] == "The event is missing a release"
 
-    def test_release_has_no_artifacts(self):
+    def test_release_has_no_artifacts(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -261,7 +261,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    def test_no_valid_url(self):
+    def test_no_valid_url(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -321,7 +321,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["message"] == "The absolute path url is not valid"
         assert error["data"] == {"absPath": "app.example.com/static/js/main.fa8fe19f.js"}
 
-    def test_skips_node_internals(self):
+    def test_skips_node_internals(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -356,7 +356,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert len(resp.data["errors"]) == 0
 
-    def test_skip_node_context_line(self):
+    def test_skip_node_context_line(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -392,7 +392,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert len(resp.data["errors"]) == 0
 
-    def test_no_valid_url_skips_node(self):
+    def test_no_valid_url_skips_node(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -458,7 +458,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert len(resp.data["errors"]) == 0
 
-    def test_partial_url_match(self):
+    def test_partial_url_match(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -531,7 +531,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             ],
         }
 
-    def test_no_url_match(self):
+    def test_no_url_match(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -583,7 +583,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "artifactNames": ["http://example.com/application.js"],
         }
 
-    def test_dist_mismatch(self):
+    def test_dist_mismatch(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -643,7 +643,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/application.js",
         }
 
-    def test_no_sourcemap_found(self):
+    def test_no_sourcemap_found(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -699,7 +699,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/application.js",
         }
 
-    def test_sourcemap_in_header(self):
+    def test_sourcemap_in_header(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -767,7 +767,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         assert resp.data["errors"] == []
 
-    def test_sourcemap_in_file(self):
+    def test_sourcemap_in_file(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -833,7 +833,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         assert resp.data["errors"] == []
 
-    def test_js_out_of_date(self):
+    def test_js_out_of_date(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -874,7 +874,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    def test_remix_up_to_date(self):
+    def test_remix_up_to_date(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -915,7 +915,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    def test_valid_debugid_sdk_no_sourcemaps(self):
+    def test_valid_debugid_sdk_no_sourcemaps(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

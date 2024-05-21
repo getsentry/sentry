@@ -7,6 +7,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 from uuid import uuid4
 
+import orjson
 import responses
 from django.test import override_settings
 from rest_framework import status
@@ -23,7 +24,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channe
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
+from sentry.types.actor import Actor
 
 
 class ProjectRuleBaseTestCase(APITestCase):
@@ -358,7 +359,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
@@ -385,7 +386,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
@@ -393,7 +394,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
             "channel": self.channel_id,
             "unfurl_links": False,
             "unfurl_media": False,
@@ -403,7 +404,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/chat.postMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(payload),
+            body=orjson.dumps(payload),
         )
         response = self.get_success_response(
             self.organization.slug,
@@ -423,7 +424,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         data = parse_qs(responses.calls[1].request.body)
         message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
         assert data["text"][0] == message
-        rendered_blocks = json.loads(data["blocks"][0])
+        rendered_blocks = orjson.loads(data["blocks"][0])
         assert rendered_blocks[0]["text"]["text"] == message
         assert (
             rendered_blocks[1]["elements"][0]["text"]
@@ -766,8 +767,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
-            "owner_user_id": self.user.id,
-            "owner_team_id": None,
+            "owner": Actor.from_id(user_id=self.user.id),
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]

@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 from typing import Any
 
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     MultiprocessingPool as ArroyoMultiprocessingPool,
 )
@@ -12,7 +13,7 @@ from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
-from arroyo.types import TStrategyPayload
+from arroyo.types import Message, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 from django.conf import settings
 
@@ -157,43 +158,36 @@ class MultiprocessingPool:
             self.__pool.close()
 
 
-class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
+def run_task_with_multiprocessing(
+    *,
+    pool: MultiprocessingPool,
+    function: Callable[[Message[TStrategyPayload]], TResult],
+    **kwargs: Any,
+) -> RunTask[TStrategyPayload, TResult] | ArroyoRunTaskWithMultiprocessing[
+    TStrategyPayload, TResult
+]:
     """
     A variant of arroyo's RunTaskWithMultiprocessing that can switch between
     multiprocessing and non-multiprocessing mode based on the
     `KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING` setting.
     """
 
-    def __new__(
-        cls,
-        *,
-        pool: MultiprocessingPool,
-        **kwargs: Any,
-    ) -> RunTaskWithMultiprocessing:
-        if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
-            from arroyo.processing.strategies.run_task import RunTask
+    if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
+        kwargs.pop("num_processes", None)
+        kwargs.pop("input_block_size", None)
+        kwargs.pop("output_block_size", None)
+        kwargs.pop("max_batch_size", None)
+        kwargs.pop("max_batch_time", None)
 
-            kwargs.pop("num_processes", None)
-            kwargs.pop("input_block_size", None)
-            kwargs.pop("output_block_size", None)
-            kwargs.pop("max_batch_size", None)
-            kwargs.pop("max_batch_time", None)
+        if pool.initializer is not None:
+            pool.initializer()
 
-            if pool.initializer is not None:
-                pool.initializer()
+        # Assert that initializer can be pickled and loaded again from subprocesses.
+        pickle.loads(pickle.dumps(pool.initializer))
+        pickle.loads(pickle.dumps(function))
 
-            # Assert that initializer can be pickled and loaded again from subprocesses.
-            pickle.loads(pickle.dumps(pool.initializer))
-            pickle.loads(pickle.dumps(kwargs["function"]))
+        return RunTask(function=function, **kwargs)
+    else:
+        assert pool.pool is not None
 
-            return RunTask(**kwargs)  # type: ignore[return-value]
-        else:
-            from arroyo.processing.strategies.run_task_with_multiprocessing import (
-                RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
-            )
-
-            assert pool.pool is not None
-
-            return ArroyoRunTaskWithMultiprocessing(  # type: ignore[return-value]
-                pool=pool.pool, **kwargs
-            )
+        return ArroyoRunTaskWithMultiprocessing(pool=pool.pool, function=function, **kwargs)

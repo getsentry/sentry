@@ -49,16 +49,13 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import (
-    log_project_with_zero_root_count,
-    log_sample_rate_source,
-    log_skipped_job,
-)
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
+    sample_function,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -266,7 +263,6 @@ def adjust_sample_rates_of_projects(
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
     if not has_dynamic_sampling(organization):
-        log_skipped_job(org_id, "boost_low_volume_projects")
         return
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
@@ -276,12 +272,24 @@ def adjust_sample_rates_of_projects(
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
     if success:
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="boost_low_volume_projects",
+            source="sliding_window_org",
+            sample_rate=sample_rate,
         )
     else:
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
+        sample_function(
+            function=log_sample_rate_source,
+            _sample_rate=0.1,
+            org_id=org_id,
+            project_id=None,
+            used_for="boost_low_volume_projects",
+            source="blended_sample_rate",
+            sample_rate=sample_rate,
         )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
@@ -308,7 +316,6 @@ def adjust_sample_rates_of_projects(
         # for it, thus we consider it as having 0 transactions for the query's time window.
         if project_id not in projects_with_counts:
             projects_with_counts[project_id] = 0
-            log_project_with_zero_root_count(org_id=org_id, project_id=project_id)
 
     projects = []
     for project_id, count_per_root in projects_with_counts.items():

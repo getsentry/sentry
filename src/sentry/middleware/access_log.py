@@ -19,6 +19,8 @@ from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
 
+EXCLUSION_PATHS = settings.ACCESS_LOGS_EXCLUDE_PATHS + settings.ANONYMOUS_STATIC_PREFIXES
+
 
 @dataclass
 class _AccessLogMetaData:
@@ -79,11 +81,16 @@ def _create_api_access_log(
         except AttributeError:
             view = "Unknown"
 
+        request_auth = _get_request_auth(request)
+        token_type = str(_get_token_name(request_auth))
+        if token_type == "system":
+            # if its an internal request, no need to log
+            return
+
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-        request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
         status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
@@ -92,7 +99,7 @@ def _create_api_access_log(
             response=status_code,
             user_id=str(user_id),
             is_app=str(is_app),
-            token_type=str(_get_token_name(request_auth)),
+            token_type=token_type,
             is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
             auth_id=str(auth_id),
@@ -125,8 +132,9 @@ def access_log_middleware(
         if not settings.LOG_API_ACCESS:
             return get_response(request)
 
-        if request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES):
+        if request.path_info.startswith(EXCLUSION_PATHS):
             return get_response(request)
+
         access_log_metadata = _AccessLogMetaData(request_start_time=time.time())
         response = get_response(request)
         _create_api_access_log(request, response, access_log_metadata)

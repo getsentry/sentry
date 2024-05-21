@@ -8,6 +8,7 @@ from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
 from sentry import features
@@ -37,7 +38,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.tasks.integrations import migrate_issues
-from sentry.utils.decorators import classproperty
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient

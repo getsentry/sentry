@@ -1,3 +1,5 @@
+import orjson
+
 from sentry.integrations.slack.webhooks.action import (
     ENABLE_SLACK_SUCCESS_MESSAGE,
     NO_IDENTITY_MESSAGE,
@@ -6,7 +8,6 @@ from sentry.models.identity import Identity
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 from . import BaseEventTest
 
@@ -103,7 +104,7 @@ class EnableNotificationsActionTest(BaseEventTest):
             response = self.post_webhook_block_kit(
                 action_data=[{"name": "enable_notifications", "value": "all_slack"}],
                 original_message=original_message,
-                data={"callback_id": json.dumps({"enable_notifications": True})},
+                data={"callback_id": orjson.dumps({"enable_notifications": True}).decode()},
             )
         self.user.refresh_from_db()  # Reload to fetch actor
         assert response.status_code == 200, response.content

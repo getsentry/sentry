@@ -26,8 +26,8 @@ from sentry.types.region import get_local_region
 
 
 def assert_matching_organization_mapping(
-    org: Organization, customer_id: str | None = None, validate_flags=False
-):
+    org: Organization, customer_id: str | None = None, validate_flags: bool = False
+) -> None:
     org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
     assert org_mapping.name == org.name
     assert org_mapping.slug == org.slug
@@ -50,7 +50,7 @@ def assert_matching_organization_mapping(
 
 @control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCase):
-    def test_upsert__create_if_not_found(self):
+    def test_upsert__create_if_not_found(self) -> None:
         self.organization = self.create_organization(name="test name", slug="foobar", region="us")
 
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
@@ -70,7 +70,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 
         assert_matching_organization_mapping(org=self.organization)
 
-    def test_upsert__reject_duplicate_slug(self):
+    def test_upsert__reject_duplicate_slug(self) -> None:
         self.organization = self.create_organization(slug="alreadytaken", region="us")
 
         fake_org_id = 7654321
@@ -82,7 +82,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
         assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
 
-    def test_upsert__reject_org_slug_reservation_region_mismatch(self):
+    def test_upsert__reject_org_slug_reservation_region_mismatch(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")
 
         organization_mapping_service.upsert(
@@ -95,7 +95,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         # Assert that org mapping is rejected
         assert_matching_organization_mapping(org=self.organization)
 
-    def test_upsert__reject_org_slug_reservation_slug_mismatch(self):
+    def test_upsert__reject_org_slug_reservation_slug_mismatch(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")
 
         organization_mapping_service.upsert(
@@ -106,7 +106,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         # Assert that org mapping is rejected
         assert_matching_organization_mapping(org=self.organization)
 
-    def test_upsert__update_when_slug_matches_temporary_alias(self):
+    def test_upsert__update_when_slug_matches_temporary_alias(self) -> None:
         user = self.create_user()
         self.organization = self.create_organization(slug="santry", region="us", owner=user)
         primary_slug_res = OrganizationSlugReservation.objects.get(
@@ -130,7 +130,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
             ),
         )
 
-    def test_upsert__reject_when_no_slug_reservation_found(self):
+    def test_upsert__reject_when_no_slug_reservation_found(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             OrganizationSlugReservation.objects.filter(
@@ -153,7 +153,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationMappingReplicationTest(TransactionTestCase):
-    def test_replicates_all_flags(self):
+    def test_replicates_all_flags(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")
         self.organization.flags = 255  # all flags set
         organization_mapping_service.upsert(

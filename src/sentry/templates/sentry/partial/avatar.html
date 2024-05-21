@@ -10,9 +10,10 @@
         {% email_avatar display_name label size True %}
       {% endif %}
     {% else %}
-      {% letter_avatar_svg display_name label size %}
       {% if avatar_type == 'gravatar' %}
         <img src="{% gravatar_url email size 'blank' %}">
+      {% else %}
+          {% letter_avatar_svg display_name label size %}
       {% endif %}
     {% endif %}
   {% endif %}

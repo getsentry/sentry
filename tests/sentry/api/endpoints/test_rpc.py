@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import orjson
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -9,7 +10,6 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.rpc import generate_request_signature
 from sentry.testutils.cases import APITestCase
-from sentry.utils import json
 
 
 @override_settings(RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -27,8 +27,8 @@ class RpcServiceEndpointTest(APITestCase):
 
     def auth_header(self, path: str, data: dict | str) -> str:
         if isinstance(data, dict):
-            data = json.dumps(data)
-        signature = generate_request_signature(path, data.encode("utf8"))
+            data = orjson.dumps(data).decode()
+        signature = generate_request_signature(path, data.encode())
 
         return f"rpcsignature {signature}"
 

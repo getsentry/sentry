@@ -16,7 +16,6 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -82,13 +81,7 @@ def get_invite_state(
         return handle_empty_organization_id_or_slug(member_id, user_id, request)
 
     else:
-        if (
-            id_or_slug_path_params_enabled(
-                convert_args_class=AcceptOrganizationInvite,
-                organization_slug=str(organization_id_or_slug),
-            )
-            and str(organization_id_or_slug).isdecimal()
-        ):
+        if str(organization_id_or_slug).isdecimal():
             invite_context = organization_service.get_invite_by_id(
                 organization_id=organization_id_or_slug,
                 organization_member_id=member_id,
@@ -127,12 +120,12 @@ class AcceptOrganizationInvite(Endpoint):
         request: Request,
         member_id: int,
         token: str,
-        organization_slug: int | str | None = None,
+        organization_id_or_slug: int | str | None = None,
     ) -> Response:
 
         invite_context = get_invite_state(
             member_id=int(member_id),
-            organization_id_or_slug=organization_slug,
+            organization_id_or_slug=organization_id_or_slug,
             user_id=request.user.id,
             request=request,
         )
@@ -222,11 +215,15 @@ class AcceptOrganizationInvite(Endpoint):
         return response
 
     def post(
-        self, request: Request, member_id: int, token: str, organization_slug: str | None = None
+        self,
+        request: Request,
+        member_id: int,
+        token: str,
+        organization_id_or_slug: int | str | None = None,
     ) -> Response:
         invite_context = get_invite_state(
             member_id=int(member_id),
-            organization_id_or_slug=organization_slug,
+            organization_id_or_slug=organization_id_or_slug,
             user_id=request.user.id,
             request=request,
         )

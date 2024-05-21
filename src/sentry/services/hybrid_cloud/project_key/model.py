@@ -31,5 +31,5 @@ class RpcProjectKey(RpcModel):
     status: int = ProjectKeyStatus.INACTIVE
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ProjectKeyStatus.ACTIVE

@@ -25,6 +25,7 @@ export function FeedbackOnboardingLayout({
 
   const [email, setEmail] = useState(false);
   const [name, setName] = useState(false);
+  const [screenshot, setScreenshot] = useState(true);
 
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -52,6 +53,7 @@ export function FeedbackOnboardingLayout({
       feedbackOptions: {
         email,
         name,
+        screenshot,
       },
     };
 
@@ -74,6 +76,7 @@ export function FeedbackOnboardingLayout({
     configType,
     email,
     name,
+    screenshot,
   ]);
 
   return (
@@ -91,8 +94,10 @@ export function FeedbackOnboardingLayout({
                     <FeedbackConfigToggle
                       emailToggle={email}
                       nameToggle={name}
+                      screenshotToggle={screenshot}
                       onEmailToggle={() => setEmail(!email)}
                       onNameToggle={() => setName(!name)}
+                      onScreenshotToggle={() => setScreenshot(!screenshot)}
                     />
                   ),
                 }}

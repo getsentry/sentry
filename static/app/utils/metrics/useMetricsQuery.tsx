@@ -89,13 +89,11 @@ export function getMetricsQueryApiRequestPayload(
     intervalParam ??
     queries
       .map(query =>
-        !isMetricFormula(query)
-          ? getQueryInterval(query, datetime, intervalLadder)
-          : '10s'
+        !isMetricFormula(query) ? getQueryInterval(query, datetime, intervalLadder) : '1m'
       )
       .reduce(
         (acc, curr) => (parsePeriodToHours(curr) > parsePeriodToHours(acc) ? curr : acc),
-        '10s'
+        '1m'
       );
 
   const requestQueries: {mql: string; name: string}[] = [];

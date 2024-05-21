@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
+import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsSettingForm', function () {
   const organization = OrganizationFixture({features: ['event-tags-tree-ui']});
@@ -13,6 +14,7 @@ describe('HighlightsSettingForm', function () {
     browser: ['name', 'version'],
   };
   const project = ProjectFixture({highlightContext, highlightTags});
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(async function () {
     MockApiClient.addMockResponse({
@@ -52,6 +54,10 @@ describe('HighlightsSettingForm', function () {
       expect.objectContaining({
         data: {highlightTags: [...highlightTags, newTag]},
       })
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'highlights.project_settings.updated_manually',
+      expect.anything()
     );
   });
 

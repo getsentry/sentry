@@ -133,7 +133,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 
@@ -1887,7 +1887,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 

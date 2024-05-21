@@ -4,6 +4,7 @@ import logging
 import uuid
 from collections.abc import Callable
 
+import orjson
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
@@ -18,7 +19,7 @@ from sentry.ratelimits import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -106,7 +107,7 @@ class RatelimitMiddleware:
                         },
                     )
                     response = HttpResponse(
-                        json.dumps(
+                        orjson.dumps(
                             DEFAULT_ERROR_MESSAGE.format(
                                 limit=request.rate_limit_metadata.limit,
                                 window=request.rate_limit_metadata.window,

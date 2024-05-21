@@ -29,7 +29,7 @@ interface DeprecatedAssigneeSelectorProps
   noDropdown?: boolean;
 }
 
-function AssigneeAvatar({
+export function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
 }: {

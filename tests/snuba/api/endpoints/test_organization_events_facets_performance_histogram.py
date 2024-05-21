@@ -26,7 +26,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-facets-performance-histogram",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     # Function to set up some transactions for most tests
@@ -61,8 +61,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             tags = []
         if project_id is None:
             project_id = self.project.id
-        event = load_data("transaction").copy()
-        event.data["tags"].extend(tags)
+        event = load_data("transaction")
+        event["tags"].extend(tags)
         event.update(
             {
                 "transaction": name,

@@ -128,7 +128,11 @@ def log_canvas_size(
     events: list[dict[str, Any]],
 ) -> None:
     for event in events:
-        if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
+        if (
+            event.get("type") == 3
+            and event.get("data", {}).get("source") == 9
+            and random.randint(0, 499) < 1
+        ):
             logger.info(
                 # Logging to the sentry.replays.slow_click namespace because
                 # its the only one configured to use BigQuery at the moment.
@@ -194,7 +198,7 @@ def get_user_actions(
             isinstance(payload, dict)
             and tag == "breadcrumb"
             and payload.get("category") == "replay.mutations"
-            and random.randint(0, 99) < 1
+            and random.randint(0, 500) < 1
         ):
             _handle_mutations_event(project_id, replay_id, event)
 
@@ -420,17 +424,8 @@ def _handle_breadcrumb(
         log["replay_id"] = replay_id
         log["dom_tree"] = log.pop("message")
 
-        logger.info("sentry.replays.slow_click", extra=log)
-
         return click
 
-    elif category == "ui.multiClick":
-        # Log the event for tracking.
-        log = event["data"].get("payload", {}).copy()
-        log["project_id"] = project_id
-        log["replay_id"] = replay_id
-        log["dom_tree"] = log.pop("message")
-        logger.info("sentry.replays.slow_click", extra=log)
     elif category == "ui.click":
         click = create_click_event(
             payload, replay_id, is_dead=False, is_rage=False, project_id=project_id

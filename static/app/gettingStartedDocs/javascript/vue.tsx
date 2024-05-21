@@ -135,7 +135,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: (
         <p>
           {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry Vue SDK:`,
+            `Install the Sentry Vue SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry Vue SDK:`,
             {
               codeYarn: <code />,
               codeNpm: <code />,

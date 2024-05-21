@@ -117,6 +117,32 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
         return "edited project settings " + items_string
 
 
+class ProjectKeyEditAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=51, name="PROJECTKEY_EDIT", api_name="projectkey.edit")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        items_strings = []
+        if "prev_rate_limit_count" in audit_log_entry.data:
+            items_strings.append(
+                " rate limit count from {prev_rate_limit_count} to {rate_limit_count}".format(
+                    **audit_log_entry.data
+                )
+            )
+        if "prev_rate_limit_window" in audit_log_entry.data:
+            items_strings.append(
+                " rate limit window from {prev_rate_limit_window} to {rate_limit_window}".format(
+                    **audit_log_entry.data
+                )
+            )
+
+        item_string = ""
+        if items_strings:
+            item_string = ":" + ",".join(items_strings)
+
+        return "edited project key {public_key}".format(**audit_log_entry.data) + item_string
+
+
 class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(

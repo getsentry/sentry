@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import patch
 
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
@@ -18,7 +15,6 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -26,15 +22,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 # Issues and kick off side effects are just chillin in the endpoint code -_-
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
-
-
-def _as_serialized(a: Any) -> Any:
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return a
-    if "user" in a:
-        a["user"] = json.loads(json.dumps(a["user"]))
-    return a
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
@@ -78,7 +65,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type="unresolved",
             user_id=self.user.id,
-            data={"substatus": "regressed"},
+            data={},
         )
         assert delay.call_count == 2
 
@@ -96,7 +83,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type="unresolved",
             user_id=None,
-            data={"substatus": "ongoing"},
+            data={},
         )
         assert delay.call_count == 2
 
@@ -116,7 +103,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             issue_id=self.issue.id,
             type="unresolved",
             user_id=None,
-            data={"substatus": "escalating"},
+            data={},
         )
         assert delay.call_count == 2
 
@@ -243,168 +230,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert not delay.called
 
 
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
-class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.create_organization(owner=self.user, name="RowdyTiger")
-        self.login_as(user=self.user)
-        self.sentryFunction = self.create_sentry_function(
-            organization_id=self.organization.id,
-            name="foo",
-            author="bar",
-            code="baz",
-            overview="qux",
-            events=["issue", "comment", "error"],
-        )
-        self.issue = self.create_group(project=self.project)
-
-        self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
-
-    def update_issue(self, _data=None):
-        data = {"status": "resolved"}
-        data.update(_data or {})
-        self.client.put(self.url, data=data, format="json")
-
-    def test_notify_after_basic_resolved(self, delay):
-        with Feature("organizations:sentry-functions"):
-            self.update_issue()
-            sub_data = {"resolution_type": "now"}
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.resolved",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-    def test_notify_after_resolve_in_commit(self, delay):
-        with Feature("organizations:sentry-functions"):
-            repo = self.create_repo(project=self.project)
-            commit = self.create_commit(repo=repo)
-
-            self.update_issue(
-                {"statusDetails": {"inCommit": {"repository": repo.name, "commit": commit.key}}}
-            )
-            sub_data = {"resolution_type": "in_commit"}
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.resolved",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-    def test_notify_after_resolve_in_specific_release(self, delay):
-
-        with Feature("organizations:sentry-functions"):
-            release = self.create_release(project=self.project)
-            self.update_issue({"statusDetails": {"inRelease": release.version}})
-            sub_data = {"resolution_type": "in_release"}
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.resolved",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-    def test_notify_after_resolve_in_latest_release(self, delay):
-
-        with Feature("organizations:sentry-functions"):
-            self.create_release(project=self.project)
-
-            self.update_issue({"statusDetails": {"inRelease": "latest"}})
-            sub_data = {"resolution_type": "in_release"}
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.resolved",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-    def test_notify_after_resolve_in_next_release(self, delay):
-        with Feature("organizations:sentry-functions"):
-            self.create_release(project=self.project)
-
-            self.update_issue({"statusDetails": {"inNextRelease": True}})
-
-            sub_data = {"resolution_type": "in_next_release"}
-
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.resolved",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-    def test_notify_after_resolve_from_set_commits(self, delay):
-        with Feature("organizations:sentry-functions"):
-            repo = Repository.objects.create(organization_id=self.organization.id, name="test/repo")
-
-            release = Release.objects.create(version="abcabc", organization=self.organization)
-
-            commit = Commit.objects.create(
-                repository_id=repo.id, organization_id=self.organization.id, key="b" * 40
-            )
-
-            GroupLink.objects.create(
-                group_id=self.issue.id,
-                project_id=self.project.id,
-                linked_type=GroupLink.LinkedType.commit,
-                linked_id=commit.id,
-            )
-
-            release.add_project(self.project)
-            release.set_commits(
-                [
-                    {
-                        "id": "b" * 40,
-                        "repository": repo.name,
-                        "author_email": "foo@example.com",
-                        "author_name": "Foo Bar",
-                        "message": f"FIXES {self.issue.qualified_short_id}",
-                    }
-                ]
-            )
-            sub_data = {"resolution_type": "with_commit"}
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.resolved",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-    def test_notify_after_issue_archived(self, delay):
-
-        with Feature({"organizations:sentry-functions": True}):
-            self.update_issue({"status": "ignored"})
-            sub_data = {}
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-
-            assert delay.call_count == 2
-            delay.assert_any_call(
-                self.sentryFunction.external_id,
-                "issue.ignored",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-            delay.assert_any_call(
-                self.sentryFunction.external_id,
-                "issue.archived",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
-
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
@@ -473,69 +298,6 @@ class TestIssueAssigned(APITestCase):
                 # Excludes email address
                 "assignee": {"type": "user", "name": self.assignee.name, "id": self.assignee.id}
             },
-        )
-
-
-class TestIssueAssignedSentryFunctions(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.create_organization(owner=self.user, name="RowdyTiger")
-        self.login_as(user=self.user)
-        self.sentryFunction = self.create_sentry_function(
-            organization_id=self.organization.id,
-            name="foo",
-            author="bar",
-            code="baz",
-            overview="qux",
-            events=["issue", "comment", "error"],
-        )
-        self.issue = self.create_group(project=self.project)
-        self.assignee = self.create_user(name="Bert", email="bert@example.com")
-
-    @with_feature("organizations:sentry-functions")
-    @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
-    def test_after_issue_assigned(self, delay):
-        GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
-        sub_data = {
-            "assignee": {
-                "type": "user",
-                "name": self.assignee.name,
-                "id": self.assignee.id,
-                "email": self.assignee.email,
-            }
-        }
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            sub_data["user"] = serialize(self.user, serializer=UserSerializer())
-        delay.assert_called_once_with(
-            self.sentryFunction.external_id,
-            "issue.assigned",
-            self.issue.id,
-            _as_serialized(sub_data),
-        )
-
-    @with_feature("organizations:sentry-functions")
-    @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
-    def test_after_issue_assigned_with_enhanced_privacy(self, delay):
-        org = self.issue.project.organization
-        org.flags.enhanced_privacy = True
-        org.save()
-
-        GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
-        # excludes email
-        sub_data = {
-            "assignee": {
-                "type": "user",
-                "name": self.assignee.name,
-                "id": self.assignee.id,
-            }
-        }
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            sub_data["user"] = serialize(self.user, serializer=UserSerializer())
-        delay.assert_called_once_with(
-            self.sentryFunction.external_id,
-            "issue.assigned",
-            self.issue.id,
-            _as_serialized(sub_data),
         )
 
 
@@ -611,83 +373,27 @@ class TestComments(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
-class TestCommentsSentryFunctions(APITestCase):
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
     def setUp(self):
-        super().setUp()
         self.issue = self.create_group(project=self.project)
-        self.login_as(self.user)
-        self.create_organization(owner=self.user, name="RowdyTiger")
-        self.sentryFunction = self.create_sentry_function(
-            organization_id=self.organization.id,
-            name="foo",
-            author="bar",
-            code="baz",
-            overview="qux",
-            events=["issue", "comment", "error"],
+
+        # Creating an app that is not subscribed to issue.resolved, but subscription is by resource
+        # so if an app is subscribed to issue.anything it should receive webhooks for issue.*
+        self.sentry_app = self.create_sentry_app(events=["issue.ignored"])
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
         )
+        self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
+        self.login_as(self.user)
 
-    def test_comment_created(self, delay):
-        with Feature("organizations:sentry-functions"):
-            url = f"/api/0/issues/{self.issue.id}/notes/"
-            data = {"text": "hello world"}
-            self.client.post(url, data=data, format="json")
-            note = Activity.objects.get(
-                group=self.issue, project=self.project, type=ActivityType.NOTE.value
-            )
-            comment_data = {
-                "comment_id": note.id,
-                "timestamp": note.datetime,
-                "comment": "hello world",
-                "project_slug": self.project.slug,
-            }
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                comment_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "comment.created",
-                self.issue.id,
-                _as_serialized(comment_data),
-            )
+    def test_notify_for_issue_event_if_subscribed_to_all_issue_events(self, delay):
+        self.client.put(self.url, data={"status": "resolved"}, format="json")
 
-    def test_comment_updated(self, delay):
-
-        with Feature("organizations:sentry-functions"):
-            note = self.create_comment(self.issue, self.project, self.user)
-            url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
-            data = {"text": "goodbye cruel world"}
-            self.client.put(url, data=data, format="json")
-            data = {
-                "comment_id": note.id,
-                "timestamp": note.datetime,
-                "comment": "goodbye cruel world",
-                "project_slug": self.project.slug,
-            }
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "comment.updated",
-                self.issue.id,
-                _as_serialized(data),
-            )
-
-    def test_comment_deleted(self, delay):
-        with Feature("organizations:sentry-functions"):
-            note = self.create_comment(self.issue, self.project, self.user)
-            url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
-            self.client.delete(url, format="json")
-            data = {
-                "comment_id": note.id,
-                "timestamp": note.datetime,
-                "comment": "hello world",
-                "project_slug": self.project.slug,
-            }
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "comment.deleted",
-                self.issue.id,
-                _as_serialized(data),
-            )
+        delay.assert_called_once_with(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type="resolved",
+            user_id=self.user.id,
+            data={"resolution_type": "now"},
+        )

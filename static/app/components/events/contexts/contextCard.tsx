@@ -26,7 +26,12 @@ interface ContextCardProps {
 }
 
 interface ContextCardContentConfig {
+  // Omit error styling from being displayed, even if context is invalid
   disableErrors?: boolean;
+  // Displays tag value as plain text, rather than a hyperlink if applicable
+  disableRichValue?: boolean;
+  // Includes the Context Type as a prefix to the key. Useful if displaying a single Context key
+  // apart from the rest of that Context. E.g. 'Email' -> 'User: Email'
   includeAliasInSubject?: boolean;
 }
 
@@ -71,7 +76,7 @@ export function ContextCardContent({
       <ContextSubject>{contextSubject}</ContextSubject>
       <ContextValueSection hasErrors={hasErrors}>
         <ContextValueWrapper>
-          {defined(action?.link) ? (
+          {!config?.disableRichValue && defined(action?.link) ? (
             <Link to={action.link}>{dataComponent}</Link>
           ) : (
             dataComponent
