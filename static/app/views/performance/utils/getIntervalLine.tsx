@@ -161,7 +161,7 @@ export function getIntervalLine(
       formatter: `Baseline ${getPerformanceDuration(
         transformedTransaction.aggregate_range_1
       )}`,
-      position: 'insideStartTop',
+      position: 'insideStartBottom',
     };
 
     periodDividingLine.markLine.lineStyle = {
