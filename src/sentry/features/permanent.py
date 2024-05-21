@@ -45,7 +45,7 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:profiling-view",
         "organizations:relay",
         "organizations:session-replay",
-        "organizations:spans-only",
+        "organizations:spans-usage-tracking",
         "organizations:sso-basic",
         "organizations:sso-saml2",
         "organizations:team-insights",
