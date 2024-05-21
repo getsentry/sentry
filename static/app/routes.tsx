@@ -1481,37 +1481,35 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="browser/">
-        <Route path="pageloads/">
-          <IndexRoute
-            component={make(
-              () =>
-                import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
-            )}
-          />
-          <Route
-            path="overview/"
-            component={make(
-              () => import('sentry/views/performance/browser/webVitals/pageOverview')
-            )}
-          />
-        </Route>
-        <Route path="resources/">
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/performance/browser/resources/index')
-            )}
-          />
-          <Route
-            path="spans/span/:groupId/"
-            component={make(
-              () =>
-                import(
-                  'sentry/views/performance/browser/resources/resourceSummaryPage/index'
-                )
-            )}
-          />
-        </Route>
+      <Route path="browser/pageloads/">
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+          )}
+        />
+        <Route
+          path="overview/"
+          component={make(
+            () => import('sentry/views/performance/browser/webVitals/pageOverview')
+          )}
+        />
+      </Route>
+      <Route path="browser/resources/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/browser/resources/index')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/browser/resources/resourceSummaryPage/index'
+              )
+          )}
+        />
       </Route>
       <Route path="queues/">
         <IndexRoute
@@ -1529,40 +1527,38 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="mobile/">
-        <Route path="screens/">
-          <IndexRoute
-            component={make(() => import('sentry/views/performance/mobile/screenload'))}
-          />
-          <Route
-            path="spans/"
-            component={make(
-              () => import('sentry/views/performance/mobile/screenload/screenLoadSpans')
-            )}
-          />
-        </Route>
-        <Route path="app-startup/">
-          <IndexRoute
-            component={make(() => import('sentry/views/performance/mobile/appStarts'))}
-          />
-          <Route
-            path="spans/"
-            component={make(
-              () => import('sentry/views/performance/mobile/appStarts/screenSummary')
-            )}
-          />
-        </Route>
-        <Route path="ui/">
-          <IndexRoute
-            component={make(() => import('sentry/views/performance/mobile/ui'))}
-          />
-          <Route
-            path="spans/"
-            component={make(
-              () => import('sentry/views/performance/mobile/ui/screenSummary')
-            )}
-          />
-        </Route>
+      <Route path="mobile/screens/">
+        <IndexRoute
+          component={make(() => import('sentry/views/performance/mobile/screenload'))}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/performance/mobile/screenload/screenLoadSpans')
+          )}
+        />
+      </Route>
+      <Route path="mobile/app-startup/">
+        <IndexRoute
+          component={make(() => import('sentry/views/performance/mobile/appStarts'))}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/performance/mobile/appStarts/screenSummary')
+          )}
+        />
+      </Route>
+      <Route path="mobile/ui/">
+        <IndexRoute
+          component={make(() => import('sentry/views/performance/mobile/ui'))}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/performance/mobile/ui/screenSummary')
+          )}
+        />
       </Route>
     </Fragment>
   );
