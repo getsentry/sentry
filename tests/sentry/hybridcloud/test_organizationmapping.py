@@ -91,6 +91,32 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         )
         assert_matching_organization_mapping(org=self.organization, customer_id="99")
 
+        # Deprecated tuple form
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(
+                name=self.organization.name,
+                slug=self.organization.slug,
+                status=self.organization.status,
+                region_name="us",
+                customer_id=("128",),
+            ),
+        )
+        assert_matching_organization_mapping(org=self.organization, customer_id="128")
+
+        # Deprecated none tuple
+        organization_mapping_service.upsert(
+            organization_id=self.organization.id,
+            update=RpcOrganizationMappingUpdate(
+                name=self.organization.name,
+                slug=self.organization.slug,
+                status=self.organization.status,
+                region_name="us",
+                customer_id=(None,),
+            ),
+        )
+        assert_matching_organization_mapping(org=self.organization, customer_id=None)
+
     def test_upsert__reject_duplicate_slug(self) -> None:
         self.organization = self.create_organization(slug="alreadytaken", region="us")
 

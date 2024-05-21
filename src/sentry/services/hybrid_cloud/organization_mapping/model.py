@@ -37,7 +37,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     # when set with a tuple, the customer_id set to either None or the string
     # that is the first element.
     # Using a tuple is deprecated and will be removed.
-    customer_id: CustomerId | tuple[str | None] | None = None
+    customer_id: tuple[str | None] | CustomerId | None = None
     requires_2fa: bool = False
     early_adopter: bool = False
     codecov_access: bool = False
