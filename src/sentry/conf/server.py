@@ -1925,6 +1925,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:trace-view-load-more": False,
     # Enable feature to load new trace view.
     "organizations:trace-view-v1": False,
+    # Enable feature to load new trace view in replay trace tab.
+    "organizations:replay-trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
