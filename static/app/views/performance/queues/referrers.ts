@@ -1,6 +1,4 @@
 export enum Referrer {
-  QUEUES_DEFAULT_REFERRER = 'api.performance.queues',
-
   QUEUES_LANDING_ONBOARDING = 'api.performance.queues.landing-onboarding',
 
   QUEUES_LANDING_CHARTS = 'api.performance.queues.landing-charts',
