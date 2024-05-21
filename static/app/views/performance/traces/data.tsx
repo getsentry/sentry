@@ -7,6 +7,7 @@ export const FIELDS = [
   'sdk.name',
   'span.description',
   'span.duration',
+  'span.status',
   'span.self_time',
   'precise.start_ts',
   'precise.finish_ts',
