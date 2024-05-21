@@ -111,6 +111,8 @@ def map_field_name_from_format_search_filter(field: str) -> str:
     """
     if field == "date":
         return "timestamp"
+    # if field == "notHandled":
+    #     return "notHandled()"
     return field
 
 
@@ -1197,9 +1199,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
         query_builder = UnresolvedQuery(
-            dataset=dataset,
-            entity=joined_entity,
-            snuba_params=snuba_params,
+            dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
         return query_builder.convert_search_filter_to_condition(search_filter)
 
@@ -1642,7 +1642,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                             user=actor,
                             start=start,
                             end=end,
-                            environment_objects=environments,
+                            environments=environments,
+                            teams=[],  # may need to change, tbd
                         ),
                     )
                     if condition is not None:

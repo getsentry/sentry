@@ -3619,6 +3619,57 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             event_javascript.group.id,
         }
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_heavy_error_handled_boolean(self):
+        # Create an event with an unhandled exception
+        unhandled_event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=300)),
+                "fingerprint": ["unhandled-group"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "value": "Unhandled exception",
+                            "mechanism": {"handled": False},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an event with a handled exception
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=300)),
+                "fingerprint": ["handled-group"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "value": "Handled exception",
+                            "mechanism": {"handled": True},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # Fetch unhandled exceptions
+        response_unhandled = self.get_response(query="error.handled:false", useGroupSnubaDataset=1)
+        assert response_unhandled.status_code == 200
+        assert len(response_unhandled.data) == 2
+        assert int(response_unhandled.data[0]["id"]) == unhandled_event.group.id
+
+        # Fetch handled exceptions
+        # response_handled = self.get_response(query="error.handled:true", useGroupSnubaDataset=1)
+        # assert response_handled.status_code == 200
+        # assert len(response_handled.data) == 1
+        # assert int(response_handled.data[0]["id"]) == handled_event.group.id
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
