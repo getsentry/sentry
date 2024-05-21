@@ -16,7 +16,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useWebVitalsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {ORDER_WITH_INP} from '../performanceScoreChart';
 
@@ -84,7 +84,7 @@ function WebVitalLabel({
   inPerformanceWidget,
   projectData,
 }: WebVitalLabelProps) {
-  const moduleURL = useWebVitalsModuleURL();
+  const moduleURL = useModuleURL('vital');
   const xOffset = webVitalLabelCoordinates?.[webVital]?.x ?? 0;
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =

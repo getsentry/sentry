@@ -24,7 +24,7 @@ import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
@@ -43,7 +43,7 @@ type Query = {
 };
 
 export function LLMMonitoringPage({params}: Props) {
-  const moduleURL = useAIModuleURL();
+  const moduleURL = useModuleURL('ai');
   const location = useLocation<Query>();
 
   const organization = useOrganization();
