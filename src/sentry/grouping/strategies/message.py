@@ -79,10 +79,7 @@ def normalize_message_for_grouping(message: str, event: Event, share_analytics: 
         )
 
     normalized = parameterizer.parametrize_w_experiments(normalized, _shoudl_run_experiment)
-    for experiment in EXPERIMENTS:
-        if experiment.name not in parameterizer.matches_counter:
-            continue
-
+    for experiment in parameterizer.get_successful_experiments():
         if share_analytics and experiment.counter < 100:
             experiment.counter += 1
             analytics.record(

@@ -259,13 +259,14 @@ EXPERIMENTS = [UniqueIdExperiment]
 EXPERIMENTS_NAMES = {e.name for e in EXPERIMENTS}
 
 
+ParameterizationExperiment = ParameterizationCallableExperiment | ParameterizationRegexExperiment
+
+
 class Parameterizer:
     def __init__(
         self,
         regex_pattern_keys: Sequence[str],
-        experiments: Sequence[
-            ParameterizationCallableExperiment | ParameterizationRegexExperiment
-        ] = (),
+        experiments: Sequence[ParameterizationExperiment] = (),
     ):
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
         self._experiments = experiments
@@ -330,3 +331,6 @@ class Parameterizer:
                 continue
             content = experiment.run(content, _incr_counter)
         return content
+
+    def get_successful_experiments(self) -> Sequence[ParameterizationExperiment]:
+        return [e for e in self._experiments if self.matches_counter[e.name] > 0]
