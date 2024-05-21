@@ -6,17 +6,18 @@ from functools import lru_cache
 
 import tiktoken
 
-# These will be used with `(?x)` tells the regex compiler to ignore comments
-# and unescaped whitespace, so we can use newlines and indentation for better legibility.
-
 
 @dataclasses.dataclass
 class ParameterizationRegex:
+
     name: str  # name of the pattern also used as group name in combined regex
     raw_pattern: str  # regex pattern w/o matching group name
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
     counter: int = 0
+
+    # These need to be used with `(?x)` tells the regex compiler to ignore comments
+    # and unescaped whitespace, so we can use newlines and indentation for better legibility.
 
     @property
     def pattern(self) -> str:
@@ -33,8 +34,8 @@ class ParameterizationRegex:
         Returns the compiled regex pattern for with as a named matching group and lookbehind/lookahead if needed.
         """
         if not hasattr(self, "_compiled_pattern"):
-            self._compled_pattern = re.compile(self.pattern)
-        return self._compled_pattern
+            self._compiled_pattern = re.compile(rf"(?x){self.pattern}")
+        return self._compiled_pattern
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
