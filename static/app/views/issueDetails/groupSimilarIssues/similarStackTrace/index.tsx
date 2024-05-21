@@ -53,9 +53,9 @@ function SimilarStackTrace({params, location, project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
-  const hasSimilarityEmbeddingsFeature = project.features.includes(
-    'similarity-embeddings'
-  );
+  const hasSimilarityEmbeddingsFeature =
+    project.features.includes('similarity-embeddings') ||
+    location.query.similarityEmbeddings === '1';
 
   const fetchData = useCallback(() => {
     setStatus('loading');
