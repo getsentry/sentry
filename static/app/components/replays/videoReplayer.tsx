@@ -24,7 +24,7 @@ interface VideoReplayerOptions {
   clipWindow?: ClipWindow;
 }
 
-interface VideoReplayerConfig {
+export interface VideoReplayerConfig {
   /**
    * Not supported, only here to maintain compat w/ rrweb player
    */

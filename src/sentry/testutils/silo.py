@@ -600,14 +600,8 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 
 def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
-    from sentry.models.actor import Actor
-
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if issubclass(related_model, SnowflakeIdMixin):
-        return
-
-    # This particular relation is being removed before we go multi region.
-    if related_model is Actor:
         return
 
     # but they cannot point to region models otherwise.

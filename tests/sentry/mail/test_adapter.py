@@ -17,7 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import MonitorCheckInFailure
+from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
@@ -42,13 +42,13 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -328,7 +328,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            MonitorCheckInFailure,
+            MonitorIncidentType,
             timezone.now(),
             "info",
             "/api/123",
@@ -336,7 +336,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = MonitorCheckInFailure.type_id
+        event.group.type = MonitorIncidentType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -384,7 +384,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            MonitorCheckInFailure,
+            MonitorIncidentType,
             timezone.now(),
             "info",
             "/api/123",
@@ -392,7 +392,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = MonitorCheckInFailure.type_id
+        event.group.type = MonitorIncidentType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -505,9 +505,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        recipient_context = notification.get_recipient_context(
-            RpcActor.from_orm_user(self.user), {}
-        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
@@ -695,9 +693,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = AlertRuleNotification(
             Notification(event=event), ActionTargetType.ISSUE_OWNERS
         )
-        recipient_context = notification.get_recipient_context(
-            RpcActor.from_orm_user(self.user), {}
-        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["timezone"] == UTC
 
     def test_context_invalid_timezone_empty_string(self):

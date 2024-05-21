@@ -1,6 +1,7 @@
 import re
 from functools import wraps
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
@@ -225,9 +226,32 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
 
     if runtime.startswith("nodejs"):
         # note the env variables would be different for non-Node runtimes
-        env_variables.update(
-            {"NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto", **sentry_env_variables}
-        )
+        version = get_option_value(function, OPTION_VERSION)
+        try:
+            parsed_version = int(version)
+        except Exception:
+            sentry_sdk.capture_message("Invariant: Unable to parse AWS lambda version")
+            parsed_version = None
+
+        if (
+            # Lambda layer version 235 was the latest version using `@sentry/serverless` before we switched to `@sentry/aws-serverless`
+            parsed_version is not None
+            and parsed_version <= 235
+        ):
+            env_variables.update(
+                {
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                    **sentry_env_variables,
+                }
+            )
+        else:
+            env_variables.update(
+                {
+                    "NODE_OPTIONS": "-r @sentry/aws-serverless/cjs/awslambda-auto",
+                    **sentry_env_variables,
+                }
+            )
+
     elif runtime.startswith("python"):
         # Check if we are trying to re-enable an already enabled python, and if
         # are we should not override the env variable "SENTRY_INITIAL_HANDLER"

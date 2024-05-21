@@ -44,7 +44,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[2]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -72,7 +72,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[2]["elements"][0]["text"]
-            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -104,5 +104,5 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             blocks[2]["elements"][0]["text"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=escalating_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )

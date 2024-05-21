@@ -1,7 +1,7 @@
 {
   "event_id": "1",
   "platform": "other",
-  "message": "",
+  "logentry": {},
   "datetime": "2023-02-22T15:02:44.096560Z",
   "tags": [
     ["application", "countries"],

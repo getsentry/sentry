@@ -6,7 +6,6 @@ import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -22,11 +21,6 @@ type OnboardingCTAProps = {
   platform: PlatformKey;
   projectId: string;
 };
-
-const OnboardingCTAButton = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta-button',
-  defaultComponent: null,
-});
 
 export default function ReplayInlineOnboardingPanel({
   platform,
@@ -64,7 +58,6 @@ export default function ReplayInlineOnboardingPanel({
             {t('Watch the errors and latency issues your users face')}
           </BannerDescription>
           <ActionButton>
-            {!isScreenSmall && <OnboardingCTAButton />}
             <Button
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
               analyticsEventKey="issue_details.replay-onboarding-cta-set-up-button-clicked"

@@ -41,7 +41,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
@@ -77,7 +77,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
@@ -121,7 +121,7 @@ class ReleaseFileDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
                 "file_id": file_id,
@@ -204,7 +204,7 @@ class ReleaseFileUpdateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
@@ -224,12 +224,12 @@ class ReleaseFileUpdateTest(APITestCase):
         self.login_as(user=self.user)
         self.create_release_archive()
 
-        id = urlsafe_b64encode(b"_~/index.js")
+        id = urlsafe_b64encode(b"_~/index.js").decode()
 
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
                 "file_id": id,
@@ -266,7 +266,7 @@ class ReleaseFileDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
@@ -290,7 +290,7 @@ class ReleaseFileDeleteTest(APITestCase):
         url = lambda id: reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
                 "file_id": id,
@@ -302,10 +302,10 @@ class ReleaseFileDeleteTest(APITestCase):
         assert response.status_code == 204
         assert self.release.count_artifacts() == 1
 
-        response = self.client.delete(url(urlsafe_b64encode(b"invalid_id")))
+        response = self.client.delete(url(urlsafe_b64encode(b"invalid_id").decode()))
         assert response.status_code == 404
         assert self.release.count_artifacts() == 1
 
-        response = self.client.delete(url(urlsafe_b64encode(b"_~/does_not_exist.js")))
+        response = self.client.delete(url(urlsafe_b64encode(b"_~/does_not_exist.js").decode()))
         assert response.status_code == 404
         assert self.release.count_artifacts() == 1

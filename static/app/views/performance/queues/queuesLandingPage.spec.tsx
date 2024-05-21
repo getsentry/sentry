@@ -61,7 +61,7 @@ describe('queuesLandingPage', () => {
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {data: []},
+      body: {data: [{'count()': 1}]},
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -75,7 +75,7 @@ describe('queuesLandingPage', () => {
     render(<QueuesLandingPage />);
     await screen.findByRole('table', {name: 'Queues'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-    screen.getByPlaceholderText('Search for events, users, tags, and more');
+    screen.getByPlaceholderText('Search for more destinations');
     screen.getByText('Avg Latency');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();

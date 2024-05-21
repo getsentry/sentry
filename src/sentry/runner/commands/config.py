@@ -1,5 +1,6 @@
 import click
 
+from sentry.runner.commands.init import generate_secret_key as _generate_secret_key
 from sentry.runner.decorators import configuration
 
 
@@ -160,9 +161,7 @@ def dump(flags: int, only_set: bool, pretty_print: bool) -> None:
 @config.command(name="generate-secret-key")
 def generate_secret_key() -> None:
     "Generate a new cryptographically secure secret key value."
-    from sentry.runner.settings import generate_secret_key
-
-    click.echo(generate_secret_key())
+    click.echo(_generate_secret_key())
 
 
 @config.command()

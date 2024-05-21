@@ -52,6 +52,8 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
+            # remove backticks from value, otherwise it will break the markdown
+            value = value.replace("`", "")
             text += f"{title}: `{value}`  "
         return {
             "type": "section",

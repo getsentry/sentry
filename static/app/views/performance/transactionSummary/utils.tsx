@@ -131,13 +131,7 @@ export function generateTraceLink(dateSelection) {
       return {};
     }
 
-    return getTraceDetailsUrl(
-      organization,
-      traceId,
-      dateSelection,
-      {},
-      tableRow.timestamp
-    );
+    return getTraceDetailsUrl(organization, traceId, dateSelection, tableRow.timestamp);
   };
 }
 

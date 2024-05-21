@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock, patch
 
 import boto3
+import orjson
 
 from sentry.integrations.aws_lambda.client import gen_aws_client
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
-from sentry.utils import json
 
 
 @all_silo_test
@@ -43,7 +43,7 @@ class AwsLambdaClientTest(TestCase):
             RoleSessionName="Sentry",
             RoleArn=role_arn,
             ExternalId=aws_external_id,
-            Policy=json.dumps(
+            Policy=orjson.dumps(
                 {
                     "Version": "2012-10-17",
                     "Statement": [
@@ -64,7 +64,7 @@ class AwsLambdaClientTest(TestCase):
                         },
                     ],
                 }
-            ),
+            ).decode(),
         )
 
         mock_get_session.assert_called_once_with(

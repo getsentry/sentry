@@ -178,7 +178,7 @@ class ActivityNotificationTest(APITestCase):
         assert title_link.split("\n")[-1] == "blah blah"
         assert (
             footer
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -215,7 +215,7 @@ class ActivityNotificationTest(APITestCase):
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -279,7 +279,7 @@ class ActivityNotificationTest(APITestCase):
         )
         assert (
             footer
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
         assert self.analytics_called_with_args(
@@ -409,7 +409,7 @@ class ActivityNotificationTest(APITestCase):
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
             record_analytics,
@@ -469,7 +469,7 @@ class ActivityNotificationTest(APITestCase):
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
             record_analytics,
@@ -551,7 +551,7 @@ class ActivityNotificationTest(APITestCase):
         notification_uuid = get_notification_uuid(title_link)
         assert (
             footer
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
             record_analytics,

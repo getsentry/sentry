@@ -5,13 +5,13 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.types.actor import Actor
 
 
 class Creator(Mediator):
     name = Param(str)
     environment = Param(int, required=False)
-    owner_team_id = Param(int, required=False)
-    owner_user_id = Param(int, required=False)
+    owner = Param(Actor, required=False)
     project = Param(Project)
     action_match = Param(str)
     filter_match = Param(str, required=False)
@@ -28,6 +28,7 @@ class Creator(Mediator):
     def _create_rule(self):
         kwargs = self._get_kwargs()
         rule = Rule.objects.create(**kwargs)
+
         return rule
 
     def _get_kwargs(self):
@@ -40,10 +41,9 @@ class Creator(Mediator):
         }
         _kwargs = {
             "label": self.name,
-            "owner_team_id": self.owner_team_id,
-            "owner_user_id": self.owner_user_id,
             "environment_id": self.environment or None,
             "project": self.project,
             "data": data,
+            "owner": self.owner,
         }
         return _kwargs

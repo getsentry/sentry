@@ -807,6 +807,7 @@ export interface BaseGroup {
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
+  latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;

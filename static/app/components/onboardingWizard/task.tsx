@@ -22,7 +22,7 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import SkipConfirm from './skipConfirm';
@@ -63,8 +63,7 @@ type Props = {
 
 function Task(props: Props) {
   const {task, onSkip, onMarkComplete, forwardedRef, organization, hidePanel} = props;
-  const routeContext = useRouteContext();
-  const {router} = routeContext;
+  const router = useRouter();
   const handleSkip = () => {
     recordAnalytics(task, organization, 'skipped');
     onSkip(task.task);
@@ -83,7 +82,7 @@ function Task(props: Props) {
     }
 
     if (task.actionType === 'action') {
-      task.action(routeContext);
+      task.action(router);
     }
 
     if (task.actionType === 'app') {
@@ -130,7 +129,7 @@ function Task(props: Props) {
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="pink400" isSolid />
+      <IconLock color="pink400" locked />
     </Tooltip>
   );
 

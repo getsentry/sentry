@@ -35,7 +35,7 @@ import type {
   PageFilters,
   Project,
 } from 'sentry/types';
-import {hasMetricStats} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -264,7 +264,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return organization.features.includes('session-replay');
       }
       if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
-        return hasMetricStats(organization);
+        return hasCustomMetrics(organization);
       }
       return true;
     });
@@ -322,7 +322,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return organization.features.includes('session-replay');
       }
       if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
-        return hasMetricStats(organization);
+        return hasCustomMetrics(organization);
       }
       return true;
     });

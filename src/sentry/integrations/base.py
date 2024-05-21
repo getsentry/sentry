@@ -354,7 +354,7 @@ class IntegrationInstallation:
             config=config,
         )
 
-    def get_config_data(self) -> Mapping[str, str]:
+    def get_config_data(self) -> dict[str, Any]:
         if not self.org_integration:
             return {}
         return self.org_integration.config

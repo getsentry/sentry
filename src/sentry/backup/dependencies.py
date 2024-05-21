@@ -23,8 +23,6 @@ class NormalizedModelName:
     backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
 
-    __model_name: str
-
     def __init__(self, model_name: str):
         if "." not in model_name:
             raise TypeError("cannot create NormalizedModelName from invalid input string")
@@ -375,8 +373,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     from sentry.db.models.fields.foreignkey import FlexibleForeignKey
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
-    from sentry.models.actor import Actor
-    from sentry.models.team import Team
 
     # Process the list of models, and get the list of dependencies.
     model_dependencies_dict: dict[NormalizedModelName, ModelRelations] = {}
@@ -415,11 +411,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
-                    # team.actor_id, which avoids circular imports
-                    if model == Team and rel_model == Actor:
-                        continue
-
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
@@ -517,9 +508,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
     # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
     # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
-    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
-    # reference at least one `User` or `Team`, neither of which are dangling.
-    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    # out a more rigorous way to deduce this.
     model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
 
     # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this

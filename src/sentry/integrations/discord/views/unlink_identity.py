@@ -8,8 +8,8 @@ from django.views.decorators.cache import never_cache
 from sentry import analytics
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.types.actor import ActorType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign

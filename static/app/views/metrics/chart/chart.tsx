@@ -235,9 +235,7 @@ export const MetricChart = memo(
                   return true;
                 });
 
-                const date = params[0].value[0];
-
-                defaultFormatAxisLabel(
+                const formattedDate = defaultFormatAxisLabel(
                   params[0].value[0] as number,
                   timeseriesFormatters.isGroupedByDate,
                   timeseriesFormatters.utc,
@@ -251,7 +249,7 @@ export const MetricChart = memo(
                     '<div class="tooltip-series">',
                     `<center>${t('No data available')}</center>`,
                     '</div>',
-                    `<div class="tooltip-footer">${date}</div>`,
+                    `<div class="tooltip-footer">${formattedDate}</div>`,
                   ].join('');
                 }
                 return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);

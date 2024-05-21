@@ -35,8 +35,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
@@ -165,7 +165,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }>(jsFrameworkSelectOptions[0]);
 
   const defaultTab = 'npm';
-  const {location} = useRouteContext();
+  const location = useLocation();
   const crashReportOnboarding = location.hash === CRASH_REPORT_HASH;
 
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(

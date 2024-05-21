@@ -195,6 +195,7 @@ export default function MetricDetailsBody({
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
+          {/* TODO: add activation start/stop into chart */}
           <MetricChart
             api={api}
             rule={rule}
@@ -210,7 +211,7 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <ActivityWrapper>
-              <MetricHistory incidents={incidents} />
+              <MetricHistory incidents={incidents} activations={rule.activations} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
                   organization={organization}

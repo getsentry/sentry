@@ -229,6 +229,8 @@ class MetricAlertExamples:
                     "metricValue": 100,
                     "querySubscriptionId": "1",
                     "isComplete": True,
+                    "activator": "1",
+                    "conditionType": "0",
                 }
             ],
         )

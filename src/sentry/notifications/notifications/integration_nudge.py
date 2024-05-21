@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -69,17 +69,17 @@ class IntegrationNudgeNotification(BaseNotification):
     def reference(self) -> Model | None:
         return None
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
         return {self.provider: {self.recipient}}
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return ""
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
         return MESSAGE_LIBRARY[self.seed].format(provider=self.provider.name.capitalize())
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         return [
             MessageAction(
@@ -102,14 +102,14 @@ class IntegrationNudgeNotification(BaseNotification):
     ) -> str:
         return ""
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return ""
 
-    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         return ""
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         return {"seed": self.seed, **super().get_log_params(recipient)}

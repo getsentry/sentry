@@ -1,3 +1,4 @@
+import orjson
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -14,7 +15,6 @@ from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.models.relay import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.utils import json
 
 from . import RelayIdSerializer
 
@@ -45,8 +45,8 @@ class RelayRegisterResponseEndpoint(Endpoint):
         """
 
         try:
-            json_data = json.loads(request.body)
-        except ValueError:
+            json_data = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return Response({"detail": "No valid json body"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = RelayRegisterResponseSerializer(data=json_data)

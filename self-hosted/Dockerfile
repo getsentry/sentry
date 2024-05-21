@@ -11,11 +11,10 @@ LABEL org.opencontainers.image.authors="oss@sentry.io"
 # add our user and group first to make sure their IDs get assigned consistently
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 
-ENV GOSU_VERSION=1.17 \
-  GOSU_SHA256=bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3 \
-  TINI_VERSION=0.19.0 \
-  TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
-
+ARG GOSU_VERSION=1.17
+ARG GOSU_SHA256=bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3
+ARG TINI_VERSION=0.19.0
+ARG TINI_SHA256=93dcc18adc78c65a028a84799ecf8ad40c936fdfc5f2a57b1acda5a8117fa82c
 
 RUN set -x \
   && buildDeps=" \
@@ -24,11 +23,11 @@ RUN set -x \
   && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
   # grab gosu for easy step-down from root
-  && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
+  && wget --quiet -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" \
   && echo "$GOSU_SHA256 /usr/local/bin/gosu" | sha256sum --check --status \
   && chmod +x /usr/local/bin/gosu \
   # grab tini for signal processing and zombie killing
-  && wget -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
+  && wget --quiet -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v$TINI_VERSION/tini-amd64" \
   && echo "$TINI_SHA256 /usr/local/bin/tini" | sha256sum --check --status \
   && chmod +x /usr/local/bin/tini \
   && apt-get purge -y --auto-remove $buildDeps
@@ -79,7 +78,7 @@ RUN set -x \
 
 COPY /dist/*.whl /tmp/dist/
 RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
-RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
+RUN sentry help && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
 COPY ./self-hosted/docker-entrypoint.sh /

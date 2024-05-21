@@ -77,6 +77,8 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
@@ -141,11 +143,14 @@ export const platformProductAvailability = {
   'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
+  'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -448,13 +453,13 @@ export function ProductSelection({
       </Products>
       {showPackageManagerInfo && lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
+          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
             npm: <strong />,
             yarn: <strong />,
             goHere: (
-              <Button onClick={skipLazyLoader} priority="link">
-                {t('Go here')}
-              </Button>
+              <SkipLazyLoaderButton onClick={skipLazyLoader} size="xs" priority="default">
+                {t('View npm instructions')}
+              </SkipLazyLoaderButton>
             ),
           })}
         </AlternativeInstallationAlert>
@@ -462,6 +467,10 @@ export function ProductSelection({
     </Fragment>
   );
 }
+
+const SkipLazyLoaderButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
 
 const Products = styled('div')`
   display: flex;

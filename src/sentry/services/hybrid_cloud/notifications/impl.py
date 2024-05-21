@@ -13,9 +13,9 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 
 
@@ -59,14 +59,14 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def update_notification_options(
         self,
         *,
-        actor: RpcActor,
+        actor: Actor,
         type: NotificationSettingEnum,
         scope_type: NotificationScopeEnum,
         scope_identifier: int,
         value: NotificationSettingsOptionEnum,
-    ):
+    ) -> None:
         kwargs = {}
-        if actor.actor_type == ActorType.USER:
+        if actor.is_user:
             kwargs["user_id"] = actor.id
         else:
             kwargs["team_id"] = actor.id
@@ -142,7 +142,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_participants(
         self,
         *,
-        recipients: list[RpcActor],
+        recipients: list[Actor],
         type: NotificationSettingEnum,
         project_ids: list[int] | None = None,
         organization_id: int | None = None,
@@ -175,12 +175,12 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_notification_recipients(
         self,
         *,
-        recipients: list[RpcActor],
+        recipients: list[Actor],
         type: NotificationSettingEnum,
         organization_id: int | None = None,
         project_ids: list[int] | None = None,
         actor_type: ActorType | None = None,
-    ) -> Mapping[str, set[RpcActor]]:
+    ) -> Mapping[str, set[Actor]]:
         controller = NotificationController(
             recipients=recipients,
             organization_id=organization_id,

@@ -53,13 +53,13 @@ from sentry.notifications.utils import (
     get_issue_replay_link,
     get_rules,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,
     TEST_FEEDBACK_ISSUE_OCCURENCE,
     TEST_ISSUE_OCCURRENCE,
 )
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -431,7 +431,7 @@ class ActivityMailDebugView(View):
         event_type = get_event_type(data)
 
         event = eventstore.backend.create_event(
-            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
+            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data
         )
 
         group.message = event.search_message
@@ -532,7 +532,7 @@ def digest(request):
             )
 
             event = eventstore.backend.create_event(
-                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
+                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data
             )
             records.append(
                 Record(
@@ -829,7 +829,7 @@ def org_delete_confirm(request):
 
 # Used to generate debug email views from a notification
 def render_preview_email_for_notification(
-    notification: BaseNotification, recipient: RpcActor
+    notification: BaseNotification, recipient: Actor
 ) -> HttpResponse:
     shared_context = notification.get_context()
     basic_args = get_builder_args(notification, recipient, shared_context)

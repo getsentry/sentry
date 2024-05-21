@@ -51,12 +51,16 @@ import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcuts';
+import {
+  searchInTraceTreeText,
+  searchInTraceTreeTokens,
+} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
+import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
+import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -64,14 +68,25 @@ import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
-import {searchInTraceTree} from './traceState/traceSearch';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
-import {TraceHeader} from './traceHeader';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceReducer, type TraceReducerState} from './traceState';
+import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+
+function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
+  if (Array.isArray(maybePath)) {
+    return maybePath;
+  }
+
+  if (typeof maybePath === 'string') {
+    return [maybePath as TraceTree.NodePath];
+  }
+
+  return null;
+}
 
 function logTraceType(type: TraceType, organization: Organization) {
   switch (type) {
@@ -132,14 +147,34 @@ export function TraceView() {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
+    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-    return {start, end, statsPeriod, useSpans: 1};
+    return {start, end, statsPeriod, timestamp, useSpans: 1};
   }, []);
 
   const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod} = queryParams;
+    const {start, end, statsPeriod, timestamp} = queryParams;
+
+    let startTimeStamp = start;
+    let endTimeStamp = end;
+
+    // If timestamp exists in the query params, we want to use it to set the start and end time
+    // with a buffer of 1.5 days, for retrieving events belonging to the trace.
+    if (timestamp) {
+      const parsedTimeStamp = Number(timestamp);
+
+      if (isNaN(parsedTimeStamp)) {
+        throw new Error('Invalid timestamp');
+      }
+
+      const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
+      const dateFromTimestamp = new Date(parsedTimeStamp * 1000);
+
+      startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
+      endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
+    }
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -149,9 +184,9 @@ export function TraceView() {
       query: `trace:${traceSlug}`,
       projects: [ALL_ACCESS_PROJECTS],
       version: 2,
-      start,
-      end,
-      range: statsPeriod,
+      start: startTimeStamp,
+      end: endTimeStamp,
+      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
     });
   }, [queryParams, traceSlug]);
 
@@ -205,6 +240,8 @@ function TraceViewContent(props: TraceViewContentProps) {
   const rootEvent = useTraceRootEvent(props.trace);
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
+
+  const initializedRef = useRef(false);
   const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
     null
   );
@@ -355,6 +392,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tree]);
 
+  useLayoutEffect(() => {
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
+
+    if (maybeQueue || queryParams.eventId) {
+      scrollQueueRef.current = {
+        eventId: queryParams.eventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    }
+  }, [tree]);
+
   const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
     (
@@ -366,52 +415,55 @@ function TraceViewContent(props: TraceViewContentProps) {
         window.cancelAnimationFrame(searchingRaf.current.id);
       }
 
-      searchingRaf.current = searchInTraceTree(
-        tree,
-        query,
-        activeNode,
-        ([matches, lookup, activeNodeSearchResult]) => {
-          // If the previous node is still in the results set, we want to keep it
-          if (activeNodeSearchResult) {
-            traceDispatch({
-              type: 'set results',
-              results: matches,
-              resultsLookup: lookup,
-              resultIteratorIndex: activeNodeSearchResult?.resultIteratorIndex,
-              resultIndex: activeNodeSearchResult?.resultIndex,
-              previousNode: activeNodeSearchResult,
-              node: activeNode,
-            });
-            return;
-          }
-
-          if (activeNode && behavior === 'persist') {
-            traceDispatch({
-              type: 'set results',
-              results: matches,
-              resultsLookup: lookup,
-              resultIteratorIndex: undefined,
-              resultIndex: undefined,
-              previousNode: activeNodeSearchResult,
-              node: activeNode,
-            });
-            return;
-          }
-
-          const resultIndex: number | undefined = matches?.[0]?.index;
-          const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
-          const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+      function done([matches, lookup, activeNodeSearchResult]) {
+        // If the previous node is still in the results set, we want to keep it
+        if (activeNodeSearchResult) {
           traceDispatch({
             type: 'set results',
             results: matches,
             resultsLookup: lookup,
-            resultIteratorIndex: resultIteratorIndex,
-            resultIndex: resultIndex,
+            resultIteratorIndex: activeNodeSearchResult?.resultIteratorIndex,
+            resultIndex: activeNodeSearchResult?.resultIndex,
             previousNode: activeNodeSearchResult,
-            node,
+            node: activeNode,
           });
+          return;
         }
-      );
+
+        if (activeNode && behavior === 'persist') {
+          traceDispatch({
+            type: 'set results',
+            results: matches,
+            resultsLookup: lookup,
+            resultIteratorIndex: undefined,
+            resultIndex: undefined,
+            previousNode: activeNodeSearchResult,
+            node: activeNode,
+          });
+          return;
+        }
+
+        const resultIndex: number | undefined = matches?.[0]?.index;
+        const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
+        const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+        traceDispatch({
+          type: 'set results',
+          results: matches,
+          resultsLookup: lookup,
+          resultIteratorIndex: resultIteratorIndex,
+          resultIndex: resultIndex,
+          previousNode: activeNodeSearchResult,
+          node,
+        });
+      }
+
+      const tokens = parseTraceSearch(query);
+
+      if (tokens) {
+        searchingRaf.current = searchInTraceTreeTokens(tree, tokens, activeNode, done);
+      } else {
+        searchingRaf.current = searchInTraceTreeText(tree, query, activeNode, done);
+      }
     },
     [traceDispatch, tree]
   );
@@ -633,6 +685,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
+      scrollQueueRef.current = null;
       const query = qs.parse(location.search);
 
       if (query.fov && typeof query.fov === 'string') {
@@ -772,6 +825,26 @@ function TraceViewContent(props: TraceViewContentProps) {
     logTraceType(shape, organization);
   }, [tree, shape, organization]);
 
+  useLayoutEffect(() => {
+    if (!tree.root?.space || tree.type !== 'trace') {
+      return undefined;
+    }
+
+    initializedRef.current = true;
+    viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
+
+    // Whenever the timeline changes, update the trace space
+    const onTraceTimelineChange = (s: [number, number]) => {
+      viewManager.updateTraceSpace(s[0], s[1]);
+    };
+
+    tree.on('trace timeline change', onTraceTimelineChange);
+
+    return () => {
+      tree.off('trace timeline change', onTraceTimelineChange);
+    };
+  }, [viewManager, tree]);
+
   return (
     <TraceExternalLayout>
       <TraceUXChangeAlert />
@@ -781,14 +854,6 @@ function TraceViewContent(props: TraceViewContentProps) {
         title={rootEvent?.data?.title ?? ''}
         traceSlug={props.traceSlug}
         traceEventView={props.traceEventView}
-      />
-      <TraceHeader
-        tree={tree}
-        rootEventResults={rootEvent}
-        metaResults={props.metaResults}
-        organization={props.organization}
-        traces={props.trace}
-        traceID={props.traceSlug}
       />
       <TraceInnerLayout>
         <TraceToolbar>
@@ -808,6 +873,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             trace_state={traceState}
             trace_dispatch={traceDispatch}
             scrollQueueRef={scrollQueueRef}
+            initializedRef={initializedRef}
             onRowClick={onRowClick}
             onTraceLoad={onTraceLoad}
             onTraceSearch={onTraceSearch}
@@ -825,6 +891,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
+            metaResults={props.metaResults}
             traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
@@ -853,11 +920,24 @@ function TraceResetZoomButton(props: {
   }, [props.viewManager, props.organization]);
 
   return (
-    <Button size="xs" onClick={onResetZoom}>
+    <ResetZoomButton
+      size="xs"
+      onClick={onResetZoom}
+      ref={props.viewManager.registerResetZoomRef}
+    >
       {t('Reset Zoom')}
-    </Button>
+    </ResetZoomButton>
   );
 }
+
+const ResetZoomButton = styled(Button)`
+  transition: opacity 0.2s 0.5s ease-in-out;
+
+  &[disabled] {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+`;
 
 const TraceExternalLayout = styled('div')`
   display: flex;
@@ -873,7 +953,8 @@ const TraceInnerLayout = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  padding: 0 ${space(2)} 0 ${space(2)};
+  padding: ${space(2)};
+
   background-color: ${p => p.theme.background};
 
   --info: ${p => p.theme.purple400};
@@ -900,8 +981,7 @@ const TraceGrid = styled('div')<{
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */

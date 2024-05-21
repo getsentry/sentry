@@ -1,3 +1,4 @@
+import binascii
 import itertools
 import logging
 import random
@@ -15,7 +16,6 @@ from django.utils.encoding import force_bytes
 from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBModel
-from sentry.utils.compat import crc32
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import (
     check_cluster_versions,
@@ -32,6 +32,12 @@ T = TypeVar("T")
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
 CountMinScript = load_redis_script("tsdb/cmsketch.lua")
+
+
+def _crc32(data: bytes) -> int:
+    # python 2 equivalent crc32 to return signed
+    rv = binascii.crc32(data)
+    return rv - ((rv & 0x80000000) << 1)
 
 
 class SuppressionWrapper(Generic[T]):
@@ -196,7 +202,7 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, int):
             vnode = model_key % self.vnodes
         else:
-            vnode = crc32(force_bytes(model_key)) % self.vnodes
+            vnode = _crc32(force_bytes(model_key)) % self.vnodes
 
         return (
             "{prefix}{model}:{epoch}:{vnode}".format(

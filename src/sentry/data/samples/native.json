@@ -1,5 +1,5 @@
 {
-  "message": "thread_demo Failing!",
+  "logentry": {"formatted": "thread_demo Failing!"},
   "contexts": {
     "device": {
       "type": "device",
@@ -1478,7 +1478,7 @@
     "name": "sentry-rust",
     "integrations": ["failure", "log"]
   },
-  "sentry.interfaces.Breadcrumbs": {
+  "breadcrumbs": {
     "values": [
       {
         "category": "thread_demo",
@@ -1500,7 +1500,7 @@
       }
     ]
   },
-  "sentry.interfaces.Exception": {
+  "exception": {
     "exc_omitted": null,
     "values": [
       {

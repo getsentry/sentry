@@ -977,6 +977,46 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Highest cache miss rate transactions widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+          }
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Highest Cache Miss Rates'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          noPagination: true,
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'span.op:cache.get_item',
+          statsPeriod: '7d',
+          referrer:
+            'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
+          sort: '-cache_miss_rate()',
+        }),
+      })
+    );
+  });
+
   it('Best Page Opportunities widget', async function () {
     const data = initializeData();
 

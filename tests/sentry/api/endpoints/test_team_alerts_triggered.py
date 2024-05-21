@@ -7,7 +7,7 @@ from sentry.incidents.models.incident import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.utils.actor import ActorTuple
+from sentry.types.actor import Actor
 
 
 @freeze_time()
@@ -28,7 +28,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         user_owned_incident = self.create_incident(status=20, alert_rule=user_owned_rule)
         activities = []
@@ -110,7 +110,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
         user_owned_incident = self.create_incident(
             projects=[project2], status=20, alert_rule=user_owned_rule
@@ -125,7 +125,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
         team_owned_incident = self.create_incident(
             projects=[project1], status=20, alert_rule=team_owned_rule
@@ -174,7 +174,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
             organization=self.organization,
             projects=[project1],
             name="user owned rule",
-            owner=ActorTuple.from_actor_identifier(self.user.id),
+            owner=Actor.from_identifier(self.user.id),
         )
 
         user_owned_incident = self.create_incident(status=20, alert_rule=user_owned_rule)
@@ -192,7 +192,7 @@ class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
             organization=self.organization,
             projects=[project1],
             name="team owned rule",
-            owner=ActorTuple.from_actor_identifier(f"team:{self.team.id}"),
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
         team_owned_incident = self.create_incident(status=20, alert_rule=team_owned_rule)
         activities.append(

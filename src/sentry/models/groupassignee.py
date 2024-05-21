@@ -15,9 +15,9 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -267,13 +267,13 @@ class GroupAssignee(Model):
         ), "Must have Team or User, not both"
         super().save(*args, **kwargs)
 
-    def assigned_actor(self) -> RpcActor:
+    def assigned_actor(self) -> Actor:
         if self.user_id is not None:
-            return RpcActor(
+            return Actor(
                 id=self.user_id,
                 actor_type=ActorType.USER,
             )
         if self.team_id is not None:
-            return RpcActor(id=self.team_id, actor_type=ActorType.TEAM)
+            return Actor(id=self.team_id, actor_type=ActorType.TEAM)
 
         raise NotImplementedError("Unknown Assignee")

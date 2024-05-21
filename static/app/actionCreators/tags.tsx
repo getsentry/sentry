@@ -150,3 +150,45 @@ export function fetchTagValues({
     query,
   });
 }
+
+export function fetchSpanFieldValues({
+  api,
+  orgSlug,
+  fieldKey,
+  endpointParams,
+  projectIds,
+  search,
+}: {
+  api: Client;
+  fieldKey: string;
+  orgSlug: string;
+  endpointParams?: Query;
+  projectIds?: string[];
+  search?: string;
+}): Promise<TagValue[]> {
+  const url = `/organizations/${orgSlug}/spans/fields/${fieldKey}/values/`;
+
+  const query: Query = {};
+  if (search) {
+    query.query = search;
+  }
+  if (projectIds) {
+    query.project = projectIds;
+  }
+  if (endpointParams) {
+    if (endpointParams.start) {
+      query.start = endpointParams.start;
+    }
+    if (endpointParams.end) {
+      query.end = endpointParams.end;
+    }
+    if (endpointParams.statsPeriod) {
+      query.statsPeriod = endpointParams.statsPeriod;
+    }
+  }
+
+  return api.requestPromise(url, {
+    method: 'GET',
+    query,
+  });
+}
