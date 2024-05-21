@@ -223,7 +223,7 @@ DETAILED_PROJECT = {
             "session-replay",
             "sql-format",
             "performance-consecutive-db-queries-visible",
-            "slack-overage-notifications",
+            "user-spend-notifications-settings",
             "performance-m-n-plus-one-db-queries-post-process-group",
             "transaction-metrics-extraction",
             "performance-consecutive-db-queries-post-process-group",
