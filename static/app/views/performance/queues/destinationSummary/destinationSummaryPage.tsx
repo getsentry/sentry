@@ -33,11 +33,11 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
-import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
-  const moduleURL = useQueueModuleURL();
+  const moduleURL = useModuleURL('queue');
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 

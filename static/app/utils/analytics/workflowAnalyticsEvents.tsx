@@ -1,4 +1,4 @@
-import type {GroupStatus} from 'sentry/types';
+import type {GroupStatus} from 'sentry/types/group';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 

@@ -66,8 +66,8 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             tags = []
         if project_id is None:
             project_id = self.project.id
-        event = load_data("transaction").copy()
-        event.data["tags"].extend(tags)
+        event = load_data("transaction")
+        event["tags"].extend(tags)
         event.update(
             {
                 "transaction": name,

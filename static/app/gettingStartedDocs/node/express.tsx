@@ -26,6 +26,7 @@ type Params = DocsParams;
 const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
+// All other imports below
 ${getSentryImportSnippet('node')}
 const express = require("express");
 
@@ -83,7 +84,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you are unable to import an external file, read about [docs:alternative installation methods in our docs].",
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
               code1: <code />,
               code2: <code />,
@@ -97,6 +98,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
+              filename: 'index.(js|mjs)',
               code: getSdkSetupSnippet(),
             },
           ],

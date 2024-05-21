@@ -212,7 +212,6 @@ module = [
     "sentry.api.serializers.models.external_actor",
     "sentry.api.serializers.models.group",
     "sentry.api.serializers.models.group_stream",
-    "sentry.api.serializers.models.incident",
     "sentry.api.serializers.models.integration",
     "sentry.api.serializers.models.integration_feature",
     "sentry.api.serializers.models.notification_action",
