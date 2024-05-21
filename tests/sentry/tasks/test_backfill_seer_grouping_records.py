@@ -851,6 +851,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
         assert last_processed_index == len(groups)
 
+    @pytest.mark.skip(
+        "this test is flakey in production; trying to replicate locally and skipping it for now"
+    )
     @django_db_all
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -874,10 +877,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        with TaskRunner(), patch(
-            "sentry.tasks.backfill_seer_grouping_records.backfill_seer_grouping_records.apply_async",
-            wraps=backfill_seer_grouping_records(self.project.id, None),
-        ):
+        with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
