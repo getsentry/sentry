@@ -56,7 +56,7 @@ class ApiClient:
         if data:
             # TODO(@anonrig): Investigate why we are doing this?
             # we encode to ensure compatibility
-            data = orjson.loads(orjson.dumps(data))
+            data = orjson.loads(orjson.dumps(data, option=orjson.OPT_UTC_Z))
 
         rf = APIRequestFactory()
         mock_request = getattr(rf, method.lower())(full_path, data or {})

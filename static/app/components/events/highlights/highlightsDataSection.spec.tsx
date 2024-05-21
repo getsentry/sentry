@@ -7,15 +7,12 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
-import * as analytics from 'sentry/utils/analytics';
-
-HighlightsDataSection;
-
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
 import {
   TEST_EVENT_CONTEXTS,
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
+import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture({features: ['event-tags-tree-ui']});

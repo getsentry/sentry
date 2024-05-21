@@ -5,7 +5,6 @@ import uuid
 from datetime import timedelta
 from itertools import chain
 
-import orjson
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
@@ -15,7 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
 from sentry.monitors.types import CheckinItem
-from sentry.utils import metrics, redis
+from sentry.utils import json, metrics, redis
 
 from .errors import CheckinProcessingError, ProcessingErrorsException
 
@@ -80,7 +79,7 @@ def _get_for_entities(entity_identifiers: list[str]) -> list[CheckinProcessingEr
         for error_identifier in chain(*pipeline.execute())
     ]
     errors = [
-        CheckinProcessingError.from_dict(orjson.loads(raw_error))
+        CheckinProcessingError.from_dict(json.loads(raw_error))
         for raw_error in redis.mget(error_identifiers)
         if raw_error is not None
     ]
@@ -99,7 +98,7 @@ def store_error(error: CheckinProcessingError, monitor: Monitor | None):
     entity_identifier = _get_entity_identifier_from_error(error, monitor)
     error_set_key = build_set_identifier(entity_identifier)
     error_key = build_error_identifier(error.id)
-    serialized_error = orjson.dumps(error.to_dict()).decode()
+    serialized_error = json.dumps(error.to_dict())
     redis_client = _get_cluster()
     pipeline = redis_client.pipeline(transaction=False)
     pipeline.zadd(error_set_key, {error.id.hex: error.checkin.ts.timestamp()})
@@ -116,7 +115,7 @@ def delete_error(project: Project, uuid: uuid.UUID):
     raw_error = redis.get(error_identifier)
     if raw_error is None:
         return
-    error = CheckinProcessingError.from_dict(orjson.loads(raw_error))
+    error = CheckinProcessingError.from_dict(json.loads(raw_error))
     if error.checkin.message["project_id"] != project.id:
         # TODO: Better exception class
         raise InvalidProjectError()

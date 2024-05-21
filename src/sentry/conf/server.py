@@ -1877,6 +1877,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Measure usage by spans instead of transactions
+    "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
@@ -1925,6 +1927,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:trace-view-load-more": False,
     # Enable feature to load new trace view.
     "organizations:trace-view-v1": False,
+    # Enable feature to load new trace view in replay trace tab.
+    "organizations:replay-trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".

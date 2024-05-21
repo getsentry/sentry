@@ -179,7 +179,7 @@ export function getIntervalLine(
       formatter: `Regressed ${getPerformanceDuration(
         transformedTransaction.aggregate_range_2
       )}`,
-      position: 'insideEndBottom',
+      position: 'insideEndTop',
       color: theme.gray400,
     };
 

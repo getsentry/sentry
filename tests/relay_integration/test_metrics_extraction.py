@@ -1,7 +1,6 @@
 import uuid
 
 import confluent_kafka as kafka
-import orjson
 import pytest
 
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
@@ -11,6 +10,7 @@ from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
+from sentry.utils import json
 
 pytestmark = [requires_kafka]
 
@@ -85,7 +85,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 message = consumer.poll(timeout=1.0)
                 if message is None:
                     break
-                message = orjson.loads(message.value())
+                message = json.loads(message.value())
                 if message["project_id"] == self.project.id:
                     strings_emitted.add(message["name"])
                     for key, value in message["tags"].items():

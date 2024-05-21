@@ -18,12 +18,15 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
         "issues.sdk_crash_detection.native.project_id": 4,
         "issues.sdk_crash_detection.native.sample_rate": 0.4,
         "issues.sdk_crash_detection.native.organization_allowlist": [3],
+        "issues.sdk_crash_detection.dart.project_id": 5,
+        "issues.sdk_crash_detection.dart.sample_rate": 0.5,
+        "issues.sdk_crash_detection.dart.organization_allowlist": [4],
     }
 )
 def test_build_sdk_crash_detection_configs():
     configs = build_sdk_crash_detection_configs()
 
-    assert len(configs) == 4
+    assert len(configs) == 5
 
     cocoa_config = configs[0]
     assert cocoa_config.sdk_name == SdkName.Cocoa
@@ -49,6 +52,12 @@ def test_build_sdk_crash_detection_configs():
     assert native_config.sample_rate == 0.4
     assert native_config.organization_allowlist == [3]
 
+    dart_config = configs[4]
+    assert dart_config.sdk_name == SdkName.Dart
+    assert dart_config.project_id == 5
+    assert dart_config.sample_rate == 0.5
+    assert dart_config.organization_allowlist == [4]
+
 
 @override_options(
     {
@@ -62,7 +71,10 @@ def test_build_sdk_crash_detection_configs():
         "issues.sdk_crash_detection.java.organization_allowlist": [],
         "issues.sdk_crash_detection.native.project_id": 0,
         "issues.sdk_crash_detection.native.sample_rate": 0.0,
-        "issues.sdk_crash_detection.javnativea.organization_allowlist": [],
+        "issues.sdk_crash_detection.native.organization_allowlist": [],
+        "issues.sdk_crash_detection.dart.project_id": 0,
+        "issues.sdk_crash_detection.dart.sample_rate": 0.0,
+        "issues.sdk_crash_detection.dart.organization_allowlist": [],
     }
 )
 def test_build_sdk_crash_detection_configs_only_react_native():
@@ -89,6 +101,9 @@ def test_build_sdk_crash_detection_configs_only_react_native():
         "issues.sdk_crash_detection.native.project_id": 4,
         "issues.sdk_crash_detection.native.sample_rate": 0.0,
         "issues.sdk_crash_detection.native.organization_allowlist": [3],
+        "issues.sdk_crash_detection.dart.project_id": 5,
+        "issues.sdk_crash_detection.dart.sample_rate": 0.0,
+        "issues.sdk_crash_detection.dart.organization_allowlist": [4],
     }
 )
 def test_build_sdk_crash_detection_configs_no_sample_rate():
@@ -115,6 +130,9 @@ def test_build_sdk_crash_detection_configs_no_sample_rate():
         "issues.sdk_crash_detection.native.project_id": 0,
         "issues.sdk_crash_detection.native.sample_rate": 0.0,
         "issues.sdk_crash_detection.native.organization_allowlist": [],
+        "issues.sdk_crash_detection.dart.project_id": 0,
+        "issues.sdk_crash_detection.dart.sample_rate": 0.0,
+        "issues.sdk_crash_detection.dart.organization_allowlist": [],
     }
 )
 def test_build_sdk_crash_detection_default_configs():
