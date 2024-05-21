@@ -574,8 +574,6 @@ def process_event_from_reprocessing(
 
 @sentry_sdk.tracing.trace
 def delete_raw_event(project_id: int, event_id: str | None) -> None:
-    set_current_event_project(project_id)
-
     if event_id is None:
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
