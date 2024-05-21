@@ -93,6 +93,7 @@ class CursorWrapper:
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
     SchemaEditorClass = DatabaseSchemaEditorProxy
+    queries_limit = 10000
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

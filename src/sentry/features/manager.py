@@ -12,7 +12,9 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.conf import settings
 
+from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
 from sentry.utils import metrics
+from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
@@ -123,6 +125,9 @@ class RegisteredFeatureManager:
         return result
 
 
+FLAGPOLE_OPTION_PREFIX = "feature"
+
+
 # TODO: Change RegisteredFeatureManager back to object once it can be removed
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
@@ -130,6 +135,7 @@ class FeatureManager(RegisteredFeatureManager):
         self._feature_registry: MutableMapping[str, type[Feature]] = {}
         self.entity_features: MutableSet[str] = set()
         self.option_features: MutableSet[str] = set()
+        self.flagpole_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
     def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
@@ -165,6 +171,13 @@ class FeatureManager(RegisteredFeatureManager):
                     "OPTIONS feature handler strategy only supports organizations (for now)"
                 )
             self.option_features.add(name)
+
+        if entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE:
+            self.flagpole_features.add(name)
+            # Set a default of {} to ensure the feature evaluates to None when checked
+            feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
+            register(feature_option_name, type=Dict, default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
         self._feature_registry[name] = cls
 
     def _get_feature_class(self, name: str) -> type[Feature]:
