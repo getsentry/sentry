@@ -37,4 +37,6 @@ class PubSubAnalytics(Analytics):
 
     def record_event(self, event: Event) -> None:
         if self.publisher is not None:
-            self.publisher.publish(self.topic, data=orjson.dumps(event.serialize()))
+            self.publisher.publish(
+                self.topic, data=orjson.dumps(event.serialize(), option=orjson.OPT_UTC_Z)
+            )

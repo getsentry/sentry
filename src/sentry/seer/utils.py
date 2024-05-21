@@ -78,7 +78,7 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     response = seer_breakpoint_connection_pool.urlopen(
         "POST",
         "/trends/breakpoint-detector",
-        body=orjson.dumps(breakpoint_request).decode(),
+        body=orjson.dumps(breakpoint_request, option=orjson.OPT_UTC_Z),
         headers={"content-type": "application/json;charset=utf-8"},
     )
 
@@ -231,8 +231,9 @@ def get_similarity_data_from_seer(
         "POST",
         SEER_SIMILAR_ISSUES_URL,
         body=orjson.dumps(
-            {"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}
-        ).decode(),
+            {"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request},
+            option=orjson.OPT_UTC_Z,
+        ),
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 
@@ -298,7 +299,7 @@ def post_bulk_grouping_records(
         response = seer_grouping_connection_pool.urlopen(
             "POST",
             SEER_GROUPING_RECORDS_URL,
-            body=orjson.dumps(grouping_records_request).decode(),
+            body=orjson.dumps(grouping_records_request, option=orjson.OPT_UTC_Z),
             headers={"Content-Type": "application/json;charset=utf-8"},
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )

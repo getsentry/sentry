@@ -18,7 +18,9 @@ def sign(**kwargs):
     """
     return force_str(
         base64.urlsafe_b64encode(
-            TimestampSigner(salt=SALT).sign(orjson.dumps(kwargs).decode()).encode()
+            TimestampSigner(salt=SALT)
+            .sign(orjson.dumps(kwargs, option=orjson.OPT_UTC_Z).decode())
+            .encode()
         ).rstrip(b"=")
     )
 

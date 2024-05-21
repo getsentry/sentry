@@ -86,7 +86,9 @@ class RedisSessionStore:
                 return list(obj)
             raise TypeError
 
-        value = orjson.dumps(initial_state, default=_orjson_defaults).decode()
+        value = orjson.dumps(
+            initial_state, option=orjson.OPT_UTC_Z, default=_orjson_defaults
+        ).decode()
         self._client.setex(redis_key, self.ttl, value)
 
     def clear(self):
@@ -135,6 +137,8 @@ def redis_property(key: str):
             return
 
         state[key] = value
-        store._client.setex(store.redis_key, store.ttl, orjson.dumps(state).decode())
+        store._client.setex(
+            store.redis_key, store.ttl, orjson.dumps(state, option=orjson.OPT_UTC_Z).decode()
+        )
 
     return property(getter, setter)
