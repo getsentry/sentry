@@ -414,8 +414,14 @@ function evaluateValueNumber<T extends Token.VALUE_DURATION | Token.VALUE_NUMBER
   }
 }
 
-// @TODO Alias self time, total time.
-const DURATION_ALIASES = new Set(['duration']);
+const TRANSACTION_DURATION_ALIASES = new Set([
+  'duration',
+  // 'transaction.duration', <-- this is an actual key
+  'transaction.total_time',
+]);
+const SPAN_DURATION_ALIASES = new Set(['duration', 'span.duration', 'span.total_time']);
+const SPAN_SELF_TIME_ALIASES = new Set(['span.self_time', 'span.exclusive_time']);
+
 // Pulls the value from the node based on the key in the token
 function resolveValueFromKey(
   node: TraceTreeNode<TraceTree.NodeValue>,
@@ -431,9 +437,30 @@ function resolveValueFromKey(
     let key: string | null = null;
     switch (token.key.type) {
       case Token.KEY_SIMPLE: {
-        if (DURATION_ALIASES.has(token.key.value) && node.space) {
+        if (
+          TRANSACTION_DURATION_ALIASES.has(token.key.value) &&
+          isTransactionNode(node) &&
+          node.space
+        ) {
           return node.space[1];
         }
+
+        if (
+          SPAN_DURATION_ALIASES.has(token.key.value) &&
+          isSpanNode(node) &&
+          node.space
+        ) {
+          return node.space[1];
+        }
+
+        if (
+          SPAN_SELF_TIME_ALIASES.has(token.key.value) &&
+          isSpanNode(node) &&
+          node.space
+        ) {
+          return node.value.exclusive_time;
+        }
+
         key = token.key.value;
         break;
       }
