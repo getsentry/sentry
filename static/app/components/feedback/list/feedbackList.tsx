@@ -158,7 +158,7 @@ export default function FeedbackList() {
 
 const OverflowPanelItem = styled(PanelItem)`
   display: grid;
-  overflow: scroll;
+  overflow: auto;
   flex-grow: 1;
   min-height: 300px;
 `;
