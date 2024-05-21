@@ -18,7 +18,7 @@ def get_webhook_analytics_fields(autofix_state: dict[str, Any]) -> dict[str, Any
 
 
 def handle_github_pr_webhook_for_autofix(
-    org: Organization, action: str, pull_request: dict, github_user: dict
+    org: Organization, action: str, pull_request: dict[str, Any], github_user: dict[str, Any]
 ) -> None:
     if github_user["id"] != AUTOFIX_GITHUB_APP_USER_ID:
         return
