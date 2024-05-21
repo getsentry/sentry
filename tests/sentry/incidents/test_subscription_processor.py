@@ -1,3 +1,4 @@
+import copy
 import unittest
 from datetime import timedelta
 from functools import cached_property
@@ -48,6 +49,7 @@ from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -2073,8 +2075,22 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         with self.options({"issues.group_attributes.send_kafka": True}):
             for i in range(4):
+                data = {
+                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group2"],
+                    "level": "error",
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "IntegrationError",
+                                "value": "Identity not found.",
+                            }
+                        ]
+                    },
+                }
                 self.store_event(
-                    data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                    data=data,
                     project_id=self.project.id,
                 )
 
