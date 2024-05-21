@@ -5,11 +5,9 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenLoadSpansTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/table';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
@@ -17,7 +15,6 @@ describe('ScreenLoadSpansTable', function () {
   const organization = OrganizationFixture({
     features: ['spans-first-ui'],
   });
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',

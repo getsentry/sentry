@@ -1,18 +1,9 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {MessageActorType} from 'sentry/views/performance/queues/settings';
 
-jest.mock('sentry/utils/useOrganization');
-
 describe('messageSpanSamplesTable', () => {
-  const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
-  beforeEach(() => {});
   it('renders consumer samples table', () => {
     render(
       <MessageSpanSamplesTable

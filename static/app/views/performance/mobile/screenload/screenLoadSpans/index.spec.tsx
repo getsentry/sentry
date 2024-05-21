@@ -7,20 +7,17 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import ScreenLoadSpans from 'sentry/views/performance/mobile/screenload/screenLoadSpans';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
 function mockResponses(organization, project) {
-  jest.mocked(useOrganization).mockReturnValue(organization);
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(useProjects).mockReturnValue({

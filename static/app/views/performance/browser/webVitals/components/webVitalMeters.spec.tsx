@@ -4,14 +4,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('WebVitalMeters', function () {
   const organization = OrganizationFixture();
@@ -53,11 +51,12 @@ describe('WebVitalMeters', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
   });
 
   it('renders web vital meters with interaction to next paint', async () => {
-    render(<WebVitalMeters projectData={projectData} projectScore={projectScore} />);
+    render(<WebVitalMeters projectData={projectData} projectScore={projectScore} />, {
+      organization,
+    });
     await screen.findByText('Largest Contentful Paint');
     screen.getByText('First Contentful Paint');
     screen.getByText('Cumulative Layout Shift');

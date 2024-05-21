@@ -2,15 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-jest.mock('sentry/utils/useOrganization');
-
 describe('queuesTable', () => {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   let eventsMock;
 
@@ -60,7 +56,8 @@ describe('queuesTable', () => {
     render(
       <QueuesTable
         sort={{field: 'time_spent_percentage(app,span.duration)', kind: 'desc'}}
-      />
+      />,
+      {organization}
     );
     expect(screen.getByRole('table', {name: 'Queues'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Destination'})).toBeInTheDocument();
@@ -108,7 +105,8 @@ describe('queuesTable', () => {
       <QueuesTable
         destination="*events*"
         sort={{field: SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
-      />
+      />,
+      {organization}
     );
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',

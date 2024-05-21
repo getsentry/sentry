@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PageOverview from 'sentry/views/performance/browser/webVitals/pageOverview';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
@@ -44,8 +42,6 @@ describe('PageOverview', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
-
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -76,7 +72,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />);
+    render(<PageOverview />, {organization});
     await screen.findByText(/\(Interaction to Next Paint\) will replace/);
     await screen.findByText(
       /\(First Input Delay\) in our performance score calculation./
@@ -87,7 +83,6 @@ describe('PageOverview', function () {
     const organizationWithInp = OrganizationFixture({
       features: ['spans-first-ui'],
     });
-    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -97,7 +92,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />);
+    render(<PageOverview />, {organization: organizationWithInp});
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -132,7 +127,6 @@ describe('PageOverview', function () {
     const organizationWithInp = OrganizationFixture({
       features: ['spans-first-ui'],
     });
-    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -146,7 +140,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />);
+    render(<PageOverview />, {organization: organizationWithInp});
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',

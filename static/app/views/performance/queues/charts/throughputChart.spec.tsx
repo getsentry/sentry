@@ -2,15 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 
-jest.mock('sentry/utils/useOrganization');
-
 describe('throughputChart', () => {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   let eventsStatsMock;
 
@@ -24,7 +20,7 @@ describe('throughputChart', () => {
     });
   });
   it('renders', async () => {
-    render(<ThroughputChart referrer={Referrer.QUEUES_SUMMARY_CHARTS} />);
+    render(<ThroughputChart referrer={Referrer.QUEUES_SUMMARY_CHARTS} />, {organization});
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',

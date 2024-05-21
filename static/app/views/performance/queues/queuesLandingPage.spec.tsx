@@ -3,14 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import QueuesLandingPage from 'sentry/views/performance/queues/queuesLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjects');
 
 describe('queuesLandingPage', () => {
@@ -43,8 +41,6 @@ describe('queuesLandingPage', () => {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
   jest.mocked(useProjects).mockReturnValue({
     projects: [],
     onSearch: jest.fn(),
@@ -72,7 +68,7 @@ describe('queuesLandingPage', () => {
   });
 
   it('renders', async () => {
-    render(<QueuesLandingPage />);
+    render(<QueuesLandingPage />, {organization});
     await screen.findByRole('table', {name: 'Queues'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByPlaceholderText('Search for more destinations');

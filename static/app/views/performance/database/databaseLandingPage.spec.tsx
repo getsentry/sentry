@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseLandingPage} from 'sentry/views/performance/database/databaseLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseLandingPage', function () {
   const organization = OrganizationFixture();
@@ -42,8 +40,6 @@ describe('DatabaseLandingPage', function () {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -117,7 +113,7 @@ describe('DatabaseLandingPage', function () {
   it('fetches module data', async function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />);
+    render(<DatabaseLandingPage />, {organization});
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -202,7 +198,7 @@ describe('DatabaseLandingPage', function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />);
+    render(<DatabaseLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

@@ -5,16 +5,13 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EntryType} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanDescription', function () {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   const project = ProjectFixture();
 
@@ -49,7 +46,8 @@ describe('DatabaseSpanDescription', function () {
       <DatabaseSpanDescription
         groupId={groupId}
         preliminaryDescription="SELECT USERS FRO*"
-      />
+      />,
+      {organization}
     );
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -93,7 +91,8 @@ describe('DatabaseSpanDescription', function () {
       <DatabaseSpanDescription
         groupId={groupId}
         preliminaryDescription="SELECT USERS FRO*"
-      />
+      />,
+      {organization}
     );
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));

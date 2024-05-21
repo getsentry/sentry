@@ -8,18 +8,21 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import type {IndexedProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 function Wrapper({children}: {children?: ReactNode}) {
   return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+    <QueryClientProvider client={makeTestQueryClient()}>
+      <OrganizationContext.Provider value={OrganizationFixture()}>
+        {children}
+      </OrganizationContext.Provider>
+    </QueryClientProvider>
   );
 }
 
@@ -48,8 +51,6 @@ describe('useIndexedSpans', () => {
       query: {statsPeriod: '10d'},
     })
   );
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('PagePerformanceTable', function () {
   const organization = OrganizationFixture();
@@ -42,7 +40,6 @@ describe('PagePerformanceTable', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -65,7 +62,7 @@ describe('PagePerformanceTable', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PagePerformanceTable />);
+    render(<PagePerformanceTable />, {organization});
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(2);
       expect(eventsMock).toHaveBeenLastCalledWith(

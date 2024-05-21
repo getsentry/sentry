@@ -2,15 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 
-jest.mock('sentry/utils/useOrganization');
-
 describe('latencyChart', () => {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   let eventsStatsMock;
 
@@ -25,7 +21,8 @@ describe('latencyChart', () => {
   });
   it('renders', async () => {
     render(
-      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />
+      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
+      {organization}
     );
     screen.getByText('Avg Latency');
     expect(eventsStatsMock).toHaveBeenCalledWith(

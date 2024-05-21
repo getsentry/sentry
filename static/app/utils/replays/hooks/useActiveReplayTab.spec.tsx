@@ -1,16 +1,13 @@
 import type {Location} from 'history';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
 
 const mockPush = jest.mocked(browserHistory.push);
 
@@ -26,15 +23,9 @@ function mockLocation(query: string = '') {
   } as Location);
 }
 
-function mockOrganizationFixture(props?: {features: string[]}) {
-  const features = props?.features ?? [];
-  jest.mocked(useOrganization).mockReturnValue(OrganizationFixture({features}));
-}
-
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     mockLocation();
-    mockOrganizationFixture();
     mockPush.mockReset();
   });
 

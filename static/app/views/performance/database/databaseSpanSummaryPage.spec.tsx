@@ -4,13 +4,11 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanSummaryPage} from 'sentry/views/performance/database/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture();
@@ -41,8 +39,6 @@ describe('DatabaseSpanSummaryPage', function () {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -135,7 +131,8 @@ describe('DatabaseSpanSummaryPage', function () {
           transactionMethod: '',
           transactionsSort: '',
         }}
-      />
+      />,
+      {organization}
     );
 
     // Metrics ribbon

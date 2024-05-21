@@ -9,14 +9,12 @@ import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ListPage from 'sentry/views/replays/list/listContent';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
@@ -37,8 +35,6 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
     features,
     access: [],
   });
-
-  jest.mocked(useOrganization).mockReturnValue(mockOrg);
 
   return mockOrg;
 }
@@ -78,6 +74,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
@@ -100,6 +97,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
@@ -122,6 +120,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
@@ -144,6 +143,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() => {
@@ -173,6 +173,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));

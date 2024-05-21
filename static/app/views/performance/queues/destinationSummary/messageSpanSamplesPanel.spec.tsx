@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
@@ -42,8 +40,6 @@ describe('messageSpanSamplesPanel', () => {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(() => {
     eventsStatsRequestMock = MockApiClient.addMockResponse({
@@ -134,7 +130,7 @@ describe('messageSpanSamplesPanel', () => {
       action: 'PUSH',
       key: '',
     });
-    render(<MessageSpanSamplesPanel />);
+    render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
@@ -218,7 +214,7 @@ describe('messageSpanSamplesPanel', () => {
       action: 'PUSH',
       key: '',
     });
-    render(<MessageSpanSamplesPanel />);
+    render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
