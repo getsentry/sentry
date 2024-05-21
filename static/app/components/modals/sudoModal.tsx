@@ -17,6 +17,9 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -56,11 +59,8 @@ type Props = WithRouterProps &
 function SudoModal({
   closeModal,
   isSuperuser,
-  location,
   needsReload,
-  router,
   retryRequest,
-  api,
   Header,
   Body,
   closeButton,
@@ -82,6 +82,10 @@ function SudoModal({
     superuserAccessCategory,
     superuserReason,
   } = state;
+
+  const router = useRouter();
+  const api = useApi();
+  const location = useLocation();
 
   useEffect(() => {
     const getAuthenticators = async () => {
