@@ -10,6 +10,8 @@ from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
+SPAN_DURATION_MRI = "d:spans/duration@millisecond"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     viewname = "sentry-api-0-organization-events"
@@ -1201,12 +1203,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span increases in duration
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.six_min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
             project=self.project.id,
         )
         self.store_span_metric(
             100,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
             project=self.project.id,
@@ -1215,12 +1219,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span stays the same
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.three_days_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
@@ -1230,12 +1236,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "span.description",
-                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                    f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})",
                 ],
                 "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
-                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                    f"-regression_score(span.duration,{int(self.two_min_ago.timestamp())})"
                 ],
                 "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
                 "end": before_now(minutes=0),
@@ -1251,6 +1257,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span only exists after the breakpoint
         self.store_span_metric(
             100,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Added span"},
             project=self.project.id,
@@ -1259,12 +1266,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span stays the same
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.three_days_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
@@ -1274,12 +1283,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "span.description",
-                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                    f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})",
                 ],
                 "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
-                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                    f"-regression_score(span.duration,{int(self.two_min_ago.timestamp())})"
                 ],
                 "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
                 "end": before_now(minutes=0),
@@ -1295,6 +1304,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span only exists before the breakpoint
         self.store_span_metric(
             100,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.six_min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Removed span"},
             project=self.project.id,
@@ -1303,12 +1313,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span stays the same
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.three_days_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
@@ -1318,12 +1330,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "span.description",
-                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                    f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})",
                 ],
                 "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
-                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                    f"-regression_score(span.duration,{int(self.two_min_ago.timestamp())})"
                 ],
                 "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
                 "end": before_now(minutes=0),
@@ -1337,7 +1349,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         # The regression score is <0 for removed spans, this can act as
         # a way to filter out removed spans when necessary
-        assert data[1][f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"] < 0
+        assert data[1][f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})"] < 0
 
     def test_avg_self_time_by_timestamp(self):
         self.store_span_metric(
@@ -1397,7 +1409,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_epm_by_timestamp(self):
         self.store_span_metric(
             1,
-            internal_metric=constants.SELF_TIME_LIGHT,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.six_min_ago,
             tags={},
         )
@@ -1406,7 +1418,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(3):
             self.store_span_metric(
                 3,
-                internal_metric=constants.SELF_TIME_LIGHT,
+                internal_metric=SPAN_DURATION_MRI,
                 timestamp=self.min_ago,
                 tags={},
             )

@@ -1041,12 +1041,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "countIf",
                     [
                         Function(
-                            condition,
+                            "and",
                             [
-                                Column("timestamp"),
-                                args["timestamp"],
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.duration"),
+                                    ],
+                                ),
+                                Function(
+                                    condition,
+                                    [
+                                        Column("timestamp"),
+                                        args["timestamp"],
+                                    ],
+                                ),
                             ],
-                        ),
+                        )
                     ],
                 ),
                 Function("divide", [interval, 60]),
