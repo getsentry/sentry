@@ -84,28 +84,30 @@ function SudoModal({
     superuserReason,
   } = state;
 
-  const {isLoading} = useContext(OrganizationLoaderContext) || {};
+  const {loadOrganization} = useContext(OrganizationLoaderContext) || {};
   const router = useRouter();
   const api = useApi();
   const location = useLocation();
 
   useEffect(() => {
-    const getAuthenticators = async () => {
+    const getAuthenticators = () => {
       try {
-        const fetchedAuthenticators = await api.requestPromise('/authenticators/');
-        setState(prevState => ({
-          ...prevState,
-          authenticators: fetchedAuthenticators ?? [],
-        }));
+        if (loadOrganization) {
+          loadOrganization().then(async () => {
+            const fetchedAuthenticators = await api.requestPromise('/authenticators/');
+            setState(prevState => ({
+              ...prevState,
+              authenticators: fetchedAuthenticators ?? [],
+            }));
+          });
+        }
       } catch {
         // ignore errors
       }
     };
 
-    if (!isLoading) {
-      getAuthenticators();
-    }
-  }, [api, isLoading]);
+    getAuthenticators();
+  }, [api, loadOrganization]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
