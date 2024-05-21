@@ -1,20 +1,24 @@
+import logging
 import re
 import zoneinfo
 from collections.abc import Mapping
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
-from dateutil.parser import parse
+from dateutil.parser import ParserError, parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import MAX_ROLLUP_POINTS
+from sentry.utils import metrics
 
 epoch = datetime(1970, 1, 1, tzinfo=UTC)
 
 # Factory is an obscure GMT alias
 AVAILABLE_TIMEZONES = frozenset(zoneinfo.available_timezones() - {"Factory"})
+
+logger = logging.getLogger("sentry.utils.dates")
 
 
 def ensure_aware(value: datetime) -> datetime:
@@ -76,12 +80,7 @@ def parse_date(datestr: str, timestr: str) -> datetime | None:
             return None
 
 
-def parse_timestamp(value: Any) -> datetime | None:
-    # TODO(mitsuhiko): merge this code with coreapis date parser
-    if isinstance(value, datetime):
-        return value
-    elif isinstance(value, (int, float)):
-        return datetime.fromtimestamp(value, UTC)
+def _parse_timestamp_old(value: Any) -> datetime | None:
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
@@ -102,6 +101,37 @@ def parse_timestamp(value: Any) -> datetime | None:
         except ValueError:
             return None
     return rv.replace(tzinfo=UTC)
+
+
+def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datetime | None:
+    # TODO(mitsuhiko): merge this code with coreapis date parser
+    if not value:
+        return None
+    elif isinstance(value, datetime):
+        return value
+    elif isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, UTC)
+
+    expected_value = _parse_timestamp_old(value)
+
+    # TODO(@anonrig): Remove this once we make sure both results return the same.
+    if options.get("system.use-date-util-timestamps"):
+        try:
+            if isinstance(value, bytes):
+                value = value.decode()
+            new_value = parse(value, ignoretz=True).replace(tzinfo=UTC)
+        except (ParserError, ValueError):
+            logger.exception("parse_timestamp")
+            new_value = None
+
+        result = "not-equal" if expected_value != new_value else "equal"
+        metrics.incr("parse_timestamp", tags={"result": result})
+        if expected_value != new_value:
+            logger.info(
+                "parse_timestamp dateutil not-equal",
+                extra={"expected_value": expected_value, "new_value": new_value},
+            )
+    return expected_value
 
 
 def parse_stats_period(period: str) -> timedelta | None:

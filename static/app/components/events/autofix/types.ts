@@ -23,6 +23,8 @@ export enum AutofixCodebaseIndexingStatus {
   UP_TO_DATE = 'up_to_date',
   INDEXING = 'indexing',
   NOT_INDEXED = 'not_indexed',
+  OUT_OF_DATE = 'out_of_date',
+  ERRORED = 'errored',
 }
 
 export type AutofixPullRequestDetails = {
