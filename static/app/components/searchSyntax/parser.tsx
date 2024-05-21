@@ -417,9 +417,15 @@ export class TokenConverter {
     };
   };
 
-  tokenParen = (value: '(' | ')') => ({
+  tokenLParen = (value: '(') => ({
     ...this.defaultTokenFields,
-    type: value === '(' ? (Token.L_PAREN as const) : (Token.R_PAREN as const),
+    type: Token.L_PAREN as const,
+    value,
+  });
+
+  tokenRParen = (value: ')') => ({
+    ...this.defaultTokenFields,
+    type: Token.R_PAREN as const,
     value,
   });
 

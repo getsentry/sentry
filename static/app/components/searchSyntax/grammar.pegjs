@@ -382,8 +382,8 @@ operator       = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator    = "OR"i  &end_value
 and_operator   = "AND"i &end_value
 numeric        = [0-9]+ ("." [0-9]*)? { return text(); }
-open_paren     = "(" { return tc.tokenParen(text()); }
-closed_paren   = ")" { return tc.tokenParen(text()); }
+open_paren     = "(" { return tc.tokenLParen(text()); }
+closed_paren   = ")" { return tc.tokenRParen(text()); }
 open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"
