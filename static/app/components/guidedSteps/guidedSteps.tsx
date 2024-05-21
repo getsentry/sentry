@@ -14,6 +14,7 @@ import {type BaseButtonProps, Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactElement<StepProps> | React.ReactElement<StepProps>[];
@@ -22,6 +23,7 @@ type GuidedStepsProps = {
 };
 
 interface GuidedStepsContextState {
+  advanceToNextIncompleteStep: () => void;
   currentStep: number;
   getStepNumber: (stepKey: string) => number;
   registerStep: (step: RegisterStepInfo) => void;
@@ -40,6 +42,7 @@ type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
 type RegisteredSteps = {[key: string]: {stepNumber: number; isCompleted?: boolean}};
 
 const GuidedStepsContext = createContext<GuidedStepsContextState>({
+  advanceToNextIncompleteStep: () => {},
   currentStep: 0,
   setCurrentStep: () => {},
   totalSteps: 0,
@@ -63,6 +66,7 @@ function useGuidedStepsContentValue({
   // render and that step order does not change.
   const registerStep = useCallback((props: RegisterStepInfo) => {
     if (registeredStepsRef.current[props.stepKey]) {
+      registeredStepsRef.current[props.stepKey].isCompleted = props.isCompleted;
       return;
     }
     const numRegisteredSteps = Object.keys(registeredStepsRef.current).length + 1;
@@ -77,15 +81,24 @@ function useGuidedStepsContentValue({
     return registeredStepsRef.current[stepKey]?.stepNumber ?? 1;
   }, []);
 
+  const getFirstIncompleteStep = useCallback(() => {
+    return orderBy(Object.values(registeredStepsRef.current), 'stepNumber').find(
+      step => step.isCompleted !== true
+    );
+  }, []);
+
+  const advanceToNextIncompleteStep = useCallback(() => {
+    const firstIncompleteStep = getFirstIncompleteStep();
+    if (firstIncompleteStep) {
+      setCurrentStep(firstIncompleteStep.stepNumber);
+    }
+  }, [getFirstIncompleteStep]);
+
   // On initial load, set the current step to the first incomplete step
   useEffect(() => {
-    const firstIncompleteStep = orderBy(
-      Object.values(registeredStepsRef.current),
-      'stepNumber'
-    ).find(step => step.isCompleted !== true);
-
+    const firstIncompleteStep = getFirstIncompleteStep();
     setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, []);
+  }, [getFirstIncompleteStep]);
 
   const handleSetCurrentStep = useCallback(
     (step: number) => {
@@ -102,20 +115,36 @@ function useGuidedStepsContentValue({
       totalSteps,
       registerStep,
       getStepNumber,
+      advanceToNextIncompleteStep,
     }),
-    [currentStep, getStepNumber, handleSetCurrentStep, registerStep, totalSteps]
+    [
+      advanceToNextIncompleteStep,
+      currentStep,
+      getStepNumber,
+      handleSetCurrentStep,
+      registerStep,
+      totalSteps,
+    ]
   );
 }
 
 function Step(props: StepProps) {
-  const {currentStep, registerStep, getStepNumber} = useGuidedStepsContext();
+  const {advanceToNextIncompleteStep, currentStep, registerStep, getStepNumber} =
+    useGuidedStepsContext();
   const stepNumber = getStepNumber(props.stepKey);
   const isActive = currentStep === stepNumber;
   const isCompleted = props.isCompleted ?? currentStep > stepNumber;
+  const previousIsCompleted = usePrevious(isCompleted);
 
   useEffect(() => {
     registerStep({isCompleted: props.isCompleted, stepKey: props.stepKey});
   }, [props.isCompleted, props.stepKey, registerStep]);
+
+  useEffect(() => {
+    if (!previousIsCompleted && isCompleted && isActive) {
+      advanceToNextIncompleteStep();
+    }
+  }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
 
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
