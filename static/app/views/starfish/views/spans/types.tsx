@@ -25,7 +25,8 @@ export type DataKey =
   | 'httpCodeBreakdown'
   | 'cacheMissRate'
   | 'avg(cache.item_size)'
-  | 'transaction.duration';
+  | 'transaction.duration'
+  | 'cache.item_size';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -51,6 +52,7 @@ export const DataTitles: Record<DataKey, string> = {
   httpCodeBreakdown: t('Response Code Breakdown'),
   cacheMissRate: t('Miss Rate'),
   'transaction.duration': t('Transaction Duration'),
+  'cache.item_size': t('Value Size'),
 };
 
 export const getThroughputTitle = (
