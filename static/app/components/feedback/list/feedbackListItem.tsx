@@ -81,7 +81,6 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
             <Row style={{gridArea: 'checkbox'}}>
               <Checkbox
-                style={{gridArea: 'checkbox'}}
                 disabled={isSelected === 'all-selected'}
                 checked={isSelected !== false}
                 onChange={e => {
