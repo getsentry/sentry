@@ -1245,7 +1245,9 @@ class SnubaTestCase(BaseTestCase):
 
     @classmethod
     def snuba_update_config(cls, config_vals):
-        return _snuba_pool.request("POST", "/config.json", body=orjson.dumps(config_vals).decode())
+        return _snuba_pool.request(
+            "POST", "/config.json", body=orjson.dumps(config_vals, option=orjson.OPT_UTC_Z)
+        )
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
@@ -1335,7 +1337,7 @@ class SnubaTestCase(BaseTestCase):
             _snuba_pool.urlopen(
                 "POST",
                 "/tests/entities/groupedmessage/insert",
-                body=orjson.dumps(data).decode(),
+                body=orjson.dumps(data, option=orjson.OPT_UTC_Z),
                 headers={},
             ).status
             == 200
@@ -1346,7 +1348,7 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=orjson.dumps(data),
+                data=orjson.dumps(data, option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )
@@ -1355,7 +1357,7 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                data=orjson.dumps([span]),
+                data=orjson.dumps([span], option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )
@@ -1364,7 +1366,7 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/spans/insert",
-                data=orjson.dumps(spans),
+                data=orjson.dumps(spans, option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )
@@ -1401,7 +1403,7 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=orjson.dumps(rows),
+                data=orjson.dumps(rows, option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )
@@ -1470,7 +1472,7 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/events/insert",
-                data=orjson.dumps(events),
+                data=orjson.dumps(events, option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )
@@ -1792,7 +1794,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
-                data=orjson.dumps(buckets),
+                data=orjson.dumps(buckets, option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )
@@ -2314,7 +2316,7 @@ class OutcomesSnubaTest(TestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=orjson.dumps(outcomes),
+                data=orjson.dumps(outcomes, option=orjson.OPT_UTC_Z),
             ).status_code
             == 200
         )

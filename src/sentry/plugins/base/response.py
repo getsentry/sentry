@@ -34,5 +34,7 @@ class JSONResponse(Response):
 
     def respond(self, request, context=None):
         return HttpResponse(
-            orjson.dumps(self.context).decode(), content_type="application/json", status=self.status
+            orjson.dumps(self.context, option=orjson.OPT_UTC_Z).decode(),
+            content_type="application/json",
+            status=self.status,
         )

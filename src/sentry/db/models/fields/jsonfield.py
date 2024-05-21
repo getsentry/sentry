@@ -117,7 +117,7 @@ class JSONField(models.TextField):
                 return ""
             return None
         # TODO(@anonrig): Remove support for non-string keys.
-        return orjson.dumps(value, option=orjson.OPT_NON_STR_KEYS).decode()
+        return orjson.dumps(value, option=orjson.OPT_NON_STR_KEYS | orjson.OPT_UTC_Z).decode()
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)

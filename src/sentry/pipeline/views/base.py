@@ -35,5 +35,8 @@ class PipelineView(BaseView, abc.ABC):
         return render_to_response(
             template="sentry/bases/react_pipeline.html",
             request=request,
-            context={"pipelineName": pipeline_name, "props": orjson.dumps(props).decode()},
+            context={
+                "pipelineName": pipeline_name,
+                "props": orjson.dumps(props, option=orjson.OPT_UTC_Z).decode(),
+            },
         )

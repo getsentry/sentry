@@ -333,7 +333,7 @@ class BaseApiClient(TrackResponseMixin):
         data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
-            query = orjson.dumps(kwargs.get("params")).decode()
+            query = orjson.dumps(kwargs.get("params"), option=orjson.OPT_UTC_Z).decode()
 
         key = self.get_cache_key(path, query, data)
         result: BaseApiResponseX | None = self.check_cache(key)

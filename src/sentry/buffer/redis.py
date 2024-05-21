@@ -49,7 +49,9 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
         try:
             if (
                 RedisBuffer._load_values(
-                    orjson.loads(orjson.dumps(RedisBuffer._dump_values(value)))
+                    orjson.loads(
+                        orjson.dumps(RedisBuffer._dump_values(value), option=orjson.OPT_UTC_Z)
+                    )
                 )
                 != value
             ):
@@ -346,7 +348,9 @@ class RedisBuffer(Buffer):
         _validate_json_roundtrip(filters, model)
 
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            pipe.hsetnx(key, "f", orjson.dumps(self._dump_values(filters)).decode())
+            pipe.hsetnx(
+                key, "f", orjson.dumps(self._dump_values(filters), option=orjson.OPT_UTC_Z).decode()
+            )
         else:
             pipe.hsetnx(key, "f", pickle.dumps(filters))
 
@@ -360,7 +364,11 @@ class RedisBuffer(Buffer):
             _validate_json_roundtrip(extra, model)
             for column, value in extra.items():
                 if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                    pipe.hset(key, "e+" + column, orjson.dumps(self._dump_value(value)).decode())
+                    pipe.hset(
+                        key,
+                        "e+" + column,
+                        orjson.dumps(self._dump_value(value), option=orjson.OPT_UTC_Z).decode(),
+                    )
                 else:
                     pipe.hset(key, "e+" + column, pickle.dumps(value))
 

@@ -188,7 +188,7 @@ def _import(
                 del content_as_json[i]
 
         # Return the content to byte form, as that is what the Django deserializer expects.
-        content = orjson.dumps(content_as_json)
+        content = orjson.dumps(content_as_json, option=orjson.OPT_UTC_Z)
 
     filters = []
     if filter_by is not None:

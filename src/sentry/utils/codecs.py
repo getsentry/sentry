@@ -70,7 +70,7 @@ class JSONCodec(Codec[Any, str]):
     """
 
     def encode(self, value: Any) -> str:
-        return orjson.dumps(value).decode()
+        return orjson.dumps(value, option=orjson.OPT_UTC_Z).decode()
 
     def decode(self, value: str) -> Any:
         return orjson.loads(value)

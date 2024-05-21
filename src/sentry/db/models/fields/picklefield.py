@@ -34,7 +34,7 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             return None
         # TODO(@anonrig): Remove support for non-string keys.
         return orjson.dumps(
-            value, option=orjson.OPT_NON_STR_KEYS, default=_orjson_defaults
+            value, option=orjson.OPT_NON_STR_KEYS | orjson.OPT_UTC_Z, default=_orjson_defaults
         ).decode()
 
     def to_python(self, value):

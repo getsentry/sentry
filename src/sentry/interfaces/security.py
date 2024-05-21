@@ -173,7 +173,9 @@ class Csp(SecurityReport):
         return super().to_python(data, **kwargs)
 
     def to_string(self, is_public=False, **kwargs):
-        return orjson.dumps({"csp-report": self.get_api_context()}).decode()
+        return orjson.dumps(
+            {"csp-report": self.get_api_context()}, option=orjson.OPT_UTC_Z
+        ).decode()
 
     def to_email_html(self, event, **kwargs):
         return render_to_string(

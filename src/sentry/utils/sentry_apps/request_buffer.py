@@ -84,7 +84,10 @@ class SentryAppWebhookRequestsBuffer:
         This does not execute the pipeline's commands.
         """
 
-        pipeline.lpush(buffer_key, orjson.dumps(item, default=_orjson_defaults).decode())
+        pipeline.lpush(
+            buffer_key,
+            orjson.dumps(item, option=orjson.OPT_UTC_Z, default=_orjson_defaults).decode(),
+        )
         pipeline.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
@@ -176,14 +179,18 @@ class SentryAppWebhookRequestsBuffer:
                     try:
                         orjson.loads(response.content)
                         # if the type is jsonifiable, treat it as such
-                        prettified_response_body = orjson.dumps(response.content).decode()
+                        prettified_response_body = orjson.dumps(
+                            response.content, option=orjson.OPT_UTC_Z
+                        ).decode()
                         request_data["response_body"] = prettified_response_body[:MAX_SIZE]
                     except (orjson.JSONDecodeError, TypeError):
                         request_data["response_body"] = response.content[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
                     if request_body is not None:
-                        prettified_request_body = orjson.dumps(request_body).decode()
+                        prettified_request_body = orjson.dumps(
+                            request_body, option=orjson.OPT_UTC_Z
+                        ).decode()
                         request_data["request_body"] = prettified_request_body[:MAX_SIZE]
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway

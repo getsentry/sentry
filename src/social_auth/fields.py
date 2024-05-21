@@ -47,7 +47,7 @@ class JSONField(TextField):
     def get_prep_value(self, value) -> str:
         """Convert value to JSON string before save"""
         try:
-            return orjson.dumps(value).decode()
+            return orjson.dumps(value, option=orjson.OPT_UTC_Z).decode()
         except orjson.JSONEncodeError as e:
             raise ValidationError(str(e))
 

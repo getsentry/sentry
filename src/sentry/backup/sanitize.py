@@ -295,7 +295,7 @@ class Sanitizer:
         if interned is not None:
             return orjson.loads(interned)
 
-        new_serialized = orjson.dumps(new_json).decode()
+        new_serialized = orjson.dumps(new_json, option=orjson.OPT_UTC_Z).decode()
         self.interned_strings[old_serialized] = new_serialized
         return new_json
 

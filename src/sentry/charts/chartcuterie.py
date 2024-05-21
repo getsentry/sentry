@@ -76,7 +76,7 @@ class Chartcuterie(ChartRenderer):
             assert self.service_url is not None
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                data=orjson.dumps(payload),
+                data=orjson.dumps(payload, option=orjson.OPT_UTC_Z),
                 headers={"Content-Type": "application/json"},
             )
 

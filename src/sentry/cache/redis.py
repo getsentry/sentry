@@ -26,7 +26,7 @@ class CommonRedisCache(BaseCache):
 
     def set(self, key, value, timeout, version=None, raw=False):
         key = self.make_key(key, version=version)
-        v = orjson.dumps(value).decode() if not raw else value
+        v = orjson.dumps(value, option=orjson.OPT_UTC_Z).decode() if not raw else value
         if len(v) > self.max_size:
             raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
         if timeout:
