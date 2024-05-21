@@ -39,7 +39,8 @@ class AppPlatformEvent:
                 "installation": {"uuid": self.install.uuid},
                 "data": self.data,
                 "actor": self.get_actor(),
-            }
+            },
+            option=orjson.OPT_UTC_Z,
         ).decode()
 
     @property
