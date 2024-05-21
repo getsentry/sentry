@@ -1,7 +1,9 @@
 import {useCallback, useEffect} from 'react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
 import {makeAutofixSetupQueryKey} from 'sentry/components/events/autofix/useAutofixSetup';
+import {t} from 'sentry/locale';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -62,17 +64,11 @@ export function useAutofixCodebaseIndexing({
   const status = apiData?.status ?? null;
   const prevStatus = usePrevious(status);
 
-  const startIndexing = useCallback(() => {
+  const startIndexing = useCallback(async () => {
     if (!projectSlug) {
       return;
     }
 
-    // Triggering the create endpoint on the seer side should make it start return indexing status...
-    api.requestPromise(makeCodebaseIndexCreateUrl(organization.slug, projectSlug), {
-      method: 'POST',
-    });
-
-    // We set it anyways to trigger the polling
     setApiQueryData<CodebaseIndexingStatusResponse>(
       queryClient,
       makeCodebaseIndexStatusQueryKey(organization.slug, projectSlug),
@@ -80,6 +76,20 @@ export function useAutofixCodebaseIndexing({
         status: AutofixCodebaseIndexingStatus.INDEXING,
       }
     );
+
+    // Triggering the create endpoint on the seer side should make it start return indexing status...
+    try {
+      await api.requestPromise(
+        makeCodebaseIndexCreateUrl(organization.slug, projectSlug),
+        {
+          method: 'POST',
+        }
+      );
+    } catch {
+      addErrorMessage(
+        t('Something went wrong while Autofix was indexing your codebase.')
+      );
+    }
   }, [api, queryClient, organization.slug, projectSlug]);
 
   useEffect(() => {
