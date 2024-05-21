@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import os
 import random
@@ -899,10 +900,19 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def store_event(
-        data, project_id: int, assert_no_errors: bool = True, sent_at: datetime | None = None
+        data,
+        project_id: int,
+        assert_no_errors: bool = True,
+        event_type: str = "default",
+        sent_at: datetime | None = None,
     ) -> Event:
-        # Like `create_event`, but closer to how events are actually
-        # ingested. Prefer to use this method over `create_event`
+        """
+        Like `create_event`, but closer to how events are actually
+        ingested. Prefer to use this method over `create_event`
+        """
+        if event_type == "error":
+            data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:

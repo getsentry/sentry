@@ -1,4 +1,3 @@
-import copy
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
@@ -28,7 +27,6 @@ from sentry.testutils.cases import (
     SlackActivityNotificationTest,
     SnubaTestCase,
 )
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
@@ -56,7 +54,6 @@ class DailySummaryTest(
             if category == DataCategory.ERROR:
                 data = {
                     "timestamp": iso_format(timestamp),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": [fingerprint],
                     "level": level,
                     "exception": {
@@ -72,9 +69,7 @@ class DailySummaryTest(
                     data["release"] = release
 
                 event = self.store_event(
-                    data=data,
-                    project_id=project_id,
-                    assert_no_errors=False,
+                    data=data, project_id=project_id, assert_no_errors=False, event_type="error"
                 )
             elif category == DataCategory.TRANSACTION:
                 event = self.create_performance_issue()
@@ -739,7 +734,6 @@ class DailySummaryTest(
         type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
         data = {
             "timestamp": iso_format(self.now),
-            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -752,9 +746,7 @@ class DailySummaryTest(
         }
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
+                data=data, project_id=self.project.id, assert_no_errors=False, event_type="error"
             )
             self.store_outcomes(
                 {
@@ -790,7 +782,6 @@ class DailySummaryTest(
     def test_slack_notification_contents_newline_no_attachment_text(self):
         data = {
             "timestamp": iso_format(self.now),
-            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -803,9 +794,7 @@ class DailySummaryTest(
         }
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
+                data=data, project_id=self.project.id, assert_no_errors=False, event_type="error"
             )
             self.store_outcomes(
                 {
@@ -841,7 +830,6 @@ class DailySummaryTest(
     def test_slack_notification_contents_truncate_text(self):
         data = {
             "timestamp": iso_format(self.now),
-            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -854,9 +842,7 @@ class DailySummaryTest(
         }
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
+                data=data, project_id=self.project.id, assert_no_errors=False, event_type="error"
             )
             self.store_outcomes(
                 {
