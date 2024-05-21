@@ -5,6 +5,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.snuba.sessions import STATS_PERIODS
+
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
 
@@ -155,6 +157,69 @@ Valid fields include:
 - `projects`: By number of projects
 - `events`: By number of events in the past 24 hours
 """,
+    )
+
+
+class ReleaseParams:
+    VERSION = OpenApiParameter(
+        name="version",
+        location="path",
+        required=True,
+        type=str,
+        description="The version identifier of the release",
+    )
+    PROJECT_ID = OpenApiParameter(
+        name="project_id",
+        location="query",
+        required=False,
+        type=str,
+        description="The project id to filter by.",
+    )
+    HEALTH = OpenApiParameter(
+        name="health",
+        location="query",
+        required=False,
+        type=bool,
+        description="Include health data with the release.",
+    )
+    ADOPTION_STAGES = OpenApiParameter(
+        name="adoptionStages",
+        location="query",
+        required=False,
+        type=bool,
+        description="Include adoption stages with the release.",
+    )
+    SUMMARY_STATS_PERIOD = OpenApiParameter(
+        name="summaryStatsPeriod",
+        location="query",
+        required=False,
+        type=str,
+        description="The period of time for the query, default is 14d.",
+        enum=STATS_PERIODS.keys(),
+    )
+    HEALTH_STATS_PERIOD = OpenApiParameter(
+        name="healthStatsPeriod",
+        location="query",
+        required=False,
+        type=str,
+        description="The period of time for the query, default is 24h if health is enabled.",
+        enum=STATS_PERIODS.keys(),
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="The field to sort results by, default is `date`.",
+        enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
+    )
+    STATUS_FILTER = OpenApiParameter(
+        name="status",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter by release status.",
+        enum=["open", "archived"],
     )
 
 
