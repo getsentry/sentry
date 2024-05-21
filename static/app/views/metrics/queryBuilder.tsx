@@ -224,8 +224,11 @@ export const QueryBuilder = memo(function QueryBuilder({
         label: mriMode
           ? metric.mri
           : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
-        // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-        textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
+        textValue: mriMode
+          ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+            `${metric.mri}${getReadableMetricType(metric.type)}`
+          : // enable search in the full formatted string
+            formatMRI(metric.mri),
         value: metric.mri,
         details:
           metric.projectIds.length > 0 ? (
