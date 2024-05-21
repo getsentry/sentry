@@ -141,6 +141,8 @@ class IntegrationService(RpcService):
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
+
+        :deprecated: Use organization_context() instead.
         """
 
     @rpc_method
@@ -156,6 +158,8 @@ class IntegrationService(RpcService):
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
         by either integration_id, or a combination of provider and external_id.
+
+        :deprecated: Use organization_contexts() instead.
         """
 
     @rpc_method
