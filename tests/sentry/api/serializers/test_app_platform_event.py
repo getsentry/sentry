@@ -1,3 +1,5 @@
+import datetime
+
 import orjson
 
 from sentry.api.serializers import AppPlatformEvent
@@ -14,20 +16,22 @@ class AppPlatformEventSerializerTest(TestCase):
         )
 
     def test_no_actor(self):
+        data = {"time": datetime.datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=datetime.UTC)}
         result = AppPlatformEvent(
-            resource="event_alert", action="triggered", install=self.install, data={}
+            resource="event_alert", action="triggered", install=self.install, data=data
         )
 
-        assert (
-            result.body
-            == orjson.dumps(
-                {
-                    "action": "triggered",
-                    "installation": {"uuid": self.install.uuid},
-                    "data": {},
-                    "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
-                }
-            ).decode()
+        # Our serializer uses orjson to create the results but the result should match what json
+        # creates on customers side
+        from sentry.utils import json
+
+        assert result.body == json.dumps(
+            {
+                "action": "triggered",
+                "installation": {"uuid": self.install.uuid},
+                "data": data,
+                "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
+            }
         )
 
         signature = self.sentry_app.build_signature(result.body)
