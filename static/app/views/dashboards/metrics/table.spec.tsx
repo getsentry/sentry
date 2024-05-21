@@ -4,13 +4,13 @@ const queries = [
   {
     name: 'a',
     mri: 'd:custom/sentry.event_manager.save@second',
-    op: 'p50',
+    aggregation: 'p50',
     groupBy: ['consumer_group', 'event_type'],
   },
   {
     name: 'b',
     mri: 'd:custom/sentry.event_manager.save_attachments@second',
-    op: 'p90',
+    aggregation: 'p90',
     groupBy: ['event_type'],
   },
 ];

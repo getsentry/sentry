@@ -141,11 +141,11 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const alertChartQuery = useMemo(
     () => ({
       mri: metricsQuery.mri,
-      op: metricsQuery.op,
+      aggregation: metricsQuery.aggregation,
       query: metricsQuery.query,
       name: 'query',
     }),
-    [metricsQuery.mri, metricsQuery.op, metricsQuery.query]
+    [metricsQuery.mri, metricsQuery.aggregation, metricsQuery.query]
   );
 
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
@@ -247,7 +247,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   ]);
 
   const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
-  const operation = metricsQuery.op;
+  const operation = metricsQuery.aggregation;
   const chartOptions = useMemo(() => {
     const bucketSize =
       (chartSeries?.[0]?.data[1]?.name ?? 0) - (chartSeries?.[0]?.data[0]?.name ?? 0);

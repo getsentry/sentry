@@ -27,7 +27,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
       {
         name: 'total',
         mri: `c:spans/ai.total_tokens.used@none`,
-        op: 'sum',
+        aggregation: 'sum',
         query,
       },
     ],
@@ -83,7 +83,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
       {
         name: 'number',
         mri: `d:spans/exclusive_time_light@millisecond`,
-        op: 'count',
+        aggregation: 'count',
         query,
       },
     ],
@@ -139,7 +139,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
       {
         name: 'duration',
         mri: `d:spans/duration@millisecond`,
-        op: 'avg',
+        aggregation: 'avg',
         query,
       },
     ],

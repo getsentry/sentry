@@ -22,8 +22,8 @@ import {
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
+  MetricAggregation,
   MetricMeta,
-  MetricsAggregate,
   MetricsDataIntervalLadder,
   MetricsQueryApiResponse,
   MetricsQueryApiResponseLastMeta,
@@ -48,10 +48,10 @@ import {
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
-  mri?: MetricsQuery['mri'],
-  op?: MetricsQuery['op']
+  mri?: MRI,
+  aggregation?: MetricAggregation
 ): MetricDisplayType {
-  if (mri?.startsWith('c') || op === 'count') {
+  if (mri?.startsWith('c') || aggregation === 'count') {
     return MetricDisplayType.BAR;
   }
   return MetricDisplayType.LINE;
@@ -150,7 +150,7 @@ export function getDateTimeParams({start, end, period}: PageFilters['datetime'])
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
 }
 
-export function getDefaultAggregate(mri: MRI): MetricsAggregate {
+export function getDefaultAggregation(mri: MRI): MetricAggregation {
   const parsedMRI = parseMRI(mri);
 
   const fallbackAggregate = 'sum';
@@ -162,14 +162,14 @@ export function getDefaultAggregate(mri: MRI): MetricsAggregate {
   return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
 }
 
-export function isAllowedOp(op: string) {
-  return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
+export function isAllowedAggregation(aggregation: MetricAggregation) {
+  return !['max_timestamp', 'min_timestamp', 'histogram'].includes(aggregation);
 }
 
-// Applying these operations to a metric will result in a timeseries whose scale is different than
-// the original metric. Becuase of that min and max bounds can't be used and we display the fog of war
-export function isCumulativeOp(op: string = '') {
-  return ['sum', 'count', 'count_unique'].includes(op);
+// Applying these aggregations to a metric will result in a timeseries whose scale is different than
+// the original metric.
+export function isCumulativeAggregation(aggregation: MetricAggregation) {
+  return ['sum', 'count', 'count_unique'].includes(aggregation);
 }
 
 function updateQuery(
@@ -260,7 +260,7 @@ export function getMetricQueryName(query: MetricsQueryApiQueryParams): string {
     query.alias ??
     (isMetricFormula(query)
       ? unescapeMetricsFormula(query.formula)
-      : formatMRIField(MRIToField(query.mri, query.op)))
+      : formatMRIField(MRIToField(query.mri, query.aggregation)))
   );
 }
 
@@ -276,15 +276,15 @@ export function getMetricsSeriesId(
 
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   const uniqueOperations = [
-    ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
+    ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedAggregation)),
   ].sort();
 
-  const groupedByOp = uniqueOperations.reduce((result, op) => {
-    result[op] = metrics.filter(field => field.operations.includes(op));
+  const groupedByAggregation = uniqueOperations.reduce((result, aggregation) => {
+    result[aggregation] = metrics.filter(field => field.operations.includes(aggregation));
     return result;
   }, {});
 
-  return groupedByOp;
+  return groupedByAggregation;
 }
 
 export function isTransactionMeasurement({mri}: {mri: MRI}) {
@@ -345,18 +345,23 @@ export function isGaugeMetric({mri}: {mri: MRI}) {
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.op);
+    return MRIToField(metricsQuery.mri, metricsQuery.aggregation);
   }
 
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op));
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.aggregation));
 }
 
-export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {
-  if (!op) {
+export function getFormattedMQL({
+  mri,
+  aggregation,
+  query,
+  groupBy,
+}: MetricsQuery): string {
+  if (!aggregation) {
     return '';
   }
 
-  let result = `${op}(${formatMRI(mri)})`;
+  let result = `${aggregation}(${formatMRI(mri)})`;
 
   if (query) {
     result += `{${query.trim()}}`;

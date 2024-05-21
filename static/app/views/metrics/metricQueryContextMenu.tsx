@@ -186,7 +186,7 @@ export function MetricQueryContextMenu({
 export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
   if (
     !metricsQuery.mri ||
-    !metricsQuery.op ||
+    !metricsQuery.aggregation ||
     isCustomMeasurement(metricsQuery) ||
     isGaugeMetric(metricsQuery) ||
     !organization.access.includes('alerts:write')
@@ -211,7 +211,11 @@ export function useCreateDashboardWidget(
   const {selection} = usePageFilters();
 
   return useMemo(() => {
-    if (!metricsQuery.mri || !metricsQuery.op || isCustomMeasurement(metricsQuery)) {
+    if (
+      !metricsQuery.mri ||
+      !metricsQuery.aggregation ||
+      isCustomMeasurement(metricsQuery)
+    ) {
       return undefined;
     }
 

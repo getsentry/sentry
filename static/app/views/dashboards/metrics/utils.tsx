@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import type {MRI} from 'sentry/types/metrics';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
@@ -98,13 +97,17 @@ export function getMetricQueries(
       usedIds.add(id);
     }
 
-    const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+    const parsed = parseField(query.aggregates[0]);
+    if (!parsed) {
+      return null;
+    }
+
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
       id: id,
       type: MetricExpressionType.QUERY,
       mri: parsed.mri,
-      op: parsed.op,
+      aggregation: parsed.aggregation,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
@@ -188,7 +191,7 @@ export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
 }
 
 function getWidgetQuery(metricsQuery: DashboardMetricsQuery): WidgetQuery {
-  const field = MRIToField(metricsQuery.mri, metricsQuery.op);
+  const field = MRIToField(metricsQuery.mri, metricsQuery.aggregation);
 
   return {
     name: `${metricsQuery.id}`,
@@ -246,7 +249,7 @@ export function getMetricQueryName(query: DashboardMetricsExpression): string {
     query.alias ??
     (isMetricsEquation(query)
       ? unescapeMetricsFormula(query.formula)
-      : formatMRIField(MRIToField(query.mri, query.op)))
+      : formatMRIField(MRIToField(query.mri, query.aggregation)))
   );
 }
 
@@ -257,7 +260,7 @@ export function defaultMetricWidget(): Widget {
         id: 0,
         type: MetricExpressionType.QUERY,
         mri: 'd:transactions/duration@millisecond',
-        op: 'avg',
+        aggregation: 'avg',
         query: '',
         orderBy: 'desc',
         isHidden: false,

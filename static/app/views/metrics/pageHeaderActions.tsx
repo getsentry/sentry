@@ -112,7 +112,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             query: widget.query,
             mri: widget.mri,
             groupBy: widget.groupBy,
-            op: widget.op,
+            aggregation: widget.aggregation,
           });
           return {
             leadingItems: showQuerySymbols
@@ -126,7 +126,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
               : [],
             key: `add-alert-${index}`,
             label: widget.mri
-              ? middleEllipsis(MRIToField(widget.mri, widget.op), 60, /\.|-|_/)
+              ? middleEllipsis(MRIToField(widget.mri, widget.aggregation), 60, /\.|-|_/)
               : t('Select a metric to create an alert'),
             tooltip: isCustomMeasurement({mri: widget.mri})
               ? t('Custom measurements cannot be used to create alerts')

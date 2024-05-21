@@ -14,8 +14,8 @@ import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
-  getDefaultAggregate,
-  isAllowedOp,
+  getDefaultAggregation,
+  isAllowedAggregation,
   isCustomMetric,
   isSpanMeasurement,
   isSpanSelfTime,
@@ -168,7 +168,7 @@ export const QueryBuilder = memo(function QueryBuilder({
       } else {
         queryChanges = {
           mri: value,
-          op: getDefaultAggregate(value),
+          aggregation: getDefaultAggregation(value),
           groupBy: undefined,
         };
       }
@@ -183,9 +183,9 @@ export const QueryBuilder = memo(function QueryBuilder({
   const handleOpChange = useCallback(
     ({value}) => {
       trackAnalytics('ddm.widget.operation', {organization});
-      incrementQueryMetric('ddm.widget.operation', {op: value});
+      incrementQueryMetric('ddm.widget.operation', {aggregation: value});
       onChange({
-        op: value,
+        aggregation: value,
       });
     },
     [incrementQueryMetric, onChange, organization]
@@ -284,18 +284,20 @@ export const QueryBuilder = memo(function QueryBuilder({
             position="bottom"
             disabled={index !== 0}
           >
-            <OpSelect
+            <AggregationSelect
               size="md"
               triggerProps={{prefix: t('Agg')}}
               options={
-                selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                  label: op,
-                  value: op,
-                })) ?? []
+                selectedMeta?.operations
+                  .filter(isAllowedAggregation)
+                  .map(aggregation => ({
+                    label: aggregation,
+                    value: aggregation,
+                  })) ?? []
               }
-              triggerLabel={metricsQuery.op}
+              triggerLabel={metricsQuery.aggregation}
               disabled={!selectedMeta}
-              value={metricsQuery.op}
+              value={metricsQuery.aggregation}
               onChange={handleOpChange}
             />
           </GuideAnchor>
@@ -373,7 +375,7 @@ const MetricComboBox = styled(ComboBox)`
   max-width: min(500px, 100%);
 `;
 
-const OpSelect = styled(CompactSelect)`
+const AggregationSelect = styled(CompactSelect)`
   /* makes selects from different have the same width which is enough to fit all agg options except "count_unique" */
   min-width: 128px;
   & > button {

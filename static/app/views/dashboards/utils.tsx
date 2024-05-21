@@ -23,7 +23,7 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import type {MRI, Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
@@ -418,10 +418,11 @@ export function getWidgetMetricsUrl(
     project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const {mri: mri, op} = parseField(query.aggregates[0]) ?? {mri: '', op: ''};
+      const parsed = parseField(query.aggregates[0]);
+
       return {
-        mri: mri as MRI,
-        op,
+        mri: parsed?.mri,
+        aggregation: parsed?.aggregation,
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),

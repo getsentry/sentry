@@ -1,6 +1,6 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {MRI, Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMetricsUrl} from 'sentry/utils/metrics';
@@ -50,7 +50,7 @@ export function makeDefaultCta({
   }
 
   if (isCustomMetricField(rule.aggregate)) {
-    const {mri, op} = parseField(rule.aggregate) ?? {};
+    const {mri, aggregation} = parseField(rule.aggregate) ?? {};
     return {
       buttonText: t('Open in Metrics'),
       to: getMetricsUrl(orgSlug, {
@@ -66,8 +66,8 @@ export function makeDefaultCta({
         environment: rule.environment ? [rule.environment] : [],
         widgets: [
           {
-            mri: mri as MRI,
-            op: op as string,
+            mri,
+            aggregation,
             query: rule.query,
             displayType: MetricDisplayType.AREA,
           },

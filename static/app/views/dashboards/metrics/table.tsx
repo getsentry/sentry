@@ -210,7 +210,7 @@ export function getTableData(
         query.alias ??
         (isMetricFormula(query)
           ? unescapeMetricsFormula(query.formula)
-          : formatMRIField(MRIToField(query.mri, query.op))),
+          : formatMRIField(MRIToField(query.mri, query.aggregation))),
       type: 'field',
       order: query.orderBy,
     })),
