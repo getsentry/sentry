@@ -19,11 +19,12 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
-import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
+import {MODULE_BASE_URLS} from 'sentry/views/performance/utils/useModuleURL';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 import {IndexRoute, Route} from './components/route';
 
@@ -1437,7 +1438,7 @@ function buildRoutes() {
   );
 
   const llmMonitoringRoutes = (
-    <Route path="/llm-monitoring/" withOrgPath>
+    <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
       <Route
         path="pipeline-type/:groupId/"
@@ -1450,7 +1451,7 @@ function buildRoutes() {
 
   const insightsRoutes = (
     <Fragment>
-      <Route path="database/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/database/databaseLandingPage')
@@ -1463,7 +1464,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="http/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/performance/http/httpLandingPage'))}
         />
@@ -1474,14 +1475,14 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path={`${CACHE_BASE_URL}/`}>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/cache/cacheLandingPage')
           )}
         />
       </Route>
-      <Route path="browser/pageloads/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.VITAL]}/`}>
         <IndexRoute
           component={make(
             () =>
@@ -1495,7 +1496,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="browser/resources/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/browser/resources/index')
@@ -1511,7 +1512,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="queues/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/queues/queuesLandingPage')
@@ -1527,7 +1528,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="mobile/screens/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/performance/mobile/screenload'))}
         />
@@ -1538,7 +1539,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="mobile/app-startup/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/performance/mobile/appStarts'))}
         />
@@ -1549,7 +1550,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="mobile/ui/">
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/performance/mobile/ui'))}
         />
