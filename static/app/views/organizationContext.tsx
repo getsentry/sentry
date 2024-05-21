@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -22,7 +30,7 @@ interface OrganizationLoaderContextProps {
 }
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 /**
@@ -41,8 +49,7 @@ export const OrganizationLoaderContext =
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const loadOrganization = useContext(OrganizationLoaderContext)?.loadOrganization;
-
+  const {loadOrganization} = useContext(OrganizationLoaderContext) || {};
   // XXX(epurkhiser): The loadOrganization function is stable as long as the
   // organization slug is stable. A change to the organization slug will cause
   // the organization to be reloaded.

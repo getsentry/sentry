@@ -84,7 +84,7 @@ function SudoModal({
     superuserReason,
   } = state;
 
-  const isLoading = useContext(OrganizationLoaderContext)?.isLoading;
+  const {isLoading} = useContext(OrganizationLoaderContext) || {};
   const router = useRouter();
   const api = useApi();
   const location = useLocation();
