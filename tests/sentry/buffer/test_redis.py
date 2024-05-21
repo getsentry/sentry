@@ -11,6 +11,7 @@ from sentry import options
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -273,9 +274,14 @@ class TestRedisBuffer:
         mock = Mock()
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
 
-        redis_buffer_registry.callback(BufferHookEvent.FLUSH, self.buf)
+        redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.buf
+
+    @mock.patch("sentry.rules.processing.delayed_processing.metrics.timer")
+    def test_callback(self, mock_metrics_timer):
+        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+        self.buf.process_batch()
+        assert mock_metrics_timer.call_count == 1
 
     def test_process_batch(self):
         """Test that the registry's callbacks are invoked when we process a batch"""
@@ -283,7 +289,6 @@ class TestRedisBuffer:
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
         self.buf.process_batch()
         assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.buf
 
     def test_delete_batch(self):
         """Test that after we add things to redis we can clean it up"""

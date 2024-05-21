@@ -69,13 +69,13 @@ class BufferHookRegistry:
     def has(self, key: BufferHookEvent) -> bool:
         return self._registry.get(key) is not None
 
-    def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
+    def callback(self, buffer_hook_event: BufferHookEvent) -> bool:
         try:
             callback = self._registry[buffer_hook_event]
         except KeyError:
             logger.exception("buffer_hook_event.missing")
 
-        return callback(data)
+        return callback()
 
 
 redis_buffer_registry = BufferHookRegistry()
@@ -317,7 +317,7 @@ class RedisBuffer(Buffer):
 
     def process_batch(self) -> None:
         try:
-            redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
+            redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         except Exception:
             logger.exception("process_batch.error")
 
