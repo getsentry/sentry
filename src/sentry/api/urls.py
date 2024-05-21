@@ -59,7 +59,6 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.api.utils import method_dispatch
-from sentry.configurations.endpoints import ProjectConfigurationEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -164,6 +163,7 @@ from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsE
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
 )
+from sentry.remote_config.endpoints import ProjectConfigurationEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (

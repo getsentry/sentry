@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.configurations.storage import StorageBackend
+from sentry.remote_config.storage import StorageBackend
 from sentry.testutils.cases import APITestCase
 
 

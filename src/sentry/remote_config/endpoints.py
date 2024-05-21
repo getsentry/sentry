@@ -8,9 +8,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.configurations.storage import make_storage
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.remote_config.storage import make_storage
 
 
 class ConfigurationValidator(Serializer):
