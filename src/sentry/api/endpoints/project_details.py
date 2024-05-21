@@ -272,9 +272,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         # Value is stored as uint32 in relay
         # TODO: find a way to share this constant between relay and sentry
-        if value > 4_000_000_000:
+        if value > 4_294_967_295:
             raise serializers.ValidationError(
-                "Cardinality limit must be smaller or equal to 4,000,000,000."
+                "Cardinality limit must be smaller or equal to 4,294,967,295."
             )
 
         return value
