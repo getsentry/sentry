@@ -27,6 +27,7 @@ class SdkName(Enum):
     ReactNative = "react-native"
     Java = "java"
     Native = "native"
+    Dart = "dart"
 
 
 @dataclass
@@ -43,6 +44,9 @@ class SDKCrashDetectionConfig:
     organization_allowlist: list[int]
     """The SDK names to detect crashes for. For example, ["sentry.cocoa", "sentry.cocoa.react-native"]."""
     sdk_names: Sequence[str]
+    """Whether to report fatal errors. If true, both unhandled and fatal errors are reported.
+    If false, only unhandled errors are reported."""
+    report_fatal_errors: bool
     """The minimum SDK version to detect crashes for. For example, "8.2.0"."""
     min_sdk_version: str
     """The system library path patterns to detect system frames. For example, `System/Library/*` """
@@ -85,6 +89,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # the frames contain the full paths required for detecting system frames in is_system_library_frame.
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
+            report_fatal_errors=False,
             system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
@@ -117,6 +122,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # 4.0.0 was released in June 2022, see https://github.com/getsentry/sentry-react-native/releases/tag/4.0.0.
             # We require at least sentry-react-native 4.0.0 to only detect SDK crashes for not too old versions.
             min_sdk_version="4.0.0",
+            report_fatal_errors=False,
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
                 r"**/react-native-community/**",
@@ -181,6 +187,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # The sentry-java SDK sends SDK frames for uncaught exceptions since 7.0.0, which is required for detecting SDK crashes.
             # 7.0.0 was released in Nov 2023, see https://github.com/getsentry/sentry-java/releases/tag/7.0.0
             min_sdk_version="7.0.0",
+            report_fatal_errors=False,
             system_library_path_patterns={
                 r"java.**",
                 r"javax.**",
@@ -223,6 +230,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             ],
             # 0.6.0 was released in Feb 2023, see https://github.com/getsentry/sentry-native/releases/tag/0.6.0.
             min_sdk_version="0.6.0",
+            report_fatal_errors=False,
             system_library_path_patterns={
                 # well known locations for unix paths
                 r"/lib/**",
@@ -255,6 +263,39 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             sdk_crash_ignore_functions_matchers=set(),
         )
         configs.append(native_config)
+
+    dart_options = _get_options(sdk_name=SdkName.Dart, has_organization_allowlist=True)
+
+    if dart_options:
+        dart_config = SDKCrashDetectionConfig(
+            sdk_name=SdkName.Dart,
+            project_id=dart_options["project_id"],
+            sample_rate=dart_options["sample_rate"],
+            organization_allowlist=dart_options["organization_allowlist"],
+            sdk_names=["sentry.dart", "sentry.dart.flutter"],
+            # Since 8.2.0 the Dart SDK sends SDK frames, which is required;
+            # see https://github.com/getsentry/sentry-dart/releases/tag/8.2.0
+            min_sdk_version="8.2.0",
+            report_fatal_errors=True,
+            system_library_path_patterns={
+                # Dart
+                r"org-dartlang-sdk:///**",
+                r"dart:**/**",
+                # Flutter
+                r"**/packages/flutter/**",
+                r"package:flutter/**",
+            },
+            sdk_frame_config=SDKFrameConfig(
+                function_patterns=set(),
+                path_patterns={
+                    r"package:sentry/**",  # sentry-dart
+                    r"package:sentry_flutter/**",  # sentry-dart-flutter
+                },
+                path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
+            ),
+            sdk_crash_ignore_functions_matchers=set(),
+        )
+        configs.append(dart_config)
 
     return configs
 

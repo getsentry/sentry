@@ -51,10 +51,14 @@ class SDKCrashDetector:
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )
-        if not is_unhandled:
-            return False
+        if is_unhandled:
+            return True
 
-        return True
+        is_fatal = get_path(event_data, "level") == "fatal"
+        if is_fatal and self.config.report_fatal_errors:
+            return True
+
+        return False
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
