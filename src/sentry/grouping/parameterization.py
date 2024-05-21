@@ -29,7 +29,7 @@ class ParameterizationRegex:
         return rf"{prefix}(?P<{self.name}>{self.raw_pattern}){postfix}"
 
     @property
-    def compiled_pattern(self) -> re.Pattern:
+    def compiled_pattern(self) -> re.Pattern[str]:
         """
         Returns the compiled regex pattern for with as a named matching group and lookbehind/lookahead if needed.
         """
@@ -209,7 +209,7 @@ class _UniqueId:
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def tiktoken_encoding():
+    def tiktoken_encoding() -> tiktoken.Encoding:
         return tiktoken.get_encoding("cl100k_base")
 
     @staticmethod
@@ -277,7 +277,7 @@ class Parameterizer:
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
     @staticmethod
-    def _make_regex_from_patterns(pattern_keys: Sequence[str]) -> re.Pattern:
+    def _make_regex_from_patterns(pattern_keys: Sequence[str]) -> re.Pattern[str]:
         """
         Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
 
