@@ -73,6 +73,51 @@ class ConfiguratioAPITestCase(APITestCase):
         # Assert the configuration was stored successfully.
         assert self.storage.get() == response.json()["data"]
 
+    def test_post_configuration_different_types(self):
+        data = {"data": {"sample_rate": 1.0, "traces_sample_rate": 0.2}}
+
+        # Null type
+        data["data"]["user_config"] = None
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] is None
+
+        # Bool types
+        data["data"]["user_config"] = False
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] is False
+
+        # String types
+        data["data"]["user_config"] = "string"
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] == "string"
+
+        # Integer types
+        data["data"]["user_config"] = 1
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] == 1
+
+        # Float types
+        data["data"]["user_config"] = 1.0
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] == 1.0
+
+        # Array types
+        data["data"]["user_config"] = ["a", "b"]
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] == ["a", "b"]
+
+        # Object types
+        data["data"]["user_config"] = {"hello": "world"}
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 201, response.content
+        assert response.json()["data"]["user_config"] == {"hello": "world"}
+
     def test_post_configuration_validation_error(self):
         response = self.client.post(
             self.url,

@@ -17,7 +17,7 @@ class ConfigurationValidator(Serializer):
     id = serializers.UUIDField(read_only=True)
     sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     traces_sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
-    user_config = serializers.JSONField(required=True)
+    user_config = serializers.JSONField(required=True, allow_null=True)
 
 
 class ConfigurationContainerValidator(Serializer):
