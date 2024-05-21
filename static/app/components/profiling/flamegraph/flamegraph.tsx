@@ -240,18 +240,28 @@ function Flamegraph(): ReactElement {
 
   const hasBatteryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa';
-  }, [profileGroup.metadata.platform]);
+    return platform === 'cocoa' || profileGroup.measurements?.cpu_energy_usage;
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa' || platform === 'android' || platform === 'node';
-  }, [profileGroup.metadata.platform]);
+    return (
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.cpu_usage
+    );
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa' || platform === 'android' || platform === 'node';
-  }, [profileGroup.metadata.platform]);
+    return (
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.memory_footprint
+    );
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === threadId);
