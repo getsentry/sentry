@@ -46,6 +46,7 @@ export type Project = {
   plugins: Plugin[];
 
   processingIssues: number;
+  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
