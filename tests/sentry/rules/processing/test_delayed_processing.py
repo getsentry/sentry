@@ -166,7 +166,7 @@ class ProcessDelayedAlertConditionsTest(
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
-        process_delayed_alert_conditions(buffer)
+        process_delayed_alert_conditions()
 
         for project, rule_group_event_mapping in (
             (self.project, self.rulegroup_event_mapping_one),
