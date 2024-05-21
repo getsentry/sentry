@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.urls import reverse
 
 from sentry.remote_config.storage import StorageBackend
@@ -74,7 +76,7 @@ class ConfiguratioAPITestCase(APITestCase):
         assert self.storage.get() == response.json()["data"]
 
     def test_post_configuration_different_types(self):
-        data = {"data": {"sample_rate": 1.0, "traces_sample_rate": 0.2}}
+        data: dict[str, Any] = {"data": {"sample_rate": 1.0, "traces_sample_rate": 0.2}}
 
         # Null type
         data["data"]["user_config"] = None
