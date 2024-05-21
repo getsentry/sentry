@@ -65,8 +65,6 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         name: Checkout sentry
-        with:
-          fetch-depth: 2
 
       - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
 
@@ -100,6 +98,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           # should set value either as `true` or `false`
           CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
+          GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           yarn build-acceptance
 
