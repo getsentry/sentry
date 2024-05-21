@@ -71,7 +71,7 @@ class ProcessDelayedAlertConditionsTest(
         )
 
     def assert_buffer_cleared(self, project_id):
-        rule_group_data = buffer.get_hash(Project, {"project_id": project_id})
+        rule_group_data = buffer.backend.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 
     def setUp(self):
