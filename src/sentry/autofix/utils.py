@@ -34,7 +34,7 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
 def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> dict[str, Any] | None:
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/get-state-from-pr",
+        f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state/pr",
         data=json.dumps(
             {
                 "provider": provider,
