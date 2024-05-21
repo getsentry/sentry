@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   formatTimeSeriesResultsToChartData,
@@ -12,7 +11,6 @@ import {
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('PerformanceScoreBreakdownChart', function () {
   const organization = OrganizationFixture();
@@ -44,7 +42,6 @@ describe('PerformanceScoreBreakdownChart', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -63,7 +60,7 @@ describe('PerformanceScoreBreakdownChart', function () {
   });
 
   it('renders using frontend score calculation', async () => {
-    render(<PerformanceScoreBreakdownChart />);
+    render(<PerformanceScoreBreakdownChart />, {organization});
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -95,7 +92,7 @@ describe('PerformanceScoreBreakdownChart', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PerformanceScoreBreakdownChart />);
+    render(<PerformanceScoreBreakdownChart />, {organization});
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenCalledWith(
@@ -178,7 +175,7 @@ describe('PerformanceScoreBreakdownChart', function () {
         projects: [],
       },
     });
-    render(<PerformanceScoreBreakdownChart />);
+    render(<PerformanceScoreBreakdownChart />, {organization});
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsMock).toHaveBeenCalledTimes(2);
