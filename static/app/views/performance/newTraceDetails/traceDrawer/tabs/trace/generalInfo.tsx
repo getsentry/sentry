@@ -11,7 +11,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {
   TraceErrorOrIssue,
   TraceFullDetailed,
-  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -25,7 +24,6 @@ import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -85,14 +83,9 @@ export function GeneralInfo(props: GeneralInfoProps) {
 
   const isLoading = useMemo(() => {
     return (
-      props.metaResults.isLoading ||
-      (props.rootEventResults.isLoading && props.rootEventResults.fetchStatus !== 'idle')
+      props.rootEventResults.isLoading && props.rootEventResults.fetchStatus !== 'idle'
     );
-  }, [
-    props.metaResults.isLoading,
-    props.rootEventResults.isLoading,
-    props.rootEventResults.fetchStatus,
-  ]);
+  }, [props.rootEventResults.isLoading, props.rootEventResults.fetchStatus]);
 
   if (isLoading) {
     return (
@@ -132,9 +125,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'events',
       subject: t('Events'),
-      value: props.metaResults.data
-        ? props.metaResults.data.transactions + props.metaResults.data.errors
-        : '\u2014',
+      value: props.tree.eventsCount ?? '\u2014',
     },
     {
       key: 'issues',

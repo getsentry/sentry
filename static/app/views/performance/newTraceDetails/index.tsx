@@ -28,7 +28,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
-  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -63,7 +62,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
@@ -191,7 +189,6 @@ export function TraceView() {
   }, [queryParams, traceSlug]);
 
   const trace = useTrace();
-  const meta = useTraceMeta();
 
   return (
     <SentryDocumentTitle
@@ -205,7 +202,6 @@ export function TraceView() {
           traceSlug={traceSlug}
           organization={organization}
           traceEventView={traceEventView}
-          metaResults={meta}
         />
       </NoProjectMessage>
     </SentryDocumentTitle>
@@ -225,7 +221,6 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
@@ -891,7 +886,6 @@ function TraceViewContent(props: TraceViewContentProps) {
           ) : null}
 
           <TraceDrawer
-            metaResults={props.metaResults}
             traceType={shape}
             trace={tree}
             traceGridRef={traceGridRef}
