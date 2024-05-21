@@ -155,5 +155,6 @@ const ChartWrapper = styled('div')`
 `;
 
 const GraphText = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
 `;
