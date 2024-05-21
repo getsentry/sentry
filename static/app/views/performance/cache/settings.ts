@@ -27,3 +27,9 @@ export const ONBOARDING_CONTENT = {
   description: t('Our robot is waiting to collect your first cache hit.'),
   link: 'https://develop.sentry.dev/sdk/performance/modules/caches/',
 };
+
+export const MODULE_DESCRIPTION = t(
+  'Discover whether your application is utilizing caching effectively and understand the latency associated with cache misses.'
+);
+export const MODULE_DOC_LINK =
+  'https://docs.sentry.io/product/performance/cache-monitoring/';
