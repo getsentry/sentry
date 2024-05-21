@@ -72,7 +72,7 @@ EXPOSABLE_FEATURES = [
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
-    "projects:indexed-spans-extraction",
+    "organizations:indexed-spans-extraction",
     "projects:relay-otel-endpoint",
 ]
 

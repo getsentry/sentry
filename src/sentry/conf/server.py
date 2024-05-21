@@ -2004,7 +2004,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-addons": False,
-    "projects:indexed-spans-extraction": False,
+    "organizations:indexed-spans-extraction": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
     # Controls whether or not the relocation endpoints can be used.
