@@ -99,9 +99,7 @@ function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult
 }
 
 function isBooleanOR(token: ProcessedTokenResult): boolean {
-  return (
-    token && token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR
-  );
+  return token?.type === Token.LOGIC_BOOLEAN && token?.value === BooleanOperator.OR;
 }
 
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
@@ -109,20 +107,21 @@ export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] 
   const processed = processTokenResults(tokens);
 
   const result: ProcessedTokenResult[] = [];
-  // Operator stack
   const stack: ProcessedTokenResult[] = [];
 
   for (const token of processed) {
     switch (token.type) {
       case Token.LOGIC_BOOLEAN: {
         while (
+          // Establishes higher precedence for OR operators.
+          // Whenever the current stack top operator is an OR,
           stack.length > 0 &&
           token.value === BooleanOperator.AND &&
           stack[stack.length - 1].type === Token.LOGIC_BOOLEAN &&
           stack[stack.length - 1].type !== 'L_PAREN' &&
           isBooleanOR(stack[stack.length - 1])
         ) {
-          result.push(stack.pop() as ProcessedTokenResult);
+          result.push(stack.pop()!);
         }
         stack.push(token);
         break;

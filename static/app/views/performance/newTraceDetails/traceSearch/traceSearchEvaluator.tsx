@@ -472,9 +472,33 @@ function resolveValueFromKey(
     }
 
     if (key !== null) {
+      // If the value can be accessed directly, do so,
+      // else check if the key is an entity key, sanitize it and try direct access again.
+      // @TODO support deep nested keys with dot notation
+
       // Check for direct key access.
       if (value[key] !== undefined) {
         return value[key];
+      }
+
+      // @TODO perf optimization opportunity
+      // Entity check should be preprocessed per token, not once per token per node we are evaluating, however since
+      // we are searching <10k nodes in p99 percent of the time and the search is non blocking, we are likely fine
+      // and can be optimized later.
+      const [maybeEntity, ...rest] = key.split('.');
+      switch (maybeEntity) {
+        case 'span':
+          if (isSpanNode(node)) {
+            return value[rest.join('.')];
+          }
+          break;
+        case 'transaction':
+          if (isTransactionNode(node)) {
+            return value[rest.join('.')];
+          }
+          break;
+        default:
+          break;
       }
     }
 
