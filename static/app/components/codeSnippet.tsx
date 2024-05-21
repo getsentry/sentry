@@ -5,7 +5,6 @@ import Prism from 'prismjs';
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
@@ -189,7 +188,6 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
 
-  ${p => prismStyles(p.theme)}
   pre {
     margin: 0;
   }
