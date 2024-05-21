@@ -110,21 +110,23 @@ function GroupStatusChart({
         {loading ? (
           <Placeholder height={'36px'} />
         ) : (
-          <MiniBarChart
-            animateBars
-            showXAxisLine
-            hideZeros={hideZeros}
-            markLineLabelSide="right"
-            barOpacity={0.4}
-            height={showMarkLine ? 36 : height}
-            isGroupedByDate
-            showTimeInTooltip
-            series={graphOptions.series}
-            colors={graphOptions.colors}
-            emphasisColors={graphOptions.emphasisColors}
-            hideDelay={50}
-            showMarkLineLabel={showMarkLine}
-          />
+          <ChartAnimationWrapper>
+            <MiniBarChart
+              animateBars
+              showXAxisLine
+              hideZeros={hideZeros}
+              markLineLabelSide="right"
+              barOpacity={0.4}
+              height={showMarkLine ? 36 : height}
+              isGroupedByDate
+              showTimeInTooltip
+              series={graphOptions.series}
+              colors={graphOptions.colors}
+              emphasisColors={graphOptions.emphasisColors}
+              hideDelay={50}
+              showMarkLineLabel={showMarkLine}
+            />
+          </ChartAnimationWrapper>
         )}
         <GraphText>{groupStatus}</GraphText>
       </ChartWrapper>
@@ -134,10 +136,8 @@ function GroupStatusChart({
 
 export default GroupStatusChart;
 
-const ChartWrapper = styled('div')`
+const ChartAnimationWrapper = styled('div')`
   animation: fade-in 0.5s;
-  display: flex;
-  flex-direction: column;
 
   @keyframes fade-in {
     from {
@@ -147,6 +147,11 @@ const ChartWrapper = styled('div')`
       opacity: 100;
     }
   }
+`;
+
+const ChartWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 const GraphText = styled('div')`
