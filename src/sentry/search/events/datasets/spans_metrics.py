@@ -1047,7 +1047,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                     "equals",
                                     [
                                         Column("metric_id"),
-                                        self.resolve_metric("span.self_time"),
+                                        self.resolve_metric("span.duration"),
                                     ],
                                 ),
                                 Function(
