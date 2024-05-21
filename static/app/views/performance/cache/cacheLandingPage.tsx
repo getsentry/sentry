@@ -103,6 +103,9 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_LIST
   );
 
+  const enableTransactionDuration =
+    !isTransactionsListLoading && transactionsList.length > 0;
+
   const {
     data: transactionDurationData,
     error: transactionDurationError,
@@ -112,7 +115,7 @@ export function CacheLandingPage() {
     {
       search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
-      enabled: !isTransactionsListLoading && transactionsList.length > 0,
+      enabled: enableTransactionDuration,
     },
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
@@ -194,7 +197,10 @@ export function CacheLandingPage() {
               <ModuleLayout.Full>
                 <TransactionsTable
                   data={transactionsListWithDuration}
-                  isLoading={isTransactionsListLoading || isTransactionDurationLoading}
+                  isLoading={
+                    isTransactionsListLoading ||
+                    (enableTransactionDuration && isTransactionDurationLoading)
+                  }
                   sort={sort}
                   error={transactionsListError || transactionDurationError}
                   meta={meta}
