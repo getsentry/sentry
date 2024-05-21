@@ -1448,7 +1448,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const insightsRoutes = (
+  const insightsSubRoutes = (
     <Fragment>
       <Route path="database/">
         <IndexRoute
@@ -1658,7 +1658,7 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
-      {insightsRoutes}
+      {insightsSubRoutes}
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
