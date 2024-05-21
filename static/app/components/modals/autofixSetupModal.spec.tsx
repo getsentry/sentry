@@ -1,9 +1,25 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
 import {AutofixSetupModal} from 'sentry/components/modals/autofixSetupModal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('AutofixSetupModal', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/autofix/codebase-index/status/',
+      body: {
+        status: AutofixCodebaseIndexingStatus.NOT_INDEXED,
+      },
+    });
+  });
+
   it('renders the integration setup instructions', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
@@ -237,6 +253,63 @@ describe('AutofixSetupModal', function () {
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'Index Repositories & Enable Autofix'})
+    ).toBeInTheDocument();
+  });
+
+  it('displays indexing error when one exists', async function () {
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [
+            {
+              provider: 'integrations:github',
+              owner: 'getsentry',
+              name: 'sentry',
+              external_id: '123',
+              ok: true,
+            },
+            {
+              provider: 'integrations:github',
+              owner: 'getsentry',
+              name: 'seer',
+              external_id: '235',
+              ok: true,
+            },
+          ],
+        },
+        codebaseIndexing: {ok: false},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/autofix/codebase-index/status/',
+      body: {
+        status: AutofixCodebaseIndexingStatus.ERRORED,
+        reason: 'Some error',
+      },
+    });
+
+    const closeModal = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
+        {
+          onClose: closeModal,
+        }
+      );
+    });
+
+    await screen.findByText('Enable Autofix');
+
+    expect(
+      await screen.findByText(/Failed to index repositories: Some error/i)
     ).toBeInTheDocument();
   });
 

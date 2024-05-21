@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
 import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
 import {
   type AutofixSetupRepoDefinition,
@@ -214,7 +215,10 @@ function AutofixCodebaseIndexingStep({
   groupId: string;
   projectId: string;
 }) {
-  const {startIndexing} = useAutofixCodebaseIndexing({projectId, groupId});
+  const {startIndexing, status, reason} = useAutofixCodebaseIndexing({
+    projectId,
+    groupId,
+  });
 
   const canIndex =
     autofixSetup.genAIConsent.ok &&
@@ -228,6 +232,9 @@ function AutofixCodebaseIndexingStep({
           'Sentry will index your repositories to enable Autofix. This process may take a few minutes.'
         )}
       </p>
+      {status === AutofixCodebaseIndexingStatus.ERRORED && reason ? (
+        <LoadingError message={t('Failed to index repositories: %s', reason)} />
+      ) : null}
       <GuidedSteps.StepButtons>
         <Button
           priority="primary"
