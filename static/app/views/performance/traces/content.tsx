@@ -37,6 +37,7 @@ import {type Field, FIELDS, SORTS} from './data';
 import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
+  SpanDescriptionRenderer,
   SpanIdRenderer,
   SpanTimeRenderer,
   TraceBreakdownContainer,
@@ -354,12 +355,7 @@ function SpanRow({
         />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="left" overflow>
-        <Description>
-          <ProjectRenderer projectSlug={span.project} hideName />
-          <strong>{span['span.op']}</strong>
-          <em>{'\u2014'}</em>
-          {span['span.description']}
-        </Description>
+        <SpanDescriptionRenderer span={span} />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right" onMouseLeave={() => setHighlightedSliceName('')}>
         <TraceBreakdownContainer>
