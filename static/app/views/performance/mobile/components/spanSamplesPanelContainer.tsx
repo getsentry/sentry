@@ -2,6 +2,8 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import Feature from 'sentry/components/acl/feature';
+import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -9,10 +11,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {DurationUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
@@ -22,6 +26,7 @@ import {
   PLATFORM_QUERY_PARAM,
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   type ModuleName,
@@ -65,8 +70,11 @@ export function SpanSamplesContainer({
   );
 
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
 
   const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
+  const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
@@ -79,6 +87,23 @@ export function SpanSamplesContainer({
     }, 10),
     []
   );
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
+
+  const spanSearch = new MutableSearch(spanSearchQuery ?? '');
+  if (additionalFilters) {
+    Object.entries(additionalFilters).forEach(([key, value]) => {
+      spanSearch.addFilterValue(key, value);
+    });
+  }
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -150,7 +175,7 @@ export function SpanSamplesContainer({
       </Container>
 
       <DurationChart
-        spanSearch={MutableSearch.fromQueryObject(additionalFilters ?? {})}
+        spanSearch={spanSearch}
         additionalFilters={additionalFilters}
         groupId={groupId}
         transactionName={transactionName}
@@ -170,8 +195,22 @@ export function SpanSamplesContainer({
             : undefined
         }
       />
+
+      <Feature features="performance-sample-panel-search">
+        <StyledSearchBar
+          searchSource="queries-sample-panel"
+          query={spanSearchQuery}
+          onSearch={handleSearch}
+          placeholder={t('Search for span attributes')}
+          organization={organization}
+          metricAlert={false}
+          supportedTags={supportedTags}
+          dataset={DiscoverDatasets.SPANS_INDEXED}
+          projectIds={selection.projects}
+        />
+      </Feature>
       <SampleTable
-        spanSearch={MutableSearch.fromQueryObject(additionalFilters ?? {})}
+        spanSearch={spanSearch}
         additionalFilters={additionalFilters}
         highlightedSpanId={highlightedSpanId}
         transactionMethod={transactionMethod}
@@ -213,4 +252,8 @@ const PaddedTitle = styled('div')`
 
 const Container = styled('div')`
   display: flex;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-top: ${space(2)};
 `;
