@@ -886,6 +886,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# seer embeddings backfill batch size
+register(
+    "embeddings-grouping.seer.backfill-batch-size",
+    type=Int,
+    default=10,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail

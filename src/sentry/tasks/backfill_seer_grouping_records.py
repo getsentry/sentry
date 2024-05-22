@@ -12,7 +12,7 @@ from rediscluster import RedisCluster
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features, nodestore
+from sentry import features, nodestore, options
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
@@ -41,7 +41,6 @@ from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
-BATCH_SIZE = 10
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
 
@@ -128,7 +127,8 @@ def backfill_seer_grouping_records(
         .order_by("id")
     )
 
-    batch_end_index = min(last_processed_index + BATCH_SIZE, len(group_id_message_data))
+    batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+    batch_end_index = min(last_processed_index + batch_size, len(group_id_message_data))
     group_id_message_data_batch = group_id_message_data[last_processed_index:batch_end_index]
 
     logger.info(
