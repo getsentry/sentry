@@ -35,7 +35,7 @@ export interface ContextItem {
 
 export function getOrderedContextItems(event): ContextItem[] {
   const {user, contexts} = event;
-  const {data: customUserData, ...userContext} = user;
+  const {data: customUserData, ...userContext} = user ?? {};
 
   const {feedback, response, ...otherContexts} = contexts ?? {};
   const orderedContext: [ContextItem['alias'], ContextValue][] = [
