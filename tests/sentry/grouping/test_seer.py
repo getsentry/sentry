@@ -10,7 +10,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.types import NonNone
 
 
 class ShouldCallSeerTest(TestCase):
@@ -74,8 +73,8 @@ class GetSeerSimilarIssuesTest(TestCase):
     @with_feature({"projects:similarity-embeddings-grouping": False})
     def test_returns_metadata_but_no_group_if_seer_grouping_flag_off(self):
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
+            parent_hash=self.existing_event.get_primary_hash(),
+            parent_group_id=self.existing_event.group_id,
             stacktrace_distance=0.01,
             message_distance=0.05,
             should_group=True,
@@ -98,8 +97,8 @@ class GetSeerSimilarIssuesTest(TestCase):
     @with_feature("projects:similarity-embeddings-grouping")
     def test_returns_metadata_and_group_if_sufficiently_close_group_found(self):
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
+            parent_hash=self.existing_event.get_primary_hash(),
+            parent_group_id=self.existing_event.group_id,
             stacktrace_distance=0.01,
             message_distance=0.05,
             should_group=True,
@@ -122,8 +121,8 @@ class GetSeerSimilarIssuesTest(TestCase):
     @with_feature("projects:similarity-embeddings-grouping")
     def test_returns_metadata_but_no_group_if_similar_group_insufficiently_close(self):
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
+            parent_hash=self.existing_event.get_primary_hash(),
+            parent_group_id=self.existing_event.group_id,
             stacktrace_distance=0.08,
             message_distance=0.12,
             should_group=False,

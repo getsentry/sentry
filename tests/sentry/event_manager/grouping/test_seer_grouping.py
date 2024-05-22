@@ -10,7 +10,6 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
-from sentry.utils.types import NonNone
 
 
 class SeerEventManagerGroupingTest(TestCase):
@@ -19,8 +18,8 @@ class SeerEventManagerGroupingTest(TestCase):
     def test_obeys_seer_similarity_flags(self):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             message_distance=0.05,
             should_group=True,
@@ -62,7 +61,7 @@ class SeerEventManagerGroupingTest(TestCase):
                 assert get_seer_similar_issues_spy.call_count == 0
 
                 # No metadata stored, parent group not used (even though `should_group` is True)
-                assert "seer_similarity" not in NonNone(new_event.group).data["metadata"]
+                assert "seer_similarity" not in new_event.group.data["metadata"]
                 assert "seer_similarity" not in new_event.data
                 assert new_event.group_id != existing_event.group_id
 
@@ -84,10 +83,7 @@ class SeerEventManagerGroupingTest(TestCase):
 
                 # Metadata returned and stored
                 assert get_seer_similar_issues_return_values[0][0] == expected_metadata
-                assert (
-                    NonNone(new_event.group).data["metadata"]["seer_similarity"]
-                    == expected_metadata
-                )
+                assert new_event.group.data["metadata"]["seer_similarity"] == expected_metadata
                 assert new_event.data["seer_similarity"] == expected_metadata
 
                 # No parent group returned or used (even though `should_group` is True)
@@ -168,8 +164,8 @@ class SeerEventManagerGroupingTest(TestCase):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             message_distance=0.05,
             should_group=True,
@@ -186,7 +182,7 @@ class SeerEventManagerGroupingTest(TestCase):
                 "results": [asdict(seer_result_data)],
             }
 
-        assert NonNone(new_event.group).data["metadata"]["seer_similarity"] == expected_metadata
+        assert new_event.group.data["metadata"]["seer_similarity"] == expected_metadata
         assert new_event.data["seer_similarity"] == expected_metadata
 
     @with_feature("projects:similarity-embeddings-grouping")
@@ -194,8 +190,8 @@ class SeerEventManagerGroupingTest(TestCase):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             message_distance=0.05,
             should_group=True,
@@ -223,8 +219,8 @@ class SeerEventManagerGroupingTest(TestCase):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         no_cigar_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.10,
             message_distance=0.05,
             should_group=False,

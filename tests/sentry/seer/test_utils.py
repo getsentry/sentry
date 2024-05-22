@@ -25,7 +25,6 @@ from sentry.seer.utils import (
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.types import NonNone
 
 DUMMY_POOL = ConnectionPool("dummy")
 CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
@@ -89,7 +88,7 @@ def test_similar_issues_embeddings_simple(mock_seer_request: MagicMock, default_
 
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": similar_event.get_primary_hash(),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
@@ -98,7 +97,7 @@ def test_similar_issues_embeddings_simple(mock_seer_request: MagicMock, default_
     mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "hash": NonNone(event.get_primary_hash()),
+        "hash": event.get_primary_hash(),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -121,7 +120,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request: MagicMock, default_p
     mock_seer_request.return_value = HTTPResponse([])
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "hash": NonNone(event.get_primary_hash()),
+        "hash": event.get_primary_hash(),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -138,13 +137,13 @@ def test_returns_sorted_similarity_results(mock_seer_request: MagicMock, default
 
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": similar_event.get_primary_hash(),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
     raw_less_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.10,
-        "parent_hash": NonNone(less_similar_event.get_primary_hash()),
+        "parent_hash": less_similar_event.get_primary_hash(),
         "should_group": False,
         "stacktrace_distance": 0.05,
     }
@@ -154,7 +153,7 @@ def test_returns_sorted_similarity_results(mock_seer_request: MagicMock, default
     mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
     params: SimilarIssuesEmbeddingsRequest = {
-        "hash": NonNone(event.get_primary_hash()),
+        "hash": event.get_primary_hash(),
         "project_id": default_project.id,
         "stacktrace": "string",
         "message": "message",
@@ -181,14 +180,14 @@ def test_from_raw_simple(default_project: Project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": similar_event.get_primary_hash(),
         "should_group": True,
         "stacktrace_distance": 0.01,
     }
 
     similar_issue_data = {
         **raw_similar_issue_data,
-        "parent_group_id": NonNone(similar_event.group_id),
+        "parent_group_id": similar_event.group_id,
     }
 
     assert SeerSimilarIssueData.from_raw(
@@ -203,7 +202,7 @@ def test_from_raw_unexpected_data(default_project: Project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
     raw_similar_issue_data = {
         "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": similar_event.get_primary_hash(),
         "should_group": True,
         "stacktrace_distance": 0.01,
         "something": "unexpected",
@@ -211,10 +210,10 @@ def test_from_raw_unexpected_data(default_project: Project):
 
     expected_similar_issue_data = {
         "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
+        "parent_hash": similar_event.get_primary_hash(),
         "should_group": True,
         "stacktrace_distance": 0.01,
-        "parent_group_id": NonNone(similar_event.group_id),
+        "parent_group_id": similar_event.group_id,
     }
 
     # Everything worked fine, in spite of the extra data
@@ -247,7 +246,7 @@ def test_from_raw_missing_data(default_project: Project):
         match="Seer similar issues response entry missing key 'message_distance'",
     ):
         raw_similar_issue_data = {
-            "parent_hash": NonNone(similar_event.get_primary_hash()),
+            "parent_hash": similar_event.get_primary_hash(),
             # missing `message_distance`
             "should_group": True,
             "stacktrace_distance": 0.01,
@@ -260,7 +259,7 @@ def test_from_raw_missing_data(default_project: Project):
         match="Seer similar issues response entry missing keys 'message_distance', 'stacktrace_distance'",
     ):
         raw_similar_issue_data = {
-            "parent_hash": NonNone(similar_event.get_primary_hash()),
+            "parent_hash": similar_event.get_primary_hash(),
             # missing `message_distance`
             "should_group": True,
             # missing `stacktrace_distance`
