@@ -9,7 +9,11 @@ import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.sentry_metrics.aggregation_option_registry import AggregationOption, TimeWindow
+from sentry.sentry_metrics.aggregation_option_registry import (
+    AggregationOption,
+    TimeWindow,
+    get_aggregation_options,
+)
 from sentry.sentry_metrics.configuration import (
     GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
     RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
@@ -2057,3 +2061,69 @@ def test_cardinality_limiter(caplog, settings):
             ],
         )
     ]
+
+
+def test_aggregation_options():
+
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": False,
+            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {
+                "custom": [2],
+                "transactions": [3],
+            },
+        }
+    ):
+
+        assert get_aggregation_options("c:custom/count@none", 1) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options("c:custom/count@none", 2) is None
+        assert get_aggregation_options("c:transactions/count@none", 3) is None
+        assert get_aggregation_options("c:transactions/count@none", 1) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": True,
+            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {
+                "custom": [2],
+                "transactions": [3],
+            },
+        }
+    ):
+
+        assert get_aggregation_options("c:custom/count@none", 1) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options("c:custom/count@none", 2) is None
+        assert get_aggregation_options("c:transactions/count@none", 3) is None
+        assert get_aggregation_options("c:transactions/count@none", 1) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": False,
+            "sentry-metrics.drop-percentiles.per-org": [3],
+            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {"custom": [2]},
+        }
+    ):
+
+        assert get_aggregation_options("c:custom/count@none", 1) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options("c:custom/count@none", 2) is None
+        assert get_aggregation_options("c:transactions/count@none", 3) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options("c:spans/count@none", 3) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options("c:custom/count@none", 3) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
+        assert get_aggregation_options("c:transactions/count@none", 1) is None
+        assert get_aggregation_options("c:transactions/count@none", 2) is None
+        assert get_aggregation_options("c:spans/count@none", 1) is None

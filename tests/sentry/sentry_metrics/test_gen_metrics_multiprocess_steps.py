@@ -262,7 +262,7 @@ distribution_payloads: list[dict[str, Any]] = [
         "timestamp": ts,
         "type": "d",
         "value": [4, 5, 6],
-        "org_id": 1,
+        "org_id": 2,
         "project_id": 3,
         "retention_days": 90,
     }
@@ -361,8 +361,10 @@ def test_process_messages() -> None:
     with override_options(
         {
             "sentry-metrics.10s-granularity": True,
-            "sentry-metrics.drop-percentiles.per-org": [1],
-            "sentry-metrics.drop-percentiles.per-use-case": ["spans", "transactions"],
+            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {
+                "spans": [2],
+                "transactions": [2],
+            },
         }
     ):
         new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
@@ -575,7 +577,7 @@ def test_process_messages_rate_limited(caplog: Any, settings: Any) -> None:
     assert isinstance(raw_simple_string_indexer, RawSimpleIndexer)
     rgx = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$").match(distribution_payloads[0]["name"])
     assert rgx is not None
-    raw_simple_string_indexer._strings[UseCaseID(rgx.group(2))][1]["rate_limited_test"] = None
+    raw_simple_string_indexer._strings[UseCaseID(rgx.group(2))][2]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
         new_batch = message_processor.process_messages(outer_message=outer_message)
