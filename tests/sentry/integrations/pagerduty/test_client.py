@@ -1,4 +1,3 @@
-import copy
 from unittest import mock
 from unittest.mock import call
 
@@ -9,7 +8,6 @@ from responses import matchers
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -61,9 +59,9 @@ class PagerDutyClientTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
 
         self.integration_key = self.service["integration_key"]

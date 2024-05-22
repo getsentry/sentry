@@ -1,4 +1,3 @@
-import copy
 from datetime import UTC, datetime
 from unittest.mock import patch
 from uuid import uuid4
@@ -15,7 +14,6 @@ from sentry.rules.processing.delayed_processing import (
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -32,7 +30,6 @@ class ProcessDelayedAlertConditionsTest(
     ) -> Event:
         data = {
             "timestamp": iso_format(timestamp),
-            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             "environment": environment,
             "fingerprint": [fingerprint],
             "level": "error",
@@ -47,9 +44,7 @@ class ProcessDelayedAlertConditionsTest(
             },
         }
         return self.store_event(
-            data=data,
-            project_id=project_id,
-            assert_no_errors=False,
+            data=data, project_id=project_id, assert_no_errors=False, event_type="error"
         )
 
     def create_event_frequency_condition(

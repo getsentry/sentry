@@ -1,5 +1,3 @@
-import copy
-
 import pytest
 import responses
 
@@ -7,7 +5,6 @@ from fixtures.gitlab import GitLabTestCase
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
@@ -24,9 +21,9 @@ class GitlabIssuesTest(GitLabTestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         self.group = event.group
 

@@ -1,4 +1,3 @@
-import copy
 from datetime import timedelta
 from typing import cast
 from unittest import mock
@@ -36,7 +35,6 @@ from sentry.tasks.summaries.weekly_reports import (
     schedule_organizations,
 )
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
@@ -257,10 +255,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
         event1.group.substatus = GroupSubStatus.ONGOING
         event1.group.save()
@@ -270,10 +268,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "b" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
         event2.group.substatus = GroupSubStatus.NEW
         event2.group.save()
@@ -301,20 +299,20 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": min_ago,
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
             event2 = self.store_event(
                 data={
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": min_ago,
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
             group2 = event2.group
             group2.status = GroupStatus.RESOLVED
@@ -338,10 +336,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
 
             event2 = self.store_event(
@@ -349,10 +347,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -427,10 +425,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
 
             self.store_event(
@@ -438,10 +436,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -503,11 +501,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                     "level": "info",
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
 
             self.store_event(
@@ -515,11 +513,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                     "level": "error",
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -562,10 +560,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
 
             event2 = self.store_event(
@@ -573,10 +571,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type="error",
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -659,10 +657,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": iso_format(self.three_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group1 = event1.group
         group1.substatus = GroupSubStatus.NEW
@@ -673,10 +671,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "b" * 32,
                 "message": "message",
                 "timestamp": iso_format(self.three_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group2 = event2.group
         group2.substatus = GroupSubStatus.ONGOING
@@ -724,10 +722,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": iso_format(self.three_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
 
         group1 = event1.group
@@ -769,10 +767,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": iso_format(ten_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
 
         prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)

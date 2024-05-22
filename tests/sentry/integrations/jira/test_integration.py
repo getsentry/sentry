@@ -1,4 +1,3 @@
-import copy
 from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
@@ -22,7 +21,6 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -93,9 +91,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         assert group is not None
@@ -212,9 +210,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
 
@@ -231,9 +229,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -286,9 +284,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -338,9 +336,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         assert group is not None
@@ -373,9 +371,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         assert group is not None
@@ -409,9 +407,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         assert group is not None
@@ -455,9 +453,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type="error",
         )
         group = event.group
         assert group is not None

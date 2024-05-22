@@ -1,11 +1,9 @@
-import copy
 from unittest.mock import patch
 from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -22,10 +20,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": two_min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
 
         new_event = self.store_event(
@@ -33,10 +31,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "event_id": new_event_id,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
 
         assert new_event.group_id == old_event.group_id
@@ -59,10 +57,10 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": two_min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type="error",
         )
 
         event2 = self.store_event(
