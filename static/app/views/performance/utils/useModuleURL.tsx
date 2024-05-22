@@ -42,7 +42,14 @@ export const useModuleURL = (
 type URLBuilder = (moduleName: RoutableModuleNames, bare?: boolean) => string;
 
 export function useModuleURLBuilder(): URLBuilder {
-  const {slug} = useOrganization();
+  const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
+
+  if (!organization) {
+    // If there isn't an organization, items that link to modules won't be visible, so this is a fallback just-in-case, and isn't trying too hard to be useful
+    return () => INSIGHTS_BASE_URL;
+  }
+
+  const {slug} = organization;
 
   return function (moduleName: RoutableModuleNames, bare: boolean = false) {
     if (moduleName === ModuleName.AI) {
