@@ -31,14 +31,6 @@ describe('SuspectSpansTable', () => {
             'sum(span.self_time)': 1236071121.5044901,
             'avg(span.duration)': 30900.700924083318,
           },
-          {
-            'span.group': 'ba978f0360ad3048',
-            'span.op': 'http.client',
-            'span.description': 'GET https://*.sentry.io',
-            'spm()': 53.88840392818173,
-            'sum(span.self_time)': 414527976.008568,
-            'avg(span.duration)': 763.0284500928477,
-          },
         ],
       },
     });
@@ -62,5 +54,14 @@ describe('SuspectSpansTable', () => {
     expect(throughputHeader).toHaveTextContent('Throughput');
     expect(avgDurationHeader).toHaveTextContent('Avg Duration');
     expect(timeSpentHeader).toHaveTextContent('Time Spent');
+
+    const bodyCells = await screen.findAllByTestId('grid-body-cell');
+    const [opCell, nameCell, throughputCell, avgDurationCell, timeSpentCell] = bodyCells;
+
+    expect(opCell).toHaveTextContent('navigation');
+    expect(nameCell).toHaveTextContent('(unnamed span)');
+    expect(throughputCell).toHaveTextContent('4.45/s');
+    expect(avgDurationCell).toHaveTextContent('30.90s');
+    expect(timeSpentCell).toHaveTextContent('2.04wk');
   });
 });
