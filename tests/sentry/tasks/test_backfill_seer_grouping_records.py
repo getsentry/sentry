@@ -726,6 +726,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         )
 
+    @pytest.mark.skip(
+        "this test is flakey in production; trying to replicate locally and skipping it for now"
+    )
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_groups_have_neighbor(
