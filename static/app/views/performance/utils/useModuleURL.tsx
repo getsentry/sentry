@@ -36,7 +36,7 @@ export const useModuleURL = (moduleName: RoutableModuleNames): string => {
 
   if (moduleName === ModuleName.AI) {
     // AI Doesn't live under "/performance"
-    return normalizeUrl(`/organizations/${slug}${AI_BASE_URL}`);
+    return normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
   }
 
   return normalizeUrl(

@@ -63,6 +63,10 @@ import {
   MODULE_TITLE as HTTP_MODULE_TITLE,
   releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
 } from 'sentry/views/performance/http/settings';
+import {
+  MODULE_TITLE as QUEUES_MODULE_TITLE,
+  releaseLevelAsBadgeProps as QueuesModuleBadgeProps,
+} from 'sentry/views/performance/queues/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/performance/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/starfish/types';
 
@@ -324,9 +328,11 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={
-                    <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
+                    <GuideAnchor target="performance-queues">
+                      {QUEUES_MODULE_TITLE}
+                    </GuideAnchor>
                   }
-                  isAlpha
+                  {...QueuesModuleBadgeProps}
                   to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}
                   id="performance-queues"
                   icon={<SubitemDot collapsed />}
@@ -418,8 +424,8 @@ function Sidebar() {
         label={t('LLM Monitoring')}
         isAlpha
         variant="short"
-        // NOTE: This is missing a slash, since the base URL for the AI module has a slash
-        to={`/organizations/${organization.slug}${MODULE_BASE_URLS[ModuleName.AI]}/`}
+        // NOTE: This doesn't include the insights base bath because LLM monitoring lives at `/llm-monitoring`
+        to={`/organizations/${organization.slug}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
         id="llm-monitoring"
       />
     </Feature>
