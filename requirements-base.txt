@@ -46,7 +46,7 @@ psutil>=5.9.2
 psycopg2-binary>=2.9.9
 PyJWT>=2.4.0
 pydantic>=1.10.9
-python-dateutil>=2.8.2
+python-dateutil>=2.9.0
 pymemcache
 python-u2flib-server>=5.0.0
 fido2>=0.9.2
