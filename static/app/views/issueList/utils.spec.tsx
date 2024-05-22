@@ -13,6 +13,7 @@ describe('getTabs', () => {
       ['is:regressed', expect.objectContaining({name: 'Regressed'})],
       ['is:escalating', expect.objectContaining({name: 'Escalating'})],
       ['is:archived', expect.objectContaining({name: 'Archived'})],
+      ['is:reprocessing', expect.objectContaining({name: 'Reprocessing'})],
     ]);
   });
 

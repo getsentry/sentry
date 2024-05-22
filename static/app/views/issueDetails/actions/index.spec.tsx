@@ -37,7 +37,6 @@ const group = GroupFixture({
 const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
-  features: ['reprocessing-v2'],
 });
 
 describe('GroupActions', function () {
@@ -132,7 +131,7 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
+    it('renders ReprocessAction component if org has native exception event', async function () {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });

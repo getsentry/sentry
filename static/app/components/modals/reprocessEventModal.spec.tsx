@@ -24,7 +24,6 @@ describe('ReprocessEventModal', function () {
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 
@@ -73,7 +72,6 @@ describe('ReprocessEventModal', function () {
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 

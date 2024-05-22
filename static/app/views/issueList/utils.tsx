@@ -124,7 +124,7 @@ export function getTabs(organization: Organization) {
         name: t('Reprocessing'),
         analyticsName: 'reprocessing',
         count: true,
-        enabled: organization.features.includes('reprocessing-v2'),
+        enabled: true,
         tooltipTitle: tct(
           `These [link:reprocessing issues] will take some time to complete.
         Any new issues that are created during reprocessing will be flagged for review.`,

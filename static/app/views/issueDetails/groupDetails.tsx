@@ -161,24 +161,21 @@ function getReprocessingNewRoute({
   const {routes, params, location} = router;
   const {groupId} = params;
   const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, organization, router});
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
 
   const {id: nextGroupId} = group;
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
   if (groupId !== nextGroupId) {
-    if (hasReprocessingV2Feature) {
-      // Redirects to the Activities tab
-      if (
-        reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-        currentTab !== Tab.ACTIVITY
-      ) {
-        return {
-          pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-          query: {...params, groupId: nextGroupId},
-        };
-      }
+    // Redirects to the Activities tab
+    if (
+      reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+      currentTab !== Tab.ACTIVITY
+    ) {
+      return {
+        pathname: `${baseUrl}${Tab.ACTIVITY}/`,
+        query: {...params, groupId: nextGroupId},
+      };
     }
 
     return recreateRoute('', {
@@ -188,48 +185,40 @@ function getReprocessingNewRoute({
     });
   }
 
-  if (hasReprocessingV2Feature) {
-    if (
-      reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-      currentTab !== Tab.DETAILS
-    ) {
-      return {
-        pathname: baseUrl,
-        query: params,
-      };
-    }
-
-    if (
-      reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-      currentTab !== Tab.ACTIVITY &&
-      currentTab !== Tab.USER_FEEDBACK
-    ) {
-      return {
-        pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-        query: params,
-      };
-    }
+  if (
+    reprocessingStatus === ReprocessingStatus.REPROCESSING &&
+    currentTab !== Tab.DETAILS
+  ) {
+    return {
+      pathname: baseUrl,
+      query: params,
+    };
   }
+
+  if (
+    reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+    currentTab !== Tab.ACTIVITY &&
+    currentTab !== Tab.USER_FEEDBACK
+  ) {
+    return {
+      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
+      query: params,
+    };
+  }
+
   return undefined;
 }
 
 function useRefetchGroupForReprocessing({
   refetchGroup,
 }: Pick<FetchGroupDetailsState, 'refetchGroup'>) {
-  const organization = useOrganization();
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-
   useEffect(() => {
-    let refetchInterval: number;
-
-    if (hasReprocessingV2Feature) {
-      refetchInterval = window.setInterval(refetchGroup, 30000);
-    }
+    const refetchInterval = window.setInterval(refetchGroup, 30000);
 
     return () => {
       window.clearInterval(refetchInterval);
     };
-  }, [hasReprocessingV2Feature, refetchGroup]);
+  }, [refetchGroup]);
 }
 
 function useEventApiQuery({
