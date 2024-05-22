@@ -710,16 +710,12 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     "sentry.sentry_metrics.aggregation_option_registry.METRIC_ID_AGG_OPTION",
     MOCK_METRIC_ID_AGG_OPTION,
 )
-@patch(
-    "sentry.sentry_metrics.aggregation_option_registry.USE_CASE_AGG_OPTION",
-    MOCK_USE_CASE_AGG_OPTION,
-)
 @override_options({"sentry-metrics.10s-granularity": True})
 def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-    counter_metric_id = "c:transactions/alert@none"
-    dist_metric_id = "d:transactions/measurements.fcp@millisecond"
-    set_metric_id = "s:transactions/on_demand@none"
+    counter_metric_id = "c:custom/alert@none"
+    dist_metric_id = "d:custom/measurements.fcp@millisecond"
+    set_metric_id = "s:custom/on_demand@none"
 
     outer_message = _construct_outer_message(
         [
@@ -746,7 +742,7 @@ def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
     )
     assert batch.extract_strings() == (
         {
-            UseCaseID.TRANSACTIONS: {
+            UseCaseID.CUSTOM: {
                 1: {
                     counter_metric_id,
                     dist_metric_id,
@@ -762,7 +758,7 @@ def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
     caplog.set_level(logging.ERROR)
     snuba_payloads = batch.reconstruct_messages(
         {
-            UseCaseID.TRANSACTIONS: {
+            UseCaseID.CUSTOM: {
                 1: {
                     counter_metric_id: 1,
                     dist_metric_id: 2,
@@ -773,7 +769,7 @@ def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
             }
         },
         {
-            UseCaseID.TRANSACTIONS: {
+            UseCaseID.CUSTOM: {
                 1: {
                     counter_metric_id: Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
                     dist_metric_id: Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
@@ -804,7 +800,7 @@ def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
                 "tags": {"3": "production", "9": "init"},
                 "timestamp": ts,
                 "type": "c",
-                "use_case_id": "transactions",
+                "use_case_id": "custom",
                 "value": 1.0,
                 "aggregation_option": AggregationOption.TEN_SECOND.value,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
@@ -828,9 +824,9 @@ def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
                 "tags": {"3": "production", "9": "healthy"},
                 "timestamp": ts,
                 "type": "d",
-                "use_case_id": "transactions",
+                "use_case_id": "custom",
                 "value": [4, 5, 6],
-                "aggregation_option": AggregationOption.HIST.value,
+                "aggregation_option": AggregationOption.TEN_SECOND.value,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
                 "version": 2,
             },
@@ -852,7 +848,7 @@ def test_resolved_with_aggregation_options(caplog: Any, settings: Any) -> None:
                 "tags": {"3": "production", "9": "errored"},
                 "timestamp": ts,
                 "type": "s",
-                "use_case_id": "transactions",
+                "use_case_id": "custom",
                 "value": [3],
                 "aggregation_option": AggregationOption.TEN_SECOND.value,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
