@@ -194,8 +194,6 @@ HTTP_SERVER_ERROR_STATUS = {
 
 CACHE_HIT_STATUS = {"true", "false"}
 
-TRACE_SUCCESS_STATUS = {"ok", "cancelled", "unknown"}
-
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",

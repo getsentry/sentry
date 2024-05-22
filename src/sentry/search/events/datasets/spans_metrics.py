@@ -1214,7 +1214,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
     ) -> SelectType:
         success_statuses = [
-            self.builder.resolve_tag_value(status) for status in constants.TRACE_SUCCESS_STATUS
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
         ]
         return self._resolve_count_if(
             Function(
