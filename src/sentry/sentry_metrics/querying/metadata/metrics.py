@@ -5,7 +5,10 @@ from typing import cast
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.utils import METRICS_API_HIDDEN_OPERATIONS
+from sentry.sentry_metrics.querying.metadata.utils import (
+    METRICS_API_HIDDEN_OPERATIONS,
+    OperationsConfiguration,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.datasource import get_metrics_blocking_state_of_projects
@@ -115,14 +118,21 @@ def _build_metric_meta(
 ) -> MetricMeta:
     available_operations = get_available_operations(parsed_mri)
 
-    if organization.id not in options.get(
-        "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs"
-    ):
-        available_operations = [
-            operation
-            for operation in available_operations
-            if operation not in METRICS_API_HIDDEN_OPERATIONS
-        ]
+    operations_config = OperationsConfiguration()
+    configuration_options = [
+        "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+        "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
+    ]
+
+    for option in configuration_options:
+        if organization.id not in options.get(option):
+            operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option])
+
+    available_operations = [
+        operation
+        for operation in available_operations
+        if operation not in operations_config.get_hidden_operations()
+    ]
 
     return MetricMeta(
         type=cast(MetricType, parsed_mri.entity),
