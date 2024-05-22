@@ -284,7 +284,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("projects:span-metrics-extraction-addon", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:extract-transaction-from-segment-span", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:relay-otel-endpoint", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
 
