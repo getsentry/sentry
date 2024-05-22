@@ -6,7 +6,7 @@ export const BASE_URL = 'queues';
 
 export const DESTINATION_TITLE = t('Destination Summary');
 
-export const RELEASE_LEVEL: BadgeType = 'alpha';
+export const RELEASE_LEVEL: BadgeType = 'beta';
 
 export const releaseLevelAsBadgeProps = {
   isAlpha: (RELEASE_LEVEL as BadgeType) === 'alpha',
