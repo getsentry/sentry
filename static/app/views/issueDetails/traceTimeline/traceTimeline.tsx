@@ -15,7 +15,7 @@ import {TraceTimelineEvents} from './traceTimelineEvents';
 import {EventItem} from './traceTimelineTooltip';
 import {type TimelineEvent, useTraceTimelineEvents} from './useTraceTimelineEvents';
 
-const twoIssues = 2;
+const MIN_ISSUES_TO_SKIP_TIMELINE = 2;
 
 interface TraceTimelineProps {
   event: Event;
@@ -30,12 +30,14 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const hasTraceId = !!event.contexts?.trace?.trace_id;
 
   let timelineStatus: string | undefined;
+  let timelineSkipped = false;
   let issues: {id: number; project: string; title: string}[] = [];
   if (hasTraceId && !isLoading) {
     if (organization.features.includes('related-issues-issue-details-page')) {
       issues = getIssuesFromEvents(traceEvents);
       // When we have more than 2 issues regardless of the number of events we skip the timeline
-      timelineStatus = issues.length > twoIssues ? 'shown' : 'empty';
+      timelineSkipped = issues.length >= MIN_ISSUES_TO_SKIP_TIMELINE;
+      timelineStatus = timelineSkipped ? 'empty' : 'shown';
     } else {
       timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
     }
@@ -83,8 +85,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
         </TimelineWrapper>
       ) : (
         <Feature features="related-issues-issue-details-page">
-          {issues.length === twoIssues && (
-            <div>
+          {timelineSkipped && (
+            <div style={{width: '400px'}}>
               {traceEvents.map((traceEvent, index) => (
                 <EventItem key={index} timelineEvent={traceEvent} />
               ))}
