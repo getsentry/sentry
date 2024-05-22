@@ -952,24 +952,23 @@ class ProjectUpdateTest(APITestCase):
         preset = get_highlight_preset_for_project(self.project)
         assert resp.data["highlightTags"] == preset["tags"]
 
-        with self.feature("organizations:event-tags-tree-ui"):
-            # Set to custom
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightTags=highlight_tags,
-            )
-            assert self.project.get_option("sentry:highlight_tags") == highlight_tags
-            assert resp.data["highlightTags"] == highlight_tags
+        # Set to custom
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightTags=highlight_tags,
+        )
+        assert self.project.get_option("sentry:highlight_tags") == highlight_tags
+        assert resp.data["highlightTags"] == highlight_tags
 
-            # Set to empty
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightTags=[],
-            )
-            assert self.project.get_option("sentry:highlight_tags") == []
-            assert resp.data["highlightTags"] == []
+        # Set to empty
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightTags=[],
+        )
+        assert self.project.get_option("sentry:highlight_tags") == []
+        assert resp.data["highlightTags"] == []
 
     def test_highlight_context(self):
         # Default with or without flag, ignore update attempt
@@ -985,53 +984,52 @@ class ProjectUpdateTest(APITestCase):
         preset = get_highlight_preset_for_project(self.project)
         assert resp.data["highlightContext"] == preset["context"]
 
-        with self.feature("organizations:event-tags-tree-ui"):
-            # Set to custom
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext=highlight_context,
-            )
-            option_result = self.project.get_option("sentry:highlight_context")
-            resp_result = resp.data["highlightContext"]
-            for highlight_context_key in highlight_context[highlight_context_type]:
-                assert highlight_context_key in option_result[highlight_context_type]
-                assert highlight_context_key in resp_result[highlight_context_type]
-            # Filters duplicates
-            assert (
-                len(option_result[highlight_context_type])
-                == len(resp_result[highlight_context_type])
-                == 4
-            )
+        # Set to custom
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=highlight_context,
+        )
+        option_result = self.project.get_option("sentry:highlight_context")
+        resp_result = resp.data["highlightContext"]
+        for highlight_context_key in highlight_context[highlight_context_type]:
+            assert highlight_context_key in option_result[highlight_context_type]
+            assert highlight_context_key in resp_result[highlight_context_type]
+        # Filters duplicates
+        assert (
+            len(option_result[highlight_context_type])
+            == len(resp_result[highlight_context_type])
+            == 4
+        )
 
-            # Set to empty
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext={},
-            )
-            assert self.project.get_option("sentry:highlight_context") == {}
-            assert resp.data["highlightContext"] == {}
+        # Set to empty
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={},
+        )
+        assert self.project.get_option("sentry:highlight_context") == {}
+        assert resp.data["highlightContext"] == {}
 
-            # Checking validation
-            resp = self.get_error_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext=["bird-words", ["red", "blue"]],
-            )
-            assert "Expected a dictionary" in resp.data["highlightContext"][0]
-            resp = self.get_error_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext={"": ["empty", "context", "type"]},
-            )
-            assert "Key '' is invalid" in resp.data["highlightContext"][0]
-            resp = self.get_error_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext={"bird-words": ["invalid", 123, "integer"]},
-            )
-            assert "must be a list of strings" in resp.data["highlightContext"][0]
+        # Checking validation
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=["bird-words", ["red", "blue"]],
+        )
+        assert "Expected a dictionary" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"": ["empty", "context", "type"]},
+        )
+        assert "Key '' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"bird-words": ["invalid", 123, "integer"]},
+        )
+        assert "must be a list of strings" in resp.data["highlightContext"][0]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
