@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -118,11 +119,11 @@ export function SampleList({
   );
 
   // set additional query filters from the span search bar and the `query` param
-  let extraQuery: string[] | undefined = spanSearchQuery?.split(' ');
+  const spanSearch = new MutableSearch(spanSearchQuery ?? '');
   if (query.query) {
-    extraQuery = extraQuery?.concat(
-      Array.isArray(query.query) ? query.query : [query.query]
-    );
+    (Array.isArray(query.query) ? query.query : [query.query]).forEach(filter => {
+      spanSearch.addStringFilter(filter);
+    });
   }
 
   function defaultOnClose() {
@@ -204,7 +205,7 @@ export function SampleList({
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
           onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
-          query={extraQuery}
+          spanSearch={spanSearch}
           highlightedSpanId={highlightedSpanId}
         />
 
@@ -230,7 +231,7 @@ export function SampleList({
           groupId={groupId}
           moduleName={moduleName}
           transactionName={transactionName}
-          query={extraQuery}
+          spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
         />

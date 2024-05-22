@@ -150,11 +150,7 @@ export function SpanSamplesContainer({
       </Container>
 
       <DurationChart
-        query={
-          additionalFilters
-            ? Object.entries(additionalFilters).map(([key, value]) => `${key}:${value}`)
-            : undefined
-        }
+        spanSearch={MutableSearch.fromQueryObject(additionalFilters ?? {})}
         additionalFilters={additionalFilters}
         groupId={groupId}
         transactionName={transactionName}
@@ -175,11 +171,7 @@ export function SpanSamplesContainer({
         }
       />
       <SampleTable
-        query={
-          additionalFilters
-            ? Object.entries(additionalFilters).map(([key, value]) => `${key}:${value}`)
-            : undefined
-        }
+        spanSearch={MutableSearch.fromQueryObject(additionalFilters ?? {})}
         additionalFilters={additionalFilters}
         highlightedSpanId={highlightedSpanId}
         transactionMethod={transactionMethod}

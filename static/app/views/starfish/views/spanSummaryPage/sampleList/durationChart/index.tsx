@@ -31,9 +31,9 @@ type Props = {
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
   platform?: string;
-  query?: string[];
   release?: string;
   spanDescription?: string;
+  spanSearch?: MutableSearch;
   transactionMethod?: string;
 };
 
@@ -47,7 +47,7 @@ function DurationChart({
   transactionMethod,
   additionalFields,
   release,
-  query,
+  spanSearch,
   platform,
   additionalFilters,
 }: Props) {
@@ -108,7 +108,7 @@ function DurationChart({
     transactionName,
     transactionMethod,
     release,
-    query,
+    spanSearch,
     additionalFields,
   });
 

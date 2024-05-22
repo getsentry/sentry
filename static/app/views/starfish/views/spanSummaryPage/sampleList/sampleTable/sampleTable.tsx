@@ -35,8 +35,8 @@ type Props = {
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
-  query?: string[];
   release?: string;
+  spanSearch?: MutableSearch;
   transactionMethod?: string;
 };
 
@@ -50,7 +50,7 @@ function SampleTable({
   transactionMethod,
   columnOrder,
   release,
-  query,
+  spanSearch,
   additionalFields,
   additionalFilters,
 }: Props) {
@@ -95,7 +95,7 @@ function SampleTable({
     transactionName,
     transactionMethod,
     release,
-    query,
+    spanSearch,
     additionalFields,
   });
 
