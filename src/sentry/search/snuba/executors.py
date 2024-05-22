@@ -1201,8 +1201,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
-        output = query_builder.convert_search_filter_to_condition(search_filter)
-        return output
+        return query_builder.convert_search_filter_to_condition(search_filter)
 
     def get_assigned(
         self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
