@@ -219,7 +219,8 @@ function PageWithProviders() {
 
   return (
     <ModulePageProviders
-      title={[transaction, t('Screen Loads')].join(' — ')}
+      moduleName="screen_load"
+      pageTitle={transaction}
       features="spans-first-ui"
     >
       <ScreenLoadSpans />

@@ -33,7 +33,6 @@ import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
   MODULE_DOC_LINK,
-  MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
@@ -345,7 +344,8 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
+      moduleName="http"
+      pageTitle={t('Domain Summary')}
       features="spans-first-ui"
     >
       <HTTPDomainSummaryPage />

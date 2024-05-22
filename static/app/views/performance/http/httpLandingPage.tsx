@@ -250,10 +250,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="http" features="spans-first-ui">
       <HTTPLandingPage />
     </ModulePageProviders>
   );
