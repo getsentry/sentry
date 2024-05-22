@@ -234,11 +234,7 @@ describe('OrganizationStats', function () {
    */
   it('renders single project without global-views', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['team-insights'];
 
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
@@ -252,12 +248,7 @@ describe('OrganizationStats', function () {
 
   it('renders default projects with global-views', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
     OrganizationStore.onUpdate(newOrg.organization, {replace: true});
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
@@ -280,12 +271,7 @@ describe('OrganizationStats', function () {
 
   it('renders with multiple projects selected', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
 
     const selectedProjects = [1, 2];
     const newSelection = {
@@ -326,12 +312,7 @@ describe('OrganizationStats', function () {
 
   it('renders with a single project selected', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
     const selectedProject = [1];
     const newSelection = {
       ...defaultSelection,
@@ -372,12 +353,7 @@ describe('OrganizationStats', function () {
 
   it('renders a project when its graph icon is clicked', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
       organization: newOrg.organization,
@@ -396,7 +372,7 @@ describe('OrganizationStats', function () {
       ...defaultSelection,
       projects: selectedProject,
     };
-    for (const features of [['team-insights'], ['team-insights', 'project-stats']]) {
+    for (const features of [['team-insights'], ['team-insights']]) {
       const newOrg = initializeOrg();
       newOrg.organization.features = features;
       render(
