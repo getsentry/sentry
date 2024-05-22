@@ -43,28 +43,26 @@ export default function MonitorProcessingErrors({
   const [expanded, setExpanded] = useState(-1);
   const accordionErrors = (
     <Accordion
-      items={Object.values(errorsByType).map(errors => {
-        return {
-          header: () => (
-            <ErrorHeader>
-              <Tag type="error">{errors.length}x</Tag>
-              <ProcessingErrorTitle type={errors[0].error.type} />
-            </ErrorHeader>
-          ),
-          content: () => (
-            <List symbol="bullet">
-              {errors.map(({error, checkin}, i) => (
-                <ListItem key={i}>
-                  <ProcessingErrorItem
-                    error={error}
-                    checkinTooltip={renderCheckinTooltip(checkin)}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          ),
-        };
-      })}
+      items={Object.values(errorsByType).map(errors => ({
+        header: (
+          <ErrorHeader>
+            <Tag type="error">{errors.length}x</Tag>
+            <ProcessingErrorTitle type={errors[0].error.type} />
+          </ErrorHeader>
+        ),
+        content: (
+          <List symbol="bullet">
+            {errors.map(({error, checkin}, i) => (
+              <ListItem key={i}>
+                <ProcessingErrorItem
+                  error={error}
+                  checkinTooltip={renderCheckinTooltip(checkin)}
+                />
+              </ListItem>
+            ))}
+          </List>
+        ),
+      }))}
       expandedIndex={expanded}
       setExpandedIndex={setExpanded}
     />
