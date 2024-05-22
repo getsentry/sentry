@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useContext, useEffect, useState} from 'react';
 import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
@@ -16,13 +16,14 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {OrganizationLoaderContext} from 'sentry/views/organizationContext';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -83,25 +84,29 @@ function SudoModal({
     superuserReason,
   } = state;
 
+  const {loadOrganization} = useContext(OrganizationLoaderContext) || {};
   const router = useRouter();
   const api = useApi();
   const location = useLocation();
 
   useEffect(() => {
     const getAuthenticators = async () => {
+      if (!loadOrganization) return;
       try {
-        const fetchedAuthenticators = await api.requestPromise('/authenticators/');
-        setState(prevState => ({
-          ...prevState,
-          authenticators: fetchedAuthenticators ?? [],
-        }));
+        await loadOrganization().then(async () => {
+          const fetchedAuthenticators = await api.requestPromise('/authenticators/');
+          setState(prevState => ({
+            ...prevState,
+            authenticators: fetchedAuthenticators ?? [],
+          }));
+        });
       } catch {
         // ignore errors
       }
     };
 
     getAuthenticators();
-  }, [api]);
+  }, [api, loadOrganization]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
