@@ -2,12 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 
-jest.mock('sentry/utils/useOrganization');
 describe('PerformanceScoreRingWithTooltips', function () {
-  const organization = OrganizationFixture();
   const projectScore = {
     lcpScore: 74,
     fcpScore: 92,
@@ -23,14 +20,6 @@ describe('PerformanceScoreRingWithTooltips', function () {
     fidWeight: 5,
     inpWeight: 5,
   };
-
-  beforeEach(function () {
-    jest.mocked(useOrganization).mockReturnValue(organization);
-  });
-
-  afterEach(function () {
-    jest.resetAllMocks();
-  });
 
   it('renders segment labels', async () => {
     render(
@@ -53,7 +42,6 @@ describe('PerformanceScoreRingWithTooltips', function () {
 
   it('renders inp', async () => {
     const organizationWithInp = OrganizationFixture();
-    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     render(
       <PerformanceScoreRingWithTooltips
         weights={{lcp: 38, fcp: 23, cls: 18, ttfb: 16, fid: 0, inp: 10}}
@@ -63,7 +51,8 @@ describe('PerformanceScoreRingWithTooltips', function () {
         ringBackgroundColors={['#444674', '#895289', '#d6567f', '#f38150', '#f2b712']}
         ringSegmentColors={['#444674', '#895289', '#d6567f', '#f38150', '#f2b712']}
         text={undefined}
-      />
+      />,
+      {organization: organizationWithInp}
     );
     await screen.findByText('inp');
     screen.getByText('fcp');

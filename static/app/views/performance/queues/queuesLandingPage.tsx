@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,8 +28,11 @@ import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingC
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
   DEFAULT_QUERY_FILTER,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
   RELEASE_LEVEL,
@@ -92,6 +96,10 @@ function QueuesLandingPage() {
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -118,11 +126,11 @@ function QueuesLandingPage() {
               referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
-                <LatencyChart />
+                <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Half>
-                <ThroughputChart />
+                <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>
