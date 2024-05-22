@@ -15,7 +15,7 @@ import {TraceTimelineEvents} from './traceTimelineEvents';
 import {EventItem} from './traceTimelineTooltip';
 import {type TimelineEvent, useTraceTimelineEvents} from './useTraceTimelineEvents';
 
-const MIN_ISSUES_TO_SKIP_TIMELINE = 2;
+const ISSUES_TO_SKIP_TIMELINE = 2;
 
 interface TraceTimelineProps {
   event: Event;
@@ -38,7 +38,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     } else {
       issuesCount = getIssuesCountFromEvents(traceEvents);
       // When we have more than 2 issues regardless of the number of events we skip the timeline
-      timelineSkipped = issuesCount >= MIN_ISSUES_TO_SKIP_TIMELINE;
+      timelineSkipped = issuesCount === ISSUES_TO_SKIP_TIMELINE;
       timelineStatus = timelineSkipped ? 'empty' : 'shown';
     }
   } else if (!hasTraceId) {
