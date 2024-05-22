@@ -33,13 +33,13 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   let timelineSkipped = false;
   let issues: {id: number; project: string; title: string}[] = [];
   if (hasTraceId && !isLoading) {
-    if (organization.features.includes('related-issues-issue-details-page')) {
+    if (!organization.features.includes('related-issues-issue-details-page')) {
+      timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
+    } else {
       issues = getIssuesFromEvents(traceEvents);
       // When we have more than 2 issues regardless of the number of events we skip the timeline
       timelineSkipped = issues.length >= MIN_ISSUES_TO_SKIP_TIMELINE;
       timelineStatus = timelineSkipped ? 'empty' : 'shown';
-    } else {
-      timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
     }
   } else if (!hasTraceId) {
     timelineStatus = 'no_trace_id';
