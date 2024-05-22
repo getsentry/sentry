@@ -20,27 +20,21 @@ import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const isOnboarding = !!onboardingProject;
 
+  const crumbs = useModuleBreadcrumbs('ai');
+
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Dashboard'),
-                },
-                {
-                  label: t('LLM Monitoring'),
-                },
-              ]}
-            />
+            <Breadcrumbs crumbs={crumbs} />
             <Layout.Title>
               {t('LLM Monitoring')}
               <PageHeadingQuestionTooltip

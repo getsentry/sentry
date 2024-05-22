@@ -14,8 +14,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
@@ -30,6 +28,7 @@ import {
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
@@ -37,26 +36,16 @@ const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
-  const organization = useOrganization();
   const filters = useResourceModuleFilters();
+
+  const crumbs = useModuleBreadcrumbs('resource');
 
   return (
     <React.Fragment>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Performance',
-                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                  preservePageFilters: true,
-                },
-                {
-                  label: 'Resources',
-                },
-              ]}
-            />
+            <Breadcrumbs crumbs={crumbs} />
 
             <Layout.Title>
               {t('Resources')}
