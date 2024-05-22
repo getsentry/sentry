@@ -260,7 +260,9 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          statsPeriod: '10d',
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
         },
       })
     );
