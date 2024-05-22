@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -513,14 +512,9 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe("renders changes for 'event-tags-tree-ui' flag", function () {
+  describe('renders changes for tree view', function () {
     const featuredOrganization = OrganizationFixture({
-      features: ['event-attachments', 'event-tags-tree-ui'],
-    });
-    const router = RouterFixture({
-      location: {
-        query: {tagsTree: '1'},
-      },
+      features: ['event-attachments'],
     });
     let mockDetailedProject;
     beforeEach(function () {
@@ -531,7 +525,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    async function assertNewTagsView() {
+    async function assertTagsView() {
       await expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -546,7 +540,7 @@ describe('EventTagsAndScreenshot', function () {
       );
     }
 
-    async function assertFlagAndQueryParamWork() {
+    async function assertViewWorksAsShare() {
       const flaggedOrgTags = render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
@@ -554,7 +548,7 @@ describe('EventTagsAndScreenshot', function () {
         />,
         {organization: featuredOrganization}
       );
-      await assertNewTagsView();
+      await assertTagsView();
       flaggedOrgTags.unmount();
 
       const flaggedOrgTagsAsShare = render(
@@ -565,29 +559,8 @@ describe('EventTagsAndScreenshot', function () {
         />,
         {organization: featuredOrganization}
       );
-      await assertNewTagsView();
+      await assertTagsView();
       flaggedOrgTagsAsShare.unmount();
-
-      const queryParamTags = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization, router}
-      );
-      await assertNewTagsView();
-      queryParamTags.unmount();
-
-      const queryParamTagsAsShare = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-          isShare
-        />,
-        {organization, router}
-      );
-      await assertNewTagsView();
-      queryParamTagsAsShare.unmount();
     }
 
     it('no context, tags only', async function () {
@@ -595,7 +568,7 @@ describe('EventTagsAndScreenshot', function () {
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
       });
-      await assertFlagAndQueryParamWork();
+      await assertViewWorksAsShare();
     });
 
     it('no context, tags and screenshot', async function () {
@@ -603,10 +576,10 @@ describe('EventTagsAndScreenshot', function () {
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: attachments,
       });
-      await assertFlagAndQueryParamWork();
+      await assertViewWorksAsShare();
     });
 
-    it("allows filtering with 'event-tags-tree-ui' flag", async function () {
+    it('allows filtering tags', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -650,7 +623,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(rows).toHaveLength(allTags.length);
     });
 
-    it("promotes custom tags with 'event-tags-tree-ui' flag", async function () {
+    it('promotes custom tags', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
