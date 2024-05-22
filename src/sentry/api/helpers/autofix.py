@@ -28,7 +28,8 @@ def get_project_codebase_indexing_status(project):
                     "organization_id": project.organization.id,
                     "project_id": project.id,
                     "repo": repo,
-                }
+                },
+                option=orjson.OPT_UTC_Z,
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )

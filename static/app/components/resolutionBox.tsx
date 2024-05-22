@@ -16,7 +16,7 @@ import type {
   Repository,
   ResolvedStatusDetails,
 } from 'sentry/types';
-import {GroupActivityType} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types/group';
 
 type Props = {
   projectId: string;

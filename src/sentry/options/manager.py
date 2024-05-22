@@ -210,14 +210,6 @@ class OptionsManager:
         elif not opt.type.test(value):
             raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
-        if key == "processing.calculate-severity-on-group-creation":
-            logger.error(
-                "Option %s set to %s. previous update channel: %s",
-                key,
-                value,
-                channel,
-                stack_info=True,
-            )
         return self.store.set(opt, value, channel=channel)
 
     def lookup_key(self, key: str):
@@ -259,7 +251,9 @@ class OptionsManager:
 
     def isset(self, key: str) -> bool:
         """
-        Check if a key has been set to a value and not inheriting from its default.
+        Check if a key is set on the local cache, network cache, or db in that order.
+        Keep in mind that if an option is deleted, any new calls to options.get()
+        will repopulate the cache, resulting in this method to return true.
         """
         opt = self.lookup_key(key)
 

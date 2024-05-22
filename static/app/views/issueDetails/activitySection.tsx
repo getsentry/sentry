@@ -7,8 +7,8 @@ import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithSto
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Group, GroupActivity, User} from 'sentry/types';
-import {GroupActivityType} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
+import {GroupActivityType} from 'sentry/types/group';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';

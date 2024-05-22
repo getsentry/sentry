@@ -1,8 +1,19 @@
 /* eslint-env node */
 
+const detectDeprecations = !!process.env.SENTRY_DETECT_DEPRECATIONS;
+
 module.exports = {
   root: true,
-  extends: ['sentry-app/strict'],
+  extends: detectDeprecations
+    ? ['sentry-app/strict', 'plugin:deprecation/recommended']
+    : ['sentry-app/strict'],
+
+  parserOptions: detectDeprecations
+    ? {
+        project: './tsconfig.json',
+      }
+    : {},
+
   globals: {
     require: false,
     expect: false,
@@ -27,6 +38,7 @@ module.exports = {
     'array-bracket-spacing': 'off',
     'computed-property-spacing': 'off',
     'react/no-danger-with-children': 'off',
+    'jest/no-disabled-tests': 'off',
   },
   // JSON file formatting is handled by Biome. ESLint should not be linting
   // and formatting these files.
@@ -47,6 +59,7 @@ module.exports = {
         'array-bracket-spacing': 'off',
         'computed-property-spacing': 'off',
         'react/no-danger-with-children': 'off',
+        'jest/no-disabled-tests': 'off',
       },
     },
     {

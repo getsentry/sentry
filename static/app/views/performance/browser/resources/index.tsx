@@ -19,7 +19,6 @@ import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
-import {BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -92,7 +91,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <ResourcesLandingPage />

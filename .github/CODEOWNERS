@@ -104,7 +104,6 @@ Makefile                                                 @getsentry/owners-sentr
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
 /self-hosted                                             @getsentry/release-approvers
-setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
@@ -308,7 +307,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
-/src/sentry/api/serializers/models/alert_rule.py                     @getsentry/alerts-notifications
 
 /static/app/views/organizationIntegrations                           @getsentry/product-owners-settings-integrations
 

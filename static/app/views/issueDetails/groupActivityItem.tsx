@@ -20,7 +20,7 @@ import type {
   Project,
   User,
 } from 'sentry/types';
-import {GroupActivityType} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types/group';
 import {isSemverRelease} from 'sentry/utils/formatters';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 

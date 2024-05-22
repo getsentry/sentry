@@ -113,7 +113,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 <Status>
                   <StatusIndicator
                     status={checkStatusToIndicatorStatus[checkIn.status]}
-                    tooltipTitle={tct('Check In Status: [status]', {
+                    tooltipTitle={tct('Check-in Status: [status]', {
                       status: statusToText[checkIn.status],
                     })}
                   />
