@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import * as KeyValueData from 'sentry/components/keyValueData/card';
@@ -505,7 +505,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
-        <NewTagsUI event={event} projectSlug={projectSlug} />
+        <Tags event={event} projectSlug={projectSlug} />
       </TagsWrapper>
     </LazyRender>
   );
