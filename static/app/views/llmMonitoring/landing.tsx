@@ -17,9 +17,9 @@ import {
 import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
