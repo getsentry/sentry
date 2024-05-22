@@ -138,7 +138,7 @@ export interface FrameSourceMapDebuggerData {
   uploadedSourceMapWithCorrectDebugId: boolean;
 }
 
-interface SourceMapsDebuggerModalProps extends ModalRenderProps {
+export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   analyticsParams: SourceMapWizardBlueThunderAnalyticsParams & {
     organization: Organization | null;
   };
@@ -895,16 +895,18 @@ function ReleaseSourceFileMatchingChecklistItem({
   }
 
   if (sourceResolutionResults.stackFramePath === null) {
-    <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction type="muted">
-        <h6>{t('Stack Frame Without Path')}</h6>
-        <p>
-          {t(
-            "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
-          )}
-        </p>
-      </CheckListInstruction>
-    </CheckListItem>;
+    return (
+      <CheckListItem status="alert" title={errorMessage}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Stack Frame Without Path')}</h6>
+          <p>
+            {t(
+              "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
+            )}
+          </p>
+        </CheckListInstruction>
+      </CheckListItem>
+    );
   }
 
   return (

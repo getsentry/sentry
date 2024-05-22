@@ -19,6 +19,7 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
+import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
@@ -1473,7 +1474,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="cache/">
+      <Route path={`${CACHE_BASE_URL}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/cache/cacheLandingPage')

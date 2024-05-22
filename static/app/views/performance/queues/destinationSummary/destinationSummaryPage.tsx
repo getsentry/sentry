@@ -27,8 +27,8 @@ import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughput
 import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
-  BASE_URL,
   DESTINATION_TITLE,
   MODULE_TITLE,
   RELEASE_LEVEL,
@@ -44,7 +44,10 @@ function DestinationSummaryPage() {
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data, isLoading} = useQueuesMetricsQuery({destination});
+  const {data, isLoading} = useQueuesMetricsQuery({
+    destination,
+    referrer: Referrer.QUEUES_SUMMARY,
+  });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
@@ -144,11 +147,17 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart destination={destination} />
+                  <LatencyChart
+                    destination={destination}
+                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                  />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart destination={destination} />
+                  <ThroughputChart
+                    destination={destination}
+                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                  />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -170,7 +179,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

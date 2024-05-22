@@ -174,6 +174,7 @@ export enum SpanIndexedField {
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
+  SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
@@ -222,6 +223,24 @@ export type IndexedResponse = {
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
+  [SpanIndexedField.SPAN_STATUS]:
+    | 'ok'
+    | 'cancelled'
+    | 'unknown'
+    | 'invalid_argument'
+    | 'deadline_exceeded'
+    | 'not_found'
+    | 'already_exists'
+    | 'permission_denied'
+    | 'resource_exhausted'
+    | 'failed_precondition'
+    | 'aborted'
+    | 'out_of_range'
+    | 'unimplemented'
+    | 'internal_error'
+    | 'unavailable'
+    | 'data_loss'
+    | 'unauthenticated';
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;

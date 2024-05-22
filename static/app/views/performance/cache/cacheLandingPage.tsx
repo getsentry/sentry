@@ -23,7 +23,6 @@ import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
 import {
   BASE_FILTERS,
-  BASE_URL,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
   RELEASE_LEVEL,
@@ -79,7 +78,7 @@ export function CacheLandingPage() {
   );
 
   const {
-    isLoading: isTransactionsListLoading,
+    isFetching: isTransactionsListFetching,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
@@ -108,12 +107,12 @@ export function CacheLandingPage() {
     data: transactionDurationData,
     error: transactionDurationError,
     meta: transactionDurationMeta,
-    isLoading: isTransactionDurationLoading,
+    isFetching: isTransactionDurationFetching,
   } = useMetrics(
     {
       search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
-      enabled: !isTransactionsListLoading && transactionsList.length > 0,
+      enabled: !isTransactionsListFetching && transactionsList.length > 0,
     },
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
@@ -195,7 +194,7 @@ export function CacheLandingPage() {
               <ModuleLayout.Full>
                 <TransactionsTable
                   data={transactionsListWithDuration}
-                  isLoading={isTransactionsListLoading || isTransactionDurationLoading}
+                  isLoading={isTransactionsListFetching || isTransactionDurationFetching}
                   sort={sort}
                   error={transactionsListError || transactionDurationError}
                   meta={meta}
@@ -215,7 +214,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-cache-view"
     >
       <CacheLandingPage />

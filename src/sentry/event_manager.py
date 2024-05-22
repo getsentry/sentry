@@ -2772,36 +2772,57 @@ def save_attachment(
 
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
+    from sentry import ratelimits as ratelimiter
 
-    file = EventAttachment.putfile(project.id, attachment)
-
-    EventAttachment.objects.create(
-        # lookup:
-        project_id=project.id,
-        group_id=group_id,
-        event_id=event_id,
-        # metadata:
-        type=attachment.type,
-        name=attachment.name,
-        content_type=file.content_type,
-        size=file.size,
-        sha1=file.sha1,
-        # storage:
-        file_id=file.file_id,
-        blob_path=file.blob_path,
+    is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+        key="event_attachment.save",
+        limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+        project=project,
+        window=5 * 60,
     )
+    if is_limited:
+        metrics.incr("event_manager.attachments.rate_limited")
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=key_id,
+            outcome=Outcome.RATE_LIMITED,
+            reason="Too many attachments ({num_requests}} uploaded in a 5 minute window, will reset at {reset_time}",
+            timestamp=timestamp,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment.size or 1,
+        )
+    else:
+        file = EventAttachment.putfile(project.id, attachment)
 
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=timestamp,
-        event_id=event_id,
-        category=DataCategory.ATTACHMENT,
-        quantity=attachment.size or 1,
-    )
+        EventAttachment.objects.create(
+            # lookup:
+            project_id=project.id,
+            group_id=group_id,
+            event_id=event_id,
+            # metadata:
+            type=attachment.type,
+            name=attachment.name,
+            content_type=file.content_type,
+            size=file.size,
+            sha1=file.sha1,
+            # storage:
+            file_id=file.file_id,
+            blob_path=file.blob_path,
+        )
+
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=timestamp,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment.size or 1,
+        )
 
 
 def save_attachments(cache_key: str | None, attachments: list[Attachment], job: Job) -> None:

@@ -37,7 +37,7 @@ from sentry.utils import json, metrics, redis
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 BACKFILL_NAME = "backfill_grouping_records"
 
 logger = logging.getLogger(__name__)
@@ -266,7 +266,7 @@ def backfill_seer_grouping_records(
                 ex=60 * 60 * 24 * 7,
             )
 
-            if last_processed_index <= len(group_id_message_data):
+            if last_processed_index < len(group_id_message_data):
                 logger.info(
                     "calling next backfill task",
                     extra={

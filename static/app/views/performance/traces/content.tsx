@@ -37,6 +37,7 @@ import {type Field, FIELDS, SORTS} from './data';
 import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
+  SpanDescriptionRenderer,
   SpanIdRenderer,
   SpanTimeRenderer,
   TraceBreakdownContainer,
@@ -177,7 +178,7 @@ export function Content() {
       />
       <StyledPanel>
         <TracePanelContent>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader align="left" lightText>
             {t('Trace ID')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
@@ -186,7 +187,7 @@ export function Content() {
           <StyledPanelHeader align="right" lightText>
             {t('Total Spans')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
@@ -210,7 +211,9 @@ export function Content() {
           )}
           {isEmpty && (
             <StyledPanelItem span={7} overflow>
-              <EmptyStateWarning withIcon />
+              <EmptyStateWarning withIcon>
+                <div>{t('No traces available')}</div>
+              </EmptyStateWarning>
             </StyledPanelItem>
           )}
           {data?.map(trace => <TraceRow key={trace.trace} trace={trace} />)}
@@ -252,7 +255,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
             <ProjectRenderer projectSlug={trace.project} hideName />
           ) : null}
           {trace.name ? (
-            trace.name
+            <WrappingText>{trace.name}</WrappingText>
           ) : (
             <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
           )}
@@ -354,12 +357,7 @@ function SpanRow({
         />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="left" overflow>
-        <Description>
-          <ProjectRenderer projectSlug={span.project} hideName />
-          <strong>{span['span.op']}</strong>
-          <em>{'\u2014'}</em>
-          {span['span.description']}
-        </Description>
+        <SpanDescriptionRenderer span={span} />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right" onMouseLeave={() => setHighlightedSliceName('')}>
         <TraceBreakdownContainer>
@@ -515,13 +513,12 @@ const TracePanelContent = styled('div')`
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 141px 85px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 133px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
-  padding: ${space(2)} ${space(1)};
 `;
 
 const Description = styled('div')`
@@ -538,7 +535,7 @@ const StyledPanelItem = styled(PanelItem)<{
   span?: number;
 }>`
   align-items: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
   ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
@@ -549,7 +546,13 @@ const StyledPanelItem = styled(PanelItem)<{
       : p.align === 'left' || p.align === 'right'
         ? `text-align: ${p.align};`
         : undefined}
-  ${p => p.span && `grid-column: auto / span ${p.span}`}
+  ${p => p.span && `grid-column: auto / span ${p.span};`}
+  white-space: nowrap;
+`;
+
+const WrappingText = styled('div')`
+  width: 100%;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledSpanPanelItem = styled(StyledPanelItem)`

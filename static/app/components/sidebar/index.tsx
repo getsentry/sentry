@@ -47,7 +47,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {hasMetricsSidebarItem} from 'sentry/utils/metrics/features';
+import {canSeeMetricsPage, hasRolledOutMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -56,6 +56,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
+  CACHE_BASE_URL,
   MODULE_TITLE as CACHE_MODULE_TITLE,
   releaseLevelAsBadgeProps as CacheModuleBadgeProps,
 } from 'sentry/views/performance/cache/settings';
@@ -299,7 +300,7 @@ function Sidebar() {
                       {CACHE_MODULE_TITLE}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/performance/cache/`}
+                  to={`/organizations/${organization.slug}${CACHE_BASE_URL}/`}
                   id="performance-cache"
                   icon={<SubitemDot collapsed />}
                   {...CacheModuleBadgeProps}
@@ -485,18 +486,19 @@ function Sidebar() {
   );
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-  const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
-    <Feature features={['custom-metrics']} organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconGraph />}
-        label={t('Metrics')}
-        to={metricsPath}
-        search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
-        id="metrics"
-        isBeta
-      />
-    </Feature>
+  const isNewFeatureBadge = organization && hasRolledOutMetrics(organization);
+
+  const metrics = hasOrganization && canSeeMetricsPage(organization) && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconGraph />}
+      label={t('Metrics')}
+      to={metricsPath}
+      search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      id="metrics"
+      isBeta={!isNewFeatureBadge}
+      isNew={!!isNewFeatureBadge}
+    />
   );
 
   const dashboards = hasOrganization && (

@@ -26,6 +26,8 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.kafka_config import get_topic_definition
 
 pytestmark = [requires_snuba, requires_kafka]
 
@@ -81,6 +83,9 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             yield
 
     def test_arroyo_consumer(self):
+        topic_defn = get_topic_definition(Topic.EVENTS)
+        create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+
         registration_key = "registered_test_2"
         mock_callback = mock.Mock()
         register_subscriber(registration_key)(mock_callback)
