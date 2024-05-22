@@ -126,7 +126,7 @@ export function TracesSearchBar({
           size="sm"
           onClick={() => handleSearch(localQueries.length, '')}
         >
-          {t('Add Span')}
+          {t('Add Span Condition')}
         </Button>
       ) : null}
     </TraceSearchBarsContainer>
