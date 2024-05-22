@@ -77,7 +77,7 @@ class BlobDriver:
 
     @property
     def storage(self):
-        return get_storage(self._make_storage_options())
+        return get_storage(self._make_storage_config())
 
     def get(self) -> StorageFormat | None:
         try:
@@ -100,7 +100,7 @@ class BlobDriver:
         except Exception:
             return None
 
-    def _make_storage_options(self) -> dict | None:
+    def _make_storage_config(self) -> dict | None:
         backend = options.get("configurations.storage.backend")
         if backend:
             return {
