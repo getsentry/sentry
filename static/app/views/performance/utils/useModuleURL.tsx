@@ -31,15 +31,38 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
 type ModuleNameStrings = `${ModuleName}`;
 type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
-export const useModuleURL = (moduleName: RoutableModuleNames): string => {
-  const {slug} = useOrganization();
+export const useModuleURL = (
+  moduleName: RoutableModuleNames,
+  bare: boolean = false
+): string => {
+  const builder = useModuleURLBuilder(bare);
+  return builder(moduleName);
+};
 
-  if (moduleName === ModuleName.AI) {
-    // AI Doesn't live under "/performance"
-    return normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
+type URLBuilder = (moduleName: RoutableModuleNames) => string;
+
+export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
+  const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
+
+  if (!organization) {
+    // If there isn't an organization, items that link to modules won't be visible, so this is a fallback just-in-case, and isn't trying too hard to be useful
+    return () => INSIGHTS_BASE_URL;
   }
 
-  return normalizeUrl(
-    `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
-  );
-};
+  const {slug} = organization;
+
+  return function (moduleName: RoutableModuleNames) {
+    if (moduleName === ModuleName.AI) {
+      // AI Doesn't live under "/performance"
+      return bare
+        ? `${AI_BASE_URL}`
+        : normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
+    }
+
+    return bare
+      ? `${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+      : normalizeUrl(
+          `/organizations/${slug}/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+        );
+  };
+}
