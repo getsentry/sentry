@@ -1,7 +1,7 @@
 from time import time
 from uuid import uuid4
 
-import orjson
+from sentry.utils import json
 
 
 class AppPlatformEvent:
@@ -33,15 +33,14 @@ class AppPlatformEvent:
 
     @property
     def body(self):
-        return orjson.dumps(
+        return json.dumps(
             {
                 "action": self.action,
                 "installation": {"uuid": self.install.uuid},
                 "data": self.data,
                 "actor": self.get_actor(),
             },
-            option=orjson.OPT_UTC_Z,
-        ).decode()
+        )
 
     @property
     def headers(self):
