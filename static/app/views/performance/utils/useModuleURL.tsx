@@ -31,15 +31,20 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
 type ModuleNameStrings = `${ModuleName}`;
 type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
-export const useModuleURL = (moduleName: RoutableModuleNames): string => {
+export const useModuleURL = (
+  moduleName: RoutableModuleNames,
+  bare: boolean = false
+): string => {
   const {slug} = useOrganization();
 
   if (moduleName === ModuleName.AI) {
     // AI Doesn't live under "/performance"
-    return normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
+    return bare
+      ? `${slug}${AI_BASE_URL}`
+      : normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
   }
 
-  return normalizeUrl(
-    `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
-  );
+  return bare
+    ? `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+    : normalizeUrl(`${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`);
 };
