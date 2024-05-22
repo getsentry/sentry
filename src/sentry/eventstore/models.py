@@ -485,7 +485,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if hashes.hashes:
             return hashes.hashes[0]
 
-        return None
+        raise AssertionError("expected primary or hierarchical hash")
 
     def get_span_groupings(
         self, force_config: str | Mapping[str, Any] | None = None
