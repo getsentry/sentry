@@ -203,6 +203,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         env_col,
                     ],
                     groupby=[
+                        Column("org_id"),
                         Column("project_id"),
                         release_col,
                         env_col,
@@ -224,12 +225,18 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             ),
                         ),
                         # Either org_id > prev_org_id or (org_id == prev_org_id and project_id > prev_project_id)
-                        Condition(
-                            Condition(Column("org_id"), Op.GT, prev_org_id)
-                            | (
-                                Condition(Column("org_id"), Op.EQ, prev_org_id)
-                                & Condition(Column("project_id"), Op.GT, prev_project_id)
-                            )
+                        BooleanCondition(
+                            BooleanOp.OR,
+                            [
+                                Condition(Column("org_id"), Op.GT, prev_org_id),
+                                BooleanCondition(
+                                    BooleanOp.AND,
+                                    [
+                                        Condition(Column("org_id"), Op.EQ, prev_org_id),
+                                        Condition(Column("project_id"), Op.GT, prev_project_id),
+                                    ],
+                                ),
+                            ],
                         ),
                     ],
                     granularity=Granularity(21600),
