@@ -23,3 +23,8 @@ export const BASE_FILTERS = {
   'span.module': ModuleName.HTTP,
   'span.op': 'http.client', // `span.module` alone isn't enough, since some SDKs create other `http.*` spans like `http.client.response_body`
 };
+
+export const MODULE_DESCRIPTION = t(
+  'Find large and slow-to-load resources used by your application and understand their impact on page performance.'
+);
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/performance/requests/';

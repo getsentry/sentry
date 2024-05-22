@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -17,7 +18,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
@@ -25,6 +25,8 @@ import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputCh
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
@@ -35,6 +37,7 @@ import {
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -138,25 +141,20 @@ export function HTTPLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
+  const crumbs = useModuleBreadcrumbs('http');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>

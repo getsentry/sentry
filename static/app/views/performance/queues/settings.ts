@@ -6,7 +6,7 @@ export const BASE_URL = 'queues';
 
 export const DESTINATION_TITLE = t('Destination Summary');
 
-export const RELEASE_LEVEL: BadgeType = 'alpha';
+export const RELEASE_LEVEL: BadgeType = 'beta';
 
 export const releaseLevelAsBadgeProps = {
   isAlpha: (RELEASE_LEVEL as BadgeType) === 'alpha',
@@ -50,3 +50,9 @@ export const ONBOARDING_CONTENT = {
   description: t('Our robot is waiting for your first background job to complete.'),
   link: 'https://develop.sentry.dev/sdk/performance/modules/queues/',
 };
+
+export const MODULE_DESCRIPTION = t(
+  'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
+);
+export const MODULE_DOC_LINK =
+  'https://docs.sentry.io/product/performance/queue-monitoring/';
