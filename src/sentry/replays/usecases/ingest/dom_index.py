@@ -450,7 +450,7 @@ def _handle_breadcrumb(
             return click
 
     elif category == "replay.hydrate-error":
-        if _should_report_hydration_error_issue(project_id):
+        if replay_event is not None and _should_report_hydration_error_issue(project_id):
             report_hydration_error_issue_with_replay_event(
                 project_id,
                 replay_id,
