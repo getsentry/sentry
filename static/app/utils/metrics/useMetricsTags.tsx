@@ -7,6 +7,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {getMetaDateTimeParams} from './index';
 
+const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
+const ALLOWED_SPAN_DURATION_TAGS = [
+  'span.category',
+  'span.description',
+  'environment',
+  'project',
+  'span.action',
+  'span.domain',
+  'span.op',
+];
+
 export function getMetricsTagsQueryKey(
   organization: Organization,
   mri: MRI | undefined,
@@ -65,6 +76,13 @@ export function useMetricsTags(
 
   return {
     ...tagsQuery,
-    data: tagsQuery.data?.filter(tag => !blockedTagsData.includes(tag.key)) ?? [],
+    data:
+      tagsQuery.data?.filter(
+        tag =>
+          !blockedTagsData.includes(tag.key) ||
+          // Span duration only exposes tags that are found on all/most spans to
+          // avoid tags that are only collected for specific Insights use cases
+          (mri === SPAN_DURATION_MRI && ALLOWED_SPAN_DURATION_TAGS.includes(tag.key))
+      ) ?? [],
   };
 }
