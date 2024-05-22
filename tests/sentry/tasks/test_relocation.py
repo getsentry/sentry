@@ -1272,6 +1272,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.relocation.latest_task = OrderedTask.VALIDATING_START.name
         self.relocation.want_usernames = ["testuser"]
         self.relocation.want_org_slugs = ["test-slug"]
+        self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
 
         self.relocation_validation: RelocationValidation = RelocationValidation.objects.create(
@@ -1307,6 +1308,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self.relocation_validation_attempt.refresh_from_db()
         assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
         assert self.relocation.latest_task == "VALIDATING_POLL"
+        assert self.relocation.latest_task_attempts > 0
 
     @patch("sentry.tasks.relocation.validating_start.apply_async")
     def test_timeout_starts_new_validation_attempt(
@@ -1331,6 +1333,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             self.relocation_validation_attempt.refresh_from_db()
 
             assert self.relocation.latest_task == "VALIDATING_START"
+            assert self.relocation.latest_task_attempts == 0
             assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
             assert self.relocation_validation_attempt.status == ValidationStatus.TIMEOUT.value
 
@@ -1360,6 +1363,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             self.relocation_validation.refresh_from_db()
             self.relocation_validation_attempt.refresh_from_db()
             assert self.relocation.latest_task == "VALIDATING_START"
+            assert self.relocation.latest_task_attempts == 0
             assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
             assert self.relocation_validation_attempt.status == ValidationStatus.FAILURE.value
 
@@ -1389,6 +1393,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             self.relocation_validation.refresh_from_db()
             self.relocation_validation_attempt.refresh_from_db()
             assert self.relocation.latest_task == "VALIDATING_POLL"
+            assert self.relocation.latest_task_attempts > 0
             assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
             assert self.relocation_validation_attempt.status == ValidationStatus.IN_PROGRESS.value
             assert (
