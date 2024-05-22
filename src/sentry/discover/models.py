@@ -25,7 +25,7 @@ class DiscoverSavedQueryTypes(TypesClass):
     """
     TRANSACTION_LIKE = 1
     """
-    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    This targets transaction-like data from the split from discover.
     """
 
     TYPES = [
