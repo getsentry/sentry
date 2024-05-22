@@ -18,7 +18,6 @@ from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsRespo
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.types import NonNone
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 BASE_APP_DATA: dict[str, Any] = {
@@ -664,15 +663,15 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         similar_issue_data_1 = SeerSimilarIssueData(
             message_distance=0.05,
-            parent_group_id=NonNone(self.similar_event.group_id),
-            parent_hash=NonNone(self.similar_event.get_primary_hash()),
+            parent_group_id=self.similar_event.group_id,
+            parent_hash=self.similar_event.get_primary_hash(),
             should_group=True,
             stacktrace_distance=0.01,
         )
         similar_issue_data_2 = SeerSimilarIssueData(
             message_distance=0.49,
-            parent_group_id=NonNone(event_from_second_similar_group.group_id),
-            parent_hash=NonNone(event_from_second_similar_group.get_primary_hash()),
+            parent_group_id=event_from_second_similar_group.group_id,
+            parent_hash=event_from_second_similar_group.get_primary_hash(),
             should_group=False,
             stacktrace_distance=0.23,
         )
@@ -682,8 +681,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         assert formatted_results == self.get_expected_response(
             [
-                NonNone(self.similar_event.group_id),
-                NonNone(event_from_second_similar_group.group_id),
+                self.similar_event.group_id,
+                event_from_second_similar_group.group_id,
             ],
             [0.95, 0.51],
             [0.99, 0.77],
@@ -706,7 +705,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "parent_hash": self.similar_event.get_primary_hash(),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 }
@@ -720,12 +719,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.95], [0.99], ["Yes"]
         )
 
         expected_seer_request_params = {
             "threshold": 0.01,
-            "hash": NonNone(self.event.get_primary_hash()),
+            "hash": self.event.get_primary_hash(),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
@@ -758,19 +757,19 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "parent_hash": self.similar_event.get_primary_hash(),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(over_threshold_group_event.get_primary_hash()),
+                    "parent_hash": over_threshold_group_event.get_primary_hash(),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(under_threshold_group_event.get_primary_hash()),
+                    "parent_hash": under_threshold_group_event.get_primary_hash(),
                     "should_group": False,
                     "stacktrace_distance": 0.05,  # Under threshold
                 },
@@ -785,9 +784,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == self.get_expected_response(
             [
-                NonNone(self.similar_event.group_id),
-                NonNone(over_threshold_group_event.group_id),
-                NonNone(under_threshold_group_event.group_id),
+                self.similar_event.group_id,
+                over_threshold_group_event.group_id,
+                under_threshold_group_event.group_id,
             ],
             [0.95, 0.95, 0.95],
             [0.998, 0.998, 0.95],
@@ -799,7 +798,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             organization_id=self.org.id,
             project_id=self.project.id,
             group_id=self.group.id,
-            hash=NonNone(self.event.get_primary_hash()),
+            hash=self.event.get_primary_hash(),
             count_over_threshold=2,
             user_id=self.user.id,
         )
@@ -817,7 +816,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "parent_hash": self.similar_event.get_primary_hash(),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -836,7 +835,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "Seer similar issues response entry missing key 'parent_hash'",
             extra={
                 "request_params": {
-                    "hash": NonNone(self.event.get_primary_hash()),
+                    "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -856,7 +855,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.95], [0.99], ["Yes"]
         )
 
     @with_feature("projects:similarity-embeddings")
@@ -873,7 +872,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "parent_hash": self.similar_event.get_primary_hash(),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -892,7 +891,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"}
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.95], [0.99], ["Yes"]
         )
 
     @with_feature("projects:similarity-embeddings")
@@ -908,7 +907,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             organization_id=self.org.id,
             project_id=self.project.id,
             group_id=self.group.id,
-            hash=NonNone(self.event.get_primary_hash()),
+            hash=self.event.get_primary_hash(),
             count_over_threshold=0,
             user_id=self.user.id,
         )
@@ -976,7 +975,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "responses": [
                 {
                     "message_distance": 0.05,
-                    "parent_hash": NonNone(self.similar_event.get_primary_hash()),
+                    "parent_hash": self.similar_event.get_primary_hash(),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 }
@@ -988,7 +987,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         # Include no optional parameters
         response = self.client.get(self.path)
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.95], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -997,7 +996,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "hash": NonNone(self.event.get_primary_hash()),
+                    "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -1012,7 +1011,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": 1},
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.95], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -1021,7 +1020,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "hash": NonNone(self.event.get_primary_hash()),
+                    "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
@@ -1037,7 +1036,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"threshold": "0.01"},
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [self.similar_event.group_id], [0.95], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -1046,7 +1045,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "hash": NonNone(self.event.get_primary_hash()),
+                    "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
