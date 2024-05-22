@@ -886,7 +886,8 @@ function TraceViewContent(props: TraceViewContentProps) {
             <TraceError />
           ) : tree.type === 'empty' ? (
             <TraceEmpty />
-          ) : tree.type === 'loading' || scrollQueueRef.current ? (
+          ) : tree.type === 'loading' ||
+            (scrollQueueRef.current && tree.type !== 'trace') ? (
             <TraceLoading />
           ) : null}
 
