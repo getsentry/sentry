@@ -412,7 +412,7 @@ export function Actions(props: Props) {
           {
             key: 'reprocess',
             label: t('Reprocess events'),
-            hidden: !displayReprocessEventAction(organization.features, event),
+            hidden: !displayReprocessEventAction(event),
             onAction: onReprocessEvent,
           },
           {

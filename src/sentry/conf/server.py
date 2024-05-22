@@ -1613,8 +1613,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enables the UI for Autofix in issue details
     "organizations:issue-details-autofix-ui": False,
-    # Enables the inline replay viewer on the issue details page
-    "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
     # Enable tag improvements in the issue details page
@@ -2009,9 +2007,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    "projects:span-metrics-extraction-addons": False,
+    "organizations:indexed-spans-extraction": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
-    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated

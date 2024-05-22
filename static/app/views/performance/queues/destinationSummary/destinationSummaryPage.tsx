@@ -16,7 +16,6 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -33,11 +32,10 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
-  const moduleURL = useModuleURL('queue');
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -49,22 +47,16 @@ function DestinationSummaryPage() {
     referrer: Referrer.QUEUES_SUMMARY,
   });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
+
+  const crumbs = useModuleBreadcrumbs('queue');
+
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-                to: moduleURL,
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: DESTINATION_TITLE,
               },
