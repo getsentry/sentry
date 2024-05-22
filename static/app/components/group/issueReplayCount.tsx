@@ -27,7 +27,7 @@ function IssueReplayCount({group}: Props) {
   }
 
   const countDisplay = count > 50 ? '50+' : count;
-  const titleOver50 = t('This issue has 50+ replay available to view');
+  const titleOver50 = t('This issue has 50+ replays available to view');
   const title50OrLess = tn(
     'This issue has %s replay available to view',
     'This issue has %s replays available to view',
