@@ -31,6 +31,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
@@ -214,7 +215,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                   <span>
                     {t('The overall performance rating of this page.')}
                     <br />
-                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                    <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                       {t('How is this calculated?')}
                     </ExternalLink>
                   </span>

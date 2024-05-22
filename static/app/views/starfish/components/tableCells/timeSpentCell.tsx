@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage, formatSpanOperation} from 'sentry/utils/formatters';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/database/settings';
 
 interface Props {
   containerProps?: React.DetailedHTMLProps<
@@ -39,9 +40,7 @@ export function getTimeSpentExplanation(percentage: number, op?: string) {
     {
       percentage: formattedPercentage,
       span: formatSpanOperation(op, 'short'),
-      documentation: (
-        <ExternalLink href="https://docs.sentry.io/product/performance/queries/#what-is-time-spent" />
-      ),
+      documentation: <ExternalLink href={`${MODULE_DOC_LINK}#what-is-time-spent`} />,
     }
   );
 }

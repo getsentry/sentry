@@ -32,6 +32,7 @@ import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
@@ -199,11 +200,7 @@ export function HTTPDomainSummaryPage() {
               {tct(
                 '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                 {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
-                      documentation
-                    </ExternalLink>
-                  ),
+                  link: <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>,
                 }
               )}
             </Alert>

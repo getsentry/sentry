@@ -18,6 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
@@ -137,7 +138,7 @@ export function PageOverviewSidebar({
             <span>
               {t('The overall performance rating of this page.')}
               <br />
-              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+              <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                 {t('How is this calculated?')}
               </ExternalLink>
             </span>

@@ -18,6 +18,7 @@ import {
 } from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
@@ -117,7 +118,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                       <span>
                         {t('The overall performance rating of this page.')}
                         <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                        <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                           {t('How is this calculated?')}
                         </ExternalLink>
                       </span>
@@ -139,7 +140,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                           "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
                         )}
                         <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                        <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
                           {t('How is this calculated?')}
                         </ExternalLink>
                       </span>

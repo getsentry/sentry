@@ -25,6 +25,7 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -146,7 +147,7 @@ export function PagePerformanceTable() {
               <span>
                 {t('The overall performance rating of this page.')}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -174,7 +175,7 @@ export function PagePerformanceTable() {
                   "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
                 )}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
