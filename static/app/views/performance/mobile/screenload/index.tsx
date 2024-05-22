@@ -17,7 +17,6 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
@@ -28,8 +27,8 @@ import {
 } from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 export function PageloadModule() {
   const organization = useOrganization();
@@ -44,23 +43,14 @@ export function PageloadModule() {
     return projects.find(p => p.id === String(selection.projects));
   }, [projects, selection.projects]);
 
+  const crumbs = useModuleBreadcrumbs('screen_load');
+
   return (
     <Layout.Page>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Performance'),
-                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                  preservePageFilters: true,
-                },
-                {
-                  label: ROUTE_NAMES.pageload,
-                },
-              ]}
-            />
+            <Breadcrumbs crumbs={crumbs} />
             <HeaderWrapper>
               <Layout.Title>
                 {t('Screen Loads')}
