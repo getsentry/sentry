@@ -48,7 +48,7 @@ describe('NotificationSettings', function () {
   it('renders quota section with feature flag', async function () {
     const {routerContext, organization} = initializeOrg({
       organization: {
-        features: ['slack-overage-notifications'],
+        features: ['user-spend-notifications-settings'],
       },
     });
 
@@ -80,12 +80,12 @@ describe('NotificationSettings', function () {
   it('renders spend section instead of quota section with feature flag', async function () {
     const {routerContext, organization} = initializeOrg({
       organization: {
-        features: ['slack-overage-notifications', 'spend-visibility-notifications'],
+        features: ['user-spend-notifications-settings', 'spend-visibility-notifications'],
       },
     });
 
     const organizationNoFlag = OrganizationFixture();
-    organizationNoFlag.features.push('slack-overage-notifications');
+    organizationNoFlag.features.push('user-spend-notifications-settings');
 
     renderMockRequests({});
 
