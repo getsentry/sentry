@@ -36,7 +36,7 @@ export function Content({
   disableRichValue = false,
   ...props
 }: ContentProps) {
-  const {subject, value: contextValue, action = {}} = item;
+  const {subject, subjectNode, value: contextValue, action = {}} = item;
 
   const hasErrors = errors.length > 0;
 
@@ -53,7 +53,7 @@ export function Content({
 
   return (
     <ContentWrapper hasErrors={hasErrors} {...props}>
-      <Subject>{subject}</Subject>
+      <Subject>{subjectNode ? subjectNode : subject}</Subject>
       <ValueSection hasErrors={hasErrors}>
         <ValueWrapper>
           {!disableRichValue && defined(action?.link) ? (

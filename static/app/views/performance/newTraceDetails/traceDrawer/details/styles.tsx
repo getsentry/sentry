@@ -19,7 +19,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils';
@@ -517,11 +517,7 @@ const TagsWrapper = styled('div')`
   }
 `;
 
-type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
-  subject: React.ReactNode;
-};
-
-export type SectionCardKeyValueList = SectionCardKeyValue[];
+export type SectionCardKeyValueList = KeyValueListData;
 
 function SectionCard({
   items,
