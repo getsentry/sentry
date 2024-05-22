@@ -137,6 +137,7 @@ jobs:
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
