@@ -429,14 +429,14 @@ def _import(
         if not org_pk_mapping:
             return
 
-        org_ids_and_slugs: set[tuple[int, str]] = set()
+        slug_mapping: dict[int, str] = {}
         for old_primary_key in org_pk_mapping:
             org_id, _, org_slug = org_pk_mapping[old_primary_key]
-            org_ids_and_slugs.add((org_id, org_slug or ""))
+            slug_mapping[org_id] = org_slug or ""
 
-        if len(org_ids_and_slugs) > 0:
+        if len(slug_mapping) > 0:
             organization_provisioning_service.bulk_create_organization_slugs(
-                org_ids_and_slugs=org_ids_and_slugs
+                slug_mapping=slug_mapping
             )
 
     pk_map = PrimaryKeyMap()
