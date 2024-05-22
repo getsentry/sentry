@@ -56,13 +56,13 @@ class ReleaseSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="An optional commit reference.  This is useful if a tagged version has been provided.",
+        help_text="An optional commit reference. This is useful if a tagged version has been provided.",
     )
     url = serializers.URLField(
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="An URL that points to the release.  This can be the path to an online interface to the sourcecode for instance.",
+        help_text="A URL that points to the release. This can be the path to an online interface to the sourcecode for instance.",
     )
     dateReleased = serializers.DateTimeField(
         required=False,

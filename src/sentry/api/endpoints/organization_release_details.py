@@ -22,17 +22,16 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseSerializer,
 )
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.docs.organization_release_details_schema import (
-    ORGANIZATION_RELEASE_DETAILS_SCHEMA,
-)
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -319,7 +318,7 @@ class OrganizationReleaseDetailsEndpoint(
             VisibilityParams.QUERY,
         ],
         responses={
-            200: ORGANIZATION_RELEASE_DETAILS_SCHEMA,
+            200: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -422,7 +421,7 @@ class OrganizationReleaseDetailsEndpoint(
         ],
         request=OrganizationReleaseSerializer,
         responses={
-            200: ORGANIZATION_RELEASE_DETAILS_SCHEMA,
+            200: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

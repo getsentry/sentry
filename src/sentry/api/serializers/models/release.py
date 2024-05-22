@@ -12,6 +12,7 @@ from django.db.models import Sum
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -546,7 +547,7 @@ class ReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseSerializerResponse:
         d = {
             "id": obj.id,
             "version": obj.version,
