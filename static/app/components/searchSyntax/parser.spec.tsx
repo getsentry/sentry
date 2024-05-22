@@ -207,4 +207,135 @@ describe('searchSyntax/parser', function () {
       reason: 'Custom message',
     });
   });
+
+  describe('flattenParenGroups', () => {
+    it('tokenizes mismatched parens with flattenParenGroups=true', () => {
+      const result = parseSearch('foo(', {
+        flattenParenGroups: true,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text a single paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.L_PAREN,
+          value: '(',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes matching parens with flattenParenGroups=true', () => {
+      const result = parseSearch('(foo)', {
+        flattenParenGroups: true,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // (foo) is parsed as free text and two parens
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.L_PAREN,
+          value: '(',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.R_PAREN,
+          value: ')',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes mismatched left paren with flattenParenGroups=false', () => {
+      const result = parseSearch('foo(', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text and a paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.L_PAREN,
+          value: '(',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes mismatched right paren with flattenParenGroups=false', () => {
+      const result = parseSearch('foo)', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text and a paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.R_PAREN,
+          value: ')',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('parses matching parens as logic group with flattenParenGroups=false', () => {
+      const result = parseSearch('(foo)', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // (foo) is parsed as a logic group
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.LOGIC_GROUP}),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes empty matched parens and flattenParenGroups=false', () => {
+      const result = parseSearch('()', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.LOGIC_GROUP,
+          inner: [expect.objectContaining({type: Token.SPACES})],
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+  });
 });

@@ -45,6 +45,8 @@ export enum Token {
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
+  L_PAREN = 'lParen',
+  R_PAREN = 'rParen',
   VALUE_ISO_8601_DATE = 'valueIso8601Date',
   VALUE_RELATIVE_DATE = 'valueRelativeDate',
   VALUE_DURATION = 'valueDuration',
@@ -415,6 +417,18 @@ export class TokenConverter {
     };
   };
 
+  tokenLParen = (value: '(') => ({
+    ...this.defaultTokenFields,
+    type: Token.L_PAREN as const,
+    value,
+  });
+
+  tokenRParen = (value: ')') => ({
+    ...this.defaultTokenFields,
+    type: Token.R_PAREN as const,
+    value,
+  });
+
   tokenFreeText = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.FREE_TEXT as const,
@@ -664,6 +678,14 @@ export class TokenConverter {
    */
   predicateTextOperator = (key: TextFilter['key']) =>
     this.config.textOperatorKeys.has(getKeyName(key));
+
+  /**
+   * When flattenParenGroups is enabled, paren groups should not be parsed,
+   * instead parsing the parens and inner group as individual tokens.
+   */
+  predicateParenGroup = (): boolean => {
+    return !this.config.flattenParenGroups;
+  };
 
   /**
    * Checks the validity of a free text based on the provided search configuration
@@ -1117,7 +1139,9 @@ export type ParseResultToken =
   | TokenResult<Token.LOGIC_GROUP>
   | TokenResult<Token.FILTER>
   | TokenResult<Token.FREE_TEXT>
-  | TokenResult<Token.SPACES>;
+  | TokenResult<Token.SPACES>
+  | TokenResult<Token.L_PAREN>
+  | TokenResult<Token.R_PAREN>;
 
 /**
  * Result from parsing a search query.
@@ -1173,6 +1197,10 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * When true, the parser will not parse paren groups and will return individual paren tokens
+   */
+  flattenParenGroups?: boolean;
   /**
    * A function that returns a warning message for a given filter token key
    */
