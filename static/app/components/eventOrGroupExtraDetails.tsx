@@ -46,7 +46,8 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount =
-    organization.features.includes('session-replay') && projectCanLinkToReplay(project);
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(organization, project);
 
   return (
     <GroupExtra>

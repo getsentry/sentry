@@ -58,7 +58,7 @@ describe('AutofixBanner', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Gimme Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Get root causes'}));
     expect(mockTriggerAutofix).toHaveBeenCalledWith('');
   });
 
@@ -74,7 +74,7 @@ describe('AutofixBanner', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Give Instructions'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Provide context first'}));
     await userEvent.type(screen.getByRole('textbox'), 'instruction!');
     await userEvent.click(screen.getByRole('button', {name: "Let's go!"}));
 

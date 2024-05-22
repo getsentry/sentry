@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -20,6 +21,10 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
@@ -47,7 +52,13 @@ export function PageloadModule() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
             <HeaderWrapper>
-              <Layout.Title>{t('Screen Loads')}</Layout.Title>
+              <Layout.Title>
+                {t('Screen Loads')}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Layout.Title>
             </HeaderWrapper>
           </Layout.HeaderContent>
           <Layout.HeaderActions>

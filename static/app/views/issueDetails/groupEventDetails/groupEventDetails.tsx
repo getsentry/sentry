@@ -70,8 +70,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     eventError,
     params,
   } = props;
-  // Reprocessing
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
@@ -174,8 +172,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         isLoading={loadingEvent}
       >
         <StyledLayoutBody data-test-id="group-event-details">
-          {hasReprocessingV2Feature &&
-          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+          {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
               totalEvents={
                 (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)

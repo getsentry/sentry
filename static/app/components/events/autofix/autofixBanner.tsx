@@ -48,7 +48,7 @@ function SuccessfulSetup({
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: groupId}}
       >
-        {t('Gimme Fix')}
+        {t('Get root causes')}
       </Button>
       <Button
         onClick={onClickGiveInstructions}
@@ -57,7 +57,7 @@ function SuccessfulSetup({
         analyticsEventName="Autofix: Give Instructions Clicked"
         analyticsParams={{group_id: groupId}}
       >
-        {t('Give Instructions')}
+        {t('Provide context first')}
       </Button>
     </Fragment>
   );
@@ -98,7 +98,7 @@ function AutofixBannerContent({
       }}
       size="sm"
     >
-      Setup Autofix
+      Set up Autofix
     </Button>
   );
 }
@@ -121,7 +121,9 @@ export function AutofixBanner({
       <Body>
         <div>
           <Title>{t('Try Autofix')}</Title>
-          <SubTitle>{t('You might get lucky, but then again, maybe not...')}</SubTitle>
+          <SubTitle>
+            {t('Sit back and let Autofix find potential root causes and fixes')}
+          </SubTitle>
         </div>
         <ContextArea>
           <AutofixBannerContent

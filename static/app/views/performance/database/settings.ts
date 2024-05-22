@@ -50,3 +50,8 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
   [ONE_HOUR, '1m'],
   [0, '1m'],
 ]);
+
+export const MODULE_DESCRIPTION = t(
+  'Investigate the performance of database queries and get the information necessary to improve them.'
+);
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/performance/queries/';

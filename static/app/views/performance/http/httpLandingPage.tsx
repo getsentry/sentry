@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -24,6 +25,8 @@ import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputCh
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
@@ -148,6 +151,10 @@ export function HTTPLandingPage() {
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
