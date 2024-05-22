@@ -56,7 +56,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
-  CACHE_BASE_URL,
   MODULE_TITLE as CACHE_MODULE_TITLE,
   releaseLevelAsBadgeProps as CacheModuleBadgeProps,
 } from 'sentry/views/performance/cache/settings';
@@ -64,6 +63,8 @@ import {
   MODULE_TITLE as HTTP_MODULE_TITLE,
   releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
 } from 'sentry/views/performance/http/settings';
+import {MODULE_BASE_URLS} from 'sentry/views/performance/utils/useModuleURL';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -271,7 +272,7 @@ function Sidebar() {
                       {t('Queries')}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/performance/database/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.DB]}/`}
                   id="performance-database"
                   // collapsed controls whether the dot is visible or not.
                   // We always want it visible for these sidebar items so force it to true.
@@ -286,7 +287,7 @@ function Sidebar() {
                       {HTTP_MODULE_TITLE}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/performance/http/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.HTTP]}/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
                   {...HTTPModuleBadgeProps}
@@ -300,7 +301,7 @@ function Sidebar() {
                       {CACHE_MODULE_TITLE}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}${CACHE_BASE_URL}/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.CACHE]}/`}
                   id="performance-cache"
                   icon={<SubitemDot collapsed />}
                   {...CacheModuleBadgeProps}
@@ -314,7 +315,7 @@ function Sidebar() {
                       {t('Web Vitals')}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.VITAL]}/`}
                   id="performance-webvitals"
                   icon={<SubitemDot collapsed />}
                 />
@@ -326,7 +327,7 @@ function Sidebar() {
                     <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
                   }
                   isAlpha
-                  to={`/organizations/${organization.slug}/performance/queues/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}
                   id="performance-queues"
                   icon={<SubitemDot collapsed />}
                 />
@@ -335,7 +336,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('Screen Loads')}
-                  to={`/organizations/${organization.slug}/performance/mobile/screens/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
                 />
@@ -344,7 +345,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.APP_START]}/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
                 />
@@ -356,7 +357,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('Mobile UI')}
-                  to={`/organizations/${organization.slug}/performance/mobile/ui/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}
                   id="performance-mobile-ui"
                   icon={<SubitemDot collapsed />}
                   isAlpha
@@ -366,7 +367,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/browser/resources/`}
+                  to={`/organizations/${organization.slug}/performance/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
                   id="performance-browser-resources"
                   icon={<SubitemDot collapsed />}
                 />
@@ -417,7 +418,8 @@ function Sidebar() {
         label={t('LLM Monitoring')}
         isAlpha
         variant="short"
-        to={`/organizations/${organization.slug}/llm-monitoring/`}
+        // NOTE: This is missing a slash, since the base URL for the AI module has a slash
+        to={`/organizations/${organization.slug}${MODULE_BASE_URLS[ModuleName.AI]}/`}
         id="llm-monitoring"
       />
     </Feature>
