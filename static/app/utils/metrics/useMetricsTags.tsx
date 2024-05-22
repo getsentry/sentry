@@ -74,17 +74,14 @@ export function useMetricsTags(
     return tagsQuery;
   }
 
-  let tags = {
+  return {
     ...tagsQuery,
-    data: tagsQuery.data?.filter(tag => !blockedTagsData.includes(tag.key)) ?? [],
+    data:
+      tagsQuery.data?.filter(
+        tag =>
+          !blockedTagsData.includes(tag.key) ||
+          // The span duration metric will only expose certain tags to be used
+          (mri === SPAN_DURATION_MRI && ALLOWED_SPAN_DURATION_TAGS.includes(tag.key))
+      ) ?? [],
   };
-
-  if (mri === SPAN_DURATION_MRI) {
-    tags = {
-      ...tags,
-      data: tags.data?.filter(tag => ALLOWED_SPAN_DURATION_TAGS.includes(tag.key)) ?? [],
-    };
-  }
-
-  return tags;
 }
