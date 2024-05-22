@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
-  content: () => ReactNode;
-  header: () => ReactNode;
+  content: ReactNode;
+  header: ReactNode;
 }
 
 interface Props {
@@ -33,12 +33,12 @@ export default function Accordion({
           isExpanded={index === expandedIndex}
           currentIndex={index}
           key={index}
-          content={item.content()}
+          content={item.content}
           setExpandedIndex={setExpandedIndex}
           buttonOnLeft={buttonOnLeft}
           collapsible={collapsible}
         >
-          {item.header()}
+          {item.header}
         </AccordionItem>
       ))}
     </AccordionContainer>

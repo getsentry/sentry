@@ -22,7 +22,7 @@ import {
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
-  items: (() => React.ReactNode)[];
+  items: React.ReactNode[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
   radioColor?: string;
@@ -38,7 +38,7 @@ export default function SelectableList(props: Props) {
           currentIndex={index}
           key={index}
         >
-          {item()}
+          {item}
         </SelectableItem>
       ))}
     </div>

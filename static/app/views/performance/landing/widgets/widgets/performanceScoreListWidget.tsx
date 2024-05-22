@@ -61,102 +61,97 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
 
   const order = ORDER_WITH_INP_WITHOUT_FID;
 
-  const getAreaChart = _ =>
-    function () {
-      const segmentColors = theme.charts.getColorPalette(3);
-      return (
-        <Chart
-          stacked
-          height={props.chartHeight}
-          data={formatTimeSeriesResultsToChartData(
-            timeseriesData,
-            segmentColors,
-            false,
-            order
-          )}
-          type={ChartType.AREA}
-          disableXAxis
-          loading={false}
-          grid={{
-            left: 5,
-            right: 5,
-            top: 5,
-            bottom: 0,
-          }}
-          dataMax={100}
-          chartColors={segmentColors}
-        />
-      );
-    };
+  const getAreaChart = _ => {
+    const segmentColors = theme.charts.getColorPalette(3);
+    return (
+      <Chart
+        stacked
+        height={props.chartHeight}
+        data={formatTimeSeriesResultsToChartData(
+          timeseriesData,
+          segmentColors,
+          false,
+          order
+        )}
+        type={ChartType.AREA}
+        disableXAxis
+        loading={false}
+        grid={{
+          left: 5,
+          right: 5,
+          top: 5,
+          bottom: 0,
+        }}
+        dataMax={100}
+        chartColors={segmentColors}
+      />
+    );
+  };
 
   const getHeaders = _ =>
-    transactionWebVitals.map(
-      listItem =>
-        function () {
-          const transaction = (listItem.transaction as string | undefined) ?? '';
-          const scoreCount = projectScoresData?.data?.[0]?.[
-            'count_scores(measurements.score.total)'
-          ] as number;
-          const opportunity = scoreCount
-            ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
-              scoreCount
-            : 0;
-          return (
-            <Fragment>
-              <GrowLink
-                to={{
-                  pathname: '/performance/browser/pageloads/overview/',
-                  query: {...location.query, transaction},
-                }}
+    transactionWebVitals.map((listItem, i) => {
+      const transaction = (listItem.transaction as string | undefined) ?? '';
+      const scoreCount = projectScoresData?.data?.[0]?.[
+        'count_scores(measurements.score.total)'
+      ] as number;
+      const opportunity = scoreCount
+        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
+        : 0;
+      return (
+        <Fragment key={i}>
+          <GrowLink
+            to={{
+              pathname: '/performance/browser/pageloads/overview/',
+              query: {...location.query, transaction},
+            }}
+          >
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <StyledRightAlignedCell>
+            {listItem.totalScore !== null && (
+              <Tooltip
+                title={
+                  <span>
+                    {t('The overall performance rating of this page.')}
+                    <br />
+                    <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+                isHoverable
               >
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <StyledRightAlignedCell>
-                {listItem.totalScore !== null && (
-                  <Tooltip
-                    title={
-                      <span>
-                        {t('The overall performance rating of this page.')}
-                        <br />
-                        <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
-                          {t('How is this calculated?')}
-                        </ExternalLink>
-                      </span>
-                    }
-                    isHoverable
-                  >
-                    <PerformanceBadgeWrapper>
-                      <PerformanceBadge score={listItem.totalScore} />
-                    </PerformanceBadgeWrapper>
-                  </Tooltip>
-                )}
-                {isProjectScoresLoading ? (
-                  <StyledLoadingIndicator size={20} />
-                ) : (
-                  <Tooltip
-                    title={
-                      <span>
-                        {t(
-                          "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
-                        )}
-                        <br />
-                        <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
-                          {t('How is this calculated?')}
-                        </ExternalLink>
-                      </span>
-                    }
-                    isHoverable
-                    showUnderline
-                    skipWrapper
-                  >
-                    {Math.round(opportunity * 100) / 100}
-                  </Tooltip>
-                )}
-              </StyledRightAlignedCell>
-            </Fragment>
-          );
-        }
-    );
+                <PerformanceBadgeWrapper>
+                  <PerformanceBadge score={listItem.totalScore} />
+                </PerformanceBadgeWrapper>
+              </Tooltip>
+            )}
+            {isProjectScoresLoading ? (
+              <StyledLoadingIndicator size={20} />
+            ) : (
+              <Tooltip
+                title={
+                  <span>
+                    {t(
+                      "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                    )}
+                    <br />
+                    <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+                isHoverable
+                showUnderline
+                skipWrapper
+              >
+                {Math.round(opportunity * 100) / 100}
+              </Tooltip>
+            )}
+          </StyledRightAlignedCell>
+        </Fragment>
+      );
+    });
 
   const getContainerActions = _ => {
     return (

@@ -3,8 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import Accordion from 'sentry/components/accordion/accordion';
 
 const items = [
-  {header: () => <p>header</p>, content: () => <p>first content</p>},
-  {header: () => <p>second header</p>, content: () => <p>second content</p>},
+  {header: <p>header</p>, content: <p>first content</p>},
+  {header: <p>second header</p>, content: <p>second content</p>},
 ];
 
 describe('Accordion', function () {

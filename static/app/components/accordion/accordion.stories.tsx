@@ -8,9 +8,9 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
 const ACCORDION_ITEMS = [
-  {header: () => 'Header 1', content: () => 'Content 1'},
-  {header: () => 'Header 2', content: () => 'Content 2'},
-  {header: () => 'Header 3', content: () => 'Content 3'},
+  {header: 'Header 1', content: 'Content 1'},
+  {header: 'Header 2', content: 'Content 2'},
+  {header: 'Header 3', content: 'Content 3'},
 ];
 
 export default storyBook(Accordion, story => {
