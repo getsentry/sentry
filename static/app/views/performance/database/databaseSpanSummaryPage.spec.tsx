@@ -94,18 +94,16 @@ describe('DatabaseSpanSummaryPage', function () {
     const spanFieldTagsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
-      body: {
-        data: [
-          {
-            key: 'api_key',
-            name: 'Api Key',
-          },
-          {
-            key: 'bytes.size',
-            name: 'Bytes.Size',
-          },
-        ],
-      },
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
     });
 
     const transactionListMock = MockApiClient.addMockResponse({
