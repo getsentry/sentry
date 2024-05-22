@@ -10,7 +10,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Tooltip} from 'sentry/components/tooltip';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {CheckInPayload, CheckinProcessingError} from 'sentry/views/monitors/types';
 
