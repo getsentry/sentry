@@ -361,3 +361,6 @@ class Parameterizer:
 
     def get_successful_experiments(self) -> Sequence[ParameterizationExperiment]:
         return [e for e in self._experiments if self.matches_counter[e.name] > 0]
+
+    def parameterize_all(self, content: str, should_run: Callable[[str], bool] = lambda _: True):
+        return self.parametrize_w_experiments(self.parametrize_w_regex(content), should_run)
