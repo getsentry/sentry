@@ -1833,6 +1833,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
     "organizations:session-replay-enable-canvas-replayer": False,
+    # Enable Hydration Error Issue Creation In Recording Consumer
+    "organizations:session-replay-hydration-error-issue-creation": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
     # Enable mobile replay player
