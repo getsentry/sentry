@@ -95,7 +95,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             events.append(event)
@@ -126,7 +126,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             bulk_data["messages"],
         )
         self.event = self.store_event(
-            data={"exception": EXCEPTION, "timestamp": iso_format(before_now(seconds=3))},
+            data={"exception": EXCEPTION, "timestamp": iso_format(before_now(seconds=10))},
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -703,7 +703,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             groups_seen_once.append(event.group)
@@ -751,7 +751,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -818,7 +818,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "exception": self.create_exception_values(
                 "another_function!", "AnotherError!", "error with value"
             ),
-            "timestamp": iso_format(before_now(seconds=3)),
+            "timestamp": iso_format(before_now(seconds=10)),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -879,7 +879,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -915,7 +915,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
