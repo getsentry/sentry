@@ -418,8 +418,8 @@ function Sidebar() {
         label={t('LLM Monitoring')}
         isAlpha
         variant="short"
-        // NOTE: This is missing a slash, since the base URL for the AI module has a slash
-        to={`/organizations/${organization.slug}${MODULE_BASE_URLS[ModuleName.AI]}/`}
+        // NOTE: This doesn't include the insights base bath because LLM monitoring lives at `/llm-monitoring`
+        to={`/organizations/${organization.slug}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
         id="llm-monitoring"
       />
     </Feature>

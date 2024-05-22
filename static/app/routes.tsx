@@ -1438,7 +1438,7 @@ function buildRoutes() {
   );
 
   const llmMonitoringRoutes = (
-    <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
+    <Route path={`/${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
       <Route
         path="pipeline-type/:groupId/"
