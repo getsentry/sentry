@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
@@ -21,6 +22,7 @@ from sentry.seer.utils import (
     get_similarity_data_from_seer,
 )
 from sentry.utils.safe import get_path
+from sentry.utils.types import NonNone
 
 logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
@@ -133,11 +135,11 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
             return Response(status=404)
 
-        latest_event = group.get_latest_event()
+        latest_event = cast(Event, group.get_latest_event())
         stacktrace_string = ""
         if latest_event.data.get("exception"):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
@@ -147,7 +149,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             return Response([])  # No exception, stacktrace or in-app frames
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
-            "hash": latest_event.get_primary_hash(),
+            "hash": NonNone(latest_event.get_primary_hash()),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
