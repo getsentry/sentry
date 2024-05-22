@@ -11,6 +11,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -19,6 +20,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/mobile/appStarts/settings';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 
@@ -63,7 +68,13 @@ export default function ScreensTemplate({
                 },
               ]}
             />
-            <Layout.Title>{title}</Layout.Title>
+            <Layout.Title>
+              {title}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>

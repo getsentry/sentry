@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
@@ -19,6 +20,10 @@ import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -53,7 +58,13 @@ function ResourcesLandingPage() {
               ]}
             />
 
-            <Layout.Title>{t('Resources')}</Layout.Title>
+            <Layout.Title>
+              {t('Resources')}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
