@@ -4,6 +4,7 @@ import logging
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
@@ -229,6 +230,20 @@ class DatabaseBackedIntegrationService(IntegrationService):
         install = None
         if context.organization_integrations:
             install = context.organization_integrations[0]
+        if install and install.organization_id != organization_id:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_context(
+                    "localscope",
+                    {
+                        "integration_id": integration_id,
+                        "organization_id": organization_id,
+                        "install.organization": install.organization_id,
+                    },
+                )
+                sentry_sdk.capture_message(
+                    "integration.installation does not belong to requested_org"
+                )
+            install = None
         return RpcOrganizationContext(
             integration=context.integration, organization_integration=install
         )
