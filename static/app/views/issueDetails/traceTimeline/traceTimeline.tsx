@@ -31,14 +31,14 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   let timelineStatus: string | undefined = 'empty';
   let timelineSkipped = false;
-  let issues: {id: number; project: string; title: string}[] = [];
+  let issuesCount = 0;
   if (hasTraceId && !isLoading) {
     if (!organization.features.includes('related-issues-issue-details-page')) {
       timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
     } else {
-      issues = getIssuesFromEvents(traceEvents);
+      issuesCount = getIssuesCountFromEvents(traceEvents);
       // When we have more than 2 issues regardless of the number of events we skip the timeline
-      timelineSkipped = issues.length >= MIN_ISSUES_TO_SKIP_TIMELINE;
+      timelineSkipped = issuesCount >= MIN_ISSUES_TO_SKIP_TIMELINE;
       timelineStatus = timelineSkipped ? 'empty' : 'shown';
     }
   } else if (!hasTraceId) {
@@ -98,24 +98,13 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   );
 }
 
-/**
- * Extracts issues from events
- */
-function getIssuesFromEvents(
-  events: TimelineEvent[]
-  // XXX: We do not use any of the values but only care about the count of issues. Prob change this
-): {id: number; project: string; title: string}[] {
-  return events
-    .filter(
-      (event, index, self) =>
-        event['issue.id'] !== undefined &&
-        self.findIndex(e => e['issue.id'] === event['issue.id']) === index
-    )
-    .map(event => ({
-      id: event['issue.id'],
-      title: event.title,
-      project: event.project,
-    }));
+function getIssuesCountFromEvents(events: TimelineEvent[]): number {
+  const distinctIssues = events.filter(
+    (event, index, self) =>
+      event['issue.id'] !== undefined &&
+      self.findIndex(e => e['issue.id'] === event['issue.id']) === index
+  );
+  return distinctIssues.length;
 }
 
 const TimelineWrapper = styled('div')`
