@@ -29,7 +29,7 @@ def dispatch_check_timeout(ts: datetime):
 
     This will dispatch MarkTimeout messages into monitors-clock-tasks.
     """
-    missed_checkins = list(
+    timed_out_checkins = list(
         MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts,).values(
             "id", "monitor_environment_id"
         )[:CHECKINS_LIMIT]
@@ -37,12 +37,12 @@ def dispatch_check_timeout(ts: datetime):
 
     metrics.gauge(
         "sentry.monitors.tasks.check_timeout.count",
-        len(missed_checkins),
+        len(timed_out_checkins),
         sample_rate=1.0,
     )
 
     # check for any monitors which are still running and have exceeded their maximum runtime
-    for checkin in missed_checkins:
+    for checkin in timed_out_checkins:
         message: MarkTimeout = {
             "type": "mark_timeout",
             "ts": ts.timestamp(),
