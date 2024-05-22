@@ -131,7 +131,6 @@ function maybeFocusRow(
 
 interface TraceProps {
   forceRerender: number;
-  initializedRef: React.MutableRefObject<boolean>;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -171,7 +170,6 @@ export function Trace({
   onTraceLoad,
   rerender,
   trace_state,
-  initializedRef,
   trace_dispatch,
   forceRerender,
 }: TraceProps) {
@@ -196,30 +194,31 @@ export function Trace({
   const traceStateRef = useRef<TraceReducerState>(trace_state);
   traceStateRef.current = trace_state;
 
+  const scrollQueueRefRefCurrent = scrollQueueRef.current;
   useLayoutEffect(() => {
-    if (initializedRef.current) {
-      return;
-    }
     if (trace.type !== 'trace' || !manager) {
       return;
     }
 
-    initializedRef.current = true;
-
-    if (!scrollQueueRef.current) {
+    if (!scrollQueueRefRefCurrent) {
       onTraceLoad(trace, null, null);
       return;
     }
 
     // Node path has higher specificity than eventId
-    const promise = scrollQueueRef.current?.path
-      ? TraceTree.ExpandToPath(trace, scrollQueueRef.current.path, rerenderRef.current, {
-          api,
-          organization,
-        })
-      : scrollQueueRef.current.eventId
+    const promise = scrollQueueRefRefCurrent?.path
+      ? TraceTree.ExpandToPath(
+          trace,
+          scrollQueueRefRefCurrent.path,
+          rerenderRef.current,
+          {
+            api,
+            organization,
+          }
+        )
+      : scrollQueueRefRefCurrent.eventId
         ? TraceTree.ExpandToEventID(
-            scrollQueueRef?.current?.eventId,
+            scrollQueueRefRefCurrent?.eventId,
             trace,
             rerenderRef.current,
             {
@@ -252,8 +251,8 @@ export function Trace({
     manager,
     onTraceLoad,
     trace_dispatch,
+    scrollQueueRefRefCurrent,
     scrollQueueRef,
-    initializedRef,
     organization,
   ]);
 
@@ -423,7 +422,7 @@ export function Trace({
   );
 
   const render = useMemo(() => {
-    return trace.type === 'loading' || (scrollQueueRef.current && trace.type !== 'trace')
+    return trace.type !== 'trace' || scrollQueueRef.current
       ? r => renderLoadingRow(r)
       : r => renderVirtualizedRow(r);
   }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
