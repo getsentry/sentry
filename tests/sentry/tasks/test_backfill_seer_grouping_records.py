@@ -1,5 +1,4 @@
 import copy
-import unittest
 from collections.abc import Mapping
 from random import choice
 from string import ascii_uppercase
@@ -903,21 +902,22 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         if it exists
         """
         # Create groups, half seer_similarity in the metadata, half without
-        function_names = [f"another_function_{str(i)}" for i in range(10)]
-        type_names = [f"AnotherError{str(i)}" for i in range(10)]
-        value_names = ["error with value" for _ in range(10)]
+        function_names = [f"another_function_{str(i)}" for i in range(5)]
+        type_names = [f"AnotherError{str(i)}" for i in range(5)]
+        value_names = ["error with value" for _ in range(5)]
         group_ids = []
         default_metadata = {"different_data": {"something": "else"}}
-        for i in range(10):
+        for i in range(5):
             data = {
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
+                "timestamp": iso_format(before_now(seconds=3)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
             event.group.data["metadata"] = copy.deepcopy(default_metadata)
-            if i < 5:
+            if i < 3:
                 event.group.data["metadata"].update(
                     {"seer_similarity": {"similarity_model_version": "v0"}}
                 )

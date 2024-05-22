@@ -36,11 +36,14 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, redis
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
 BATCH_SIZE = 10
 BACKFILL_NAME = "backfill_grouping_records"
+BULK_DELETE_METADATA_CHUNK_SIZE = 100
 
 logger = logging.getLogger(__name__)
 
@@ -99,17 +102,7 @@ def backfill_seer_grouping_records(
         last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
 
     if only_delete:
-        delete_seer_grouping_records(project.id, last_processed_index, True, redis_client)
-        groups = Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id)
-        groups_with_seer_metadata = [
-            group
-            for group in groups
-            if get_path(group.data, "metadata", "seer_similarity") is not None
-        ]
-
-        for group in groups_with_seer_metadata:
-            del group.data["metadata"]["seer_similarity"]
-        Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
+        delete_seer_grouping_records(project.id, redis_client)
         return
 
     if last_processed_index == 0:
@@ -270,8 +263,6 @@ def backfill_seer_grouping_records(
                     extra={"project_id": project.id, "num_updated": num_updated},
                 )
 
-            delete_seer_grouping_records(project.id, last_processed_index, dry_run, redis_client)
-
             last_processed_index = batch_end_index
             redis_client.set(
                 f"{make_backfill_redis_key(project_id)}",
@@ -311,8 +302,6 @@ def backfill_seer_grouping_records(
             "backfill_seer_snuba_returned_empty_result",
             extra={"project_id": project.id},
         )
-
-    delete_seer_grouping_records(project.id, last_processed_index, dry_run, redis_client)
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
@@ -498,14 +487,31 @@ def make_backfill_redis_key(project_id: int):
 
 def delete_seer_grouping_records(
     project_id: int,
-    last_processed_index: int,
-    dry_run: bool,
     redis_client: RedisCluster | StrictRedis,
 ):
-    if last_processed_index == 0 and dry_run:
-        logger.info(
-            "backfill_seer_grouping_records.delete_all_seer_records",
-            extra={"project_id": project_id},
-        )
-        delete_grouping_records(project_id)
-        redis_client.delete(make_backfill_redis_key(project_id))
+    """
+    Delete seer grouping records for the project_id.
+    Delete seer_similarity from the project's groups metadata.
+    """
+    logger.info(
+        "backfill_seer_grouping_records.delete_all_seer_records",
+        extra={"project_id": project_id},
+    )
+    delete_grouping_records(project_id)
+    redis_client.delete(make_backfill_redis_key(project_id))
+
+    for groups in chunked(
+        RangeQuerySetWrapper(
+            Group.objects.filter(project_id=project_id, type=ErrorGroupType.type_id)
+        ),
+        BULK_DELETE_METADATA_CHUNK_SIZE,
+    ):
+        groups_with_seer_metadata = [
+            group
+            for group in groups
+            if get_path(group.data, "metadata", "seer_similarity") is not None
+        ]
+
+        for group in groups_with_seer_metadata:
+            del group.data["metadata"]["seer_similarity"]
+        Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
