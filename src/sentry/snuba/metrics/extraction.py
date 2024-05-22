@@ -405,6 +405,20 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+class TagMapping(TypedDict):
+    #: A list of Metric Resource Identifiers (MRI) to apply tags to.
+    #:
+    #: Entries in this list can contain wildcards to match metrics with dynamic MRIs.
+    metrics: list[str]
+
+    #: A list of tags to add to the metric.
+    #:
+    #: Tags can be conditional, see `TagSpec` for configuration options. For this reason, it is
+    #: possible to list tag keys multiple times, each with different conditions. The first matching
+    #: condition will be applied.
+    tags: list[TagSpec]
+
+
 def _check_event_type_transaction(
     query: Sequence[QueryToken], is_top_level_call: bool = True
 ) -> bool:
