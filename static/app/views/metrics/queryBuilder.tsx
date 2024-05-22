@@ -16,6 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   isAllowedOp,
   isCustomMetric,
+  isSpanDuration,
   isSpanMeasurement,
   isSpanSelfTime,
   isTransactionDuration,
@@ -46,7 +47,7 @@ const isVisibleTransactionMetric = (metric: MetricMeta) =>
   isTransactionDuration(metric) || isTransactionMeasurement(metric);
 
 const isVisibleSpanMetric = (metric: MetricMeta) =>
-  isSpanSelfTime(metric) || isSpanMeasurement(metric);
+  isSpanSelfTime(metric) || isSpanDuration(metric) || isSpanMeasurement(metric);
 
 const isShownByDefault = (metric: MetricMeta) =>
   isCustomMetric(metric) ||

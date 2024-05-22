@@ -333,6 +333,10 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
+export function isSpanDuration({mri}: {mri: MRI}) {
+  return mri === 'd:spans/duration@millisecond';
+}
+
 export function isSpanSelfTime({mri}: {mri: MRI}) {
   return (
     mri === 'd:spans/exclusive_time@millisecond' ||
