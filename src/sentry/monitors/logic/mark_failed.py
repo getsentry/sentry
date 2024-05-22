@@ -278,10 +278,14 @@ def create_issue_platform_occurrence(
         subtitle="Your monitor has reached its failure threshold.",
         evidence_display=[
             IssueEvidence(
-                name="Failure reason", value=get_failure_reason(failed_checkins), important=True
+                name="Failure reason",
+                value=str(get_failure_reason(failed_checkins)),
+                important=True,
             ),
             IssueEvidence(
-                name="Environment", value=monitor_env.get_environment().name, important=False
+                name="Environment",
+                value=monitor_env.get_environment().name,
+                important=False,
             ),
             IssueEvidence(
                 name="Last successful check-in",
