@@ -257,17 +257,9 @@ class DatabaseBackedControlOrganizationProvisioningService(
         self,
         *,
         region_name: str,
-        organization_ids_and_slugs: set[tuple[int, str]] | None = None,
-        slug_mapping: dict[int, str] | None = None,
+        slug_mapping: dict[int, str],
     ) -> None:
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
-        assert not (
-            organization_ids_and_slugs is not None and slug_mapping is not None
-        ), "Cannot provide both slug_mapping and organization_ids_and_slugs"
-
-        if organization_ids_and_slugs:
-            slug_mapping = dict(organization_ids_and_slugs)
-        assert isinstance(slug_mapping, dict), "slug_mapping must be dict now"
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             for org_id, slug in slug_mapping.items():
