@@ -389,13 +389,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             },
             "platform": "python",
         }
-        self.event = self.store_event(data=self.base_error_trace, project_id=self.project)
+        self.event = save_new_event(self.base_error_trace, self.project)
         self.group = self.event.group
         assert self.group
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
-        self.similar_event = self.store_event(
-            data={"message": "Dogs are great!"}, project_id=self.project
-        )
+        self.similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
     def create_exception(
         self,
