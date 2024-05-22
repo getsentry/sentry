@@ -82,7 +82,7 @@ export function useMetricsTags(
   if (mri === SPAN_DURATION_MRI) {
     tags = {
       ...tags,
-      data: tags.data?.filter(tag => ALLOWED_SPAN_DURATION_TAGS.includes(tag.key)),
+      data: tags.data?.filter(tag => ALLOWED_SPAN_DURATION_TAGS.includes(tag.key)) ?? [],
     };
   }
 
