@@ -55,7 +55,7 @@ export const useSpanSamples = (options: Options) => {
   } = options;
   const location = useLocation();
 
-  const query = spanSearch?.copy() ?? new MutableSearch([]);
+  const query = spanSearch !== undefined ? spanSearch.copy() : new MutableSearch([]);
   query.addFilterValue(SPAN_GROUP, groupId);
   query.addFilterValue('transaction', transactionName);
 
