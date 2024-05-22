@@ -1,4 +1,4 @@
-import {Children, Fragment, type PropsWithChildren, useMemo, useRef} from 'react';
+import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
@@ -6,7 +6,6 @@ import * as qs from 'query-string';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
@@ -543,35 +542,8 @@ function SectionCard({
 }
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
-
-  const columns: React.ReactNode[] = [];
-  const cards = Children.toArray(children);
-
-  // Evenly distributing the cards into columns.
-  const columnSize = Math.ceil(cards.length / columnCount);
-  for (let i = 0; i < cards.length; i += columnSize) {
-    columns.push(<CardsColumn key={i}>{cards.slice(i, i + columnSize)}</CardsColumn>);
-  }
-
-  return (
-    <CardsWrapper columnCount={columnCount} ref={containerRef}>
-      {columns}
-    </CardsWrapper>
-  );
+  return <KeyValueData.Group>{children}</KeyValueData.Group>;
 }
-
-const CardsWrapper = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  gap: 10px;
-`;
-
-const CardsColumn = styled('div')`
-  grid-column: span 1;
-`;
 
 function CopyableCardValueWithLink({
   value,

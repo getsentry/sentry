@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {Children, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -128,6 +129,26 @@ export function Card({
   );
 }
 
+export function Group({children}: {children: React.ReactNode}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useIssueDetailsColumnCount(containerRef);
+
+  const columns: React.ReactNode[] = [];
+  const cards = Children.toArray(children);
+
+  // Evenly distributing the cards into columns.
+  const columnSize = Math.ceil(cards.length / columnCount);
+  for (let i = 0; i < cards.length; i += columnSize) {
+    columns.push(<CardColumn key={i}>{cards.slice(i, i + columnSize)}</CardColumn>);
+  }
+
+  return (
+    <CardWrapper columnCount={columnCount} ref={containerRef}>
+      {columns}
+    </CardWrapper>
+  );
+}
+
 const CardPanel = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
@@ -185,4 +206,15 @@ const TruncateWrapper = styled('a')`
   margin: ${space(0.5)} 0;
   justify-content: center;
   font-family: ${p => p.theme.text.family};
+`;
+
+const CardWrapper = styled('div')<{columnCount: number}>`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
+  gap: 10px;
+`;
+
+const CardColumn = styled('div')`
+  grid-column: span 1;
 `;
