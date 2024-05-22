@@ -1254,7 +1254,8 @@ register(
 
 # Option to remove support for percentiles on a per-use case basis.
 # Add the use case as a key to the dictionary, and add a list
-# as the value.
+# of org_id overrides as the value.
+
 # Example 1: {"custom": [1, 2]}
 # This means disable percentiles for the custom use case,
 # EXCEPT for org_id = 1 and org_id = 2
