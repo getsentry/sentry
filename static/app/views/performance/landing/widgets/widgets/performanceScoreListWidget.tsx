@@ -3,7 +3,6 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -25,6 +24,7 @@ import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/web
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
   GrowLink,
