@@ -15,6 +15,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
+import {MODULE_DOC_LINK} from 'sentry/views/llmMonitoring/settings';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
@@ -36,7 +37,7 @@ export function LLMMonitoringPage() {
               {t('LLM Monitoring')}
               <PageHeadingQuestionTooltip
                 title={t('View analytics and information about your AI pipelines')}
-                docsUrl="https://docs.sentry.io/product/llm-monitoring/"
+                docsUrl={MODULE_DOC_LINK}
               />
             </Layout.Title>
           </Layout.HeaderContent>
@@ -57,7 +58,7 @@ export function LLMMonitoringPage() {
                   <OnboardingContent
                     title={t('Get actionable insights about your LLMs')}
                     description={t('Send your first AI pipeline to see data here.')}
-                    link="https://docs.sentry.io/product/llm-monitoring/"
+                    link={MODULE_DOC_LINK}
                   />
                 }
                 referrer="api.ai-pipelines.view"
