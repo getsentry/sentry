@@ -1,4 +1,11 @@
-import {Fragment, startTransition, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  startTransition,
+  type SyntheticEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -8,7 +15,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MRI, Project} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {Project} from 'sentry/types/project';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
@@ -23,6 +31,11 @@ const MAX_PROJECTS_TO_SHOW = 3;
 const MAX_TAGS_TO_SHOW = 5;
 
 const STANDARD_TAGS = ['release', 'environment', 'transaction', 'project'];
+
+function stopPropagationAndPreventDefault(e: SyntheticEvent) {
+  e.stopPropagation();
+  e.preventDefault();
+}
 
 export function MetricListItemDetails({
   metric,
@@ -101,7 +114,10 @@ export function MetricListItemDetails({
   const firstMetricProject = metricProjects[0];
 
   return (
-    <DetailsWrapper>
+    <DetailsWrapper
+      // Stop propagation and default behaviour to keep the focus in the combobox
+      onMouseDown={stopPropagationAndPreventDefault}
+    >
       <Header>
         <MetricName>
           {/* Add zero width spaces at delimiter characters for nice word breaks */}
