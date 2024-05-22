@@ -161,7 +161,7 @@ export default function SpanSummaryTable(props: Props) {
     limit: LIMIT,
     options: {
       refetchOnWindowFocus: false,
-      enabled: Boolean(rowData),
+      enabled: Boolean(rowData && rowData.length > 0),
     },
     referrer: SpanSummaryReferrer.SPAN_SUMMARY_TABLE,
   });

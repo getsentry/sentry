@@ -8,23 +8,26 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
-
-function Wrapper({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
-  );
-}
 
 describe('useSpanMetrics', () => {
   const organization = OrganizationFixture();
+
+  function Wrapper({children}: {children?: ReactNode}) {
+    return (
+      <QueryClientProvider client={makeTestQueryClient()}>
+        <OrganizationContext.Provider value={organization}>
+          {children}
+        </OrganizationContext.Provider>
+      </QueryClientProvider>
+    );
+  }
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -48,8 +51,6 @@ describe('useSpanMetrics', () => {
       query: {statsPeriod: '10d'},
     })
   );
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   it('respects the `enabled` prop', () => {
     const eventsRequest = MockApiClient.addMockResponse({

@@ -4,14 +4,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HTTPLandingPage} from 'sentry/views/performance/http/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjects');
 
 describe('HTTPLandingPage', function () {
@@ -45,8 +43,6 @@ describe('HTTPLandingPage', function () {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   jest.mocked(useProjects).mockReturnValue({
     projects: [
@@ -144,7 +140,7 @@ describe('HTTPLandingPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<HTTPLandingPage />);
+    render(<HTTPLandingPage />, {organization});
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -258,7 +254,7 @@ describe('HTTPLandingPage', function () {
   });
 
   it('renders a list of domains', async function () {
-    render(<HTTPLandingPage />);
+    render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

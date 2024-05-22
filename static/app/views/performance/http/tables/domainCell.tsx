@@ -5,7 +5,7 @@ import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {NULL_DOMAIN_DESCRIPTION} from 'sentry/views/performance/http/settings';
-import {useRequestsModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function DomainCell({projectId, domain}: Props) {
-  const moduleURL = useRequestsModuleURL();
+  const moduleURL = useModuleURL('http');
   const location = useLocation();
 
   const queryString = {

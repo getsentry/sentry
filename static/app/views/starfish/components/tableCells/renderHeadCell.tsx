@@ -67,7 +67,6 @@ export const SORTABLE_FIELDS = new Set([
 const NUMERIC_FIELDS = new Set([
   'transaction.duration',
   SpanMetricsField.CACHE_ITEM_SIZE,
-  SpanIndexedField.RESPONSE_CODE,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.CACHE_ITEM_SIZE,

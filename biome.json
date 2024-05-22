@@ -36,7 +36,15 @@
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noNodejsModules": "error"
+        "noNodejsModules": "error",
+        "noRestrictedImports": {
+          "level": "warn",
+          "options": {
+            "paths": {
+              "sentry/types":  "Please import directly. For example: import type {Organization} from 'sentry/types/organization'"
+            }
+          }
+        }
       },
       "performance": {
         "noBarrelFile": "error"

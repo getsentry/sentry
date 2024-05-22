@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -21,7 +21,8 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useQueuesByTransactionQuery} from 'sentry/views/performance/queues/queries/useQueuesByTransactionQuery';
-import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -119,6 +120,7 @@ export function TransactionsTable() {
   const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
     destination: locationQuery.destination,
     sort,
+    referrer: Referrer.QUEUES_SUMMARY_TRANSACTIONS_TABLE,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
@@ -232,7 +234,7 @@ function renderBodyCell(
 }
 
 function TransactionCell({transaction, op}: {op: string; transaction: string}) {
-  const moduleURL = useQueueModuleURL();
+  const moduleURL = useModuleURL('queue');
   const {query} = useLocation();
   const queryString = {
     ...query,
