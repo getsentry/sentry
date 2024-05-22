@@ -8,7 +8,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getMetaDateTimeParams} from './index';
 
 const SPAN_DURATION_MRI = 'd:spans/duration@millisecond';
-const ALLOWED_SPAN_DURATION_TAGS = ['span.op', 'span.domain', 'span.action'];
+const ALLOWED_SPAN_DURATION_TAGS = [
+  'span.category',
+  'span.description',
+  'environment',
+  'project',
+  'span.action',
+  'span.domain',
+  'span.op',
+];
 
 export function getMetricsTagsQueryKey(
   organization: Organization,
