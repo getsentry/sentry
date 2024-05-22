@@ -1,6 +1,7 @@
 import copy
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.conf import settings
@@ -8,6 +9,7 @@ from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import HTTPResponse
 
+from sentry.models.project import Project
 from sentry.seer.utils import (
     POST_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
@@ -37,7 +39,7 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
 
 
 @mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
-def test_detect_breakpoints(mock_urlopen):
+def test_detect_breakpoints(mock_urlopen: MagicMock):
     data = {
         "data": [
             {
@@ -69,7 +71,9 @@ def test_detect_breakpoints(mock_urlopen):
 )
 @mock.patch("sentry_sdk.capture_exception")
 @mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
-def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status):
+def test_detect_breakpoints_errors(
+    mock_urlopen: MagicMock, mock_capture_exception: MagicMock, body: str | dict, status: int
+):
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
     assert detect_breakpoints({}) == {"data": []}
@@ -78,7 +82,7 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
 
 @django_db_all
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
+def test_similar_issues_embeddings_simple(mock_seer_request: MagicMock, default_project: Project):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
     similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
@@ -110,7 +114,7 @@ def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
 
 @django_db_all
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
+def test_empty_similar_issues_embeddings(mock_seer_request: MagicMock, default_project: Project):
     """Test that empty responses are returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
 
@@ -127,7 +131,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
 
 @django_db_all
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_returns_sorted_similarity_results(mock_seer_request, default_project):
+def test_returns_sorted_similarity_results(mock_seer_request: MagicMock, default_project: Project):
     event = save_new_event({"message": "Dogs are great!"}, default_project)
     similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
     less_similar_event = save_new_event({"message": "Charlie is goofy"}, default_project)
@@ -173,7 +177,7 @@ def test_returns_sorted_similarity_results(mock_seer_request, default_project):
 
 
 @django_db_all
-def test_from_raw_simple(default_project):
+def test_from_raw_simple(default_project: Project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
     raw_similar_issue_data: RawSeerSimilarIssueData = {
         "message_distance": 0.05,
@@ -195,7 +199,7 @@ def test_from_raw_simple(default_project):
 
 
 @django_db_all
-def test_from_raw_unexpected_data(default_project):
+def test_from_raw_unexpected_data(default_project: Project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
     raw_similar_issue_data = {
         "message_distance": 0.05,
@@ -222,7 +226,7 @@ def test_from_raw_unexpected_data(default_project):
 
 
 @django_db_all
-def test_from_raw_missing_data(default_project):
+def test_from_raw_missing_data(default_project: Project):
     similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
 
     with pytest.raises(
@@ -266,7 +270,7 @@ def test_from_raw_missing_data(default_project):
 
 
 @django_db_all
-def test_from_raw_nonexistent_group(default_project):
+def test_from_raw_nonexistent_group(default_project: Project):
     with pytest.raises(SimilarGroupNotFoundError):
         raw_similar_issue_data = {
             "parent_hash": "not a real hash",
@@ -280,7 +284,7 @@ def test_from_raw_nonexistent_group(default_project):
 
 @mock.patch("sentry.seer.utils.logger")
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
+def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_logger: MagicMock):
     expected_return_value = {
         "success": True,
         "groups_with_neighbor": {"1": "00000000000000000000000000000000"},
@@ -302,7 +306,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
 
 @mock.patch("sentry.seer.utils.logger")
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
+def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_logger: MagicMock):
     expected_return_value = {"success": False}
     mock_seer_request.side_effect = ReadTimeoutError(
         DUMMY_POOL, settings.SEER_AUTOFIX_URL, "read timed out"
@@ -323,7 +327,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
 
 @mock.patch("sentry.seer.utils.logger")
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
+def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_logger: MagicMock):
     expected_return_value = {"success": False}
     mock_seer_request.return_value = HTTPResponse(
         b"<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n",
@@ -344,7 +348,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
 
 
 @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-def test_post_bulk_grouping_records_empty_data(mock_seer_request):
+def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
     """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
     expected_return_value = {"success": True}
     mock_seer_request.return_value = HTTPResponse(
