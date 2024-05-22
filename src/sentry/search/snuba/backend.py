@@ -496,7 +496,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         if use_group_snuba_dataset:
             # we need to handle two cases fo the group queryset:
             # 1. Limit results to groups that are not pending deletion or merge
-            # 2. Handle queries snuba doesn't support such as bookmarked_by, linked, subscribed_by
+            # 2. Handle queries snuba doesn't support such as bookmarked_by, linked, subscribed_by, etc
             # For the second case, we hit postgres before Snuba to get the group ids
             group_queryset = self._build_limited_group_queryset(projects, search_filters)
 

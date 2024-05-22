@@ -426,6 +426,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "aggregatedDataConsent": True,
             "genAIConsent": True,
+            "issueAlertsThreadFlag": False,
+            "metricAlertsThreadFlag": False,
         }
 
         # needed to set require2FA
@@ -489,6 +491,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
         assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
+        assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
+        assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
 
     @responses.activate
     @patch(

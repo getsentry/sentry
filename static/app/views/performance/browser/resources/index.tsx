@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -8,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
@@ -18,6 +20,10 @@ import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -35,11 +41,7 @@ function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -56,7 +58,13 @@ function ResourcesLandingPage() {
               ]}
             />
 
-            <Layout.Title>{t('Resources')}</Layout.Title>
+            <Layout.Title>
+              {t('Resources')}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -86,12 +94,23 @@ function ResourcesLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </PageAlertProvider>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Resources')].join(' — ')}
+      features="spans-first-ui"
+    >
+      <ResourcesLandingPage />
     </ModulePageProviders>
   );
 }
 
+export default PageWithProviders;
+
 export const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
-
-export default ResourcesLandingPage;

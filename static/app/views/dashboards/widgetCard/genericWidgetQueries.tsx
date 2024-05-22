@@ -80,6 +80,9 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  // Skips adding parens before applying dashboard filters
+  // Used for datasets that do not support parens/boolean logic
+  skipDashboardFilterParens?: boolean;
 };
 
 type State<SeriesResponse> = {
@@ -194,13 +197,17 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   private _isMounted: boolean = false;
 
   applyDashboardFilters(widget: Widget): Widget {
-    const {dashboardFilters} = this.props;
+    const {dashboardFilters, skipDashboardFilterParens} = this.props;
 
     const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
     widget.queries.forEach(query => {
-      query.conditions =
-        query.conditions +
-        (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
+      if (dashboardFilterConditions) {
+        // If there is no base query, there's no need to add parens
+        if (query.conditions && !skipDashboardFilterParens) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+      }
     });
     return widget;
   }

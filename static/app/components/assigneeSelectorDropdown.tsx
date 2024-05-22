@@ -6,13 +6,14 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/compactSelect';
-import IdBadge from 'sentry/components/idBadge';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -55,13 +56,53 @@ type AssignableTeam = {
 };
 
 export interface AssigneeSelectorDropdownProps {
+  /**
+   * The group (issue) that the assignee selector is for
+   * TODO: generalize this for alerts
+   */
   group: Group;
+  /**
+   * If true, there will be a loading indicator in the menu header.
+   */
   loading: boolean;
+  /**
+   * Additional styles to apply to the dropdown
+   */
+  className?: string;
+  /**
+   * Optional list of members to populate the dropdown with.
+   */
   memberList?: User[];
+  /**
+   * If true, the chevron to open the dropdown will not be shown
+   */
   noDropdown?: boolean;
+  /**
+   * Callback for when an assignee is selected from the dropdown.
+   * The parent component should update the group with the new assignee
+   * in this callback.
+   */
   onAssign?: (assignedActor: AssignableEntity | null) => void;
+  /**
+   * Callback for when the assignee is cleared
+   */
   onClear?: (clearedAssignee: User | Actor) => void;
+  /**
+   * Optional list of suggested owners of the group
+   */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  /**
+   * Maximum number of teams/users to display in the dropdown
+   */
+  sizeLimit?: number;
+  /**
+   * Optional trigger for the assignee selector. If nothing passed in,
+   * the default trigger will be used
+   */
+  trigger?: (
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
+  ) => React.ReactNode;
 }
 
 export function AssigneeAvatar({
@@ -159,6 +200,7 @@ export function AssigneeAvatar({
 }
 
 export default function AssigneeSelectorDropdown({
+  className,
   group,
   loading,
   memberList,
@@ -166,24 +208,23 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  sizeLimit = 150,
+  trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = ConfigStore.get('user');
 
-  const currentMemberList = (): User[] | undefined => {
-    return memberList ?? memberLists?.members;
-  };
+  const currentMemberList = memberList ?? memberLists?.members ?? [];
 
   const getSuggestedAssignees = (): SuggestedAssignee[] => {
     const currAssignableTeams = getAssignableTeams();
-    const currMembers = currentMemberList() ?? [];
 
     if (owners !== undefined) {
       // Add team or user from store
       return owners
         .map<SuggestedAssignee | null>(owner => {
           if (owner.type === 'user') {
-            const member = currMembers.find(user => user.id === owner.id);
+            const member = currentMemberList.find(user => user.id === owner.id);
             if (member) {
               return {
                 ...owner,
@@ -219,7 +260,7 @@ export default function AssigneeSelectorDropdown({
         const [suggestionType, suggestionId] = suggestion.owner.split(':');
         const suggestedReasonText = suggestedReasonTable[suggestion.type];
         if (suggestionType === 'user') {
-          const member = currMembers.find(user => user.id === suggestionId);
+          const member = currentMemberList.find(user => user.id === suggestionId);
           if (member) {
             return {
               id: suggestionId,
@@ -277,7 +318,7 @@ export default function AssigneeSelectorDropdown({
     let assignee: User | Actor;
 
     if (type === 'user') {
-      assignee = currentMemberList()?.find(member => member.id === assigneeId) as User;
+      assignee = currentMemberList.find(member => member.id === assigneeId) as User;
     } else {
       const assignedTeam = getAssignableTeams().find(
         assignableTeam => assignableTeam.team.id === assigneeId
@@ -303,31 +344,27 @@ export default function AssigneeSelectorDropdown({
     }
   };
 
-  const makeMemberOption = (
-    userId: string,
-    userDisplay: string
-  ): SelectOption<string> => {
-    const isCurrentUser = userId === sessionUser?.id;
+  const makeMemberOption = (user: User): SelectOption<string> => {
+    const isCurrentUser = user.id === sessionUser?.id;
+    const userDisplay = user.name || user.email;
 
     return {
       label: (
-        <IdBadge
+        <UserBadge
           data-test-id="assignee-option"
-          actor={{
-            id: userId,
-            name: `${userDisplay}${isCurrentUser ? ' (You)' : ''}`,
-            type: 'user',
-          }}
+          displayName={`${userDisplay}${isCurrentUser ? ' (You)' : ''}`}
+          hideEmail
+          user={user}
         />
       ),
       // Jank way to pass assignee type (team or user) into each row
-      value: `user:${userId}`,
+      value: `user:${user.id}`,
       textValue: userDisplay,
     };
   };
 
   const makeTeamOption = (assignableTeam: AssignableTeam): SelectOption<string> => ({
-    label: <IdBadge data-test-id="assignee-option" team={assignableTeam.team} />,
+    label: <TeamBadge data-test-id="assignee-option" team={assignableTeam.team} />,
     value: `team:${assignableTeam.team.id}`,
     textValue: assignableTeam.team.slug,
   });
@@ -339,14 +376,15 @@ export default function AssigneeSelectorDropdown({
       const isCurrentUser = assignee.id === sessionUser?.id;
       return {
         label: (
-          <IdBadge
+          <UserBadge
+            hideEmail
             data-test-id="assignee-option"
-            actor={{
-              id: assignee.id,
-              name: `${assignee.name}${isCurrentUser ? ' (You)' : ''}`,
-              type: 'user',
-            }}
-            description={suggestedReasonTable[assignee.suggestedReason]}
+            displayName={`${assignee.name}${isCurrentUser ? ' (You)' : ''}`}
+            user={assignee.assignee as User}
+            description={
+              assignee.suggestedReasonText ??
+              suggestedReasonTable[assignee.suggestedReason]
+            }
           />
         ),
         value: `user:${assignee.id}`,
@@ -356,9 +394,12 @@ export default function AssigneeSelectorDropdown({
     const assignedTeam = assignee.assignee as AssignableTeam;
     return {
       label: (
-        <IdBadge
+        <TeamBadge
+          data-test-id="assignee-option"
           team={assignedTeam.team}
-          description={suggestedReasonTable[assignee.suggestedReason]}
+          description={
+            assignee.suggestedReasonText ?? suggestedReasonTable[assignee.suggestedReason]
+          }
         />
       ),
       value: `team:${assignee.id}`,
@@ -369,7 +410,7 @@ export default function AssigneeSelectorDropdown({
   const makeAllOptions = (): SelectOptionOrSection<string>[] => {
     const options: SelectOptionOrSection<string>[] = [];
 
-    let memList = currentMemberList();
+    let memList = currentMemberList;
     let assignableTeamList = getAssignableTeams();
     let suggestedAssignees = getSuggestedAssignees();
     let assignedUser: User | undefined;
@@ -391,12 +432,10 @@ export default function AssigneeSelectorDropdown({
           });
         }
       } else {
-        assignedUser = memList?.find(user => user.id === group.assignedTo?.id);
+        assignedUser = currentMemberList.find(user => user.id === group.assignedTo?.id);
         if (assignedUser) {
-          options.push(
-            makeMemberOption(assignedUser.id, assignedUser.name || assignedUser.email)
-          );
-          memList = memList?.filter(member => member.id !== group.assignedTo?.id);
+          options.push(makeMemberOption(assignedUser));
+          memList = memList.filter(member => member.id !== group.assignedTo?.id);
           suggestedAssignees = suggestedAssignees?.filter(suggestedAssignee => {
             return suggestedAssignee.id !== group.assignedTo?.id;
           });
@@ -411,29 +450,14 @@ export default function AssigneeSelectorDropdown({
         suggestedAssignee => suggestedAssignee.id === sessionUser.id
       );
     if (!isUserAssignedOrSuggested) {
-      const currentUser = memList?.find(user => user.id === sessionUser.id);
+      const currentUser = memList.find(user => user.id === sessionUser.id);
       if (currentUser) {
-        memList = memList?.filter(user => user.id !== sessionUser.id);
+        memList = memList.filter(user => user.id !== sessionUser.id);
         // This can't be sessionUser even though they're the same thing
         // because it would bork the tests
-        memList?.unshift(currentUser);
+        memList.unshift(currentUser);
       }
     }
-
-    const memberOptions = {
-      value: '_members',
-      label: t('Members'),
-      options:
-        memList?.map(member =>
-          makeMemberOption(member.id, member.name || member.email)
-        ) ?? [],
-    };
-
-    const teamOptions = {
-      value: '_teams',
-      label: t('Teams'),
-      options: assignableTeamList?.map(makeTeamOption) ?? [],
-    };
 
     const suggestedUsers = suggestedAssignees?.filter(
       assignee => assignee.type === 'user'
@@ -441,6 +465,27 @@ export default function AssigneeSelectorDropdown({
     const suggestedTeams = suggestedAssignees?.filter(
       assignee => assignee.type === 'team'
     );
+
+    // Remove suggested assignees from the member list and team list to avoid duplicates
+    memList = memList.filter(
+      user => !suggestedUsers.find(suggested => suggested.id === user.id)
+    );
+    assignableTeamList = assignableTeamList.filter(
+      assignableTeam =>
+        !suggestedTeams.find(suggested => suggested.id === assignableTeam.team.id)
+    );
+
+    const memberOptions = {
+      value: '_members',
+      label: t('Members'),
+      options: memList.map(member => makeMemberOption(member)) ?? [],
+    };
+
+    const teamOptions = {
+      value: '_teams',
+      label: t('Teams'),
+      options: assignableTeamList?.map(makeTeamOption) ?? [],
+    };
 
     const suggestedOptions = {
       value: '_suggested_assignees',
@@ -472,38 +517,44 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <DropdownButton data-test-id="assignee-selector" {...props}>
+          <AssigneeDropdownButton
+            borderless
+            size="sm"
+            isOpen={isOpen}
+            data-test-id="assignee-selector"
+            {...props}
+          >
             {avatarElement}
-            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
-          </DropdownButton>
+          </AssigneeDropdownButton>
         )}
         {!loading && noDropdown && avatarElement}
       </Fragment>
     );
   };
 
-  const makeFooterInviteButton = () => {
-    return (
-      <Button
-        size="xs"
-        aria-label={t('Invite Member')}
-        disabled={loading}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-          event.preventDefault();
-          openInviteMembersModal({source: 'assignee_selector'});
-        }}
-        icon={<IconAdd isCircled />}
-      >
-        {t('Invite Member')}
-      </Button>
-    );
-  };
+  const footerInviteButton = (
+    <Button
+      size="xs"
+      aria-label={t('Invite Member')}
+      disabled={loading}
+      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        event.preventDefault();
+        openInviteMembersModal({source: 'assignee_selector'});
+      }}
+      icon={<IconAdd isCircled />}
+    >
+      {t('Invite Member')}
+    </Button>
+  );
 
   return (
     <AssigneeWrapper>
       <CompactSelect
         searchable
         clearable
+        className={className}
+        menuWidth={275}
+        position="bottom-end"
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
@@ -517,8 +568,10 @@ export default function AssigneeSelectorDropdown({
         size="sm"
         onChange={handleSelect}
         options={makeAllOptions()}
-        trigger={makeTrigger}
-        menuFooter={makeFooterInviteButton()}
+        trigger={trigger ?? makeTrigger}
+        menuFooter={footerInviteButton}
+        sizeLimit={sizeLimit}
+        sizeLimitMessage="Use search to find more users and teams..."
       />
     </AssigneeWrapper>
   );
@@ -529,14 +582,9 @@ const AssigneeWrapper = styled('div')`
   justify-content: flex-end;
 `;
 
-const DropdownButton = styled('button')`
-  appearance: none;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  font-size: 20px;
-  gap: ${space(0.5)};
+const AssigneeDropdownButton = styled(DropdownButton)`
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
 `;
 
 const StyledIconUser = styled(IconUser)`

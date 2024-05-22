@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
@@ -17,7 +18,6 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class JiraServerClient(ApiClient):
         self,
         integration: RpcIntegration | Integration,
         identity: RpcIdentity,
-        logging_context: JSONData | None = None,
+        logging_context: Any | None = None,
     ):
         self.base_url = integration.metadata["base_url"]
         self.identity = identity

@@ -4,7 +4,7 @@
   "release": "io.sentry.samples.android@1.1.0+2",
   "dist": "2",
   "platform": "java",
-  "message": "",
+  "logentry": {},
   "tags": [
     ["device", "sdk_gphone64_arm64"],
     ["device.family", "sdk_gphone64_arm64"],

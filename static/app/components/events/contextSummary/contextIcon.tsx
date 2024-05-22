@@ -61,7 +61,7 @@ const LOGO_MAPPING = {
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
-  nintendo: logoNintendo,
+  'nintendo-os': logoNintendo,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,

@@ -1,11 +1,12 @@
 import {t} from 'sentry/locale';
-import type {EChartHighlightHandler} from 'sentry/types/echarts';
+import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 import type {DataRow} from 'sentry/views/performance/cache/tables/spanSamplesTable';
+import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -73,6 +74,14 @@ export function TransactionDurationChart({
     onHighlight?.(highlightedDataPoints, event);
   };
 
+  const baselineAvgSeries: Series = {
+    seriesName: 'Average',
+    data: [],
+    markLine: AverageValueMarkLine({
+      value: averageTransactionDuration,
+    }),
+  };
+
   return (
     <ChartPanel title={DataTitles['transaction.duration']}>
       <Chart
@@ -89,6 +98,7 @@ export function TransactionDurationChart({
             seriesName: t('Average Transaction Duration'),
             data: data['avg(transaction.duration)'].data,
           },
+          baselineAvgSeries,
         ]}
         aggregateOutputFormat="duration"
         loading={isLoading}

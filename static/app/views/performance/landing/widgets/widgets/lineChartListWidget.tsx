@@ -40,7 +40,6 @@ import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/s
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 import {excludeTransaction} from '../../utils';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -604,36 +603,34 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               );
             case PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS:
               return (
-                <RoutingContextProvider value={{baseURL: '/performance/http'}}>
-                  <Fragment>
-                    <StyledTextOverflow>
-                      <DomainCell
-                        projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
-                        domain={listItem[SpanMetricsField.SPAN_DOMAIN]}
-                      />
-                    </StyledTextOverflow>
+                <Fragment>
+                  <StyledTextOverflow>
+                    <DomainCell
+                      projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
+                      domain={listItem[SpanMetricsField.SPAN_DOMAIN]}
+                    />
+                  </StyledTextOverflow>
 
-                    <RightAlignedCell>
-                      <TimeSpentCell
-                        percentage={listItem[fieldString]}
-                        total={listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
-                        op={'http.client'}
-                      />
-                    </RightAlignedCell>
+                  <RightAlignedCell>
+                    <TimeSpentCell
+                      percentage={listItem[fieldString]}
+                      total={listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                      op={'http.client'}
+                    />
+                  </RightAlignedCell>
 
-                    {!props.withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                </RoutingContextProvider>
+                  {!props.withStaticFilters && (
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() =>
+                        excludeTransaction(listItem.transaction, {
+                          eventView: props.eventView,
+                          location,
+                        })
+                      }
+                    />
+                  )}
+                </Fragment>
               );
             case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
             case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
@@ -649,45 +646,41 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
               const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.RESOURCE;
               const timeSpentOp = isQueriesWidget ? 'op' : undefined;
-              const routingContextBaseURL = isQueriesWidget
-                ? '/performance/database'
-                : '/performance/browser/resources';
+
               return (
-                <RoutingContextProvider value={{baseURL: routingContextBaseURL}}>
-                  <Fragment>
-                    <StyledTextOverflow>
-                      <SpanDescriptionCell
-                        projectId={projectID}
-                        group={group}
-                        description={description}
-                        moduleName={moduleName}
-                      />
-                    </StyledTextOverflow>
-                    <RightAlignedCell>
-                      <TimeSpentCell
-                        percentage={timeSpentPercentage}
-                        total={totalTime}
-                        op={timeSpentOp}
-                      />
-                    </RightAlignedCell>
-                    {!props.withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                </RoutingContextProvider>
+                <Fragment>
+                  <StyledTextOverflow>
+                    <SpanDescriptionCell
+                      projectId={projectID}
+                      group={group}
+                      description={description}
+                      moduleName={moduleName}
+                    />
+                  </StyledTextOverflow>
+                  <RightAlignedCell>
+                    <TimeSpentCell
+                      percentage={timeSpentPercentage}
+                      total={totalTime}
+                      op={timeSpentOp}
+                    />
+                  </RightAlignedCell>
+                  {!props.withStaticFilters && (
+                    <ListClose
+                      setSelectListIndex={setSelectListIndex}
+                      onClick={() =>
+                        excludeTransaction(listItem.transaction, {
+                          eventView: props.eventView,
+                          location,
+                        })
+                      }
+                    />
+                  )}
+                </Fragment>
               );
             case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
               const cacheMissRate = listItem[fieldString];
               const target = normalizeUrl(
-                `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction})}`
+                `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
               );
               return (
                 <Fragment>
@@ -804,12 +797,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
           'performance/browser/resources/',
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: 'performance/http/',
+        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+          CACHE_BASE_URL.slice(1),
       }[props.chartSetting] ?? '';
 
     return [
       PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>

@@ -5,6 +5,7 @@ import logging
 from collections.abc import Sequence
 from urllib.parse import urlencode
 
+import orjson
 from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -25,7 +26,6 @@ from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
 
 
@@ -196,7 +196,7 @@ class EmailActionHandler(ActionHandler):
             html_template="sentry/emails/incidents/trigger.html",
             type=f"incident.alert_rule_{display.lower()}",
             context=context,
-            headers={"X-SMTPAPI": json.dumps({"category": "metric_alert_email"})},
+            headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
         )
 
 

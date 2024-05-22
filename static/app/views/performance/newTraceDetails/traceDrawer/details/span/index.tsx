@@ -124,14 +124,14 @@ export function SpanNodeDetails({
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
                   <SpanKeys node={node} />
+                  {node.value._metrics_summary ? (
+                    <CustomMetricsEventData
+                      projectId={project?.id || ''}
+                      metricsSummary={node.value._metrics_summary}
+                      startTimestamp={node.value.start_timestamp}
+                    />
+                  ) : null}
                 </TraceDrawerComponents.SectionCardGroup>
-                {node.value._metrics_summary ? (
-                  <CustomMetricsEventData
-                    projectId={project?.id || ''}
-                    metricsSummary={node.value._metrics_summary}
-                    startTimestamp={node.value.start_timestamp}
-                  />
-                ) : null}
                 <EventContexts event={event} />
                 {organization.features.includes('profiling') ? (
                   <SpanProfileDetails span={node.value} event={event} />

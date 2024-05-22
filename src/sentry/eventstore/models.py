@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Optional, cast
 
+import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -25,8 +26,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.utils import json
-from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
@@ -70,9 +69,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def __getstate__(self) -> Mapping[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
-        # again.  In particular if we were to pickle interfaces we would
-        # pickle a CanonicalKeyView which old sentry workers do not know
-        # about
+        # again.
         state.pop("_project_cache", None)
         state.pop("_environment_cache", None)
         state.pop("_group_cache", None)
@@ -304,12 +301,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
             self.project_id = project.id
         self._project_cache = project
 
-    def get_interfaces(self) -> Mapping[str, Interface]:
-        return CanonicalKeyView(get_interfaces(self.data))
-
     @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
-        return self.get_interfaces()
+        return get_interfaces(self.data)
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -519,7 +513,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps_experimental("eventstore.enable-orjson", dict(self.data)))
+        return len(orjson.dumps(dict(self.data)).decode())
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")

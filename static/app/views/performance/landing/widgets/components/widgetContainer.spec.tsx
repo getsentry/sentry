@@ -1007,7 +1007,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.op:cache.get_item',
+          query: 'span.op:[cache.get_item,cache.get]',
           statsPeriod: '7d',
           referrer:
             'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',

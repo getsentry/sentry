@@ -593,10 +593,19 @@ function SpanId({
 }
 
 function SpanDescription({description, project}: {description: string; project: string}) {
+  if (!description) {
+    return (
+      <Flex gap={space(0.75)} align="center">
+        <ProjectRenderer projectSlug={project} />
+        <EmptyValueContainer>{t('(none)')}</EmptyValueContainer>
+      </Flex>
+    );
+  }
+
   return (
     <Flex gap={space(0.75)} align="center">
       <ProjectRenderer projectSlug={project} />
-      <Container>{description} </Container>
+      <Container>{description}</Container>
     </Flex>
   );
 }

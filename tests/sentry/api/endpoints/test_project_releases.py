@@ -64,7 +64,7 @@ class ProjectReleaseListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project1.organization.slug,
+                "organization_id_or_slug": project1.organization.slug,
                 "project_id_or_slug": project1.slug,
             },
         )
@@ -94,7 +94,7 @@ class ProjectReleaseListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -211,7 +211,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
                 "project_id_or_slug": self.project1.slug,
             },
         )
@@ -226,7 +226,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project2.organization.slug,
+                "organization_id_or_slug": self.project2.organization.slug,
                 "project_id_or_slug": self.project2.slug,
             },
         )
@@ -237,7 +237,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
                 "project_id_or_slug": self.project1.slug,
             },
         )
@@ -248,7 +248,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
                 "project_id_or_slug": self.project1.slug,
             },
         )
@@ -262,7 +262,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
                 "project_id_or_slug": self.project1.slug,
             },
         )
@@ -330,7 +330,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -359,7 +359,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -384,7 +384,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -406,7 +406,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project2.organization.slug,
+                "organization_id_or_slug": project2.organization.slug,
                 "project_id_or_slug": project2.slug,
             },
         )
@@ -430,7 +430,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -467,7 +467,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -489,7 +489,7 @@ class ProjectReleaseCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "project_id_or_slug": project.slug,
             },
         )
@@ -528,7 +528,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": org.slug, "project_id_or_slug": project1.slug},
+            kwargs={"organization_id_or_slug": org.slug, "project_id_or_slug": project1.slug},
         )
 
         # test right org, wrong permissions level
@@ -600,7 +600,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         return reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )

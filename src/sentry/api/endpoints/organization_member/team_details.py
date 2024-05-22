@@ -16,7 +16,6 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.team import BaseTeamSerializer, TeamSerializer
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -36,7 +35,6 @@ from sentry.models.team import Team
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 
 from . import can_admin_team, can_set_team_role
 
@@ -51,7 +49,7 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 class OrganizationMemberTeamDetailsSerializer(Serializer):
     def serialize(
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         return {
             "isActive": obj.is_active,
             "teamRole": obj.role,
@@ -112,16 +110,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         if request.method == "GET":
             try:
-                if id_or_slug_path_params_enabled(
-                    self.get.__qualname__, organization_id_or_slug=organization.slug
-                ):
-                    omt = OrganizationMemberTeam.objects.get(
-                        team__slug__id_or_slug=team_id_or_slug, organizationmember=member
-                    )
-                else:
-                    omt = OrganizationMemberTeam.objects.get(
-                        team__slug=team_id_or_slug, organizationmember=member
-                    )
+                omt = OrganizationMemberTeam.objects.get(
+                    team__slug__id_or_slug=team_id_or_slug, organizationmember=member
+                )
             except OrganizationMemberTeam.DoesNotExist:
                 raise ResourceDoesNotExist
 
@@ -129,15 +120,10 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         else:
             try:
-                if id_or_slug_path_params_enabled(
-                    self.post.__qualname__, organization_id_or_slug=organization.slug
-                ):
-                    team = Team.objects.get(
-                        organization__slug__id_or_slug=organization.slug,
-                        slug__id_or_slug=team_id_or_slug,
-                    )
-                else:
-                    team = Team.objects.get(organization=organization, slug=team_id_or_slug)
+                team = Team.objects.get(
+                    organization__slug__id_or_slug=organization.slug,
+                    slug__id_or_slug=team_id_or_slug,
+                )
             except Team.DoesNotExist:
                 raise ResourceDoesNotExist
             kwargs["team"] = team

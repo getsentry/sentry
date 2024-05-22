@@ -21,7 +21,7 @@ export function getStylingSliceName(
 ) {
   if (sliceSecondaryName) {
     // Our color picking relies on the first 4 letters. Since we want to differentiate sdknames and project names we have to include part of the sdk name.
-    return sliceSecondaryName.slice(-2) + (sliceName ?? '');
+    return (sliceName ?? '').slice(0, 1) + sliceSecondaryName.slice(-4);
   }
 
   return sliceName;
@@ -42,13 +42,21 @@ export function generateTracesRouteWithQuery({
 }: {
   orgSlug: Organization['slug'];
   metric?: {
-    metricsOp: string;
     mri: string;
-    metricsQuery?: string;
+    op: string;
+    max?: number;
+    min?: number;
+    query?: string;
   };
   query?: Location['query'];
 }): LocationDescriptor {
-  const {metricsOp, metricsQuery, mri} = metric || {};
+  const {
+    mri,
+    op: metricsOp,
+    query: metricsQuery,
+    max: metricsMax,
+    min: metricsMin,
+  } = metric || {};
 
   const pathname = generateTracesRoute({orgSlug});
 
@@ -56,6 +64,8 @@ export function generateTracesRouteWithQuery({
     pathname,
     query: {
       ...query,
+      metricsMax,
+      metricsMin,
       metricsOp,
       metricsQuery,
       mri,

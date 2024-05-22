@@ -951,7 +951,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         )
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    @with_feature("organizations:metrics-stats")
+    @with_feature("organizations:custom-metrics")
     def test_metrics_category(self):
         response = self.do_request(
             {
@@ -974,7 +974,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    @with_feature("organizations:metrics-stats")
+    @with_feature("organizations:custom-metrics")
     def test_metrics_group_by_project(self):
         response = self.do_request(
             {
@@ -1007,7 +1007,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    @with_feature("organizations:metrics-stats")
+    @with_feature("organizations:custom-metrics")
     def test_metrics_multiple_group_by(self):
         response = self.do_request(
             {

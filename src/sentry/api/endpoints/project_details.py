@@ -264,8 +264,18 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return validate_pii_config_update(organization, value)
 
     def validate_relayCustomMetricCardinalityLimit(self, value):
-        if value is not None and value < 0:
+        if value is None:
+            return value
+
+        if value < 0:
             raise serializers.ValidationError("Cardinality limit must be a non-negative integer.")
+
+        # Value is stored as uint32 in relay
+        # TODO: find a way to share this constant between relay and sentry
+        if value > 4_294_967_295:
+            raise serializers.ValidationError(
+                "Cardinality limit must be smaller or equal to 4,294,967,295."
+            )
 
         return value
 
@@ -456,7 +466,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: DetailedProjectSerializer,
@@ -500,7 +510,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectAdminSerializer,
@@ -891,7 +901,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Delete a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

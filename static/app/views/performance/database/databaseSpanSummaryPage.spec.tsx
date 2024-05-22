@@ -4,13 +4,11 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanSummaryPage} from 'sentry/views/performance/database/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture();
@@ -41,8 +39,6 @@ describe('DatabaseSpanSummaryPage', function () {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -135,7 +131,8 @@ describe('DatabaseSpanSummaryPage', function () {
           transactionMethod: '',
           transactionsSort: '',
         }}
-      />
+      />,
+      {organization}
     );
 
     // Metrics ribbon
@@ -284,28 +281,7 @@ describe('DatabaseSpanSummaryPage', function () {
         query: {
           dataset: 'spansIndexed',
           environment: [],
-          field: [
-            'resource.render_blocking_status',
-            'http.response_content_length',
-            'span.duration',
-            'span.self_time',
-            'span.group',
-            'span.module',
-            'span.description',
-            'span.op',
-            'span_id',
-            'span.action',
-            'span.ai.pipeline.group',
-            'trace',
-            'transaction.id',
-            'transaction.method',
-            'transaction.op',
-            'span.domain',
-            'timestamp',
-            'raw_domain',
-            'project',
-            'project_id',
-          ],
+          field: ['transaction.id', 'project', 'span_id', 'span.self_time'],
           per_page: 1,
           project: [],
           query: 'span.group:1756baf8fd19c116',

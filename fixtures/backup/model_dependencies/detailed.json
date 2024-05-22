@@ -4087,6 +4087,11 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "template": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.projecttemplate",
+        "nullable": true
       }
     },
     "model": "sentry.project",
@@ -4383,6 +4388,52 @@
       [
         "project",
         "team"
+      ]
+    ]
+  },
+  "sentry.projecttemplate": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "sentry.projecttemplate",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_projecttemplate",
+    "uniques": [
+      [
+        "name",
+        "organization"
+      ]
+    ]
+  },
+  "sentry.projecttemplateoption": {
+    "dangling": false,
+    "foreign_keys": {
+      "project_template": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.projecttemplate",
+        "nullable": false
+      }
+    },
+    "model": "sentry.projecttemplateoption",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_projecttemplateoption",
+    "uniques": [
+      [
+        "key",
+        "project_template"
       ]
     ]
   },
@@ -5647,35 +5698,6 @@
       [
         "api_token",
         "sentry_app_installation"
-      ]
-    ]
-  },
-  "sentry.sentryfunction": {
-    "dangling": false,
-    "foreign_keys": {
-      "organization": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.organization",
-        "nullable": false
-      }
-    },
-    "model": "sentry.sentryfunction",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_sentryfunction",
-    "uniques": [
-      [
-        "external_id"
-      ],
-      [
-        "organization",
-        "slug"
-      ],
-      [
-        "slug"
       ]
     ]
   },

@@ -241,7 +241,7 @@ class SentryAppRequestsGetTest(APITestCase):
             event="issue.assigned",
             url=self.unpublished_app.webhook_url,
             error_id=self.event_id,
-            project_id="1000",
+            project_id=1000,
         )
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])

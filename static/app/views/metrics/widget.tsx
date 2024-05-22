@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -28,7 +29,6 @@ import {
   getFormattedMQL,
   getMetricsSeriesId,
   getMetricsSeriesName,
-  isCumulativeOp,
   isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
@@ -440,8 +440,6 @@ const MetricWidgetBody = memo(
       [queries, onQueryChange, widgetIndex]
     );
 
-    const isCumulativeSamplesOp =
-      queries[0] && !isMetricFormula(queries[0]) && isCumulativeOp(queries[0].op);
     const firstScalingFactor = chartSeries.find(s => !s.hidden)?.scalingFactor || 1;
 
     const focusArea = useFocusArea({
@@ -451,7 +449,7 @@ const MetricWidgetBody = memo(
       opts: {
         widgetIndex,
         isDisabled: !focusAreaProps.onAdd,
-        useFullYAxis: isCumulativeSamplesOp,
+        useFullYAxis: true,
       },
       onZoom: handleZoom,
     });
@@ -547,16 +545,18 @@ const MetricWidgetBody = memo(
           </LimitAlert>
         )}
         <TransparentLoadingMask visible={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
-          displayType={displayType}
-          height={chartHeight}
-          samples={samplesProp}
-          focusArea={focusArea}
-          releases={releasesProp}
-          group={chartGroup}
-        />
+        <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
+          <MetricChart
+            ref={chartRef}
+            series={chartSeries}
+            displayType={displayType}
+            height={chartHeight}
+            samples={samplesProp}
+            focusArea={focusArea}
+            releases={releasesProp}
+            group={chartGroup}
+          />
+        </GuideAnchor>
         <SummaryTable
           series={chartSeries}
           onSortChange={handleSortChange}

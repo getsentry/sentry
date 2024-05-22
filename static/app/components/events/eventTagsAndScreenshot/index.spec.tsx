@@ -522,7 +522,19 @@ describe('EventTagsAndScreenshot', function () {
         query: {tagsTree: '1'},
       },
     });
-    function assertNewTagsView() {
+    let mockDetailedProject;
+    beforeEach(function () {
+      MockApiClient.clearMockResponses();
+      mockDetailedProject = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: project,
+      });
+    });
+
+    async function assertNewTagsView() {
+      await expect(mockDetailedProject).toHaveBeenCalled();
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
       expect(screen.getByText('Tags')).toBeInTheDocument();
       // Ensure context isn't added in tag section
       const contextItems = screen.queryByTestId('context-item');
@@ -534,7 +546,7 @@ describe('EventTagsAndScreenshot', function () {
       );
     }
 
-    function assertFlagAndQueryParamWork() {
+    async function assertFlagAndQueryParamWork() {
       const flaggedOrgTags = render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
@@ -542,7 +554,7 @@ describe('EventTagsAndScreenshot', function () {
         />,
         {organization: featuredOrganization}
       );
-      assertNewTagsView();
+      await assertNewTagsView();
       flaggedOrgTags.unmount();
 
       const flaggedOrgTagsAsShare = render(
@@ -553,7 +565,7 @@ describe('EventTagsAndScreenshot', function () {
         />,
         {organization: featuredOrganization}
       );
-      assertNewTagsView();
+      await assertNewTagsView();
       flaggedOrgTagsAsShare.unmount();
 
       const queryParamTags = render(
@@ -563,7 +575,7 @@ describe('EventTagsAndScreenshot', function () {
         />,
         {organization, router}
       );
-      assertNewTagsView();
+      await assertNewTagsView();
       queryParamTags.unmount();
 
       const queryParamTagsAsShare = render(
@@ -574,24 +586,24 @@ describe('EventTagsAndScreenshot', function () {
         />,
         {organization, router}
       );
-      assertNewTagsView();
+      await assertNewTagsView();
       queryParamTagsAsShare.unmount();
     }
 
-    it('no context, tags only', function () {
+    it('no context, tags only', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
       });
-      assertFlagAndQueryParamWork();
+      await assertFlagAndQueryParamWork();
     });
 
-    it('no context, tags and screenshot', function () {
+    it('no context, tags and screenshot', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: attachments,
       });
-      assertFlagAndQueryParamWork();
+      await assertFlagAndQueryParamWork();
     });
 
     it("allows filtering with 'event-tags-tree-ui' flag", async function () {
@@ -614,6 +626,9 @@ describe('EventTagsAndScreenshot', function () {
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
         organization: featuredOrganization,
       });
+      expect(mockDetailedProject).toHaveBeenCalled();
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
       let rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(allTags.length);
 
@@ -650,6 +665,9 @@ describe('EventTagsAndScreenshot', function () {
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
         organization: featuredOrganization,
       });
+      expect(mockDetailedProject).toHaveBeenCalled();
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
       const rows = screen.getAllByTestId('tag-tree-row');
       expect(rows).toHaveLength(applicationTags.length);
 

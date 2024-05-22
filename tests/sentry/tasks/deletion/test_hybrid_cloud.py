@@ -146,6 +146,7 @@ def setup_deletable_objects(
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_region_processing(task_runner):
     reset_watermarks()
 
@@ -224,6 +225,7 @@ def setup_deletion_test():
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_cascade_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -245,6 +247,7 @@ def test_cascade_deletion_behavior(task_runner):
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_do_nothing_deletion_behavior(task_runner):
     data = setup_deletion_test()
     integration = data["integration"]
@@ -268,6 +271,7 @@ def test_do_nothing_deletion_behavior(task_runner):
 
 
 @django_db_all
+@override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
 def test_set_null_deletion_behavior(task_runner):
     data = setup_deletion_test()
     user = data["user"]
@@ -324,10 +328,12 @@ def setup_cross_db_deletion_data(
     )
 
 
-# TODO(Gabe): Enable this test when the multi-db test changes land
 @region_silo_test
-@pytest.mark.skip
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        reset_watermarks()
+
     def assert_monitors_unchanged(self, unaffected_data: list[dict]):
         for u_data in unaffected_data:
             u_user, u_monitor = itemgetter("user", "monitor")(u_data)
@@ -411,8 +417,9 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         affected_monitors = [monitor]
 
+        user_id = user.id
         with assume_test_silo_mode_of(User), outbox_runner():
-            User.objects.get(id=user.id).delete()
+            User.objects.get(id=user_id).delete()
 
         assert Monitor.objects.filter(id=monitor.id).exists()
         assert monitor.owner_user_id == user.id
@@ -424,15 +431,16 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         # Same as previous test, but this time with monitors created after
         # the tombstone has been processed
+        start_id = monitor.id + 10
         affected_monitors.extend(
             [
                 Monitor.objects.create(
-                    id=10 + i * 2,  # Ensure that each monitor is in its own batch
+                    id=start_id + i * 2,  # Ensure that each monitor is in its own batch
                     organization_id=organization.id,
                     project_id=project.id,
                     slug=f"test-monitor-{i}",
-                    name="Test Monitor",
-                    owner_user_id=user.id,
+                    name=f"Row After Tombstone {i}",
+                    owner_user_id=user_id,
                 )
                 for i in range(4)
             ]

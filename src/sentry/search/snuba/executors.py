@@ -95,7 +95,23 @@ class Clauses(Enum):
 
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
 # if we ever see these fields, we will use postgres to get the group_ids before sending back to ClickHouse
-POSTGRES_ONLY_SEARCH_FIELDS = ["bookmarked_by", "linked", "subscribed_by"]
+# note that we could eventually migrate the releases table to ClickHouse and handle those with a join in ClickHouse
+POSTGRES_ONLY_SEARCH_FIELDS = [
+    "bookmarked_by",
+    "linked",
+    "subscribed_by",
+    "regressed_in_release",
+    "for_review",
+]
+
+
+def map_field_name_from_format_search_filter(field: str) -> str:
+    """
+    Maps the field name we get from the format_search_filter to the field used in Suba
+    """
+    if field == "date":
+        return "timestamp"
+    return field
 
 
 @dataclass
@@ -1141,20 +1157,19 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
-    def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
-        # get the max timestamp of the error/search_issue event
+    def get_times_seen_filter(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
         return Condition(
-            Function("max", [Column("timestamp", joined_entity)]),
+            Function("count", []),
             Op(search_filter.operator),
             search_filter.value.raw_value,
         )
 
-    def get_first_seen_filter(
-        self, search_filter: SearchFilter, joined_entity: Entity
-    ) -> Condition:
-        # use the group first seen from the group dataset
+    def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
+        # get the max timestamp of the error/search_issue event
         return Condition(
-            Column("group_first_seen", self.entities["attrs"]),
+            Function("max", [Column("timestamp", joined_entity)]),
             Op(search_filter.operator),
             search_filter.value.raw_value,
         )
@@ -1167,18 +1182,70 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         return Condition(
             Column(f"group_{search_filter.key.name}", self.entities["attrs"]),
-            Op.IN,
+            Op(search_filter.operator),
             search_filter.value.raw_value,
         )
 
     def get_basic_event_snuba_condition(
-        self, search_filter: SearchFilter, joined_entity: Entity
+        self,
+        search_filter: SearchFilter,
+        joined_entity: Entity,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Sequence[str],
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
         """
+        # note this might hit postgres to do queries on releases
+        raw_conditions, projects_to_filter, group_ids = format_search_filter(
+            search_filter,
+            params={
+                "organization_id": organization_id,
+                "project_id": project_ids,
+                "environment": environments,
+            },
+        )
+        if not raw_conditions:
+            return None
+
+        item = raw_conditions[0]
+        if not isinstance(item, list):
+            raw_conditions = [raw_conditions]
+
         query_builder = self.def_get_query_builder(joined_entity)
-        return query_builder.default_filter_converter(search_filter)
+        query_builder.default_filter_converter(search_filter)
+
+        output_conditions = []
+        for item in raw_conditions:
+            lhs = item[0]
+            if isinstance(lhs, str):
+                raw_column = map_field_name_from_format_search_filter(lhs)
+                lhs = query_builder.resolve_column(raw_column)
+            else:
+                # right now we are assuming lhs looks like ['isNull', ['user']]
+                # if there are more complex expressions we will need to handle them
+                raw_column = map_field_name_from_format_search_filter(lhs[1][0])
+                rhs = [query_builder.resolve_column(raw_column)]
+                if len(lhs[1]) > 1:
+                    # example item here: [['ifNull', ['date', "''"]], '>=', 1715707188000]
+                    # which has lhs ['ifNull', ['date', "''"]]
+                    # we need this to become Function('ifNull', [Column('date', entity), ''])
+                    rhs.append(lhs[1][1])
+                lhs = Function(lhs[0], rhs)
+
+            operator = Op(item[1])
+            value = item[2]
+            output_conditions.append(Condition(lhs, operator, value))
+
+        for entity in [joined_entity, self.entities["attrs"]]:
+            for name, value in [("project_id", projects_to_filter), ("group_id", group_ids)]:
+                if value:
+                    output_conditions.append(Condition(Column(name, entity), Op.IN, value))
+
+        if len(output_conditions) == 1:
+            return output_conditions[0]
+        return BooleanCondition(op=BooleanOp.AND, conditions=output_conditions)
 
     def get_assigned(
         self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
@@ -1460,8 +1527,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
         "assigned_to": (get_assigned, Clauses.WHERE),
         "message": (get_message_condition, Clauses.WHERE),
-        "first_seen": (get_first_seen_filter, Clauses.WHERE),
+        "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
+        "times_seen": (get_times_seen_filter, Clauses.HAVING),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
@@ -1480,6 +1548,19 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "freq": "times_seen",
         "user": "user_count",
     }
+
+    def should_check_search_issues(
+        self, group_categories: Sequence[str], search_filters: Sequence[SearchFilter]
+    ) -> bool:
+        # not in the group categories we are looking for
+        if not any([GroupCategory.ERROR.value != gc for gc in group_categories]):
+            return False
+        # error/stacktrace info doesn't exist exist in search_issues so we shouldn't it at all
+        bad_prefix_list = ["error.", "stack."]
+        for filter in search_filters:
+            if any(filter.key.name.startswith(bad_prefix) for bad_prefix in bad_prefix_list):
+                return False
+        return True
 
     def calculate_start_end(
         self,
@@ -1555,6 +1636,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         ]
 
         organization = projects[0].organization
+        project_ids = [p.id for p in projects]
 
         event_entity = self.entities["event"]
         attr_entity = self.entities["attrs"]
@@ -1568,7 +1650,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             entities_to_check.append(event_entity)
 
         # check we have non-error categories to search for
-        if any([GroupCategory.ERROR.value != gc for gc in group_categories]):
+        if self.should_check_search_issues(group_categories, search_filters):
             entities_to_check.append(search_issues_entity)
 
         for joined_entity in entities_to_check:
@@ -1602,8 +1684,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 fn = lookup[0] if lookup else None
                 clause = lookup[1] if lookup else Clauses.WHERE
 
-                # skip these
-                if search_filter.key.name in ["issue.category", "issue.type"]:
+                # issue.category and issue.type are handled specially
+                # we handle the date filter with calculate_start_end
+                if search_filter.key.name in ["issue.category", "issue.type", "date"]:
                     pass
                 elif fn:
                     # dynamic lookup of what clause to use
@@ -1614,9 +1697,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     else:
                         raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
-                    where_conditions.append(
-                        self.get_basic_event_snuba_condition(search_filter, joined_entity)
+                    condition = self.get_basic_event_snuba_condition(
+                        search_filter, joined_entity, organization.id, project_ids, environments
                     )
+                    if condition is not None:
+                        where_conditions.append(condition)
 
             # handle types based on issue.type and issue.category
             if not is_errors:
@@ -1639,7 +1724,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             sort_func = self.get_sort_defs(joined_entity)[sort_by]
 
             if environments:
-                # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
                 where_conditions.append(
                     Condition(
                         Column("environment", joined_entity), Op.IN, [e.name for e in environments]

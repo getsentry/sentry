@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment';
@@ -47,6 +47,7 @@ import {
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -74,7 +75,8 @@ function getCurrentTabSelection(selectedTab) {
   return LandingDisplayField.OVERVIEW;
 }
 
-export default function PageOverview() {
+export function PageOverview() {
+  const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -112,9 +114,7 @@ export default function PageOverview() {
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
-    window.location.href = normalizeUrl(
-      `/organizations/${organization.slug}/performance/browser/pageloads/`
-    );
+    window.location.href = moduleURL;
     return null;
   }
 
@@ -138,11 +138,7 @@ export default function PageOverview() {
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL="/performance/browser/pageloads"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Tabs
         value={tab}
         onChange={value => {
@@ -166,9 +162,7 @@ export default function PageOverview() {
                 },
                 {
                   label: 'Web Vitals',
-                  to: normalizeUrl(
-                    `/organizations/${organization.slug}/performance/browser/pageloads/`
-                  ),
+                  to: moduleURL,
                   preservePageFilters: true,
                 },
                 ...(transaction ? [{label: 'Page Overview'}] : []),
@@ -303,9 +297,22 @@ export default function PageOverview() {
           }}
         />
       </Tabs>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      features="spans-first-ui"
+    >
+      <PageOverview />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const ViewAllPagesButton = styled(LinkButton)`
   margin-right: ${space(1)};

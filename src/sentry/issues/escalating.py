@@ -205,7 +205,7 @@ def _query_metrics_with_pagination(
     end_date: datetime,
     all_results: list[GroupsCountResponse],
     category: GroupCategory | None = None,
-):
+) -> None:
     """
     Paginates Snuba metric queries for event counts for the
     given list of project ids and groups ids in a time range.
@@ -296,7 +296,7 @@ def _generate_generic_metrics_backend_query(
     end_date: datetime,
     offset: int,
     category: GroupCategory | None = None,
-):
+) -> MetricsQuery:
     """
     This function generates a query to fetch the hourly events
     for a group_id through the Generic Metrics Backend.

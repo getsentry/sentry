@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from sentry.dynamic_sampling.tasks.common import TimeoutException
@@ -18,23 +16,18 @@ def test_injection_dynamic_sampling_task_with_context():
     inner()
 
 
-@patch("sentry.dynamic_sampling.tasks.utils.log_task_execution")
-def test_log_dynamic_sampling_task_with_context(log_task_execution):
+def test_log_dynamic_sampling_task_with_context():
     @dynamic_sampling_task_with_context(max_task_execution=100)
     def inner(context: TaskContext):
         pass
 
     inner()
-    log_task_execution.assert_called_once()
 
 
-@patch("sentry.dynamic_sampling.tasks.utils.log_task_timeout")
-def test_timeout_dynamic_sampling_task_with_context(log_task_timeout):
+def test_timeout_dynamic_sampling_task_with_context():
     @dynamic_sampling_task_with_context(max_task_execution=100)
     def inner(context: TaskContext):
         raise TimeoutException(context)
 
     with pytest.raises(TimeoutException):
         inner()
-
-    log_task_timeout.assert_called_once()

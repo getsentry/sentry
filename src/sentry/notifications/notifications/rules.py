@@ -267,9 +267,9 @@ class AlertRuleNotification(ProjectNotification):
                 "group": self.group.id,
                 "project_id": self.project.id,
                 "organization": self.organization.id,
-                "fallthrough_choice": self.fallthrough_choice.value
-                if self.fallthrough_choice
-                else None,
+                "fallthrough_choice": (
+                    self.fallthrough_choice.value if self.fallthrough_choice else None
+                ),
                 "notification_uuid": self.notification_uuid,
             },
         )

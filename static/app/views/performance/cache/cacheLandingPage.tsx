@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -23,8 +24,10 @@ import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
 import {
   BASE_FILTERS,
-  CACHE_BASE_URL,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
+  ONBOARDING_CONTENT,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/cache/settings';
 import {
@@ -33,6 +36,8 @@ import {
 } from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -76,7 +81,7 @@ export function CacheLandingPage() {
   );
 
   const {
-    isLoading: isTransactionsListLoading,
+    isFetching: isTransactionsListFetching,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
@@ -105,12 +110,12 @@ export function CacheLandingPage() {
     data: transactionDurationData,
     error: transactionDurationError,
     meta: transactionDurationMeta,
-    isLoading: isTransactionDurationLoading,
+    isFetching: isTransactionDurationFetching,
   } = useMetrics(
     {
       search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
-      enabled: !isTransactionsListLoading && transactionsList.length > 0,
+      enabled: !isTransactionsListFetching && transactionsList.length > 0,
     },
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
@@ -147,6 +152,10 @@ export function CacheLandingPage() {
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -167,33 +176,39 @@ export function CacheLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
-            <ModuleLayout.Half>
-              <CacheHitMissChart
-                series={{
-                  seriesName: DataTitles.cacheMissRate,
-                  data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
-                }}
-                isLoading={isCacheHitRateLoading}
-                error={cacheHitRateError}
-              />
-            </ModuleLayout.Half>
-            <ModuleLayout.Half>
-              <ThroughputChart
-                series={throughputData['spm()']}
-                isLoading={isThroughputDataLoading}
-                error={throughputError}
-              />
-            </ModuleLayout.Half>
-            <ModuleLayout.Full>
-              <TransactionsTable
-                data={transactionsListWithDuration}
-                isLoading={isTransactionsListLoading || isTransactionDurationLoading}
-                sort={sort}
-                error={transactionsListError || transactionDurationError}
-                meta={meta}
-                pageLinks={transactionsListPageLinks}
-              />
-            </ModuleLayout.Full>
+            <ModulesOnboarding
+              moduleQueryFilter={MutableSearch.fromQueryObject(BASE_FILTERS)}
+              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
+              referrer={Referrer.LANDING_CACHE_ONBOARDING}
+            >
+              <ModuleLayout.Half>
+                <CacheHitMissChart
+                  series={{
+                    seriesName: DataTitles.cacheMissRate,
+                    data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
+                  }}
+                  isLoading={isCacheHitRateLoading}
+                  error={cacheHitRateError}
+                />
+              </ModuleLayout.Half>
+              <ModuleLayout.Half>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                  error={throughputError}
+                />
+              </ModuleLayout.Half>
+              <ModuleLayout.Full>
+                <TransactionsTable
+                  data={transactionsListWithDuration}
+                  isLoading={isTransactionsListFetching || isTransactionDurationFetching}
+                  sort={sort}
+                  error={transactionsListError || transactionDurationError}
+                  meta={meta}
+                  pageLinks={transactionsListPageLinks}
+                />
+              </ModuleLayout.Full>
+            </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
@@ -202,17 +217,18 @@ export function CacheLandingPage() {
   );
 }
 
-export function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={CACHE_BASE_URL}
       features="performance-cache-view"
     >
       <CacheLandingPage />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const combineMeta = (
   meta1?: EventsMetaType,
@@ -247,5 +263,3 @@ const DEFAULT_SORT = {
 };
 
 const TRANSACTIONS_TABLE_ROW_COUNT = 20;
-
-export default LandingPageWithProviders;

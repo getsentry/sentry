@@ -24,6 +24,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channe
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.actor import Actor
 
 
 class ProjectRuleBaseTestCase(APITestCase):
@@ -766,8 +767,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
-            "owner_user_id": self.user.id,
-            "owner_team_id": None,
+            "owner": Actor.from_id(user_id=self.user.id),
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]

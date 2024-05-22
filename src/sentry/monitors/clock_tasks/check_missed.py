@@ -55,25 +55,32 @@ def dispatch_check_missing(ts: datetime):
 
     This will dispatch MarkMissing messages into monitors-clock-tasks.
     """
-    qs = MonitorEnvironment.objects.filter(
-        IGNORE_MONITORS,
-        monitor__type__in=[MonitorType.CRON_JOB],
-        next_checkin_latest__lte=ts,
-    )[:MONITOR_LIMIT]
+    missed_envs = list(
+        MonitorEnvironment.objects.filter(
+            IGNORE_MONITORS,
+            monitor__type__in=[MonitorType.CRON_JOB],
+            next_checkin_latest__lte=ts,
+        ).values("id")[:MONITOR_LIMIT]
+    )
 
-    metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count(), sample_rate=1.0)
-    for monitor_environment in qs:
+    metrics.gauge(
+        "sentry.monitors.tasks.check_missing.count",
+        len(missed_envs),
+        sample_rate=1.0,
+    )
+
+    for monitor_environment in missed_envs:
         message: MarkMissing = {
             "type": "mark_missing",
             "ts": ts.timestamp(),
-            "monitor_environment_id": monitor_environment.id,
+            "monitor_environment_id": monitor_environment["id"],
         }
         # XXX(epurkhiser): Partitioning by monitor_environment.id is important
         # here as these task messages will be consumed in a multi-consumer
         # setup. If we backlogged clock-ticks we may produce multiple missed
         # tasks for the same monitor_environment. These MUST happen in-order.
         payload = KafkaPayload(
-            str(monitor_environment.id).encode(),
+            str(monitor_environment["id"]).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )

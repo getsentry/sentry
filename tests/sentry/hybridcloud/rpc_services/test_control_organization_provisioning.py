@@ -30,7 +30,7 @@ from sentry.types.region import get_local_region
 
 
 class TestControlOrganizationProvisioningBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provision_user = self.create_user()
         self.provisioning_args = self.generate_provisioning_args(
             name="sentry", slug="sentry", user_id=self.provision_user.id, default_team=True
@@ -75,7 +75,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
     def assert_slug_reservation_and_org_exist(
         self, rpc_org_slug: RpcOrganizationSlugReservation, user_id: int | None = None
-    ):
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_slug_reservation = OrganizationSlugReservation.objects.get(
                 organization_id=rpc_org_slug.organization_id
@@ -91,7 +91,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
         assert rpc_org_slug.slug == org_slug_reservation.slug == organization.slug
         assert owner_id == user_id
 
-    def assert_organization_has_not_changed(self, old_organization: Organization):
+    def assert_organization_has_not_changed(self, old_organization: Organization) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             new_organization = Organization.objects.get(id=old_organization.id)
 
@@ -100,13 +100,13 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
 @all_silo_test(regions=create_test_regions("us"))
 class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBase):
-    def test_organization_provisioning_happy_path(self):
+    def test_organization_provisioning_happy_path(self) -> None:
         rpc_org_slug = self.provision_organization()
         self.assert_slug_reservation_and_org_exist(
             rpc_org_slug=rpc_org_slug, user_id=self.provision_user.id
         )
 
-    def test_organization_provisioning_before_user_provisioning(self):
+    def test_organization_provisioning_before_user_provisioning(self) -> None:
         provisioning_options = self.generate_provisioning_args(
             name="sentry", slug="sentry", email="test-owner@sentry.io", default_team=True
         )
@@ -117,7 +117,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             rpc_org_slug=slug,
         )
 
-    def test_organization_already_provisioned_for_different_user(self):
+    def test_organization_already_provisioned_for_different_user(self) -> None:
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
 
@@ -150,7 +150,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         # TODO(Gabe): Add testing for slug replica status during this failure case
         #  and ensure that no replica exists for the slug post-deletion
 
-    def test_generates_unique_slugs_when_conflicted(self):
+    def test_generates_unique_slugs_when_conflicted(self) -> None:
         previous_org_slug_reservation = self.provision_organization()
         new_org_slug_reservation = self.provision_organization()
 
@@ -158,7 +158,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         assert self.provisioning_args.provision_options.slug in new_org_slug_reservation.slug
         assert new_org_slug_reservation.slug != self.provisioning_args.provision_options.slug
 
-    def test_rewrites_numeric_slug_if_prevent_numeric_option_enabled(self):
+    def test_rewrites_numeric_slug_if_prevent_numeric_option_enabled(self) -> None:
         numeric_slug = "123456"
         self.provisioning_args.provision_options.slug = numeric_slug
         org_slug_reservation = self.provision_organization()
@@ -170,7 +170,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
 
 @all_silo_test(regions=create_test_regions("us"))
 class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProvisioningBase):
-    def test_updates_exact_slug(self):
+    def test_updates_exact_slug(self) -> None:
         org_slug_res = self.provision_organization()
         updated_org_slug_res = (
             control_organization_provisioning_rpc_service.update_organization_slug(
@@ -186,7 +186,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             rpc_org_slug=updated_org_slug_res, user_id=self.provision_user.id
         )
 
-    def test_updates_inexact_slug_without_collision(self):
+    def test_updates_inexact_slug_without_collision(self) -> None:
         org_slug_res = self.provision_organization()
         updated_org_slug_res = (
             control_organization_provisioning_rpc_service.update_organization_slug(
@@ -202,7 +202,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             rpc_org_slug=updated_org_slug_res, user_id=self.provision_user.id
         )
 
-    def test_updates_inexact_slug_with_collision(self):
+    def test_updates_inexact_slug_with_collision(self) -> None:
         test_org_slug_reservation = self.provision_organization()
 
         new_user = self.create_user()
@@ -236,7 +236,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             rpc_org_slug=org_slug_res_with_conflict, user_id=new_user.id
         )
 
-    def test_fails_to_update_exact_slug_with_collision(self):
+    def test_fails_to_update_exact_slug_with_collision(self) -> None:
         test_org_slug_reservation = self.provision_organization()
         original_slug = test_org_slug_reservation.slug
 
@@ -272,7 +272,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             rpc_org_slug=org_with_conflicting_slug, user_id=new_user.id
         )
 
-    def test_conflicting_unregistered_organization_with_slug_exists(self):
+    def test_conflicting_unregistered_organization_with_slug_exists(self) -> None:
         test_org_slug_reservation = self.provision_organization()
         original_slug = test_org_slug_reservation.slug
         conflicting_slug = "foobar"
@@ -313,7 +313,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         assert slug_reservations[0].slug == original_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
 
-    def test_swap_for_org_without_primary_slug(self):
+    def test_swap_for_org_without_primary_slug(self) -> None:
         desired_primary_slug = "foobar"
 
         new_user = self.create_user()
@@ -344,7 +344,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         assert slug_reservations[0].slug == desired_primary_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
 
-    def test_swap_with_same_slug(self):
+    def test_swap_with_same_slug(self) -> None:
         desired_slug = "santry"
         org = self.create_organization(slug=desired_slug, owner=self.create_user())
         control_organization_provisioning_rpc_service.update_organization_slug(

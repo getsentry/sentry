@@ -94,6 +94,18 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.span.titleName,
+    value: DATA_CATEGORY_INFO.span.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.profileDuration.titleName,
+    value: DATA_CATEGORY_INFO.profileDuration.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -363,9 +375,7 @@ function UsageChartBody({
       if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
         return true;
       }
-      return (
-        hasCustomMetrics(organization) && organization.features.includes('metrics-stats')
-      );
+      return hasCustomMetrics(organization);
     });
   }, [organization, categoryOptions]);
 
@@ -441,7 +451,9 @@ function UsageChartBody({
 
     if (chartSeries) {
       chartSeries.forEach(chartOption => {
-        legend.push({name: `${chartOption.name}`});
+        if (chartOption.name) {
+          legend.push({name: `${chartOption.name}`});
+        }
       });
     }
 

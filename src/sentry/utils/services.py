@@ -21,6 +21,8 @@ from .types import AnyCallable
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
+
 
 class Service:
     __all__: Iterable[str] = ()
@@ -116,7 +118,10 @@ class LazyServiceWrapper(LazyObject, Proxied):
                 context[key] = getattr(base_instance, key)
 
 
-def resolve_callable(value: str | AnyCallable) -> AnyCallable:
+CallableT = TypeVar("CallableT", bound=Callable[..., object])
+
+
+def resolve_callable(value: str | CallableT) -> CallableT:
     if callable(value):
         return value
     elif isinstance(value, str):
@@ -385,9 +390,10 @@ class Delegator:
 
 
 def build_instance_from_options(
-    options: Mapping[str, Any],
-    default_constructor: Callable[..., Service] | None = None,
-) -> Service:
+    options: Mapping[str, object],
+    *,
+    default_constructor: Callable[..., object] | None = None,
+) -> object:
     try:
         path = options["path"]
     except KeyError:
@@ -399,6 +405,19 @@ def build_instance_from_options(
         constructor = resolve_callable(path)
 
     return constructor(**options.get("options", {}))
+
+
+def build_instance_from_options_of_type(
+    tp: type[T],
+    options: Mapping[str, object],
+    *,
+    default_constructor: Callable[..., T] | None = None,
+) -> T:
+    ret = build_instance_from_options(options, default_constructor=default_constructor)
+    if isinstance(ret, tp):
+        return ret
+    else:
+        raise TypeError(f"expected built object of type {tp}, got {type(ret)}")
 
 
 class ServiceDelegator(Delegator, Service):

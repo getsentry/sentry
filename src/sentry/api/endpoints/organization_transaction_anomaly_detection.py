@@ -16,12 +16,12 @@ from sentry.net.http import connection_from_url
 from sentry.snuba.metrics_enhanced_performance import timeseries_query
 
 ads_connection_pool = connection_from_url(
-    settings.ANOMALY_DETECTION_URL,
+    settings.SEER_ANOMALY_DETECTION_URL,
     retries=Retry(
         total=5,
         status_forcelist=[408, 429, 502, 503, 504],
     ),
-    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
 MappedParams = namedtuple("MappedParams", ["query_start", "query_end", "granularity"])
@@ -31,7 +31,7 @@ def get_anomalies(snuba_io):
     response = ads_connection_pool.urlopen(
         "POST",
         "/anomaly/predict",
-        body=orjson.dumps(snuba_io),
+        body=orjson.dumps(snuba_io, option=orjson.OPT_UTC_Z),
         headers={"content-type": "application/json;charset=utf-8"},
     )
     return Response(orjson.loads(response.data), status=200)

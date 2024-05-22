@@ -100,19 +100,18 @@ export function DetailsTimeline({monitor, organization}: Props) {
       <TimelineWidthTracker ref={elementRef} />
       <Header>
         <TimelineTitle>{t('Check-Ins')}</TimelineTitle>
-        <GridLineLabels timeWindowConfig={timeWindowConfig} width={timelineWidth} />
+        <GridLineLabels timeWindowConfig={timeWindowConfig} />
       </Header>
       <AlignedGridLineOverlay
         allowZoom={!isLoading}
         showCursor={!isLoading}
+        showIncidents={!isLoading}
         timeWindowConfig={timeWindowConfig}
-        width={timelineWidth}
       />
       <OverviewRow
         monitor={monitor}
         bucketedData={monitorStats?.[monitor.id]}
         timeWindowConfig={timeWindowConfig}
-        width={timelineWidth}
         onDeleteEnvironment={handleDeleteEnvironment}
         onToggleMuteEnvironment={handleToggleMuteEnvironment}
         singleMonitorView

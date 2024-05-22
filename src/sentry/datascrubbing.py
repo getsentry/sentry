@@ -13,14 +13,14 @@ from sentry_relay.processing import (
     validate_pii_selector,
 )
 
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
 def get_pii_config(project):
     def _decode(value):
         if value:
-            return safe_execute(json.loads, value, _with_transaction=False)
+            return safe_execute(orjson.loads, value, _with_transaction=False)
 
     # Order of merging is important here. We want to apply organization rules
     # before project rules. For example:

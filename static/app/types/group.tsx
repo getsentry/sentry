@@ -804,10 +804,10 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
-  hasAttachments?: boolean;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
+  latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;

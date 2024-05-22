@@ -13,22 +13,30 @@ import {BarChart} from './barChart';
 import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({
+  animateBars,
   height,
   hideDelay,
   tooltipFormatter,
   labelYAxisExtents,
   showMarkLineLabel,
+  markLineLabelSide,
   grid,
   yAxisOptions,
+  showXAxisLine,
+  xAxisLineColor,
 }: {
+  animateBars: boolean;
   height: number;
+  markLineLabelSide: 'right' | 'left';
+  showXAxisLine: boolean;
+  xAxisLineColor: string;
   grid?: GridComponentOption;
   hideDelay?: number;
   labelYAxisExtents?: boolean;
   showMarkLineLabel?: boolean;
   tooltipFormatter?: (value: number) => string;
   yAxisOptions?: BarChartProps['yAxis'];
-}): Omit<BarChartProps, 'series'> {
+}): Omit<BarChartProps, 'series' | 'barOpacity'> {
   return {
     tooltip: {
       trigger: 'axis',
@@ -49,17 +57,24 @@ function makeBaseChartOptions({
       // default size.
       top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
       bottom: labelYAxisExtents || showMarkLineLabel ? 4 : 0,
-      left: showMarkLineLabel ? 35 : 4,
-      right: 0,
+      left: markLineLabelSide === 'left' ? (showMarkLineLabel ? 35 : 4) : 0,
+      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 25 : 4) : 0,
     },
     xAxis: {
-      axisLine: {
-        show: false,
-      },
+      axisLine: showXAxisLine
+        ? {
+            show: true,
+            lineStyle: {
+              color: xAxisLineColor,
+            },
+            onZero: false, // Enables offset for x-axis line
+          }
+        : {show: false},
       axisTick: {
         show: false,
         alignWithLabel: true,
       },
+      offset: showXAxisLine ? -1 : 0,
       axisLabel: {
         show: false,
       },
@@ -73,9 +88,14 @@ function makeBaseChartOptions({
         },
       },
     },
-    options: {
-      animation: false,
-    },
+    options: animateBars
+      ? {
+          animation: true,
+          animationEasing: 'circularOut',
+        }
+      : {
+          animation: false,
+        },
   };
 }
 
@@ -106,6 +126,18 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
    * Chart height
    */
   height: number;
+
+  /**
+   * Whether to animate the bars on initial render.
+   * If true, bars will rise from the x-axis to their final height.
+   */
+  animateBars?: boolean;
+
+  /**
+   * Opacity of each bar in the graph (0-1)
+   */
+  barOpacity?: number;
+
   /**
    * Colors to use on the chart.
    */
@@ -129,16 +161,35 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
   hideDelay?: number;
 
   /**
+   * Whether to hide the bar for zero values in the chart.
+   */
+  hideZeros?: boolean;
+
+  /**
    * Show max/min values on yAxis
    */
   labelYAxisExtents?: boolean;
 
+  /**
+   * Which side of the chart the mark line label shows on.
+   * Requires `showMarkLineLabel` to be true.
+   */
+  markLineLabelSide?: 'right' | 'left';
+
+  /**
+   * Series data to display
+   */
   series?: BarChartProps['series'];
 
   /**
    * Whether not we show a MarkLine label
    */
   showMarkLineLabel?: boolean;
+
+  /**
+   * Whether or not to show the x-axis line
+   */
+  showXAxisLine?: boolean;
 
   /**
    * Whether not the series should be stacked.
@@ -174,20 +225,25 @@ export function getYAxisMaxFn(height: number) {
 }
 
 function MiniBarChart({
+  animateBars = false,
+  barOpacity = 0.6,
   emphasisColors,
   series,
   hideDelay,
+  hideZeros = false,
   tooltipFormatter,
   colors,
   stacked = false,
   labelYAxisExtents = false,
   showMarkLineLabel = false,
+  markLineLabelSide = 'left',
+  showXAxisLine = false,
   height,
   grid,
   ...props
 }: Props) {
   const theme = useTheme();
-
+  const xAxisLineColor: string = theme.gray200;
   const updatedSeries: BarChartSeries[] = useMemo(() => {
     if (!series?.length) {
       return [];
@@ -217,8 +273,7 @@ function MiniBarChart({
         updated.stack = 'stack1';
       }
       set(updated, 'itemStyle.color', colorList[i]);
-      set(updated, 'itemStyle.opacity', 0.6);
-      set(updated, 'emphasis.itemStyle.opacity', 1.0);
+      set(updated, 'itemStyle.borderRadius', [1, 1, 0, 0]); // Rounded corners on top of the bar
       set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
       chartSeries.push(updated);
     }
@@ -231,19 +286,43 @@ function MiniBarChart({
       : noLabelYAxisOptions;
 
     const options = makeBaseChartOptions({
+      animateBars,
       height,
       hideDelay,
       tooltipFormatter,
       labelYAxisExtents,
       showMarkLineLabel,
+      markLineLabelSide,
       grid,
       yAxisOptions,
+      showXAxisLine,
+      xAxisLineColor,
     });
 
     return options;
-  }, [grid, height, hideDelay, labelYAxisExtents, showMarkLineLabel, tooltipFormatter]);
+  }, [
+    animateBars,
+    grid,
+    height,
+    hideDelay,
+    labelYAxisExtents,
+    markLineLabelSide,
+    showMarkLineLabel,
+    showXAxisLine,
+    tooltipFormatter,
+    xAxisLineColor,
+  ]);
 
-  return <BarChart series={updatedSeries} height={height} {...chartOptions} {...props} />;
+  return (
+    <BarChart
+      barOpacity={barOpacity}
+      hideZeros={hideZeros}
+      series={updatedSeries}
+      height={height}
+      {...chartOptions}
+      {...props}
+    />
+  );
 }
 
 export default MiniBarChart;

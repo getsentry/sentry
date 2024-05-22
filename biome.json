@@ -31,11 +31,20 @@
         "noUselessLoneBlockStatements": "error",
         "noUselessEmptyExport": "error",
         "noUselessConstructor": "error",
-        "noUselessTypeConstraint": "error"
+        "noUselessTypeConstraint": "error",
+        "noExcessiveNestedTestSuites": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noNodejsModules": "error"
+        "noNodejsModules": "error",
+        "noRestrictedImports": {
+          "level": "warn",
+          "options": {
+            "paths": {
+              "sentry/types":  "Please import directly. For example: import type {Organization} from 'sentry/types/organization'"
+            }
+          }
+        }
       },
       "performance": {
         "noBarrelFile": "error"
@@ -59,7 +68,10 @@
         "noApproximativeNumericConstant": "error",
         "noMisrefactoredShorthandAssign": "error",
         "useAwait": "error",
-        "useNamespaceKeyword": "error"
+        "useNamespaceKeyword": "error",
+        "noSkippedTests": "error",
+        "noFocusedTests": "error",
+        "noDuplicateTestHooks": "error"
       },
       "style": {
         "noCommaOperator": "error",

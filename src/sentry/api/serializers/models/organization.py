@@ -33,7 +33,9 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
+    METRIC_ALERTS_THREAD_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -429,6 +431,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
+    issueAlertsThreadFlag: bool
+    metricAlertsThreadFlag: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -546,6 +550,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
                 "aggregatedDataConsent": bool(
                     obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
+                ),
+                "issueAlertsThreadFlag": bool(
+                    obj.get_option("sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT)
+                ),
+                "metricAlertsThreadFlag": bool(
+                    obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
                 ),
             }
         )

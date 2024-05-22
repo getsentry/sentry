@@ -857,13 +857,15 @@ class TwoFactorAPITestCase(APITestCase):
     def api_enable_org_2fa(self, organization, user):
         self.login_as(user)
         url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+            "sentry-api-0-organization-details",
+            kwargs={"organization_id_or_slug": organization.slug},
         )
         return self.client.put(url, data={"require2FA": True})
 
     def api_disable_org_2fa(self, organization, user):
         url = reverse(
-            "sentry-api-0-organization-details", kwargs={"organization_slug": organization.slug}
+            "sentry-api-0-organization-details",
+            kwargs={"organization_id_or_slug": organization.slug},
         )
         return self.client.put(url, data={"require2FA": False})
 
@@ -1193,7 +1195,10 @@ class IntegrationTestCase(TestCase):
 
         self.init_path = reverse(
             "sentry-organization-integrations-setup",
-            kwargs={"organization_slug": self.organization.slug, "provider_id": self.provider.key},
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "provider_id": self.provider.key,
+            },
         )
 
         self.setup_path = reverse(
@@ -1533,7 +1538,7 @@ class BaseSpansTestCase(SnubaTestCase):
         self,
         project_id: int,
         trace_id: str,
-        transaction_id: str,
+        transaction_id: str | None,  # Nones are permitted for INP spans
         span_id: str | None = None,
         parent_span_id: str | None = None,
         profile_id: str | None = None,
@@ -3401,7 +3406,11 @@ class TraceTestCase(SpanTestCase):
 
         return span_data
 
-    def load_errors(self, project: Project, span_id: str) -> list[Event]:
+    def load_errors(
+        self,
+        project: Project,
+        span_id: str | None = None,
+    ) -> list[Event]:
         """Generates trace with errors across two projects."""
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
@@ -3411,7 +3420,7 @@ class TraceTestCase(SpanTestCase):
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": self.trace_id,
-            "span_id": span_id,
+            "span_id": span_id or uuid4().hex[:16],
         }
         error_data["level"] = "fatal"
         error = self.store_event(error_data, project_id=project.id)

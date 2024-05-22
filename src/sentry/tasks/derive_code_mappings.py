@@ -18,7 +18,6 @@ from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
-from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
 def process_error(error: ApiError, extra: dict[str, str]) -> None:
     """Log known issues and report unknown ones"""
     if error.json:
-        json_data: JSONData = error.json
+        json_data: Any = error.json
         msg = json_data.get("message")
     else:
         msg = error.text

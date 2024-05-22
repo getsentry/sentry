@@ -40,9 +40,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(limit=10, window=60),
+            RateLimitCategory.USER: RateLimit(limit=10, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
         }
     }
 
@@ -108,7 +108,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         if not isinstance(user, AnonymousUser)
                         else None
                     ),
-                }
+                },
+                option=orjson.OPT_NON_STR_KEYS,
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )

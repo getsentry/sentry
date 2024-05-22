@@ -70,11 +70,10 @@ EXPOSABLE_FEATURES = [
     "projects:discard-transaction",
     "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
-    "projects:span-metrics-double-write-distributions-as-gauges",
+    "projects:span-metrics-extraction-addons",
+    "organizations:indexed-spans-extraction",
+    "projects:relay-otel-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -1013,7 +1012,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 5
+TRANSACTION_METRICS_EXTRACTION_VERSION = 6
 
 
 class CustomMeasurementSettings(TypedDict):

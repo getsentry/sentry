@@ -123,7 +123,7 @@ def handle_replication(
     source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
     destination: BaseModel,
     fk: str | None = None,
-):
+) -> None:
     category: OutboxCategory = source_model.category
     destination_model: type[BaseModel] = type(destination)
     fk = fk or get_foreign_key_column(destination, source_model)

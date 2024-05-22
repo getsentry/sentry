@@ -97,7 +97,12 @@ register(
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-
+# Enable date-util parsing for timestamps
+register(
+    "system.use-date-util-timestamps",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Redis
 register(
     "redis.clusters",
@@ -649,14 +654,6 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-register("integrations.slack.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("auth.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("backup.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("event-manager.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("eventstore.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("flagpole.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("relay.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1245,6 +1242,29 @@ register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Option to enable direct storage queries for meta queries in the metrics layer
+register(
+    "sentry-metrics.metrics-layer.use-storage-direct-meta-queries",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to remove support for percentiles on a per-org basis.
+# Add the org_id to list to disable percentiles.
+register(
+    "sentry-metrics.drop-percentiles.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to remove support for percentiles on a per-use case basis.
+# Add the use case to list to disable percentiles.
+register(
+    "sentry-metrics.drop-percentiles.per-use-case",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1718,6 +1738,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.trace-explorer-skip-floating-spans",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
@@ -1745,6 +1771,12 @@ register(
     "performance.spans-tags-values.max",
     type=Int,
     default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-values.search",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1791,8 +1823,11 @@ register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUT
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Flagpole Rollout
-register("features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.flagpole_rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1867,9 +1902,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
-
-# Turns on and off the running for dynamic sampling collect_orgs.
-register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # Sets the timeout for webhooks
 register(
@@ -1972,18 +2004,6 @@ register(
 )
 
 register(
-    "delightful_metrics.enable_envelope_forwarding",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_serialization",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "delightful_metrics.enable_capture_envelope",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1991,24 +2011,6 @@ register(
 
 register(
     "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2125,6 +2127,26 @@ register(
 
 register(
     "issues.sdk_crash_detection.native.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.sample_rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2377,6 +2399,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# temporary option for logging canonical key fallback stacktraces
+register(
+    "canonical-fallback.send-error-to-sentry",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2523,4 +2552,21 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+
+register(
+    "sentry.save-event-attachments.project-per-5-minute-limit",
+    type=Int,
+    default=20000000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

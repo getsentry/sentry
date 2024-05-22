@@ -196,7 +196,7 @@ function LockedFeature({provider, features, className}: LockedFeatureProps) {
         />
       }
     >
-      <Tag role="status" icon={<IconLock isSolid />}>
+      <Tag role="status" icon={<IconLock locked />}>
         {t('disabled')}
       </Tag>
     </DisabledHovercard>
