@@ -4,6 +4,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -27,7 +28,7 @@ class EventCommittersTest(APITestCase):
                 "release": release.version,
             },
             project_id=project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
 
         url = reverse(
@@ -158,7 +159,7 @@ class EventCommittersTest(APITestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
 
         GroupOwner.objects.create(
@@ -218,7 +219,7 @@ class EventCommittersTest(APITestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
 
         GroupOwner.objects.create(

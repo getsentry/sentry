@@ -8,6 +8,7 @@ from responses import matchers
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -61,7 +62,7 @@ class PagerDutyClientTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
 
         self.integration_key = self.service["integration_key"]

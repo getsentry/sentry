@@ -27,6 +27,7 @@ from sentry.testutils.cases import (
     SlackActivityNotificationTest,
     SnubaTestCase,
 )
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
@@ -69,7 +70,10 @@ class DailySummaryTest(
                     data["release"] = release
 
                 event = self.store_event(
-                    data=data, project_id=project_id, assert_no_errors=False, event_type="error"
+                    data=data,
+                    project_id=project_id,
+                    assert_no_errors=False,
+                    event_type=EventType.ERROR,
                 )
             elif category == DataCategory.TRANSACTION:
                 event = self.create_performance_issue()
@@ -746,7 +750,10 @@ class DailySummaryTest(
         }
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data=data, project_id=self.project.id, assert_no_errors=False, event_type="error"
+                data=data,
+                project_id=self.project.id,
+                assert_no_errors=False,
+                event_type=EventType.ERROR,
             )
             self.store_outcomes(
                 {
@@ -794,7 +801,10 @@ class DailySummaryTest(
         }
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data=data, project_id=self.project.id, assert_no_errors=False, event_type="error"
+                data=data,
+                project_id=self.project.id,
+                assert_no_errors=False,
+                event_type=EventType.ERROR,
             )
             self.store_outcomes(
                 {
@@ -842,7 +852,10 @@ class DailySummaryTest(
         }
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data=data, project_id=self.project.id, assert_no_errors=False, event_type="error"
+                data=data,
+                project_id=self.project.id,
+                assert_no_errors=False,
+                event_type=EventType.ERROR,
             )
             self.store_outcomes(
                 {

@@ -5,6 +5,7 @@ from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 
@@ -40,7 +41,7 @@ class BitbucketIssueTest(APITestCase):
                 "timestamp": min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         self.group = event.group
         self.repo_choices = [

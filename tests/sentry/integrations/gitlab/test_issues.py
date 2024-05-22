@@ -5,6 +5,7 @@ from fixtures.gitlab import GitLabTestCase
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
@@ -23,7 +24,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 "timestamp": min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         self.group = event.group
 

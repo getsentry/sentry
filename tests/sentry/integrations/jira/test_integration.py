@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -93,7 +94,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -212,7 +213,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
 
@@ -231,7 +232,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -286,7 +287,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -338,7 +339,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -373,7 +374,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -409,7 +410,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -455,7 +456,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type="error",
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None

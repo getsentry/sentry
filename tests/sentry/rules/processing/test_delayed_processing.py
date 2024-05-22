@@ -14,6 +14,7 @@ from sentry.rules.processing.delayed_processing import (
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -44,7 +45,7 @@ class ProcessDelayedAlertConditionsTest(
             },
         }
         return self.store_event(
-            data=data, project_id=project_id, assert_no_errors=False, event_type="error"
+            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
         )
 
     def create_event_frequency_condition(
