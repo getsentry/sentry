@@ -8,10 +8,15 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
   buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
+  formTitle?: string;
   messagePlaceholder?: string;
 }
 
-export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props) {
+export default function useFeedbackWidget({
+  buttonRef,
+  formTitle,
+  messagePlaceholder,
+}: Props) {
   const config = useLegacyStore(ConfigStore);
   const feedback = Sentry.getFeedback();
 
@@ -25,7 +30,7 @@ export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props
       buttonLabel: t('Give Feedback'),
       submitButtonLabel: t('Send Feedback'),
       messagePlaceholder: messagePlaceholder ?? t('What did you expect?'),
-      formTitle: t('Give Feedback'),
+      formTitle: formTitle ?? t('Give Feedback'),
     };
 
     if (buttonRef) {
@@ -40,7 +45,7 @@ export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props
     }
 
     return undefined;
-  }, [buttonRef, config.theme, feedback, messagePlaceholder]);
+  }, [buttonRef, config.theme, feedback, formTitle, messagePlaceholder]);
 
   return feedback;
 }
