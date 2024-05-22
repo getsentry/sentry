@@ -1,7 +1,8 @@
 import copy
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import orjson
 from urllib3.response import HTTPResponse
@@ -397,8 +398,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     def create_exception(
-        self, exception_type_str="Exception", exception_value="it broke", frames=None
-    ):
+        self,
+        exception_type_str: str = "Exception",
+        exception_value: str = "it broke",
+        frames: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         frames = frames or []
         return {
             "id": "exception",
@@ -432,11 +436,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     def create_frames(
         self,
-        num_frames,
-        contributes=True,
-        start_index=1,
-        context_line_factory=lambda i: f"test = {i}!",
-    ):
+        num_frames: int,
+        contributes: bool = True,
+        start_index: int = 1,
+        context_line_factory: Callable[[int], str] = lambda i: f"test = {i}!",
+    ) -> list[dict[str, Any]]:
         frames = []
         for i in range(start_index, start_index + num_frames):
             frames.append(
@@ -697,7 +701,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple(self, mock_logger, mock_seer_request, mock_metrics):
+    def test_simple(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock, mock_metrics: MagicMock
+    ):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -746,7 +752,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_multiple(self, mock_seer_request, mock_record):
+    def test_multiple(self, mock_seer_request: MagicMock, mock_record: MagicMock):
         over_threshold_group_event = save_new_event({"message": "Maisey is silly"}, self.project)
         under_threshold_group_event = save_new_event({"message": "Charlie is goofy"}, self.project)
 
@@ -804,7 +810,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.logger")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics):
+    def test_incomplete_return_data(
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics: MagicMock
+    ):
         # Two suggested groups, one with valid data, one missing parent hash. We should log the
         # second and return the first.
         seer_return_value: Any = {
@@ -856,7 +864,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_nonexistent_group(self, mock_seer_request, mock_metrics):
+    def test_nonexistent_group(self, mock_seer_request: MagicMock, mock_metrics: MagicMock):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
         Test that these groups are not returned.
@@ -892,7 +900,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_empty_seer_return(self, mock_seer_request, mock_record):
+    def test_empty_seer_return(self, mock_seer_request: MagicMock, mock_record: MagicMock):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
         assert response.data == []
@@ -962,7 +970,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
-    def test_no_optional_params(self, mock_seer_request):
+    def test_no_optional_params(self, mock_seer_request: MagicMock):
         """
         Test that optional parameters, k and threshold, can not be included.
         """
