@@ -4,18 +4,24 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {
@@ -68,13 +74,27 @@ export function SampleList({
   );
 
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const {query} = useLocation();
   const {projects} = useProjects();
+
+  const spanSearchQuery = decodeScalar(query.spanSearchQuery);
+  const supportedTags = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(query.project)),
     [projects, query.project]
   );
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
@@ -97,9 +117,12 @@ export function SampleList({
     })}`
   );
 
-  let extraQuery: string[] | undefined = undefined;
+  // set additional query filters from the span search bar and the `query` param
+  let extraQuery: string[] | undefined = spanSearchQuery?.split(' ');
   if (query.query) {
-    extraQuery = Array.isArray(query.query) ? query.query : [query.query];
+    extraQuery = extraQuery?.concat(
+      Array.isArray(query.query) ? query.query : [query.query]
+    );
   }
 
   function defaultOnClose() {
@@ -185,6 +208,20 @@ export function SampleList({
           highlightedSpanId={highlightedSpanId}
         />
 
+        <Feature features="performance-sample-panel-search">
+          <StyledSearchBar
+            searchSource="queries-sample-panel"
+            query={spanSearchQuery}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            organization={organization}
+            metricAlert={false}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
+          />
+        </Feature>
+
         <SampleTable
           highlightedSpanId={highlightedSpanId}
           transactionMethod={transactionMethod}
@@ -238,4 +275,8 @@ const SpanDescription = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 35vw;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-top: ${space(2)};
 `;
