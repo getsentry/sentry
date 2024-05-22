@@ -565,7 +565,7 @@ class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
     slug = "replay_hydration_error"
     description = "Hydration Error Detected"
     category = GroupCategory.REPLAY.value
-    default_priority = PriorityLevel.MEDIUM  # TODO:
+    default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
 
 
