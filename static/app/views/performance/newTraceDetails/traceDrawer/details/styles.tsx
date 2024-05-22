@@ -1,14 +1,6 @@
-import {
-  Children,
-  Fragment,
-  type PropsWithChildren,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Children, Fragment, type PropsWithChildren, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
-import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
@@ -18,12 +10,11 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
+import * as KeyValueData from 'sentry/components/keyValueData/card';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {StructuredData} from 'sentry/components/structuredEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -31,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {defined, formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -526,66 +517,11 @@ const TagsWrapper = styled('div')`
   }
 `;
 
-interface SectionCardContentConfig {
-  disableErrors?: boolean;
-  includeAliasInSubject?: boolean;
-}
-
 type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
   subject: React.ReactNode;
 };
 
 export type SectionCardKeyValueList = SectionCardKeyValue[];
-
-interface SectionCardContentProps {
-  item: SectionCardKeyValue;
-  meta: Record<string, any>;
-  alias?: string;
-  config?: SectionCardContentConfig;
-}
-
-function SectionCardContent({
-  item,
-  alias,
-  meta,
-  config,
-  ...props
-}: SectionCardContentProps) {
-  const {key, subject, value, action = {}} = item;
-  if (key === 'type') {
-    return null;
-  }
-
-  const dataComponent = (
-    <StructuredData
-      value={value}
-      depth={0}
-      maxDefaultDepth={0}
-      meta={meta?.[key]}
-      withAnnotatedText
-      withOnlyFormattedText
-    />
-  );
-
-  const contextSubject = subject
-    ? config?.includeAliasInSubject && alias
-      ? `${startCase(alias)}: ${subject}`
-      : subject
-    : null;
-
-  return (
-    <ContentContainer {...props}>
-      {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
-      <CardContentValueWrapper hasSubject={!!contextSubject} className="ctx-row-value">
-        {defined(action?.link) ? (
-          <Link to={action.link}>{dataComponent}</Link>
-        ) : (
-          dataComponent
-        )}
-      </CardContentValueWrapper>
-    </ContentContainer>
-  );
-}
 
 function SectionCard({
   items,
@@ -598,33 +534,15 @@ function SectionCard({
   disableTruncate?: boolean;
   sortAlphabetically?: boolean;
 }) {
-  const [showingAll, setShowingAll] = useState(false);
-  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
-
-  if (items.length === 0) {
-    return null;
-  }
-
-  const cardItems = sortAlphabetically
-    ? items.sort((a, b) => {
-        return String(a.subject).localeCompare(String(b.subject));
-      })
-    : items;
+  const contentItems = items.map(item => ({item}));
 
   return (
-    <Card>
-      <CardContentTitle>{title}</CardContentTitle>
-      {cardItems
-        .slice(0, showingAll || disableTruncate ? cardItems.length : 5)
-        .map(item => (
-          <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
-        ))}
-      {cardItems.length > 5 && !disableTruncate ? (
-        <TruncateActionWrapper>
-          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
-        </TruncateActionWrapper>
-      ) : null}
-    </Card>
+    <KeyValueData.Card
+      title={title}
+      contentItems={contentItems}
+      sortAlphabetically={sortAlphabetically}
+      truncateLength={disableTruncate ? Infinity : 5}
+    />
   );
 }
 
@@ -700,50 +618,10 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-const Card = styled(Panel)`
-  margin-bottom: 10px;
-  padding: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const CardContentTitle = styled('p')`
-  grid-column: 1 / -1;
-  padding: ${space(0.25)} ${space(0.75)};
-  margin: 0;
-  color: ${p => p.theme.headingColor};
-  font-weight: bold;
-`;
-
-const ContentContainer = styled('div')`
-  display: grid;
-  column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, 150px) 1fr 30px;
-  padding: ${space(0.25)} ${space(0.75)};
-  border-radius: 4px;
-  color: ${p => p.theme.subText};
-  border: 1px solid 'transparent';
-  background-color: ${p => p.theme.background};
-  &:nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
 export const CardContentSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-wrap: break-word;
-`;
-
-const CardContentValueWrapper = styled(CardContentSubject)<{hasSubject: boolean}>`
-  color: ${p => p.theme.textColor};
-  grid-column: ${p => (p.hasSubject ? 'span 2' : '1 / -1')};
-`;
-
-const TruncateActionWrapper = styled('div')`
-  grid-column: 1 / -1;
-  margin: ${space(0.5)} 0;
-  display: flex;
-  justify-content: center;
 `;
 
 const TraceDrawerComponents = {

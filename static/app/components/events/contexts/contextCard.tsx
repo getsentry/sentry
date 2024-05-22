@@ -99,6 +99,7 @@ export default function ContextCard({
     <KeyValueData.Card
       contentItems={contentItems}
       title={getContextTitle({alias, type, value})}
+      sortAlphabetically
     />
   );
 }

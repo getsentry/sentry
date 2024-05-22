@@ -78,13 +78,13 @@ export interface CardProps {
    */
   contentItems: ContentProps[];
   /**
-   *  Flag to disable alphabetical sorting by item subject. Uses given item ordering.
+   *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
-  skipSorting?: boolean;
+  sortAlphabetically?: boolean;
   /**
    * Title of the key value data grouping
    */
-  title?: string;
+  title?: React.ReactNode;
   /**
    * Content item length which, when exceeded, displays a 'Show more' option
    */
@@ -95,7 +95,7 @@ export function Card({
   contentItems,
   title,
   truncateLength = Infinity,
-  skipSorting = false,
+  sortAlphabetically = false,
 }: CardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -107,9 +107,9 @@ export function Card({
     ? contentItems.slice(0, truncateLength)
     : [...contentItems];
 
-  const orderedItems = skipSorting
-    ? truncatedItems
-    : truncatedItems.sort((a, b) => a.item.subject.localeCompare(b.item.subject));
+  const orderedItems = sortAlphabetically
+    ? truncatedItems.sort((a, b) => a.item.subject.localeCompare(b.item.subject))
+    : truncatedItems;
 
   const componentItems = orderedItems.map((itemProps, i) => (
     <Content key={`content-card-${title}-${i}`} {...itemProps} />
