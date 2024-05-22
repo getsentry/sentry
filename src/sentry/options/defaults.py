@@ -1253,16 +1253,15 @@ register(
 )
 
 # Option to remove support for percentiles on a per-use case basis.
-# Add the use case to list to disable percentiles.
-register(
-    "sentry-metrics.drop-percentiles.per-use-case",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+# Add the use case as a key to the dictionary, and add a list
+# as the value.
+# Example 1: {"custom": [1, 2]}
+# This means disable percentiles for the custom use case,
+# EXCEPT for org_id = 1 and org_id = 2
 
-# Option to remove support for percentiles on a per-use case basis.
-# Add the use case to list to disable percentiles.
-# Also has an org-based override.
+# Example 2: {"custom": []}
+# This means disable percentiles for the custom use case.
+# This applies to the entire use case and all orgs
 register(
     "sentry-metrics.drop-percentiles.per-use-case.with-org-override",
     default={},

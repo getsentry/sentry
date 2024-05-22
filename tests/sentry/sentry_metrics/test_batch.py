@@ -2127,3 +2127,26 @@ def test_aggregation_options():
         assert get_aggregation_options("c:transactions/count@none", 1) is None
         assert get_aggregation_options("c:transactions/count@none", 2) is None
         assert get_aggregation_options("c:spans/count@none", 1) is None
+
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": False,
+            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {"transactions": []},
+        }
+    ):
+
+        assert get_aggregation_options("d:transactions/measurements.fcp@millisecond", 1) == {
+            AggregationOption.HIST: TimeWindow.NINETY_DAYS
+        }
+
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": False,
+            "sentry-metrics.drop-percentiles.per-org": [3],
+            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {"transactions": []},
+        }
+    ):
+
+        assert get_aggregation_options("d:transactions/measurements.fcp@millisecond", 3) == {
+            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
+        }
