@@ -59,6 +59,7 @@ def process_organization_mapping_customer_id_update(
         return
 
     if payload and "customer_id" in payload:
+        # TODO(mark) Update this to use CustomerId
         update = update_organization_mapping_from_instance(
             org, get_local_region(), customer_id=(payload["customer_id"],)
         )
