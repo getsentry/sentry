@@ -181,7 +181,109 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
             return self.fetch_projects_with_recent_sessions_with_filter()
         return self.fetch_projects_with_recent_sessions_with_offset()
 
-    def fetch_project_release_health_totals(
+    def fetch_project_release_health_totals_with_org_project_filter(
+        self, org_id: int, project_ids: Sequence[int]
+    ) -> Totals:
+        start_time = time.time()
+        prev_org_id = 0
+        prev_project_id = 0
+        totals: Totals = defaultdict(dict)
+        with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
+            while (time.time() - start_time) < self.MAX_SECONDS:
+                release_key = resolve_tag_key(UseCaseID.SESSIONS, org_id, "release")
+                release_col = Column(release_key)
+                env_key = resolve_tag_key(UseCaseID.SESSIONS, org_id, "environment")
+                env_col = Column(env_key)
+                query = Query(
+                    match=Entity(EntityKey.MetricsCounters.value),
+                    select=[
+                        Function("sum", [Column("value")], "sessions"),
+                        Column("project_id"),
+                        release_col,
+                        env_col,
+                    ],
+                    groupby=[
+                        Column("project_id"),
+                        release_col,
+                        env_col,
+                    ],
+                    where=[
+                        Condition(
+                            Column("timestamp"),
+                            Op.GTE,
+                            datetime.utcnow() - timedelta(hours=6),
+                        ),
+                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("org_id"), Op.EQ, org_id),
+                        Condition(Column("project_id"), Op.IN, project_ids),
+                        Condition(
+                            Column("metric_id"),
+                            Op.EQ,
+                            indexer.resolve(
+                                UseCaseID.SESSIONS, org_id, SessionMRI.RAW_SESSION.value
+                            ),
+                        ),
+                        Condition(Column("org_id"), Op.GTE, prev_org_id),
+                        Condition(Column("project_id"), Op.GT, prev_project_id),
+                    ],
+                    granularity=Granularity(21600),
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                        OrderBy(release_col, Direction.ASC),
+                        OrderBy(env_col, Direction.ASC),
+                    ],
+                ).set_limit(self.CHUNK_SIZE + 1)
+                request = Request(
+                    dataset=Dataset.Metrics.value,
+                    app_id="release_health",
+                    query=query,
+                    tenant_ids={"organization_id": org_id},
+                )
+                with metrics.timer("release_monitor.fetch_project_release_health_totals.query"):
+                    data = raw_snql_query(
+                        request, "release_monitor.fetch_project_release_health_totals"
+                    )["data"]
+                    count = len(data)
+                    more_results = count > self.CHUNK_SIZE
+
+                    if more_results:
+                        data = data[:-1]
+
+                    # convert indexes back to strings
+                    indexes: set[int] = set()
+                    for row in data:
+                        indexes.add(row[env_key])
+                        indexes.add(row[release_key])
+                    resolved_strings = indexer.bulk_reverse_resolve(
+                        UseCaseID.SESSIONS, org_id, indexes
+                    )
+
+                    for row in data:
+                        env_name = resolved_strings.get(row[env_key])
+                        release_name = resolved_strings.get(row[release_key])
+                        row_totals = totals[row["project_id"]].setdefault(
+                            env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore[arg-type]
+                        )
+                        row_totals["total_sessions"] += row["sessions"]
+                        row_totals["releases"][release_name] += row["sessions"]  # type: ignore[index]
+
+                    # Update prev_org_id and prev_project_id for the next iteration
+                    if data:
+                        last_row = data[-1]
+                        prev_org_id = last_row["org_id"]
+                        prev_project_id = last_row["project_id"]
+
+                    if not more_results:
+                        break
+            else:
+                logger.error(
+                    "fetch_project_release_health_totals.loop_timeout",
+                    extra={"org_id": org_id, "project_ids": project_ids},
+                )
+        return totals
+
+    def fetch_project_release_health_totals_with_offset(
         self, org_id: int, project_ids: Sequence[int]
     ) -> Totals:
         start_time = time.time()
@@ -277,3 +379,12 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     extra={"org_id": org_id, "project_ids": project_ids},
                 )
         return totals
+
+    def fetch_project_release_health_totals(
+        self, org_id: int, project_ids: Sequence[int]
+    ) -> Totals:
+        if options.get("release-health.use-org-and-project-filter"):
+            return self.fetch_project_release_health_totals_with_org_project_filter(
+                org_id, project_ids
+            )
+        return self.fetch_project_release_health_totals_with_offset(org_id, project_ids)
