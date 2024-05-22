@@ -8,13 +8,31 @@ from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import JSONField
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.dashboard_widget import TypesClass
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
+
+
+class DiscoverSavedQueryTypes(TypesClass):
+    ERROR_EVENTS = 0
+    """
+     Error side of the split from Discover.
+    """
+    TRANSACTION_LIKE = 1
+    """
+    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    """
+
+    TYPES = [
+        (ERROR_EVENTS, "error-events"),
+        (TRANSACTION_LIKE, "transaction-like"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
 
 
 @region_silo_model
@@ -49,6 +67,7 @@ class DiscoverSavedQuery(Model):
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     is_homepage = models.BooleanField(null=True, blank=True)
+    dataset = BoundedPositiveIntegerField(choices=DiscoverSavedQueryTypes.as_choices(), null=True)
 
     class Meta:
         app_label = "sentry"
