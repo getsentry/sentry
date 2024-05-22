@@ -6,16 +6,14 @@ import * as qs from 'query-string';
 
 import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,6 +28,7 @@ import {
   SpanIndexedField,
   SpanMetricsField,
 } from 'sentry/views/starfish/types';
+import {useSpanFieldSupportedTags} from 'sentry/views/starfish/utils/useSpanFieldSupportedTags';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -45,71 +44,6 @@ type Props = {
   transactionMethod?: string;
   transactionRoute?: string;
 };
-
-// ////////////////////////
-// START TRACES
-// ////////////////////////
-
-const omitSupportedTags = [SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
-
-const getTracesSupportedTags = () => {
-  const tags: TagCollection = Object.fromEntries(
-    Object.values(SpanIndexedField)
-      .filter(v => !omitSupportedTags.includes(v))
-      .map(v => [v, {key: v, name: v}])
-  );
-  tags.has = getHasTag(tags);
-  return tags;
-};
-
-interface SpanFieldEntry {
-  key: string;
-  name: string;
-}
-type SpanFieldsResponse = SpanFieldEntry[];
-
-const getDynamicSpanFieldsEndpoint = (orgSlug: string, selection): ApiQueryKey => [
-  `/organizations/${orgSlug}/spans/fields/`,
-  {
-    query: {
-      project: selection.projects,
-      environment: selection.environments,
-      statsPeriod: '1h', // Hard coded stats period to load recent tags fast
-    },
-  },
-];
-
-const useTracesSupportedTags = (): TagCollection => {
-  const {selection} = usePageFilters();
-  const organization = useOrganization();
-  const staticTags = getTracesSupportedTags();
-
-  const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
-    getDynamicSpanFieldsEndpoint(organization.slug, selection),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
-
-  if (dynamicTagQuery.isSuccess) {
-    const dynamicTags: TagCollection = Object.fromEntries(
-      dynamicTagQuery.data.map(entry => [entry.key, entry])
-    );
-    return {
-      ...dynamicTags,
-      ...staticTags,
-    };
-  }
-
-  return staticTags;
-};
-
-export type SpanResult<F extends string> = Record<F, any>;
-
-// ////////////////////////
-// END TRACES
-// ////////////////////////
 
 export function SampleList({
   groupId,
@@ -145,7 +79,7 @@ export function SampleList({
   const {projects} = useProjects();
 
   const spanSearchQuery = decodeScalar(query.spanSearchQuery);
-  const supportedTags = useTracesSupportedTags();
+  const supportedTags = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(query.project)),
