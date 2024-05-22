@@ -819,6 +819,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
                 )
+            if "sentry:replay_hydration_error_issues" in options:
+                project.update_option(
+                    "sentry:replay_hydration_error_issues",
+                    bool(options["sentry:replay_hydration_error_issues"]),
+                )
             if "sentry:feedback_user_report_notifications" in options:
                 project.update_option(
                     "sentry:feedback_user_report_notifications",
