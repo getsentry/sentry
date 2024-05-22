@@ -94,6 +94,7 @@ class BaseQueryBuilder:
     uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    profile_functions_metrics_builder = False
     entity: Entity | None = None
 
     def get_middle(self):

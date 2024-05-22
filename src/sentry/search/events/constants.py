@@ -341,6 +341,9 @@ SPAN_METRICS_MAP = {
     "messaging.message.receive.latency": "g:spans/messaging.message.receive.latency@millisecond",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+PROFILE_METRICS_MAP = {
+    "function.duration": "d:profiles/function.duration@millisecond",
+}
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 

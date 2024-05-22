@@ -359,6 +359,8 @@ class MetricsQueryBuilder(QueryBuilder):
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
+        elif self.profile_functions_metrics_builder:
+            return UseCaseID.PROFILES
         else:
             return UseCaseID.SESSIONS
 
