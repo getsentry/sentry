@@ -8,6 +8,7 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/database/settings';
 import {useDenylistedProjects} from 'sentry/views/performance/database/useDenylistedProjects';
 import {useOutdatedSDKProjects} from 'sentry/views/performance/database/useOutdatedSDKProjects';
 
@@ -57,9 +58,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
         tct(
           'No queries found. Try updating your filters, or learn more about performance monitoring for queries in our [documentation:documentation].',
           {
-            documentation: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/queries/" />
-            ),
+            documentation: <ExternalLink href={MODULE_DOC_LINK} />,
           }
         )}{' '}
       {outdatedProjects.length > 0 &&

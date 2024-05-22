@@ -15,7 +15,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
-import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/performance/http/settings';
+import {
+  MODULE_DOC_LINK,
+  MODULE_TITLE as HTTP_MODULE_TITLE,
+} from 'sentry/views/performance/http/settings';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -113,7 +116,7 @@ export function TimeConsumingDomainsWidgetEmptyStateWarning() {
           'Domains may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
+              <ExternalLink href={MODULE_DOC_LINK}>
                 {t('Requests module documentation')}
               </ExternalLink>
             ),
