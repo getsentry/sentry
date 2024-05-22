@@ -276,11 +276,11 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
                 )
                 data = sorted(response.data, key=lambda d: d["mri"])
 
-            assert sorted(data[2]["operations"]) == [
-                "avg",
-                "count",
-                "last",
-                "max",
-                "min",
-                "sum",
-            ]
+                assert sorted(data[2]["operations"]) == [
+                    "avg",
+                    "count",
+                    "last",
+                    "max",
+                    "min",
+                    "sum",
+                ]
