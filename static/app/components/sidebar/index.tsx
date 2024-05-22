@@ -245,7 +245,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const moduleURLBuilder = useModuleURLBuilder();
+  const moduleURLBuilder = useModuleURLBuilder(true);
 
   const performance = hasOrganization && (
     <Feature
@@ -277,7 +277,7 @@ function Sidebar() {
                       {t('Queries')}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('db', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('db')}/`}
                   id="performance-database"
                   // collapsed controls whether the dot is visible or not.
                   // We always want it visible for these sidebar items so force it to true.
@@ -292,7 +292,7 @@ function Sidebar() {
                       {HTTP_MODULE_TITLE}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('http', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
                   {...HTTPModuleBadgeProps}
@@ -306,7 +306,7 @@ function Sidebar() {
                       {CACHE_MODULE_TITLE}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('cache', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
                   id="performance-cache"
                   icon={<SubitemDot collapsed />}
                   {...CacheModuleBadgeProps}
@@ -320,7 +320,7 @@ function Sidebar() {
                       {t('Web Vitals')}
                     </GuideAnchor>
                   }
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('vital', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('vital')}/`}
                   id="performance-webvitals"
                   icon={<SubitemDot collapsed />}
                 />
@@ -334,7 +334,7 @@ function Sidebar() {
                     </GuideAnchor>
                   }
                   {...QueuesModuleBadgeProps}
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('queue', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
                   id="performance-queues"
                   icon={<SubitemDot collapsed />}
                 />
@@ -343,7 +343,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('Screen Loads')}
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('screen_load', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('screen_load')}/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
                 />
@@ -352,7 +352,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('app_start', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('app_start')}/`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
                 />
@@ -364,7 +364,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('Mobile UI')}
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui')}/`}
                   id="performance-mobile-ui"
                   icon={<SubitemDot collapsed />}
                   isAlpha
@@ -374,7 +374,7 @@ function Sidebar() {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/${moduleURLBuilder('resource', true)}/`}
+                  to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
                   id="performance-browser-resources"
                   icon={<SubitemDot collapsed />}
                 />
@@ -425,7 +425,7 @@ function Sidebar() {
         label={t('LLM Monitoring')}
         isAlpha
         variant="short"
-        to={`/organizations/${organization.slug}/${moduleURLBuilder('ai', true)}/`}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
         id="llm-monitoring"
       />
     </Feature>

@@ -35,13 +35,13 @@ export const useModuleURL = (
   moduleName: RoutableModuleNames,
   bare: boolean = false
 ): string => {
-  const builder = useModuleURLBuilder();
-  return builder(moduleName, bare);
+  const builder = useModuleURLBuilder(bare);
+  return builder(moduleName);
 };
 
-type URLBuilder = (moduleName: RoutableModuleNames, bare?: boolean) => string;
+type URLBuilder = (moduleName: RoutableModuleNames) => string;
 
-export function useModuleURLBuilder(): URLBuilder {
+export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
 
   if (!organization) {
@@ -51,7 +51,7 @@ export function useModuleURLBuilder(): URLBuilder {
 
   const {slug} = organization;
 
-  return function (moduleName: RoutableModuleNames, bare: boolean = false) {
+  return function (moduleName: RoutableModuleNames) {
     if (moduleName === ModuleName.AI) {
       // AI Doesn't live under "/performance"
       return bare
