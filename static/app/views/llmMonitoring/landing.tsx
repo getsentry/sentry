@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -9,23 +7,22 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
-import {LLMMonitoringOnboarding} from 'sentry/views/llmMonitoring/onboarding';
 import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
+import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
-  const isOnboarding = !!onboardingProject;
 
   const crumbs = useModuleBreadcrumbs('ai');
 
@@ -54,26 +51,30 @@ export function LLMMonitoringPage() {
                   <DatePageFilter />
                 </PageFilterBar>
               </ModuleLayout.Full>
-              {isOnboarding ? (
+              <ModulesOnboarding
+                moduleQueryFilter={new MutableSearch('span.op:ai.pipeline*')}
+                onboardingContent={
+                  <OnboardingContent
+                    title={t('Get actionable insights about your LLMs')}
+                    description={t('Send your first AI pipeline to see data here.')}
+                    link="https://docs.sentry.io/product/llm-monitoring/"
+                  />
+                }
+                referrer="api.ai-pipelines.view"
+              >
+                <ModuleLayout.Third>
+                  <TotalTokensUsedChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  <NumberOfPipelinesChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  <PipelineDurationChart />
+                </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  <LLMMonitoringOnboarding />
+                  <PipelinesTable />
                 </ModuleLayout.Full>
-              ) : (
-                <Fragment>
-                  <ModuleLayout.Third>
-                    <TotalTokensUsedChart />
-                  </ModuleLayout.Third>
-                  <ModuleLayout.Third>
-                    <NumberOfPipelinesChart />
-                  </ModuleLayout.Third>
-                  <ModuleLayout.Third>
-                    <PipelineDurationChart />
-                  </ModuleLayout.Third>
-                  <ModuleLayout.Full>
-                    <PipelinesTable />
-                  </ModuleLayout.Full>
-                </Fragment>
-              )}
+              </ModulesOnboarding>
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
