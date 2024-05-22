@@ -380,7 +380,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                         "delayed_processing.last_active",
                         extra={"last_active": status.last_active, "freq_offset": freq_offset},
                     )
-                    return
+                    break
 
                 updated = (
                     GroupRuleStatus.objects.filter(id=status.id)
@@ -390,7 +390,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
 
                 if not updated:
                     logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
-                    return
+                    break
 
                 notification_uuid = str(uuid.uuid4())
                 groupevent = group_to_groupevent[group]
