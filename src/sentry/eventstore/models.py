@@ -485,6 +485,17 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if hashes.hashes:
             return hashes.hashes[0]
 
+        # Temporary investigative measure, to try to figure out when this would happen
+        logger.info(
+            "Event with no primary hash",
+            stack_info=True,
+            extra={
+                "event_id": self.event_id,
+                "event_type": type(self),
+                "group_id": getattr(self, "group_id", None),
+                "project_id": self.project_id,
+            },
+        )
         return None
 
     def get_span_groupings(
