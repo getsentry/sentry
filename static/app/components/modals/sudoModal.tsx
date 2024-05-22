@@ -93,7 +93,7 @@ function SudoModal({
     const getAuthenticators = () => {
       if (!loadOrganization) return;
       try {
-        loadOrganization().then(async () => {
+        loadOrganization().finally(async () => {
           const fetchedAuthenticators = await api.requestPromise('/authenticators/');
           setState(prevState => ({
             ...prevState,

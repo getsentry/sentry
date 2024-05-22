@@ -143,12 +143,13 @@ export function fetchOrganizationDetails(
   };
 
   const loadOrganization = () => {
-    return new Promise(async resolve => {
+    return new Promise(async (resolve, reject) => {
       let org: Organization | undefined = undefined;
       try {
         org = await fetchOrg(api, slug, usePreload);
       } catch (err) {
         if (!err) {
+          reject(err);
           return;
         }
 
@@ -159,6 +160,7 @@ export function fetchOrganizationDetails(
 
           if (errMessage) {
             addErrorMessage(errMessage);
+            reject(errMessage);
           }
 
           return;
