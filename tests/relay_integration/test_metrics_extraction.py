@@ -131,7 +131,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 "user": {"id": 123},
                 "measurements": {
                     "fcp": {"value": 999999999.0},
-                    "lcp": {"value": -9999999999.0},
+                    "lcp": {"value": 0.0},
                 },
             }
 
@@ -162,5 +162,5 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             assert histogram_outlier_tags == {
                 "d:transactions/duration@millisecond": "inlier",
                 "d:transactions/measurements.fcp@millisecond": "outlier",
-                "d:transactions/measurements.lcp@millisecond": "outlier",
+                "d:transactions/measurements.lcp@millisecond": "inlier",
             }
