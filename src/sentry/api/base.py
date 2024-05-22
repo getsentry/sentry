@@ -132,15 +132,19 @@ def apply_cors_headers(
         allowed_methods = []
     allow = ", ".join(allowed_methods)
     if not allow or "*" in allow:
-        logger.info(
-            "api.cors.no_methods",
-            extra={
-                "url": request.path,
-                "method": request.method,
-                "origin": request.META.get("HTTP_ORIGIN", ""),
-                "allow": allow,
-            },
-        )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_level("warning")
+            scope.set_context(
+                "cors_headers",
+                {
+                    "url": request.path,
+                    "method": request.method,
+                    "origin": request.META.get("HTTP_ORIGIN", ""),
+                    "allow": allow,
+                },
+            )
+            sentry_sdk.capture_message("api.cors.no_methods")
+
     response["Allow"] = allow
     response["Access-Control-Allow-Methods"] = allow
     response["Access-Control-Allow-Headers"] = (
