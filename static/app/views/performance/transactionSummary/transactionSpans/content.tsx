@@ -237,13 +237,6 @@ function SpansContentV2(props: Props) {
           fields={eventView.fields}
           onSearch={handleChange('query')}
         />
-        {/* <CompactSelect
-        value={sort.field}
-        options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
-        onChange={opt => handleChange('sort')(opt.value)}
-        triggerProps={{prefix: sort.prefix}}
-        triggerLabel={sort.label}
-      /> */}
       </FilterActions>
 
       <SpanMetricsTable project={project} transactionName={transactionName} />
