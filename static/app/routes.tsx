@@ -1449,7 +1449,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const insightsRoutes = (
+  const insightsSubRoutes = (
     <Fragment>
       <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
@@ -1564,6 +1564,12 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const insightsRoutes = (
+    <Route path="/insights/" withOrgPath>
+      {insightsSubRoutes}
+    </Route>
+  );
+
   const performanceRoutes = (
     <Route
       path="/performance/"
@@ -1655,7 +1661,7 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
-      {insightsRoutes}
+      {insightsSubRoutes}
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
@@ -2069,6 +2075,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {insightsRoutes}
       {llmMonitoringRoutes}
       {profilingRoutes}
       {metricsRoutes}
