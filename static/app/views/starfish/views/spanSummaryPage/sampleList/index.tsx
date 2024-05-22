@@ -120,7 +120,9 @@ export function SampleList({
   // set additional query filters from the span search bar and the `query` param
   let extraQuery: string[] | undefined = spanSearchQuery?.split(' ');
   if (query.query) {
-    extraQuery = Array.isArray(query.query) ? query.query : [query.query];
+    extraQuery = extraQuery?.concat(
+      Array.isArray(query.query) ? query.query : [query.query]
+    );
   }
 
   function defaultOnClose() {
