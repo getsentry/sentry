@@ -1561,6 +1561,17 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/llmMonitoring/landing'))}
+        />
+        <Route
+          path="pipeline-type/:groupId/"
+          component={make(
+            () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
+          )}
+        />
+      </Route>
     </Fragment>
   );
 
