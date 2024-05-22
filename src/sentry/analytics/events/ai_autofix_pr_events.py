@@ -2,8 +2,6 @@ from sentry import analytics
 
 
 class AiAutofixPrEvent(analytics.Event):
-    type = "ai.autofix.pr.closed"
-
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
@@ -17,7 +15,7 @@ class AiAutofixPrClosedEvent(AiAutofixPrEvent):
     type = "ai.autofix.pr.closed"
 
 
-class AiAutofixPrMergedEvent(analytics.Event):
+class AiAutofixPrMergedEvent(AiAutofixPrEvent):
     type = "ai.autofix.pr.merged"
 
 

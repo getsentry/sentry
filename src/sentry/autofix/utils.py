@@ -1,4 +1,4 @@
-from typing import Any
+from typing import TypedDict
 
 import requests
 from django.conf import settings
@@ -7,6 +7,20 @@ from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_confi
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.utils import json
+
+
+class AutofixIssue(TypedDict):
+    id: int
+
+
+class AutofixRequest(TypedDict):
+    project_id: int
+    issue: AutofixIssue
+
+
+class AutofixState(TypedDict):
+    run_id: int
+    request: AutofixRequest
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -32,7 +46,7 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
     return list(repos.values())
 
 
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> dict[str, Any] | None:
+def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
     response = requests.post(
         f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state/pr",
         data=json.dumps(
@@ -47,7 +61,7 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> dict[str, Any] | 
     response.raise_for_status()
     result = response.json()
 
-    if result and result["state"]:
-        return result["state"]
+    if not result:
+        return None
 
-    return None
+    return result.get("state", None)

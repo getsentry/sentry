@@ -1,10 +1,14 @@
 from unittest.mock import call, patch
 
-from sentry.autofix.webhooks import AUTOFIX_GITHUB_APP_USER_ID, handle_github_pr_webhook_for_autofix
+from django.conf import settings
+from django.test import override_settings
+
+from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.testutils.cases import APITestCase
 
 
 class AutofixPrWebhookTest(APITestCase):
+    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
@@ -18,7 +22,7 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "opened",
             {"id": 1, "merged": False},
-            {"id": AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
         )
 
         mock_metrics_incr.assert_called_with("ai.autofix.pr.opened")
@@ -31,6 +35,7 @@ class AutofixPrWebhookTest(APITestCase):
             run_id=1,
         )
 
+    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
@@ -44,7 +49,7 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": False},
-            {"id": AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
         )
 
         mock_metrics_incr.assert_called_with("ai.autofix.pr.closed")
@@ -57,6 +62,7 @@ class AutofixPrWebhookTest(APITestCase):
             run_id=1,
         )
 
+    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
@@ -70,7 +76,7 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": True},
-            {"id": AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
         )
         mock_metrics_incr.assert_called_with("ai.autofix.pr.merged")
         mock_analytics_record.assert_called_with(
@@ -82,6 +88,7 @@ class AutofixPrWebhookTest(APITestCase):
             run_id=1,
         )
 
+    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
@@ -95,7 +102,48 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": True},
-            {"id": AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
+        )
+
+        for key in ["ai.autofix.pr.merged", "ai.autofix.pr.closed", "ai.autofix.pr.opened"]:
+            assert call(key) not in mock_metrics_incr.call_args_list
+            assert call(key) not in mock_analytics_record.call_args_list
+
+    @patch(
+        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        return_value=None,
+    )
+    @patch("sentry.autofix.webhooks.analytics.record")
+    @patch("sentry.autofix.webhooks.metrics.incr")
+    def test_no_settings_github_app_id_set(
+        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+    ):
+        handle_github_pr_webhook_for_autofix(
+            self.organization,
+            "closed",
+            {"id": 1, "merged": True},
+            {"id": "12345"},
+        )
+
+        for key in ["ai.autofix.pr.merged", "ai.autofix.pr.closed", "ai.autofix.pr.opened"]:
+            assert call(key) not in mock_metrics_incr.call_args_list
+            assert call(key) not in mock_analytics_record.call_args_list
+
+    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @patch(
+        "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
+        return_value=None,
+    )
+    @patch("sentry.autofix.webhooks.analytics.record")
+    @patch("sentry.autofix.webhooks.metrics.incr")
+    def test_no_different_github_app(
+        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+    ):
+        handle_github_pr_webhook_for_autofix(
+            self.organization,
+            "closed",
+            {"id": 1, "merged": True},
+            {"id": "321"},
         )
 
         for key in ["ai.autofix.pr.merged", "ai.autofix.pr.closed", "ai.autofix.pr.opened"]:
