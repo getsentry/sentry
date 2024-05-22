@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
@@ -42,7 +41,7 @@ from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -468,12 +467,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "fingerprint": ["group1"],
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
             project_id=self.project.id,
             assert_no_errors=False,
+            event_type=EventType.ERROR,
         )
         assert event.group
         group = event.group
@@ -533,12 +532,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "fingerprint": ["group1"],
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
             project_id=self.project.id,
             assert_no_errors=False,
+            event_type=EventType.ERROR,
         )
         assert event.group
         group = event.group

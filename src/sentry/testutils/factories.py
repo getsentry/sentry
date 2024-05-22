@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import os
 import random
@@ -9,6 +10,7 @@ from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from enum import Enum
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
@@ -154,6 +156,11 @@ from sentry.types.token import AuthTokenType
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
+
+
+class EventType(Enum):
+    ERROR = "error"
+    DEFAULT = "default"
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -899,10 +906,19 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def store_event(
-        data, project_id: int, assert_no_errors: bool = True, sent_at: datetime | None = None
+        data,
+        project_id: int,
+        assert_no_errors: bool = True,
+        event_type: EventType = EventType.DEFAULT,
+        sent_at: datetime | None = None,
     ) -> Event:
-        # Like `create_event`, but closer to how events are actually
-        # ingested. Prefer to use this method over `create_event`
+        """
+        Like `create_event`, but closer to how events are actually
+        ingested. Prefer to use this method over `create_event`
+        """
+        if event_type == EventType.ERROR:
+            data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:
