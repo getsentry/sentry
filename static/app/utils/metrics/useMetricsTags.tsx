@@ -80,7 +80,8 @@ export function useMetricsTags(
       tagsQuery.data?.filter(
         tag =>
           !blockedTagsData.includes(tag.key) ||
-          // The span duration metric will only expose certain tags to be used
+          // Span duration only exposes tags that are found on all/most spans to
+          // avoid tags that are only collected for specific Insights use cases
           (mri === SPAN_DURATION_MRI && ALLOWED_SPAN_DURATION_TAGS.includes(tag.key))
       ) ?? [],
   };
