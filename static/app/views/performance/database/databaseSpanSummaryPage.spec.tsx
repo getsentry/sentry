@@ -93,11 +93,6 @@ describe('DatabaseSpanSummaryPage', function () {
 
     const spanFieldTagsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.starfish.span-description',
-        }),
-      ],
       method: 'GET',
       body: {
         data: [
