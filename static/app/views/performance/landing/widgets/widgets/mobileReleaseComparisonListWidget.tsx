@@ -260,58 +260,57 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided =>
-    function () {
-      const transformedReleaseSeries: {
-        [releaseVersion: string]: Series;
-      } = {};
+  const getChart = provided => {
+    const transformedReleaseSeries: {
+      [releaseVersion: string]: Series;
+    } = {};
 
-      const series = provided.widgetData.chart.data;
-      if (defined(series)) {
-        series.forEach(({seriesName: release, data}) => {
-          const isPrimary = release === primaryRelease;
+    const series = provided.widgetData.chart.data;
+    if (defined(series)) {
+      series.forEach(({seriesName: release, data}) => {
+        const isPrimary = release === primaryRelease;
 
-          const label = release;
-          const seriesData =
-            data.map(datum => {
-              return {
-                name: datum.name,
-                value: datum.value,
-              } as SeriesDataUnit;
-            }) ?? [];
+        const label = release;
+        const seriesData =
+          data.map(datum => {
+            return {
+              name: datum.name,
+              value: datum.value,
+            } as SeriesDataUnit;
+          }) ?? [];
 
-          const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
-          transformedReleaseSeries[release] = {
-            seriesName: formatVersion(label),
-            color,
-            data: seriesData,
-          };
-        });
-      }
+        const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+        transformedReleaseSeries[release] = {
+          seriesName: formatVersion(label),
+          color,
+          data: seriesData,
+        };
+      });
+    }
 
-      return (
-        <Chart
-          height={props.chartHeight}
-          data={Object.values(transformedReleaseSeries)}
-          loading={provided.widgetData.chart.isLoading}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '8px',
-            bottom: '0',
-          }}
-          type={ChartType.LINE}
-          aggregateOutputFormat="duration"
-          tooltipFormatterOptions={{
-            valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-          }}
-          error={provided.widgetData.chart.error}
-          disableXAxis
-          showLegend={false}
-        />
-      );
-    };
+    return (
+      <Chart
+        height={props.chartHeight}
+        data={Object.values(transformedReleaseSeries)}
+        loading={provided.widgetData.chart.isLoading}
+        grid={{
+          left: '0',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        type={ChartType.LINE}
+        aggregateOutputFormat="duration"
+        tooltipFormatterOptions={{
+          valueFormatter: value =>
+            tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+        }}
+        error={provided.widgetData.chart.error}
+        disableXAxis
+        showLegend={false}
+      />
+    );
+  };
 
   const isAppStartup = [
     PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
@@ -329,37 +328,34 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       }
     : {};
   const getItems = provided =>
-    provided.widgetData.list.data.map(
-      listItem =>
-        function () {
-          const transaction = (listItem.transaction as string | undefined) ?? '';
+    provided.widgetData.list.data.map((listItem, i) => {
+      const transaction = (listItem.transaction as string | undefined) ?? '';
 
-          return (
-            <Fragment>
-              <GrowLink
-                to={normalizeUrl({
-                  pathname: `${targetModulePath}spans/`,
-                  query: {
-                    project: listItem['project.id'],
-                    transaction,
-                    primaryRelease,
-                    secondaryRelease,
-                    ...normalizeDateTimeParams(location.query),
-                    ...targetQueryParams,
-                  },
-                })}
-              >
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>
-                <StyledDurationWrapper>
-                  <PerformanceDuration milliseconds={listItem[field]} abbreviation />
-                </StyledDurationWrapper>
-              </RightAlignedCell>
-            </Fragment>
-          );
-        }
-    );
+      return (
+        <Fragment key={i}>
+          <GrowLink
+            to={normalizeUrl({
+              pathname: `${targetModulePath}spans/`,
+              query: {
+                project: listItem['project.id'],
+                transaction,
+                primaryRelease,
+                secondaryRelease,
+                ...normalizeDateTimeParams(location.query),
+                ...targetQueryParams,
+              },
+            })}
+          >
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <RightAlignedCell>
+            <StyledDurationWrapper>
+              <PerformanceDuration milliseconds={listItem[field]} abbreviation />
+            </StyledDurationWrapper>
+          </RightAlignedCell>
+        </Fragment>
+      );
+    });
 
   const Visualizations = [
     {

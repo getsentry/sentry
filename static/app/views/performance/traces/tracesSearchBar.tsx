@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -17,20 +17,12 @@ interface TracesSearchBarProps {
 }
 
 const getSpanName = (index: number) => {
-  const spanNames = [t('Span A'), t('Span B'), t('Span C')];
+  const spanNames = [
+    t('Find traces where a span is'),
+    t('and another span where'),
+    t('and another span where'),
+  ];
   return spanNames[index];
-};
-
-const omitSupportedTags = [SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
-
-const getTracesSupportedTags = () => {
-  const tags: TagCollection = Object.fromEntries(
-    Object.values(SpanIndexedField)
-      .filter(v => !omitSupportedTags.includes(v))
-      .map(v => [v, {key: v, name: v}])
-  );
-  tags.has = getHasTag(tags);
-  return tags;
 };
 
 export function TracesSearchBar({
@@ -39,10 +31,11 @@ export function TracesSearchBar({
   handleClearSearch,
 }: TracesSearchBarProps) {
   // TODO: load tags for autocompletion
+  const {selection} = usePageFilters();
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
-  const supportedTags = getTracesSupportedTags();
+  const supportedTags = useSpanFieldSupportedTags();
 
   return (
     <TraceSearchBarsContainer>
@@ -50,15 +43,15 @@ export function TracesSearchBar({
         <TraceBar key={index}>
           <SpanLetter>{getSpanName(index)}</SpanLetter>
           <StyledSearchBar
+            searchSource="trace-explorer"
             query={query}
             onSearch={(queryString: string) => handleSearch(index, queryString)}
-            placeholder={t(
-              'Search for traces containing a span matching these attributes'
-            )}
+            placeholder={t('Search for span attributes')}
             organization={organization}
             metricAlert={false}
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
           />
           <StyledButton
             aria-label={t('Remove span')}
@@ -76,7 +69,7 @@ export function TracesSearchBar({
           size="sm"
           onClick={() => handleSearch(localQueries.length, '')}
         >
-          {t('Add Span')}
+          {t('Add Span Condition')}
         </Button>
       ) : null}
     </TraceSearchBarsContainer>
@@ -104,7 +97,8 @@ const SpanLetter = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)} ${space(2)};
-
+  text-align: center;
+  min-width: 220px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: 800;

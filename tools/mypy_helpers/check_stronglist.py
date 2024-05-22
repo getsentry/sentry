@@ -1,4 +1,6 @@
 import argparse
+import glob
+import os.path
 import re
 from collections.abc import Sequence
 
@@ -20,6 +22,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     retv = 0
     for filename in args.filenames:
+        reldir = os.path.dirname(os.path.abspath(filename))
+
         with open(filename, "rb") as f:
             overrides = tomllib.load(f)["tool"]["mypy"]["overrides"]
 
@@ -32,6 +36,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             if stronglist_re.fullmatch(mod):
                 print(f"{filename}: {mod} is in the typing errors allowlist *and* stronglist")
                 retv = 1
+
+        for pat in stronglist["module"]:
+            orig_pat = pat
+            firstmod = pat.split(".")[0]
+            if os.path.exists(os.path.join(reldir, "src", firstmod)):
+                pat = f"src.{pat}"
+            pat = pat.replace(".", "/")
+            if pat.endswith("*"):
+                if glob.glob(os.path.join(reldir, pat)):
+                    continue
+            elif os.path.exists(os.path.join(reldir, f"{pat}.py")):
+                continue
+            elif os.path.exists(os.path.join(reldir, pat, "__init__.py")):
+                continue
+            print(f"{filename}: {orig_pat} in stronglist does not match any files!")
+            retv = 1
 
     return retv
 

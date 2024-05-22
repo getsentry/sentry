@@ -18,6 +18,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionCell} from 'sentry/views/performance/cache/tables/transactionCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
+  MetricsFields,
+  type MetricsResponse,
   SpanFunction,
   SpanMetricsField,
   type SpanMetricsResponse,
@@ -26,6 +28,7 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {TRANSACTION_DURATION} = MetricsFields;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 type Row = Pick<
@@ -38,7 +41,8 @@ type Row = Pick<
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
   | 'avg(cache.item_size)'
->;
+> &
+  Pick<MetricsResponse, 'avg(transaction.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'
@@ -46,6 +50,7 @@ type Column = GridColumnHeader<
   | 'cache_miss_rate()'
   | 'time_spent_percentage()'
   | 'project'
+  | 'avg(transaction.duration)'
   | 'avg(cache.item_size)'
 >;
 
@@ -68,6 +73,11 @@ const COLUMN_ORDER: Column[] = [
   {
     key: `${SPM}()`,
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `avg(${TRANSACTION_DURATION})`,
+    name: DataTitles[`avg(${TRANSACTION_DURATION})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {

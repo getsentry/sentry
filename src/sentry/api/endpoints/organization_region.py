@@ -9,7 +9,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
@@ -54,22 +53,23 @@ class OrganizationRegionEndpoint(Endpoint):
     permission_classes = (OrganizationRegionEndpointPermissions,)
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self,
+        request: Request,
+        organization_id_or_slug: int | str | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if not organization_slug:
+        if not organization_id_or_slug:
             raise ResourceDoesNotExist
 
         try:
             # We don't use the lookup since OrganizationMapping uses a BigIntField for organization_id instead of a ForeignKey
-            if (
-                id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_slug)
+            if str(organization_id_or_slug).isdecimal():
+                org_mapping = OrganizationMapping.objects.get(
+                    organization_id=organization_id_or_slug
                 )
-                and str(organization_slug).isdecimal()
-            ):
-                org_mapping = OrganizationMapping.objects.get(organization_id=organization_slug)
             else:
-                org_mapping = OrganizationMapping.objects.get(slug=organization_slug)
+                org_mapping = OrganizationMapping.objects.get(slug=organization_id_or_slug)
         except OrganizationMapping.DoesNotExist:
             raise ResourceDoesNotExist
 

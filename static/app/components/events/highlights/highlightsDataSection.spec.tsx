@@ -3,18 +3,16 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
-import * as analytics from 'sentry/utils/analytics';
-
-HighlightsDataSection;
-
+import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
 import {
   TEST_EVENT_CONTEXTS,
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
+import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture({features: ['event-tags-tree-ui']});
@@ -24,6 +22,10 @@ describe('HighlightsDataSection', function () {
     tags: TEST_EVENT_TAGS,
   });
   const group = GroupFixture();
+  const eventTagMap = TEST_EVENT_TAGS.reduce(
+    (tagMap, tag) => ({...tagMap, [tag.key]: tag.value}),
+    {}
+  );
   const highlightTags = ['environment', 'handled', 'transaction', 'url'];
   const highlightContext = {
     user: ['email'],
@@ -77,8 +79,28 @@ describe('HighlightsDataSection', function () {
     });
     expect(screen.getByText('Event Highlights')).toBeInTheDocument();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    const tagRows = screen.queryAllByTestId('highlight-tag-row');
-    expect(tagRows.length).toBe(highlightTags.length);
+    for (const tagKey of highlightTags) {
+      const row = screen
+        .getByText(tagKey, {selector: 'div'})
+        .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
+      // If highlight is present on the event...
+      if (eventTagMap.hasOwnProperty(tagKey)) {
+        expect(within(row).getByText(eventTagMap[tagKey])).toBeInTheDocument();
+        const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
+        expect(highlightTagDropdown).toBeInTheDocument();
+        await userEvent.click(highlightTagDropdown);
+        expect(
+          screen.getByLabelText('View issues with this tag value')
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByLabelText('Add to event highlights')
+        ).not.toBeInTheDocument();
+      } else {
+        expect(within(row).getByText(EMPTY_HIGHLIGHT_DEFAULT)).toBeInTheDocument();
+        expect(within(row).queryByLabelText('Tag Actions Menu')).not.toBeInTheDocument();
+      }
+    }
+
     const ctxRows = screen.queryAllByTestId('highlight-context-row');
     expect(ctxRows.length).toBe(Object.values(highlightContext).flat().length);
     highlightContextTitles.forEach(title => {

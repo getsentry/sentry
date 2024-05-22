@@ -3,6 +3,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+import orjson
 import pytest
 import responses
 from django.core import mail
@@ -26,7 +27,6 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -596,7 +596,7 @@ class GitHubClientFileBlameBase(TestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -607,7 +607,7 @@ class GitHubClientFileBlameBase(TestCase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
@@ -681,7 +681,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -692,7 +692,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )
@@ -868,8 +868,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -982,8 +982,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -1082,8 +1082,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -1144,8 +1144,8 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1], extra={})
-        assert json.loads(responses.calls[1].request.body)["query"] == query
-        assert json.loads(responses.calls[1].request.body)["variables"] == {
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
             "repo_name_0": "foo",
             "repo_owner_0": "Test-Organization",
             "ref_0_0": "master",
@@ -1321,7 +1321,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
             generate_file_path_mapping([self.file1, self.file2, self.file3]), extra={}
         )
         cache_key = self.github_client.get_cache_key(
-            "/graphql", json.dumps({"query": query, "variables": variables})
+            "/graphql", orjson.dumps({"query": query, "variables": variables}).decode()
         )
         assert self.github_client.check_cache(cache_key) is None
         response = self.github_client.get_blame_for_files(
@@ -1594,7 +1594,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/rate_limit",
-            body=json.dumps(
+            body=orjson.dumps(
                 {
                     "resources": {
                         "graphql": {
@@ -1605,7 +1605,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
                         }
                     }
                 }
-            ),
+            ).decode(),
             status=200,
             content_type="application/json",
         )

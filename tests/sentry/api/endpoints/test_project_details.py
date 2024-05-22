@@ -6,8 +6,10 @@ from time import time
 from typing import Any
 from unittest import mock
 
+import orjson
 from django.db import router
 from django.urls import reverse
+from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
@@ -34,7 +36,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 
 def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
@@ -104,7 +105,7 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
 
 
 def first_symbol_source_id(sources_json):
-    sources = json.loads(sources_json)
+    sources = orjson.loads(sources_json)
     return sources[0]["id"]
 
 
@@ -269,7 +270,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )
@@ -751,7 +752,10 @@ class ProjectUpdateTest(APITestCase):
             self.proj_slug,
             relayCustomMetricCardinalityLimit=1000,
         )
-        assert self.project.get_option("relay.cardinality-limiter.limits") == [
+
+        config = self.project.get_option("relay.cardinality-limiter.limits")
+
+        assert config == [
             {
                 "limit": {
                     "id": "project-override-custom",
@@ -762,6 +766,11 @@ class ProjectUpdateTest(APITestCase):
                 }
             }
         ]
+
+        limit = config[0]["limit"]
+        normalized_limit = normalize_cardinality_limit_config(limit)
+        assert normalized_limit == limit
+
         assert resp.data["relayCustomMetricCardinalityLimit"] == 1000
 
     def test_custom_metrics_cardinality_limit_invalid_text(self):
@@ -782,6 +791,17 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
         assert resp.data["relayCustomMetricCardinalityLimit"] == [
             "Cardinality limit must be a non-negative integer."
+        ]
+
+    def test_custom_metrics_cardinality_limit_invalid_too_high(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=4_294_967_296,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == [
+            "Cardinality limit must be smaller or equal to 4,294,967,295."
         ]
 
     def test_custom_metrics_cardinality_limit_accepts_none(self):
@@ -1180,11 +1200,13 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_success_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([config]).decode()
             )
             config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
 
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+            assert (
+                self.project.get_option("sentry:symbol_sources") == orjson.dumps([config]).decode()
+            )
 
             # redact password
             redacted_source = config.copy()
@@ -1204,10 +1226,14 @@ class ProjectUpdateTest(APITestCase):
             }
 
             self.get_success_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+                self.org_slug,
+                self.proj_slug,
+                symbolSources=orjson.dumps([redacted_source]).decode(),
             )
             # on save the magic object should be replaced with the previously set password
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+            assert (
+                self.project.get_option("sentry:symbol_sources") == orjson.dumps([config]).decode()
+            )
 
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
@@ -1227,21 +1253,23 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_success_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([config]).decode()
             )
             config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
 
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+            assert (
+                self.project.get_option("sentry:symbol_sources") == orjson.dumps([config]).decode()
+            )
 
             # prepare new call, this secret is not known
             new_source = config.copy()
             new_source["password"] = {"hidden-secret": True}
             new_source["id"] = "oops"
             response = self.get_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([new_source])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([new_source]).decode()
             )
             assert response.status_code == 400
-            assert json.loads(response.content) == {
+            assert orjson.loads(response.content) == {
                 "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
@@ -1273,7 +1301,7 @@ class ProjectUpdateTest(APITestCase):
             "password": "beepbeep",
         }
 
-        project.update_option("sentry:symbol_sources", json.dumps([source1, source2]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([source1, source2]).decode())
         return [source1, source2]
 
     def test_symbol_sources_no_modification(self):
@@ -1281,22 +1309,26 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         with Feature({"organizations:custom-symbol-sources": False}):
             resp = self.get_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1, source2])
+                self.org_slug,
+                self.proj_slug,
+                symbolSources=orjson.dumps([source1, source2]).decode(),
             )
 
             assert resp.status_code == 200
-            assert project.get_option("sentry:symbol_sources", json.dumps([source1, source2]))
+            assert project.get_option(
+                "sentry:symbol_sources", orjson.dumps([source1, source2]).decode()
+            )
 
     def test_symbol_sources_deletion(self):
         source1, source2 = self.symbol_sources()
         project = Project.objects.get(id=self.project.id)
         with Feature({"organizations:custom-symbol-sources": False}):
             resp = self.get_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([source1]).decode()
             )
 
             assert resp.status_code == 200
-            assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
+            assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
 
 class CopyProjectSettingsTest(APITestCase):
@@ -1585,7 +1617,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )
@@ -1686,7 +1718,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )
@@ -1730,7 +1762,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
+                "organization_id_or_slug": self.project.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
         )

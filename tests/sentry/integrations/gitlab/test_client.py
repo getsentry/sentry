@@ -6,6 +6,7 @@ from unittest import mock
 from unittest.mock import patch
 from urllib.parse import quote
 
+import orjson
 import pytest
 import responses
 from requests.exceptions import ConnectionError
@@ -22,7 +23,6 @@ from sentry.models.integrations import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 GITLAB_CODEOWNERS = {
@@ -105,7 +105,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_response_call(responses_calls[1], self.refresh_url, 200)
         self.assert_response_call(responses_calls[2], self.request_url, 200)
 
-        assert json.loads(responses_calls[2].response.text) == self.request_data
+        assert orjson.loads(responses_calls[2].response.text) == self.request_data
 
     def assert_identity_was_refreshed(self):
         data = self.gitlab_client.identity.data
@@ -226,11 +226,11 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
         resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
-        assert resp == json.loads(GET_COMMIT_RESPONSE)
+        assert resp == orjson.loads(GET_COMMIT_RESPONSE)
 
     @responses.activate
     def test_get_rate_limit_info_from_response(self):

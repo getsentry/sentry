@@ -32,10 +32,14 @@ jest.mocked(useProjects).mockReturnValue({
   placeholders: [],
 });
 
+const mockInvalidateQueries = jest.fn();
+
 function wrapper({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
-  );
+  const queryClient = makeTestQueryClient();
+
+  queryClient.invalidateQueries = mockInvalidateQueries;
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
@@ -59,6 +63,7 @@ function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
 describe('useReplayData', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    mockInvalidateQueries.mockClear();
   });
 
   it('should hydrate the replayRecord', async () => {
@@ -504,5 +509,60 @@ describe('useReplayData', () => {
         })
       )
     );
+  });
+
+  it("should invalidate queries when result's 'onRetry' function is called", async () => {
+    const {mockReplayResponse} = getMockReplayRecord({
+      count_errors: 0,
+      count_segments: 0,
+      error_ids: [],
+    });
+
+    const replayId = mockReplayResponse.id;
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replayId}/`,
+      body: {data: mockReplayResponse},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      body: {
+        data: [],
+      },
+      headers: {
+        Link: [
+          '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
+          '<http://localhost/?cursor=0:2:0>; rel="next"; results="false"; cursor="0:1:0"',
+        ].join(','),
+      },
+    });
+
+    const {result} = renderHook(useReplayData, {
+      wrapper,
+      initialProps: {
+        replayId,
+        orgSlug: organization.slug,
+      },
+    });
+
+    // We need this 'await waitFor()' for the following assertions to pass:
+    await waitFor(() => {
+      expect(result.current).toBeTruthy();
+    });
+
+    result.current.onRetry();
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: [`/organizations/${organization.slug}/replays/${replayId}/`],
+    });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: [
+        `/projects/${organization.slug}/${project.slug}/replays/${replayId}/recording-segments/`,
+      ],
+    });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: [`/organizations/${organization.slug}/replays-events-meta/`],
+    });
   });
 });

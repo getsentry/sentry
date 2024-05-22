@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.fields import ActorField
 from sentry.models.group import STATUS_UPDATE_CHOICES
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
 from . import InboxDetailsValidator, StatusDetailsValidator
@@ -49,17 +49,17 @@ class GroupValidator(serializers.Serializer):
     # for the moment, the CLI sends this for any issue update, so allow nulls
     snoozeDuration = serializers.IntegerField(allow_null=True)
 
-    def validate_assignedTo(self, value: RpcActor) -> RpcActor:
+    def validate_assignedTo(self, value: Actor) -> Actor:
         if (
             value
-            and value.actor_type == ActorType.USER
+            and value.is_user
             and not self.context["project"].member_set.filter(user_id=value.id).exists()
         ):
             raise serializers.ValidationError("Cannot assign to non-team member")
 
         if (
             value
-            and value.actor_type == ActorType.TEAM
+            and value.is_team
             and not self.context["project"].teams.filter(id=value.id).exists()
         ):
             raise serializers.ValidationError(

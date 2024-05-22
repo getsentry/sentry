@@ -1,6 +1,7 @@
 from unittest import mock
 from urllib.parse import urlencode
 
+import orjson
 import pytest
 from django.utils.functional import cached_property
 
@@ -12,7 +13,6 @@ from sentry.integrations.slack.utils import set_signing_secret
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -94,6 +94,7 @@ class SlackRequestTest(TestCase):
         request.META = (options.get("slack.signing-secret"), self.request.body)
 
         slack_request = SlackRequest(request)
+        assert slack_request.team_id is None
         assert slack_request.logging_data == {
             "slack_channel_id": "1",
             "slack_user_id": "2",
@@ -179,7 +180,7 @@ class SlackEventRequestTest(TestCase):
                 "challenge": "abc123",
                 "type": "url_verification",
             }
-            self.request.body = json.dumps(self.request.data).encode("utf-8")
+            self.request.body = orjson.dumps(self.request.data)
 
             self.slack_request.validate()
 
@@ -190,7 +191,7 @@ class SlackActionRequestTest(TestCase):
 
         self.request = mock.Mock()
         self.request.data = {
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {
                     "type": "foo",
                     "team": {"id": "T001"},
@@ -199,9 +200,9 @@ class SlackActionRequestTest(TestCase):
                     "token": options.get("slack.verification-token"),
                     "callback_id": '{"issue":"I1"}',
                 }
-            )
+            ).decode()
         }
-        self.request.body = urlencode(self.request.data).encode("utf-8")
+        self.request.body = urlencode(self.request.data).encode()
         self.request.META = set_signing_secret(
             options.get("slack.signing-secret"), self.request.body
         )

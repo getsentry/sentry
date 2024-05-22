@@ -21,10 +21,10 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -49,6 +49,7 @@ export function ScreensTable({
   onCursor,
   project,
 }: Props) {
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -89,17 +90,13 @@ export function ScreensTable({
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={normalizeUrl(
-              `/organizations/${
-                organization.slug
-              }/performance/mobile/screens/spans/?${qs.stringify({
-                ...location.query,
-                project: row['project.id'],
-                transaction: row.transaction,
-                primaryRelease,
-                secondaryRelease,
-              })}`
-            )}
+            to={`${moduleURL}/spans/?${qs.stringify({
+              ...location.query,
+              project: row['project.id'],
+              transaction: row.transaction,
+              primaryRelease,
+              secondaryRelease,
+            })}`}
             style={{display: `block`, width: `100%`}}
           >
             {row.transaction}

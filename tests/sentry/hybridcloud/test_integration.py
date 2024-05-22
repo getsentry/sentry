@@ -24,7 +24,7 @@ from sentry.types.integrations import ExternalProviders
 
 
 class BaseIntegrationServiceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = self.create_user()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -71,13 +71,15 @@ class BaseIntegrationServiceTest(TestCase):
         self,
         result: list[RpcIntegration] | list[RpcOrganizationIntegration],
         expected: list[Integration] | list[OrganizationIntegration],
-    ):
+    ) -> None:
         """Ensures APIModels in result, match the Models in expected"""
         assert len(result) == len(expected)
         result_ids = [api_item.id for api_item in result]
         assert all([item.id in result_ids for item in expected])
 
-    def verify_integration_result(self, result: RpcIntegration | None, expected: Integration):
+    def verify_integration_result(
+        self, result: RpcIntegration | None, expected: Integration
+    ) -> None:
         assert result is not None
         serialized_fields = ["id", "provider", "external_id", "name", "metadata", "status"]
         for field in serialized_fields:
@@ -87,7 +89,7 @@ class BaseIntegrationServiceTest(TestCase):
         self,
         result: RpcIntegration | RpcOrganizationIntegration | None,
         expected: Integration | OrganizationIntegration,
-    ):
+    ) -> None:
         assert result is not None
         serialized_fields = [
             "id",
@@ -104,11 +106,11 @@ class BaseIntegrationServiceTest(TestCase):
 
 @all_silo_test
 class IntegrationServiceTest(BaseIntegrationServiceTest):
-    def test_serialize_integration(self):
+    def test_serialize_integration(self) -> None:
         api_integration1 = serialize_integration(self.integration1)
         self.verify_integration_result(result=api_integration1, expected=self.integration1)
 
-    def test_get_integrations(self):
+    def test_get_integrations(self) -> None:
         # by ids
         result = integration_service.get_integrations(
             integration_ids=[self.integration1.id, self.integration2.id]
@@ -142,7 +144,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_integrations()
         assert len(result) == 0
 
-    def test_get_integration(self):
+    def test_get_integration(self) -> None:
         # by id
         result = integration_service.get_integration(integration_id=self.integration3.id)
         self.verify_integration_result(result=result, expected=self.integration3)
@@ -160,7 +162,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         # non-unique result
         assert integration_service.get_integration(organization_id=self.organization.id) is None
 
-    def test_update_integrations(self):
+    def test_update_integrations(self) -> None:
         new_metadata = {"new": "data"}
         integrations = [self.integration1, self.integration3]
         integration_service.update_integrations(
@@ -173,7 +175,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             assert i.metadata == new_metadata
             assert original_time != i.date_updated, "date_updated should change"
 
-    def test_get_installation(self):
+    def test_get_installation(self) -> None:
         api_integration1 = serialize_integration(integration=self.integration1)
         api_install = api_integration1.get_installation(organization_id=self.organization.id)
         install = self.integration1.get_installation(organization_id=self.organization.id)
@@ -181,7 +183,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         assert api_install.org_integration.id == self.org_integration1.id
         assert api_install.__class__ == install.__class__
 
-    def test_has_feature(self):
+    def test_has_feature(self) -> None:
         for feature in IntegrationFeatures:
             api_integration2 = serialize_integration(integration=self.integration2)
             integration_has_feature = self.integration2.has_feature(feature)
@@ -191,13 +193,13 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
 @all_silo_test
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
-    def test_serialize_org_integration(self):
+    def test_serialize_org_integration(self) -> None:
         rpc_org_integration1 = serialize_organization_integration(self.org_integration1)
         self.verify_org_integration_result(
             result=rpc_org_integration1, expected=self.org_integration1
         )
 
-    def test_get_organization_integrations(self):
+    def test_get_organization_integrations(self) -> None:
         # by ids
         result = integration_service.get_organization_integrations(
             org_integration_ids=[self.org_integration2.id, self.org_integration3.id]
@@ -237,7 +239,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_organization_integrations()
         assert len(result) == 0
 
-    def test_get_organization_integration(self):
+    def test_get_organization_integration(self) -> None:
         result = integration_service.get_organization_integration(
             integration_id=self.integration2.id,
             organization_id=self.organization.id,
@@ -249,7 +251,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert result is None
 
-    def test_get_organization_integration__pd(self):
+    def test_get_organization_integration__pd(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
                 organization=self.organization,
@@ -282,7 +284,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             pds2,
         ]
 
-    def test_get_organization_context(self):
+    def test_get_organization_context(self) -> None:
         new_org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = self.integration3.add_organization(new_org.id)
@@ -296,7 +298,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         self.verify_org_integration_result(result=result_org_integration, expected=org_integration)
 
     @freeze_time()
-    def test_update_organization_integrations(self):
+    def test_update_organization_integrations(self) -> None:
         now = datetime.now(timezone.utc)
 
         new_config = {"new": "config"}

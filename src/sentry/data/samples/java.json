@@ -6,7 +6,7 @@
     "name": "sentry-java",
     "version": "1.4.0-3ded0"
   },
-  "sentry.interfaces.Breadcrumbs": {
+  "breadcrumbs": {
     "values": [
       {
         "level": "debug",
@@ -33,7 +33,7 @@
       }
     ]
   },
-  "sentry.interfaces.Exception": {
+  "exception": {
     "exc_omitted": null,
     "values": [
       {
@@ -507,7 +507,7 @@
       }
     ]
   },
-  "sentry.interfaces.Http": {
+  "request": {
     "data": "{\"logged_in\":[\"1\"]}",
     "env": {
       "AUTH_TYPE": null,
@@ -543,10 +543,10 @@
     "query_string": "logged_in=1",
     "url": "http://localhost:8080/"
   },
-  "sentry.interfaces.Message": {
+  "logentry": {
     "message": "Authentication failed, token expired!"
   },
-  "sentry.interfaces.User": {
+  "user": {
     "data": {
       "account_level": "premium"
     },

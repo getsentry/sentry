@@ -1,10 +1,10 @@
 import enum
 
+import orjson
 import requests
 from django.conf import settings
 
 from sentry.api.helpers.repos import get_repos_from_project_code_mappings
-from sentry.utils import json
 
 
 class AutofixCodebaseIndexingStatus(str, enum.Enum):
@@ -23,12 +23,13 @@ def get_project_codebase_indexing_status(project):
     for repo in repos:
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/status",
-            data=json.dumps(
+            data=orjson.dumps(
                 {
                     "organization_id": project.organization.id,
                     "project_id": project.id,
                     "repo": repo,
-                }
+                },
+                option=orjson.OPT_UTC_Z,
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )

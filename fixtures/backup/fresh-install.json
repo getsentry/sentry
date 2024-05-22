@@ -40,15 +40,6 @@
   }
 },
 {
-  "model": "sentry.actor",
-  "pk": 1,
-  "fields": {
-    "type": 0,
-    "user_id": null,
-    "team": 1
-  }
-},
-{
   "model": "sentry.email",
   "pk": 1,
   "fields": {
@@ -223,8 +214,7 @@
     "status": 0,
     "actor": 1,
     "idp_provisioned": false,
-    "date_added": "2023-06-22T22:54:28.821Z",
-    "org_role": null
+    "date_added": "2023-06-22T22:54:28.821Z"
   }
 },
 {

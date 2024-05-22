@@ -11,6 +11,7 @@ from sentry import options
 from sentry.buffer.redis import BufferHookEvent, RedisBuffer, redis_buffer_registry
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.rules.processing.delayed_processing import process_delayed_alert_conditions
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -242,8 +243,9 @@ class TestRedisBuffer:
             field=f"{rule2_id}:{group3_id}",
             value=json.dumps({"event_id": event3_id, "occurrence_id": None}),
         )
-
-        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = self.buf.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
+        )
         assert project_ids
         project_ids_to_rule_data = self.group_rule_data_by_project_id(self.buf, project_ids)
         result = json.loads(project_ids_to_rule_data[project_id][0].get(f"{rule_id}:{group_id}"))
@@ -272,9 +274,14 @@ class TestRedisBuffer:
         mock = Mock()
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
 
-        redis_buffer_registry.callback(BufferHookEvent.FLUSH, self.buf)
+        redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.buf
+
+    @mock.patch("sentry.rules.processing.delayed_processing.metrics.timer")
+    def test_callback(self, mock_metrics_timer):
+        redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_delayed_alert_conditions)
+        self.buf.process_batch()
+        assert mock_metrics_timer.call_count == 1
 
     def test_process_batch(self):
         """Test that the registry's callbacks are invoked when we process a batch"""
@@ -282,7 +289,6 @@ class TestRedisBuffer:
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
         self.buf.process_batch()
         assert mock.call_count == 1
-        assert mock.call_args[0][0] == self.buf
 
     def test_delete_batch(self):
         """Test that after we add things to redis we can clean it up"""
@@ -318,7 +324,9 @@ class TestRedisBuffer:
             )
 
         # retrieve them
-        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = self.buf.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
+        )
         assert len(project_ids) == 2
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert len(rule_group_pairs)
@@ -327,14 +335,16 @@ class TestRedisBuffer:
         self.buf.delete_key(PROJECT_ID_BUFFER_LIST_KEY, min=0, max=now.timestamp())
 
         # retrieve again to make sure only project_id was removed
-        project_ids = self.buf.get_set(PROJECT_ID_BUFFER_LIST_KEY)
+        project_ids = self.buf.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.datetime.now().timestamp()
+        )
         assert project_ids == [(project2_id, one_minute_from_now.timestamp())]
 
         # delete the project_id hash
         self.buf.delete_hash(
             model=Project,
             filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
+            fields=[f"{rule_id}:{group_id}"],
         )
 
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})

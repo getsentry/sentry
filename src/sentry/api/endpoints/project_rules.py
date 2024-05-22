@@ -28,12 +28,9 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -682,7 +679,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
@@ -716,7 +713,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Create an Issue Alert Rule for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectRulesPostSerializer,
@@ -825,18 +822,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         owner = data.get("owner")
         if owner:
-            try:
-                kwargs["owner_user_id"] = None
-                kwargs["owner_team_id"] = None
-                if owner.actor_type == ActorType.USER:
-                    kwargs["owner_user_id"] = owner.id
-                if owner.actor_type == ActorType.TEAM:
-                    kwargs["owner_team_id"] = owner.id
-            except (User.DoesNotExist, Team.DoesNotExist):
-                return Response(
-                    "Could not resolve owner",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            kwargs["owner"] = owner
 
         if data.get("pending_save"):
             client = RedisRuleStatus()

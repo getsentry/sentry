@@ -166,7 +166,7 @@ class SnubaProtocolEventStream(EventStream):
             contexts = event_data.setdefault("contexts", {})
 
             # add user.geo to contexts if it exists
-            user_dict = event_data.get("user") or event_data.get("sentry.interfaces.User") or {}
+            user_dict = event_data.get("user") or {}
             geo = user_dict.get("geo", {})
             if "geo" not in contexts and isinstance(geo, dict):
                 contexts["geo"] = geo

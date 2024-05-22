@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPDomainSummaryPage} from 'sentry/views/performance/http/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture();
@@ -43,8 +41,6 @@ describe('HTTPSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
   beforeEach(function () {
     jest.clearAllMocks();
 
@@ -75,7 +71,7 @@ describe('HTTPSummaryPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<HTTPDomainSummaryPage />);
+    render(<HTTPDomainSummaryPage />, {organization});
 
     expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -93,7 +89,7 @@ describe('HTTPSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -118,7 +114,7 @@ describe('HTTPSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -143,7 +139,7 @@ describe('HTTPSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -175,7 +171,7 @@ describe('HTTPSummaryPage', function () {
           ],
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           referrer: 'api.performance.http.domain-summary-metrics-ribbon',
           statsPeriod: '10d',
         },
@@ -205,7 +201,7 @@ describe('HTTPSummaryPage', function () {
           per_page: 20,
           project: [],
           cursor: '0:20:0',
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           sort: '-time_spent_percentage()',
           referrer: 'api.performance.http.domain-summary-transactions-list',
           statsPeriod: '10d',
@@ -253,7 +249,7 @@ describe('HTTPSummaryPage', function () {
       },
     });
 
-    render(<HTTPDomainSummaryPage />);
+    render(<HTTPDomainSummaryPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

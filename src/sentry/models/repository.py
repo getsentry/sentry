@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -20,7 +22,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.array import ArrayField
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
-from sentry.utils.json import JSONData
 
 
 @region_silo_model
@@ -99,7 +100,7 @@ class Repository(Model, PendingDeletionMixin):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

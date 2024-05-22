@@ -5,10 +5,10 @@ from hashlib import md5
 from typing import TYPE_CHECKING
 
 from django.http.request import HttpRequest
+from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 
 from sentry.ratelimits import backend as ratelimiter
-from sentry.utils.decorators import classproperty
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available
 

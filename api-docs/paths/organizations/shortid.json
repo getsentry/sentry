@@ -5,9 +5,9 @@
     "operationId": "Resolve a Short ID",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the short ID should be looked up in.",
+        "description": "The id or slug of the organization the short ID should be looked up in.",
         "required": true,
         "schema": {
           "type": "string"

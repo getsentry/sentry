@@ -27,7 +27,7 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.actor import parse_and_validate_actor
+from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)

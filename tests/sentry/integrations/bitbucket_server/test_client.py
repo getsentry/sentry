@@ -1,3 +1,4 @@
+import orjson
 import responses
 from django.test import override_settings
 from requests import Request
@@ -9,7 +10,6 @@ from sentry.integrations.bitbucket_server.client import (
 )
 from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 control_address = "http://controlserver"
@@ -71,7 +71,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         responses.add(
             responses.GET,
             f"{self.bb_server_client.base_url}{BitbucketServerAPIPath.repository.format(project='laurynsentry', repo='helloworld')}",
-            body=json.dumps(REPO),
+            body=orjson.dumps(REPO),
         )
 
         res = self.bb_server_client.get_repo("laurynsentry", "helloworld")

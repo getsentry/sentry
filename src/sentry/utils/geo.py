@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 # default is no-op
-def geo_by_addr(ip):
-    pass
+def geo_by_addr(ip: str) -> dict[str, Any] | None:
+    return None
 
 
 rust_geoip: None | GeoIpLookup = None
@@ -48,7 +48,7 @@ def _init_geoip() -> None:
     geo_by_addr = _geo_by_addr
 
 
-def _init_geoip_rust():
+def _init_geoip_rust() -> None:
     global rust_geoip
 
     from sentry_relay.processing import GeoIpLookup

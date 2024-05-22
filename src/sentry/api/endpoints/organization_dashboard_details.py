@@ -24,8 +24,10 @@ class OrganizationDashboardBase(OrganizationEndpoint):
     owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+    def convert_args(
+        self, request: Request, organization_id_or_slug, dashboard_id, *args, **kwargs
+    ):
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             kwargs["dashboard"] = self._get_dashboard(request, kwargs["organization"], dashboard_id)
@@ -84,6 +86,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        self.check_object_permissions(request, dashboard)
+
         num_dashboards = Dashboard.objects.filter(organization=organization).count()
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
 
@@ -115,6 +119,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
+
+        self.check_object_permissions(request, dashboard)
 
         tombstone = None
         if isinstance(dashboard, dict):

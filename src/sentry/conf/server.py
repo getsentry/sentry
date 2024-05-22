@@ -739,6 +739,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
+    "sentry.tasks.backfill_seer_grouping_records",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
@@ -781,6 +782,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.user_report",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
+    "sentry.rules.processing.delayed_processing",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
@@ -793,7 +795,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
-    "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
@@ -1210,11 +1211,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         # 9:00 PDT, 12:00 EDT, 16:00 UTC
         "schedule": crontab(minute="0", hour="16"),
     },
-    "dynamic-sampling-collect-orgs": {
-        "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 20 minutes
-        "schedule": crontab(minute="*/20"),
-    },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         # Run every 1 hour
@@ -1445,8 +1441,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-span-histogram-view": "Enable histogram view in span details",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1520,15 +1514,13 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
+    # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     "organizations:custom-metrics-experimental": False,
-    # Delightful Developer Metrics (DDM):
     # Hides DDM sidebar item
     "organizations:ddm-sidebar-item-hidden": False,
-    # Enables import of metric dashboards
-    "organizations:ddm-dashboard-import": False,
-    # Enables category "metrics" in stats_v2 endpoint
-    "organizations:metrics-stats": False,
+    # Controls the visibility of the metrics launch related UI elements
+    "organizations:metrics-launch-rollout": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
@@ -1621,8 +1613,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enables the UI for Autofix in issue details
     "organizations:issue-details-autofix-ui": False,
-    # Enables the inline replay viewer on the issue details page
-    "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
     # Enable tag improvements in the issue details page
@@ -1635,6 +1625,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
+    # Enable the new assignee dropdown trigger on issue stream
+    "organizations:issue-stream-new-assignee-dropdown-trigger": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
     # Enable new events graph design for issue stream
@@ -1736,6 +1728,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-onboarding-checklist": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable span search bar in Insights module sample panels
+    "organizations:performance-sample-panel-search": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
@@ -1800,6 +1794,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:related-events": False,
     # Enable related issues feature
     "organizations:related-issues": False,
+    # Enable related issues in issue details page
+    "organizations:related-issues-issue-details-page": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1814,6 +1810,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable resolve in upcoming release
+    "organizations:resolve-in-upcoming-release": False,
     # Enable post create/edit rule confirmation notifications
     "organizations:rule-create-edit-confirm-notification": False,
     # Enable team member role provisioning through scim
@@ -1860,10 +1858,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
-    # Enable the new flat file indexing system for sourcemaps.
-    "organizations:sourcemaps-bundle-flat-file-indexing": False,
-    # Upload release bundles as artifact bundles.
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
@@ -1883,6 +1877,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Measure usage by spans instead of transactions
+    "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
@@ -1901,6 +1897,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Rename current Performance modules to "Insights"
+    "organizations:performance-insights": False,
     # Enable queues module ui
     "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
@@ -1929,6 +1927,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:trace-view-load-more": False,
     # Enable feature to load new trace view.
     "organizations:trace-view-v1": False,
+    # Enable feature to load new trace view in replay trace tab.
+    "organizations:replay-trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1945,10 +1945,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-ingest": False,
     # Use ReplayClipPreview inside the User Feedback Details panel
     "organizations:user-feedback-replay-clip": False,
-    # Enable User Feedback spam auto filtering feature UI
-    "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
     "organizations:user-feedback-spam-filter-ingest": False,
+    # Enable User Feedback spam auto filtering feature actions
+    "organizations:user-feedback-spam-filter-actions": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # User Feedback Error Link Ingestion Changes
@@ -1999,18 +1999,18 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:servicehooks": False,
     # Enable similarity embeddings API call
     "projects:similarity-embeddings": False,
+    # Enable similarity embeddings backfill
+    "projects:similarity-embeddings-backfill": False,
     # Enable similarity embeddings grouping
     "projects:similarity-embeddings-grouping": False,
     # Enable adding seer grouping metadata to new groups
     "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
-    "projects:span-metrics-extraction-ga-modules": False,
-    "projects:span-metrics-extraction-all-modules": False,
-    "projects:span-metrics-extraction-resource": False,
+    "projects:span-metrics-extraction-addons": False,
+    "organizations:indexed-spans-extraction": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
-    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
@@ -2753,6 +2753,11 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
+# This flags enables the `peanutbutter` realtime metrics backend.
+# See https://github.com/getsentry/peanutbutter.
+# We do not want/need this in normal devservices, but we need it for certain tests.
+SENTRY_USE_PEANUTBUTTER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3012,6 +3017,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
+    "peanutbutter": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/peanutbutter:latest",
+            "environment": {},
+            "ports": {"4433/tcp": 4433},
+            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
+        }
+    ),
 }
 
 # Max file size for serialized file uploads in API
@@ -3030,7 +3043,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.4.2"
+SELF_HOSTED_STABLE_VERSION = "24.5.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3668,15 +3681,24 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
-ANOMALY_DETECTION_TIMEOUT = 30
+SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
+SEER_DEFAULT_TIMEOUT = 5
 
-# TODO: Once this moves to its own service, this URL will need to be updated
-SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
-SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
-SEVERITY_DETECTION_RETRIES = 1
+SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
 
-SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
+SEER_SEVERITY_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
+SEER_SEVERITY_RETRIES = 1
+
+SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+
+SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_GROUPING_TIMEOUT = 1
+
+SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3707,7 +3729,7 @@ LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 # We should not run access logging middleware on some endpoints as
 # it is very noisy, and these views are hit by internal services.
-ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/",)
+ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
@@ -3949,6 +3971,17 @@ COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
 # Disable DDM entirely
 SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
+
+SEER_SIMILARITY_MODEL_VERSION = "v0"
+SEER_SIMILAR_ISSUES_URL = f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues"
+SEER_MAX_GROUPING_DISTANCE = 0.01
+SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this right now
+SEER_GROUPING_RECORDS_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
+)
+SEER_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
+)
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

@@ -11,83 +11,104 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DurationUnit, RateUnit, type Sort} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
+import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
+import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 type Query = {
-  endpoint: string;
-  endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SPANS_SORT]: string;
+  [QueryParameterNames.TRANSACTIONS_SORT]: string;
   aggregate?: string;
 };
 
 type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
-  const organization = useOrganization();
   const location = useLocation<Query>();
 
   const [selectedAggregate] = useSelectedDurationAggregate();
 
   const {groupId} = params;
-  const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
+  const {transaction, transactionMethod} = location.query;
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
 
-  if (endpoint) {
-    filters.transaction = endpoint;
-  }
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
-  if (endpointMethod) {
-    filters['transaction.method'] = endpointMethod;
-  }
+  // TODO: Fetch sort information using `useLocationQuery`
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
+  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(filters),
-    fields: [
-      SpanMetricsField.SPAN_OP,
-      SpanMetricsField.SPAN_DESCRIPTION,
-      SpanMetricsField.SPAN_ACTION,
-      SpanMetricsField.SPAN_DOMAIN,
-      'count()',
-      `${SpanFunction.SPM}()`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-      `${SpanFunction.HTTP_ERROR_COUNT}()`,
-    ],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics',
-  });
+  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        SpanMetricsField.SPAN_OP,
+        SpanMetricsField.SPAN_DESCRIPTION,
+        SpanMetricsField.SPAN_ACTION,
+        SpanMetricsField.SPAN_DOMAIN,
+        'count()',
+        `${SpanFunction.SPM}()`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+      ],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics'
+  );
 
   const spanMetrics = data[0] ?? {};
+
+  const {
+    isLoading: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        'transaction',
+        'transaction.method',
+        'spm()',
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'time_spent_percentage()',
+        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+      ],
+      sorts: [sort],
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+      cursor,
+    },
+    'api.starfish.span-transaction-metrics'
+  );
 
   const span = {
     ...spanMetrics,
@@ -104,25 +125,31 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: ['spm()'],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: ['spm()'],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics-chart'
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(filters),
-    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    enabled: Boolean(groupId),
-    referrer: 'api.starfish.span-summary-page-metrics-chart',
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+      enabled: Boolean(groupId),
+    },
+    'api.starfish.span-summary-page-metrics-chart'
+  );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+
+  const crumbs = useModuleBreadcrumbs('db');
 
   return (
     <Fragment>
@@ -130,18 +157,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Queries',
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/database`
-                ),
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: 'Query Summary',
               },
@@ -224,11 +240,14 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
             {span && (
               <ModuleLayout.Full>
-                <SpanTransactionsTable
+                <QueryTransactionsTable
                   span={span}
+                  data={transactionsList}
+                  error={transactionsListError}
+                  isLoading={isTransactionsListLoading}
+                  meta={transactionsListMeta}
+                  pageLinks={transactionsListPageLinks}
                   sort={sort}
-                  endpoint={endpoint}
-                  endpointMethod={endpointMethod}
                 />
               </ModuleLayout.Full>
             )}
@@ -236,6 +255,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
           <SampleList
             groupId={span[SpanMetricsField.SPAN_GROUP]}
+            moduleName={ModuleName.DB}
             transactionName={transaction}
             transactionMethod={transactionMethod}
           />
@@ -245,10 +265,12 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   );
 }
 
-const DEFAULT_SORT: Sort = {
-  kind: 'desc',
-  field: 'time_spent_percentage()',
+const DEFAULT_SORT = {
+  kind: 'desc' as const,
+  field: 'time_spent_percentage()' as const,
 };
+
+const TRANSACTIONS_TABLE_ROW_COUNT = 25;
 
 const ChartContainer = styled('div')`
   display: grid;
@@ -281,7 +303,6 @@ function PageWithProviders(props) {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
       features="spans-first-ui"
     >
       <DatabaseSpanSummaryPage {...props} />

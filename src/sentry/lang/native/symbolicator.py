@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urljoin
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
@@ -22,7 +23,7 @@ from sentry.lang.native.sources import (
 )
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
 
@@ -165,8 +166,8 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "sources": json.dumps(sources),
-            "scraping": json.dumps(scraping_config),
+            "sources": orjson.dumps(sources).decode(),
+            "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
 
@@ -182,8 +183,8 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "sources": json.dumps(sources),
-            "scraping": json.dumps(scraping_config),
+            "sources": orjson.dumps(sources).decode(),
+            "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
 

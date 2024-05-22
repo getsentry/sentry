@@ -8,7 +8,6 @@ from sentry import quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
-from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -91,8 +90,6 @@ def _get_rules_of_enabled_biases(
                 rules += bias.generate_rules(project, base_sample_rate)
             except Exception:
                 logger.exception("Rule generator %s failed.", rule_type)
-
-    log_rules(project.organization.id, project.id, rules)
 
     return rules
 

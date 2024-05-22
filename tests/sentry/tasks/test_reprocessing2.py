@@ -26,7 +26,6 @@ from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -62,8 +61,7 @@ def _create_user_report(evt):
 def reprocessing_feature(settings):
     settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
 
-    with Feature({"organizations:reprocessing-v2": True}):
-        yield
+    yield
 
 
 @pytest.fixture

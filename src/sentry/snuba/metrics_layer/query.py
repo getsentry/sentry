@@ -20,6 +20,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
     Request,
+    Storage,
     Timeseries,
 )
 from snuba_sdk.formula import FormulaParameterGroup
@@ -585,7 +586,7 @@ def _query_meta_table(
         conditions.append(extra_condition)
 
     counters_query = (
-        Query(Entity("generic_metrics_counters_meta"))
+        Query(Storage("generic_metrics_counters_meta"))
         .set_select([Column("project_id"), Column(column_name)])
         .set_groupby([Column("project_id"), Column(column_name)])
         .set_where(conditions)
@@ -634,7 +635,7 @@ def _query_meta_table(
 
 def fetch_metric_tag_values(
     org_id: int,
-    project_id: int,
+    project_ids: list[int],
     use_case_id: UseCaseID,
     mri: str,
     tag_key: str,
@@ -649,7 +650,7 @@ def fetch_metric_tag_values(
     if parsed_mri is None:
         raise InvalidParams(f"'{mri}' is not a valid MRI")
 
-    entity = {
+    metric_type = {
         "c": "counters",
         "d": "distributions",
         "g": "gauges",
@@ -662,7 +663,7 @@ def fetch_metric_tag_values(
     metric_id, tag_key_id = resolved
 
     conditions = [
-        Condition(Column("project_id"), Op.EQ, project_id),
+        Condition(Column("project_id"), Op.IN, project_ids),
         Condition(Column("metric_id"), Op.EQ, metric_id),
         Condition(Column("tag_key"), Op.EQ, tag_key_id),
         Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
@@ -673,7 +674,7 @@ def fetch_metric_tag_values(
         conditions.append(Condition(Column("tag_value"), Op.LIKE, f"{tag_value_prefix}%"))
 
     tag_values_query = (
-        Query(Entity(f"generic_metrics_{entity}_meta_tag_values"))
+        Query(Storage(f"generic_metrics_{metric_type}_meta_tag_values"))
         .set_select([Column("tag_value")])
         .set_groupby([Column("tag_value")])
         .set_where(conditions)
@@ -687,7 +688,6 @@ def fetch_metric_tag_values(
         query=tag_values_query,
         tenant_ids={
             "organization_id": org_id,
-            "project_id": project_id,
             "referrer": "generic_metrics_meta_tag_values",
         },
     )

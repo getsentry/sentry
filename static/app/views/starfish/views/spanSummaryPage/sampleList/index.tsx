@@ -4,31 +4,41 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/starfish/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Props = {
   groupId: string;
+  moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
   onClose?: () => void;
   spanDescription?: string;
   transactionMethod?: string;
@@ -37,10 +47,10 @@ type Props = {
 
 export function SampleList({
   groupId,
+  moduleName,
   transactionName,
   transactionMethod,
   spanDescription,
-  additionalFields,
   onClose,
   transactionRoute = '/performance/summary/',
 }: Props) {
@@ -64,19 +74,36 @@ export function SampleList({
   );
 
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const {query} = useLocation();
   const {projects} = useProjects();
+
+  const spanSearchQuery = decodeScalar(query.spanSearchQuery);
+  const supportedTags = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(query.project)),
     [projects, query.project]
   );
 
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
+
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
-      trackAnalytics('starfish.panel.open', {organization});
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: moduleName,
+      });
     }
-  }, [organization, query.transaction]);
+  }, [organization, query.transaction, moduleName]);
 
   const label =
     transactionMethod && !transactionName.startsWith(transactionMethod)
@@ -90,9 +117,12 @@ export function SampleList({
     })}`
   );
 
-  let extraQuery: string[] | undefined = undefined;
+  // set additional query filters from the span search bar and the `query` param
+  let extraQuery: string[] | undefined = spanSearchQuery?.split(' ');
   if (query.query) {
-    extraQuery = Array.isArray(query.query) ? query.query : [query.query];
+    extraQuery = extraQuery?.concat(
+      Array.isArray(query.query) ? query.query : [query.query]
+    );
   }
 
   function defaultOnClose() {
@@ -104,12 +134,25 @@ export function SampleList({
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  if (additionalFields?.includes(HTTP_RESPONSE_CONTENT_LENGTH)) {
+  const additionalFields: SpanIndexedField[] = [
+    SpanIndexedField.TRACE,
+    SpanIndexedField.TRANSACTION_ID,
+  ];
+
+  if (moduleName === ModuleName.RESOURCE) {
+    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
+
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
       {
         key: HTTP_RESPONSE_CONTENT_LENGTH,
         name: t('Encoded Size'),
+        width: COL_WIDTH_UNDEFINED,
+      },
+      {
+        key: SPAN_DESCRIPTION,
+        name: t('Resource Name'),
         width: COL_WIDTH_UNDEFINED,
       },
     ];
@@ -165,12 +208,27 @@ export function SampleList({
           highlightedSpanId={highlightedSpanId}
         />
 
+        <Feature features="performance-sample-panel-search">
+          <StyledSearchBar
+            searchSource="queries-sample-panel"
+            query={spanSearchQuery}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            organization={organization}
+            metricAlert={false}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
+          />
+        </Feature>
+
         <SampleTable
           highlightedSpanId={highlightedSpanId}
           transactionMethod={transactionMethod}
           onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
           onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
           groupId={groupId}
+          moduleName={moduleName}
           transactionName={transactionName}
           query={extraQuery}
           columnOrder={columnOrder}
@@ -217,4 +275,8 @@ const SpanDescription = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 35vw;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-top: ${space(2)};
 `;

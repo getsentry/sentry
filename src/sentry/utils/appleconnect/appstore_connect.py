@@ -15,7 +15,6 @@ from dateutil.parser import parse as parse_date
 from requests import Session, Timeout
 
 from sentry.utils import jwt, safe, sdk
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +166,7 @@ def _get_next_page(response_json: Mapping[str, Any]) -> str | None:
 
 def _get_appstore_info_paged(
     session: Session, credentials: AppConnectCredentials, url: str
-) -> Generator[JSONData, None, None]:
+) -> Generator[Any, None, None]:
     """Iterates through all the pages from a paged response.
 
     App Store Connect responses shares the general format:
@@ -208,14 +207,14 @@ class _IncludedRelations:
        from this.
     """
 
-    def __init__(self, page_data: JSONData):
-        self._items: dict[tuple[_RelType, _RelId], JSONData] = {}
+    def __init__(self, page_data: Any):
+        self._items: dict[tuple[_RelType, _RelId], Any] = {}
         for relation in page_data.get("included", []):
             rel_type = _RelType(relation["type"])
             rel_id = _RelId(relation["id"])
             self._items[(rel_type, rel_id)] = relation
 
-    def get_related(self, data: JSONData, relation: str) -> JSONData | None:
+    def get_related(self, data: Any, relation: str) -> Any | None:
         """Returns the named relation of the object.
 
         ``data`` must be a JSON object which has a ``relationships`` object and
@@ -236,7 +235,7 @@ class _IncludedRelations:
         rel_id = _RelId(rel_ptr_data["id"])
         return self._items[(rel_type, rel_id)]
 
-    def get_multiple_related(self, data: JSONData, relation: str) -> list[JSONData] | None:
+    def get_multiple_related(self, data: Any, relation: str) -> list[Any] | None:
         """Returns a list of all the related objects of the named relation type.
 
         This is like :meth:`get_related` but is for relation types which have a list of
@@ -355,7 +354,7 @@ def get_build_info(
         return build_info
 
 
-def _get_dsym_url(bundles: list[JSONData] | None) -> NoDsymUrl | str:
+def _get_dsym_url(bundles: list[Any] | None) -> NoDsymUrl | str:
     """Returns the dSYMs URL from the extracted from the build bundles."""
     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
@@ -372,7 +371,7 @@ def _get_dsym_url(bundles: list[JSONData] | None) -> NoDsymUrl | str:
     if not bundles:
         return NoDsymUrl.NOT_NEEDED
 
-    get_bundle_url: Callable[[JSONData], Any] = lambda bundle: safe.get_path(
+    get_bundle_url: Callable[[Any], Any] = lambda bundle: safe.get_path(
         bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
     )
 

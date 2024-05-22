@@ -9,8 +9,21 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export function makeTokenKey(token: TokenResult<Token>) {
-  return `${token.type}:${token.location.start.offset}`;
+/**
+ * Generates a unique key for the given token.
+ *
+ * It's important that the key is as stable as possible. Since we derive tokens
+ * from the a simple query string, this is difficult to guarantee. The best we
+ * can do is to use the token type and which iteration of that type it is.
+ *
+ * Example for query "is:unresolved foo assignee:me bar":
+ * Keys: ["freeText:0", "filter:0", "freeText:1" "filter:1", "freeText:2"]
+ */
+export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | null) {
+  const tokenTypeIndex =
+    allTokens?.filter(t => t.type === token.type).indexOf(token) ?? 0;
+
+  return `${token.type}:${tokenTypeIndex}`;
 }
 
 const isSimpleTextToken = (
@@ -29,6 +42,13 @@ export function collapseTextTokens(tokens: ParseResult | null) {
   }
 
   return tokens.reduce<ParseResult>((acc, token) => {
+    // For our purposes, SPACES are equivalent to FREE_TEXT
+    // Combining them ensures that keys don't change when text is added or removed,
+    // which would cause the cursor to jump around.
+    if (isSimpleTextToken(token)) {
+      token.type = Token.FREE_TEXT;
+    }
+
     if (acc.length === 0) {
       return [token];
     }
@@ -37,9 +57,8 @@ export function collapseTextTokens(tokens: ParseResult | null) {
 
     if (isSimpleTextToken(token) && isSimpleTextToken(lastToken)) {
       lastToken.value += token.value;
-      lastToken.text += token.value;
+      lastToken.text += token.text;
       lastToken.location.end = token.location.end;
-      lastToken.type = Token.FREE_TEXT;
       return acc;
     }
 

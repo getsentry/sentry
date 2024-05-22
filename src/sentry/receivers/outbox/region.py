@@ -51,12 +51,6 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     proj
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.ACTOR_UPDATE)
-def process_actor_updates(object_identifier: int, **kwds: Any):
-    # Retain until we have no ACTOR_UPDATE messages in flight.
-    pass
-
-
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
 def process_organization_mapping_customer_id_update(
     object_identifier: int, payload: Any, **kwds: Any
@@ -65,6 +59,7 @@ def process_organization_mapping_customer_id_update(
         return
 
     if payload and "customer_id" in payload:
+        # TODO(mark) Update this to use CustomerId
         update = update_organization_mapping_from_instance(
             org, get_local_region(), customer_id=(payload["customer_id"],)
         )

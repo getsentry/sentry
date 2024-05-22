@@ -1,10 +1,10 @@
+import orjson
 import pytest
 import responses
 
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -88,7 +88,7 @@ class OpsgenieClientTest(APITestCase):
             client.send_notification(event, "P2", [rule])
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
             "tags": ["level:warning"],

@@ -86,10 +86,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -99,6 +95,7 @@ jobs:
           kafka: true
           snuba: true
           symbolicator: true
+          peanutbutter: true
           # Right now, we run so few bigtable related tests that the
           # overhead of running bigtable in all backend tests
           # is way smaller than the time it would take to run in its own job.
@@ -127,6 +124,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -140,10 +138,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -163,6 +157,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -193,6 +188,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
@@ -264,10 +260,6 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -294,6 +286,7 @@ jobs:
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          commit_sha: ${{ github.event.pull_request.head.sha }}
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'

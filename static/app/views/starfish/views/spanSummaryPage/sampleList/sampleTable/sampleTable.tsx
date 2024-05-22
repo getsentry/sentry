@@ -16,7 +16,7 @@ import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -27,6 +27,7 @@ const SpanSamplesTableContainer = styled('div')`
 
 type Props = {
   groupId: string;
+  moduleName: ModuleName;
   transactionName: string;
   additionalFields?: string[];
   additionalFilters?: Record<string, string>;
@@ -41,6 +42,7 @@ type Props = {
 
 function SampleTable({
   groupId,
+  moduleName,
   transactionName,
   highlightedSpanId,
   onMouseLeaveSample,
@@ -65,14 +67,16 @@ function SampleTable({
     filters.release = release;
   }
 
-  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
-    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-      Boolean(value)
-    ),
-    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
-  });
+  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
+      fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.span-summary-panel-samples-table-avg'
+  );
 
   const spanMetrics = data[0] ?? {};
 
@@ -150,6 +154,7 @@ function SampleTable({
         hasData={spans.length > 0}
       >
         <SpanSamplesTable
+          moduleName={moduleName}
           onMouseLeaveSample={onMouseLeaveSample}
           onMouseOverSample={onMouseOverSample}
           highlightedSpanId={highlightedSpanId}
@@ -165,7 +170,17 @@ function SampleTable({
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </VisuallyCompleteWithData>
-      <Button onClick={() => refetch()}>{t('Try Different Samples')}</Button>
+      <Button
+        onClick={() => {
+          trackAnalytics('performance_views.sample_spans.try_different_samples_clicked', {
+            organization,
+            source: moduleName,
+          });
+          refetch();
+        }}
+      >
+        {t('Try Different Samples')}
+      </Button>
     </SpanSamplesTableContainer>
   );
 }

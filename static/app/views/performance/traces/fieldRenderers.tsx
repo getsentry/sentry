@@ -1,6 +1,8 @@
+import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -23,14 +25,27 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import type {IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
 
-import type {TraceResult} from './content';
+import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
-import {getStylingSliceName} from './utils';
+import {getShortenedSdkName, getStylingSliceName} from './utils';
 
 interface ProjectRendererProps {
   projectSlug: string;
   hideName?: boolean;
+}
+
+export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
+  return (
+    <Description>
+      <ProjectRenderer projectSlug={span.project} hideName />
+      <strong>{span['span.op']}</strong>
+      <em>{'\u2014'}</em>
+      <WrappingText>{span['span.description']}</WrappingText>
+      {<StatusTag status={span['span.status']} />}
+    </Description>
+  );
 }
 
 export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
@@ -52,29 +67,39 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
   );
 }
 
-export const TraceBreakdownContainer = styled('div')`
+const WrappingText = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+`;
+
+export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   position: relative;
   display: flex;
   min-width: 200px;
   height: 15px;
   background-color: ${p => p.theme.gray100};
+  ${p => `--hoveredSlice-${p.hoveredIndex ?? -1}-translateY: translateY(-3px)`};
 `;
 
 const RectangleTraceBreakdown = styled(RowRectangle)<{
   sliceColor: string;
   sliceName: string | null;
+  offset?: number;
 }>`
   background-color: ${p => p.sliceColor};
   position: relative;
   width: 100%;
   height: 15px;
   ${p => `
+    filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
+  `}
+  ${p => `
     opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
   `}
   ${p => `
-    transform: var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0));
+    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
   `}
-  transition: opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({
@@ -86,26 +111,34 @@ export function TraceBreakdownRenderer({
   trace: TraceResult<Field>;
 }) {
   const theme = useTheme();
+  const [hoveredIndex, setHoveredIndex] = useState(-1);
 
   return (
-    <TraceBreakdownContainer data-test-id="relative-ops-breakdown">
-      {trace.breakdowns.map(breakdown => {
+    <TraceBreakdownContainer
+      data-test-id="relative-ops-breakdown"
+      hoveredIndex={hoveredIndex}
+      onMouseLeave={() => setHoveredIndex(-1)}
+    >
+      {trace.breakdowns.map((breakdown, index) => {
         return (
           <SpanBreakdownSliceRenderer
             key={breakdown.start + (breakdown.project ?? t('missing instrumentation'))}
             sliceName={breakdown.project}
             sliceStart={breakdown.start}
             sliceEnd={breakdown.end}
+            sliceDurationReal={breakdown.duration}
             sliceSecondaryName={breakdown.sdkName}
             trace={trace}
             theme={theme}
-            onMouseEnter={() =>
+            offset={index}
+            onMouseEnter={() => {
+              setHoveredIndex(index);
               breakdown.project
                 ? setHighlightedSliceName(
                     getStylingSliceName(breakdown.project, breakdown.sdkName) ?? ''
                   )
-                : null
-            }
+                : null;
+            }}
           />
         );
       })}
@@ -114,7 +147,8 @@ export function TraceBreakdownRenderer({
 }
 
 const BREAKDOWN_BAR_SIZE = 200;
-const BREAKDOWN_QUANTIZE_STEP = 5;
+const BREAKDOWN_QUANTIZE_STEP = 1;
+const BREAKDOWN_NUM_SLICES = BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP; // 200
 
 export function SpanBreakdownSliceRenderer({
   trace,
@@ -122,8 +156,10 @@ export function SpanBreakdownSliceRenderer({
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceDurationReal,
   sliceSecondaryName,
   onMouseEnter,
+  offset,
 }: {
   onMouseEnter: () => void;
   sliceEnd: number;
@@ -132,8 +168,11 @@ export function SpanBreakdownSliceRenderer({
   sliceStart: number;
   theme: Theme;
   trace: TraceResult<Field>;
+  offset?: number;
+  sliceDurationReal?: number;
 }) {
-  const traceDuration = trace.end - trace.start;
+  const traceSliceSize = (trace.end - trace.start) / BREAKDOWN_NUM_SLICES;
+  const traceDuration = BREAKDOWN_NUM_SLICES * traceSliceSize;
 
   const sliceDuration = sliceEnd - sliceStart;
 
@@ -146,16 +185,11 @@ export function SpanBreakdownSliceRenderer({
 
   const sliceWidth =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.ceil(
-      (BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * (sliceDuration / traceDuration)
-    );
+    Math.ceil(BREAKDOWN_NUM_SLICES * (sliceDuration / traceDuration));
   const relativeSliceStart = sliceStart - trace.start;
   const sliceOffset =
     BREAKDOWN_QUANTIZE_STEP *
-    Math.floor(
-      ((BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP) * relativeSliceStart) /
-        traceDuration
-    );
+    Math.floor((BREAKDOWN_NUM_SLICES * relativeSliceStart) / traceDuration);
   return (
     <BreakdownSlice
       sliceName={sliceName}
@@ -169,28 +203,32 @@ export function SpanBreakdownSliceRenderer({
             <FlexContainer>
               {sliceName ? <ProjectRenderer projectSlug={sliceName} hideName /> : null}
               <strong>{sliceName}</strong>
-
-              {sliceSecondaryName ? (
-                <span>
-                  {'\u2014'}
-                  &nbsp;
-                  {sliceSecondaryName}
-                </span>
-              ) : null}
+              <Subtext>({getShortenedSdkName(sliceSecondaryName)})</Subtext>
             </FlexContainer>
             <div>
-              <PerformanceDuration milliseconds={sliceDuration} abbreviation />
+              <PerformanceDuration
+                milliseconds={sliceDurationReal ?? sliceDuration}
+                abbreviation
+              />
             </div>
           </div>
         }
         containerDisplayMode="block"
       >
-        <RectangleTraceBreakdown sliceColor={sliceColor} sliceName={stylingSliceName} />
+        <RectangleTraceBreakdown
+          sliceColor={sliceColor}
+          sliceName={stylingSliceName}
+          offset={offset}
+        />
       </Tooltip>
     </BreakdownSlice>
   );
 }
 
+const Subtext = styled('span')`
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+`;
 const FlexContainer = styled('div')`
   display: flex;
   flex-direction: row;
@@ -314,7 +352,7 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
       to={normalizeUrl({
         pathname: `/organizations/${organization.slug}/issues`,
         query: {
-          query: `is:unresolved trace:"${trace.trace}"`,
+          query: `trace:"${trace.trace}"`,
         },
       })}
       size="xs"
@@ -343,3 +381,63 @@ export function SpanTimeRenderer({
     />
   );
 }
+
+type SpanStatus = IndexedResponse[SpanIndexedField.SPAN_STATUS];
+
+const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
+  ok: 'success',
+  cancelled: 'warning',
+  unknown: 'info',
+  invalid_argument: 'warning',
+  deadline_exceeded: 'error',
+  not_found: 'warning',
+  already_exists: 'warning',
+  permission_denied: 'warning',
+  resource_exhausted: 'warning',
+  failed_precondition: 'warning',
+  aborted: 'warning',
+  out_of_range: 'warning',
+  unimplemented: 'error',
+  internal_error: 'error',
+  unavailable: 'error',
+  data_loss: 'error',
+  unauthenticated: 'warning',
+};
+
+function statusToTagType(status: string) {
+  return STATUS_TO_TAG_TYPE[status];
+}
+
+const OMITTED_SPAN_STATUS = ['unknown'];
+
+/**
+ * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
+ */
+export function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+  const tagType = statusToTagType(status);
+
+  if (!tagType) {
+    return null;
+  }
+
+  if (OMITTED_SPAN_STATUS.includes(status)) {
+    return null;
+  }
+  return (
+    <StyledTag type={tagType} onClick={onClick} borderStyle="solid">
+      {status}
+    </StyledTag>
+  );
+}
+
+const StyledTag = styled(Tag)`
+  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
+`;
+
+const Description = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(1)};
+`;

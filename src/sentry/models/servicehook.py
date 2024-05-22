@@ -2,7 +2,7 @@ import hmac
 import secrets
 from functools import cached_property
 from hashlib import sha256
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 from uuid import uuid4
 
 from django.db import models
@@ -24,7 +24,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.utils.json import JSONData
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",
@@ -122,7 +121,7 @@ class ServiceHook(Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)

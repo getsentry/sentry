@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -17,13 +18,18 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/http/referrers';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+  RELEASE_LEVEL,
+} from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
   isAValidSort,
@@ -31,10 +37,10 @@ import {
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export function HTTPLandingPage() {
@@ -54,11 +60,11 @@ export function HTTPLandingPage() {
   });
 
   const chartFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
   };
 
   const tableFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
@@ -79,73 +85,76 @@ export function HTTPLandingPage() {
     isLoading: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: ['spm()'],
-    referrer: Referrer.LANDING_THROUGHPUT_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+    },
+    Referrer.LANDING_THROUGHPUT_CHART
+  );
 
   const {
     isLoading: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: [`avg(span.self_time)`],
-    referrer: Referrer.LANDING_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [`avg(span.self_time)`],
+    },
+    Referrer.LANDING_DURATION_CHART
+  );
 
   const {
     isLoading: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject(chartFilters),
-    yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    referrer: Referrer.LANDING_RESPONSE_CODE_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+    },
+    Referrer.LANDING_RESPONSE_CODE_CHART
+  );
 
-  const domainsListResponse = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(tableFilters),
-    fields: [
-      'project',
-      'project.id',
-      'span.domain',
-      'spm()',
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-    ],
-    sorts: [sort],
-    limit: DOMAIN_TABLE_ROW_COUNT,
-    cursor,
-    referrer: Referrer.LANDING_DOMAINS_LIST,
-  });
+  const domainsListResponse = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(tableFilters),
+      fields: [
+        'project',
+        'project.id',
+        'span.domain',
+        'spm()',
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: DOMAIN_TABLE_ROW_COUNT,
+      cursor,
+    },
+    Referrer.LANDING_DOMAINS_LIST
+  );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+
+  const crumbs = useModuleBreadcrumbs('http');
 
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -239,11 +248,10 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL="/performance/http"
       features="spans-first-ui"
     >
       <HTTPLandingPage />
@@ -251,4 +259,4 @@ function LandingPageWithProviders() {
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

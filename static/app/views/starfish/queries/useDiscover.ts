@@ -17,35 +17,57 @@ interface UseMetricsOptions<Fields> {
   enabled?: boolean;
   fields?: Fields;
   limit?: number;
+  pageFilters?: PageFilters;
   referrer?: string;
-  search?: MutableSearch;
+  search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
 }
 
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {}
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
 ) => {
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    DiscoverDatasets.SPANS_METRICS
+    DiscoverDatasets.SPANS_METRICS,
+    referrer
   );
 };
 
 export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {}
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
 ) => {
-  return useDiscover<Fields, MetricsResponse>(options, DiscoverDatasets.METRICS);
+  return useDiscover<Fields, MetricsResponse>(
+    options,
+    DiscoverDatasets.METRICS,
+    referrer
+  );
 };
 
 const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
   options: UseMetricsOptions<T> = {},
-  dataset: DiscoverDatasets
+  dataset: DiscoverDatasets,
+  referrer: string
 ) => {
-  const {fields = [], search = undefined, sorts = [], limit, cursor, referrer} = options;
+  const {
+    fields = [],
+    search = undefined,
+    sorts = [],
+    limit,
+    cursor,
+    pageFilters: pageFiltersFromOptions,
+  } = options;
 
   const pageFilters = usePageFilters();
 
-  const eventView = getEventView(search, fields, sorts, pageFilters.selection, dataset);
+  const eventView = getEventView(
+    search,
+    fields,
+    sorts,
+    pageFiltersFromOptions ?? pageFilters.selection,
+    dataset
+  );
 
   const result = useWrappedDiscoverQuery({
     eventView,
@@ -68,16 +90,18 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
 };
 
 function getEventView(
-  search: MutableSearch | undefined,
+  search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
   pageFilters: PageFilters,
   dataset: DiscoverDatasets
 ) {
+  const query = typeof search === 'string' ? search : search?.formatString() ?? '';
+
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: search?.formatString() ?? '',
+      query,
       fields,
       dataset,
       version: 2,

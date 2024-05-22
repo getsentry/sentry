@@ -9,7 +9,6 @@ from sentry.models.processingissue import (
 )
 from sentry.models.rawevent import RawEvent
 from sentry.testutils.cases import TestCase
-from sentry.utils.canonical import CanonicalKeyDict
 
 
 class ProcessingIssueTest(TestCase):
@@ -76,7 +75,7 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+            data={"release": release.version, "dist": dist.name},
         )
 
         manager = ProcessingIssueManager()
@@ -112,7 +111,7 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+            data={"release": release.version, "dist": dist.name},
         )
 
         ProcessingIssue.objects.create(
@@ -167,7 +166,7 @@ class ProcessingIssueTest(TestCase):
             raw_event = RawEvent.objects.create(
                 project_id=project.id,
                 event_id=event_id,
-                data=CanonicalKeyDict({"release": release, "dist": dist}),
+                data={"release": release, "dist": dist},
             )
 
             manager = ProcessingIssueManager()
@@ -205,7 +204,7 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist_2.name}),
+            data={"release": release.version, "dist": dist_2.name},
         )
 
         ProcessingIssue.objects.create(
