@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -19,8 +19,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
   SpanFunction,
@@ -109,6 +110,7 @@ export function QueuesTable({error, destination, sort}: Props) {
   const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({
     destination,
     sort,
+    referrer: Referrer.QUEUES_LANDING_DESTINATIONS_TABLE,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
@@ -203,7 +205,7 @@ function renderBodyCell(
 }
 
 function DestinationCell({destination}: {destination: string}) {
-  const organization = useOrganization();
+  const moduleURL = useModuleURL('queue');
   const {query} = useLocation();
   const queryString = {
     ...query,
@@ -211,11 +213,7 @@ function DestinationCell({destination}: {destination: string}) {
   };
   return (
     <NoOverflow>
-      <Link
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/performance/queues/destination/?${qs.stringify(queryString)}`
-        )}
-      >
+      <Link to={`${moduleURL}/destination/?${qs.stringify(queryString)}`}>
         {destination}
       </Link>
     </NoOverflow>

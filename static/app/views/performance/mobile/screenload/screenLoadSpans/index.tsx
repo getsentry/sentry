@@ -35,8 +35,8 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import {BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -56,6 +56,7 @@ type Query = {
 };
 
 function ScreenLoadSpans() {
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
@@ -66,7 +67,7 @@ function ScreenLoadSpans() {
   }, [location.query.project, projects]);
 
   const screenLoadModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
+    pathname: moduleURL,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
@@ -242,7 +243,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <ScreenLoadSpans />

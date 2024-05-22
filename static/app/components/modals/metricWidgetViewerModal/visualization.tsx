@@ -115,27 +115,23 @@ interface MetricVisualizationProps {
   expressions: DashboardMetricsExpression[];
   interval: string;
   onDisplayTypeChange: (displayType: DisplayType) => void;
-  onIntervalChange?: (interval: string) => void;
   onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
+
+const EMPTY_FN = () => {};
 
 export function MetricVisualization({
   expressions,
   displayType,
   onDisplayTypeChange,
   onOrderChange,
-  onIntervalChange,
   interval,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
-  const {
-    interval: validatedInterval,
-    setInterval,
-    currentIntervalOptions,
-  } = useMetricsIntervalOptions({
+  const {interval: validatedInterval} = useMetricsIntervalOptions({
     interval,
     datetime: selection.datetime,
-    onIntervalChange: onIntervalChange ?? (() => {}),
+    onIntervalChange: EMPTY_FN,
   });
 
   const queries = useMemo(() => expressionsToApiQueries(expressions), [expressions]);
@@ -150,11 +146,6 @@ export function MetricVisualization({
   });
 
   const widgetMQL = useMemo(() => getMetricWidgetTitle(expressions), [expressions]);
-
-  const isChartDisplay = useMemo(
-    () => [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType),
-    [displayType]
-  );
 
   const visualizationComponent = useMemo(() => {
     if (!timeseriesData) {
@@ -217,17 +208,6 @@ export function MetricVisualization({
             {widgetMQL}
           </StyledTooltip>
         </WidgetTitle>
-        {isChartDisplay && (
-          <CompactSelect
-            size="sm"
-            value={interval}
-            onChange={({value}) => setInterval(value)}
-            triggerProps={{
-              prefix: t('Interval'),
-            }}
-            options={currentIntervalOptions}
-          />
-        )}
         <CompactSelect
           size="sm"
           triggerProps={{prefix: t('Visualization')}}

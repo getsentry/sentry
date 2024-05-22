@@ -20,12 +20,12 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
-import {BASE_URL} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -47,6 +47,7 @@ type Query = {
 type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const moduleURL = useModuleURL('db');
   const organization = useOrganization();
   const location = useLocation<Query>();
 
@@ -165,9 +166,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
               },
               {
                 label: 'Queries',
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/database`
-                ),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {
@@ -315,7 +314,6 @@ function PageWithProviders(props) {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="spans-first-ui"
     >
       <DatabaseSpanSummaryPage {...props} />

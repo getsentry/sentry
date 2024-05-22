@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
@@ -148,16 +149,17 @@ export const MetricsLayout = memo(() => {
             <LoadingIndicator />
           ) : hasCustomMetrics || isEmptyStateDismissed ? (
             <Fragment>
+              <GuideAnchor target="metrics_onboarding" />
               <Queries />
               <MetricScratchpad />
               <WidgetDetails />
             </Fragment>
           ) : (
             <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
-              <h3>{t('Get started with custom metrics')}</h3>
+              <h3>{t('Track and solve what matters')}</h3>
               <p>
                 {t(
-                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                  'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
                 )}
               </p>
               <MetricsOnboardingPanelPrimaryAction organization={organization}>

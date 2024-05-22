@@ -97,7 +97,12 @@ register(
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-
+# Enable date-util parsing for timestamps
+register(
+    "system.use-date-util-timestamps",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Redis
 register(
     "redis.clusters",
@@ -1768,6 +1773,12 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.spans-tags-values.search",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -2116,6 +2127,26 @@ register(
 
 register(
     "issues.sdk_crash_detection.native.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.sample_rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2521,4 +2552,21 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+
+register(
+    "sentry.save-event-attachments.project-per-5-minute-limit",
+    type=Int,
+    default=20000000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

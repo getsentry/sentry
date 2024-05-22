@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools>=40.2.0,<64.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
@@ -212,7 +208,6 @@ module = [
     "sentry.api.serializers.models.external_actor",
     "sentry.api.serializers.models.group",
     "sentry.api.serializers.models.group_stream",
-    "sentry.api.serializers.models.incident",
     "sentry.api.serializers.models.integration",
     "sentry.api.serializers.models.integration_feature",
     "sentry.api.serializers.models.notification_action",
@@ -449,7 +444,6 @@ module = [
     "sentry.tasks.integrations.sync_status_outbound",
     "sentry.tasks.process_buffer",
     "sentry.tasks.sentry_apps",
-    "sentry.tasks.store",
     "sentry.templatetags.sentry_assets",
     "sentry.templatetags.sentry_helpers",
     "sentry.templatetags.sentry_plugins",
@@ -465,8 +459,6 @@ module = [
     "sentry.types.integrations",
     "sentry.utils.auth",
     "sentry.utils.committers",
-    "sentry.utils.distutils.commands.base",
-    "sentry.utils.distutils.commands.build_assets",
     "sentry.utils.services",
     "sentry.utils.snowflake",
     "sentry.web.forms.accounts",
@@ -635,6 +627,7 @@ module = [
     "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
+    "sentry.tasks.store",
     "sentry.types.actor",
     "sentry.types.region",
     "sentry.utils.arroyo",

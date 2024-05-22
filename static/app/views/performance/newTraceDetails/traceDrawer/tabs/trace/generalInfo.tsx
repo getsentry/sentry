@@ -4,8 +4,8 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
@@ -127,7 +127,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'trace_id',
       subject: t('Trace ID'),
-      value: <TraceDrawerComponents.CardValueWithCopy value={traceSlug} />,
+      value: <TraceDrawerComponents.CopyableCardValueWithLink value={traceSlug} />,
     },
     {
       key: 'events',

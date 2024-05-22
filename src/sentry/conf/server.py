@@ -1627,6 +1627,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
     "organizations:issue-search-group-attributes-side-query": False,
+    # Enable the new assignee dropdown trigger on issue stream
+    "organizations:issue-stream-new-assignee-dropdown-trigger": False,
     # Enable the updated empty state for issues
     "organizations:issue-stream-empty-state": False,
     # Enable new events graph design for issue stream
@@ -1728,6 +1730,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-onboarding-checklist": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable span search bar in Insights module sample panels
+    "organizations:performance-sample-panel-search": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
@@ -1875,6 +1879,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Measure usage by spans instead of transactions
+    "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
@@ -1893,6 +1899,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Rename current Performance modules to "Insights"
+    "organizations:performance-insights": False,
     # Enable queues module ui
     "organizations:performance-queues-view": False,
     # Enable browser starfish cache module ui
@@ -1921,6 +1929,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:trace-view-load-more": False,
     # Enable feature to load new trace view.
     "organizations:trace-view-v1": False,
+    # Enable feature to load new trace view in replay trace tab.
+    "organizations:replay-trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1999,9 +2009,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
-    "projects:span-metrics-extraction-ga-modules": False,
-    "projects:span-metrics-extraction-all-modules": False,
-    "projects:span-metrics-extraction-resource": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
     "projects:span-metrics-double-write-distributions-as-gauges": False,

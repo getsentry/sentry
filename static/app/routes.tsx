@@ -19,6 +19,7 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
+import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
@@ -1435,29 +1436,20 @@ function buildRoutes() {
     </Route>
   );
 
-  const aiMonitoringRoutes = (
-    <Route path="/ai-monitoring/" withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/aiMonitoring/landing'))} />
+  const llmMonitoringRoutes = (
+    <Route path="/llm-monitoring/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
       <Route
         path="pipeline-type/:groupId/"
         component={make(
-          () => import('sentry/views/aiMonitoring/aiMonitoringDetailsPage')
+          () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
         )}
       />
     </Route>
   );
 
-  const performanceRoutes = (
-    <Route
-      path="/performance/"
-      component={make(() => import('sentry/views/performance'))}
-      withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
+  const insightsRoutes = (
+    <Fragment>
       <Route path="database/">
         <IndexRoute
           component={make(
@@ -1482,7 +1474,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route path="cache/">
+      <Route path={`${CACHE_BASE_URL}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/cache/cacheLandingPage')
@@ -1572,6 +1564,20 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+    </Fragment>
+  );
+
+  const performanceRoutes = (
+    <Route
+      path="/performance/"
+      component={make(() => import('sentry/views/performance'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <Route
+        path="trends/"
+        component={make(() => import('sentry/views/performance/trends'))}
+      />
       <Route path="traces/">
         <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
       </Route>
@@ -1652,6 +1658,7 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
+      {insightsRoutes}
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
@@ -2065,7 +2072,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
-      {aiMonitoringRoutes}
+      {llmMonitoringRoutes}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}

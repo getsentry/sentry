@@ -34,7 +34,6 @@ import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
-  BASE_URL,
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
@@ -46,6 +45,7 @@ import {
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -61,6 +61,7 @@ type Query = {
 };
 
 export function HTTPDomainSummaryPage() {
+  const moduleURL = useModuleURL('http');
   const location = useLocation<Query>();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -180,7 +181,7 @@ export function HTTPDomainSummaryPage() {
               },
               {
                 label: MODULE_TITLE,
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/http`),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {
@@ -358,7 +359,6 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      baseURL={`/performance/${BASE_URL}`}
       title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="spans-first-ui"
     >

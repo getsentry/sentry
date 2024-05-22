@@ -15,7 +15,7 @@ const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: string;
-  moduleName: ModuleName;
+  moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   group?: string;
   spanOp?: string;
@@ -42,6 +42,7 @@ export function SpanDescriptionCell({
 
   const descriptionLink = (
     <SpanGroupDetailsLink
+      moduleName={moduleName}
       group={group}
       projectId={projectId}
       spanOp={spanOp}

@@ -24,25 +24,30 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import Onboarding from 'sentry/views/performance/onboarding';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
+import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {MessageSamplesPanel} from 'sentry/views/performance/queues/messageSamplesPanel';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
-  BASE_URL,
   DESTINATION_TITLE,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
+  const moduleURL = useModuleURL('queue');
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data, isLoading} = useQueuesMetricsQuery({destination});
+  const {data, isLoading} = useQueuesMetricsQuery({
+    destination,
+    referrer: Referrer.QUEUES_SUMMARY,
+  });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
     <Fragment>
@@ -57,9 +62,7 @@ function DestinationSummaryPage() {
               },
               {
                 label: MODULE_TITLE,
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/queues/`
-                ),
+                to: moduleURL,
                 preservePageFilters: true,
               },
               {
@@ -144,11 +147,17 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart destination={destination} />
+                  <LatencyChart
+                    destination={destination}
+                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                  />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart destination={destination} />
+                  <ThroughputChart
+                    destination={destination}
+                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                  />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -161,7 +170,7 @@ function DestinationSummaryPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-      <MessageSamplesPanel />
+      <MessageSpanSamplesPanel />
     </Fragment>
   );
 }
@@ -170,7 +179,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

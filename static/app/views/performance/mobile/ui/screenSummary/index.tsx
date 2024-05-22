@@ -16,8 +16,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
-import {BASE_URL} from 'sentry/views/performance/mobile/ui/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -34,6 +34,7 @@ type Query = {
 };
 
 function ScreenSummary() {
+  const moduleURL = useModuleURL('mobile-ui');
   const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();
@@ -54,8 +55,8 @@ function ScreenSummary() {
     },
     {
       label: t('Mobile UI'),
-      to: normalizeUrl({
-        pathname: `/organizations/${organization.slug}/performance/mobile/ui/`,
+      to: {
+        pathname: moduleURL,
         query: {
           ...omit(location.query, [
             QueryParameterNames.SPANS_SORT,
@@ -63,7 +64,7 @@ function ScreenSummary() {
             SpanMetricsField.SPAN_OP,
           ]),
         },
-      }),
+      },
       preservePageFilters: true,
     },
     {
@@ -140,7 +141,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />

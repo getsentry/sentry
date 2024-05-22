@@ -59,7 +59,7 @@ export function ErrorNodeDetails({
     {
       key: 'title',
       subject: t('Title'),
-      value: <TraceDrawerComponents.CardValueWithCopy value={node.value.title} />,
+      value: <TraceDrawerComponents.CopyableCardValueWithLink value={node.value.title} />,
     },
   ];
 
@@ -136,7 +136,7 @@ export function ErrorNodeDetails({
   ) : null;
 }
 
-const StackTraceWrapper = styled('td')`
+const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;

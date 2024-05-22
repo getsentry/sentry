@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q, Sum
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +14,11 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
+from sentry.api.serializers.types import OrganizationSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models.organization import Organization, OrganizationStatus
@@ -48,28 +54,37 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         return value
 
 
+@extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPermission,)
 
+    @extend_schema(
+        operation_id="List Your Organizations",
+        parameters=[
+            OrganizationParams.OWNER,
+            CursorQueryParam,
+            OrganizationParams.QUERY,
+            OrganizationParams.SORT_BY,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizations", list[OrganizationSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=OrganizationExamples.LIST_ORGANIZATIONS,
+    )
     def get(self, request: Request) -> Response:
         """
-        List your Organizations
-        ```````````````````````
-
-        Return a list of organizations available to the authenticated
-        session.  This is particularly useful for requests with an
-        user bound context.  For API key based requests this will
-        only return the organization that belongs to the key.
-
-        :qparam bool owner: restrict results to organizations in which you are
-                            an organization owner
-
-        :auth: required
+        Return a list of organizations available to the authenticated session. This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
         """
         owner_only = request.GET.get("owner") in ("1", "true")
 

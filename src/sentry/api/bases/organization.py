@@ -15,11 +15,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.api.utils import (
-    get_date_range_from_params,
-    id_or_slug_path_params_enabled,
-    is_member_disabled_from_limit,
-)
+from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -264,12 +260,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             if subdomain is not None and subdomain != organization_id_or_slug:
                 raise ResourceDoesNotExist
 
-        if (
-            id_or_slug_path_params_enabled(
-                self.convert_args.__qualname__, str(organization_id_or_slug)
-            )
-            and str(organization_id_or_slug).isdecimal()
-        ):
+        if str(organization_id_or_slug).isdecimal():
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
@@ -575,12 +566,7 @@ class OrganizationEndpoint(Endpoint):
                 raise ResourceDoesNotExist
 
         try:
-            if (
-                id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_id_or_slug)
-                )
-                and str(organization_id_or_slug).isdecimal()
-            ):
+            if str(organization_id_or_slug).isdecimal():
                 organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
             else:
                 organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
