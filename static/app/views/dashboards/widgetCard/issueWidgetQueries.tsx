@@ -66,6 +66,7 @@ function IssueWidgetQueries({
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchTableData={afterFetchTableData}
+        skipDashboardFilterParens // Issue widgets do not support parens in search
       >
         {({loading, ...rest}) =>
           children({
