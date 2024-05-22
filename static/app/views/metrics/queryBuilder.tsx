@@ -18,7 +18,6 @@ import {
   isCustomMetric,
   isSpanDuration,
   isSpanMeasurement,
-  isSpanSelfTime,
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
@@ -47,7 +46,7 @@ const isVisibleTransactionMetric = (metric: MetricMeta) =>
   isTransactionDuration(metric) || isTransactionMeasurement(metric);
 
 const isVisibleSpanMetric = (metric: MetricMeta) =>
-  isSpanSelfTime(metric) || isSpanDuration(metric) || isSpanMeasurement(metric);
+  isSpanDuration(metric) || isSpanMeasurement(metric);
 
 const isShownByDefault = (metric: MetricMeta) =>
   isCustomMetric(metric) ||

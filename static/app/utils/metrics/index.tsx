@@ -337,13 +337,6 @@ export function isSpanDuration({mri}: {mri: MRI}) {
   return mri === 'd:spans/duration@millisecond';
 }
 
-export function isSpanSelfTime({mri}: {mri: MRI}) {
-  return (
-    mri === 'd:spans/exclusive_time@millisecond' ||
-    mri === 'g:spans/self_time@millisecond'
-  );
-}
-
 export function isGaugeMetric({mri}: {mri: MRI}) {
   return parseMRI(mri)?.type === 'g';
 }
