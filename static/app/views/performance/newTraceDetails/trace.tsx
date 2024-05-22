@@ -194,7 +194,10 @@ export function Trace({
   const traceStateRef = useRef<TraceReducerState>(trace_state);
   traceStateRef.current = trace_state;
 
+  // Storing scrollQueueRef.current in a ref to be able to pass it to the list of
+  // dependencies in the useLayoutEffect hook below.
   const scrollQueueRefRefCurrent = scrollQueueRef.current;
+
   useLayoutEffect(() => {
     if (trace.type !== 'trace' || !manager) {
       return;
