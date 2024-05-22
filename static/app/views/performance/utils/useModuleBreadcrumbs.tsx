@@ -29,7 +29,7 @@ export function useModuleBreadcrumbs(moduleName: RoutableModuleNames): Crumb[] {
   return [
     {
       label: INSIGHTS_LABEL,
-      to: normalizeUrl(`/organizations/${organization.slug}${INSIGHTS_BASE_URL}/`),
+      to: normalizeUrl(`/organizations/${organization.slug}/${INSIGHTS_BASE_URL}/`),
       preservePageFilters: true,
     },
     {

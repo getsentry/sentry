@@ -55,7 +55,7 @@ export function useModuleURLBuilder(): URLBuilder {
     return bare
       ? `${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
       : normalizeUrl(
-          `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+          `/organizations/${slug}/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
         );
   };
 }
