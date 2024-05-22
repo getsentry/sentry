@@ -4,15 +4,57 @@ from typing import Any
 from uuid import UUID
 
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.issues.grouptype import ReplayRageClickType
+from sentry.issues.grouptype import ReplayHydrationErrorType, ReplayRageClickType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.replays.usecases.issue import new_issue_occurrence
 from sentry.utils import metrics
 
 logger = logging.getLogger()
 
+HYDRATION_ERROR_TITLE = "Hydration Error"
+HYDRATION_ERROR_SUBTITLE = "A hydration error occurred."
+HYDRATION_ERROR_LEVEL = "error"
 RAGE_CLICK_TITLE = "Rage Click"
 RAGE_CLICK_LEVEL = "error"
+
+
+def report_hydration_error_issue_with_replay_event(
+    project_id: int,
+    replay_id: str,
+    timestamp: float,
+    url: str,
+    replay_event: dict[str, Any],
+):
+    metrics.incr("replay.hydration_error_issue_creation_with_replay_event")
+
+    # Seconds since epoch is UTC.
+    date = datetime.datetime.fromtimestamp(timestamp)
+    timestamp_utc = date.replace(tzinfo=datetime.UTC)
+    fingerprint = str(_trunc_timestamp_week(timestamp))
+
+    new_issue_occurrence(
+        culprit=url[:MAX_CULPRIT_LENGTH],
+        environment=replay_event.get(
+            "environment", "production"
+        ),  # if no environment is set, default to production
+        fingerprint=[fingerprint],
+        issue_type=ReplayHydrationErrorType,
+        level=HYDRATION_ERROR_LEVEL,
+        platform=replay_event["platform"],
+        project_id=project_id,
+        subtitle=HYDRATION_ERROR_SUBTITLE,
+        timestamp=timestamp_utc,
+        title=HYDRATION_ERROR_TITLE,
+        extra_event_data={
+            "contexts": _make_contexts(replay_id, replay_event),
+            "level": HYDRATION_ERROR_LEVEL,
+            "tags": _make_tags(replay_id, url, replay_event),
+            "user": replay_event.get("user"),
+            "release": replay_event.get("release"),
+            "sdk": replay_event.get("sdk"),
+            "dist": replay_event.get("dist"),
+        },
+    )
 
 
 def report_rage_click_issue_with_replay_event(
@@ -134,3 +176,7 @@ def _make_clicked_element(node):
                 element += f'[data-sentry-component="{value}"]'
 
     return element
+
+
+def _trunc_timestamp_week(timestamp: float) -> int:
+    return int(timestamp) % (7 * 24 * 60 * 60)
