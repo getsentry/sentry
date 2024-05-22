@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
 from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
     Column,
     Condition,
     Direction,
@@ -122,14 +124,18 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             Op.EQ,
                             SESSION_METRIC_NAMES[SessionMRI.RAW_SESSION.value],
                         ),
-                        # Pagination conditions
-                        # Either org_id > prev_org_id or (org_id == prev_org_id and project_id > prev_project_id)
-                        Condition(
-                            Condition(Column("org_id"), Op.GT, prev_org_id)
-                            | (
-                                Condition(Column("org_id"), Op.EQ, prev_org_id)
-                                & Condition(Column("project_id"), Op.GT, prev_project_id)
-                            )
+                        BooleanCondition(
+                            BooleanOp.OR,
+                            [
+                                Condition(Column("org_id"), Op.GT, prev_org_id),
+                                BooleanCondition(
+                                    BooleanOp.AND,
+                                    [
+                                        Condition(Column("org_id"), Op.EQ, prev_org_id),
+                                        Condition(Column("project_id"), Op.GT, prev_project_id),
+                                    ],
+                                ),
+                            ],
                         ),
                     ],
                     granularity=Granularity(3600),
