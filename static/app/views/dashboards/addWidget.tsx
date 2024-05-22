@@ -12,9 +12,10 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics, MetricsFeatureBadge} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {MetricsFeatureBadge} from 'sentry/views/metrics/metricFeatureBadge';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';

@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
-import {canSeeMetricsPage, MetricsFeatureBadge} from 'sentry/utils/metrics/features';
+import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
@@ -37,6 +37,7 @@ import {
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
+import {MetricsFeatureBadge} from 'sentry/views/metrics/metricFeatureBadge';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
