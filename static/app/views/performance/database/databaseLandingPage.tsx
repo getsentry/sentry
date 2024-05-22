@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +24,10 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -152,7 +157,13 @@ export function DatabaseLandingPage() {
             ]}
           />
 
-          <Layout.Title>{t('Queries')}</Layout.Title>
+          <Layout.Title>
+            {t('Queries')}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>

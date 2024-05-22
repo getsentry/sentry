@@ -960,13 +960,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   displayReprocessingTab() {
-    const {organization} = this.props;
-    const {queryCounts} = this.state;
-
-    return (
-      organization.features.includes('reprocessing-v2') &&
-      !!queryCounts?.[Query.REPROCESSING]?.count
-    );
+    return !!this.state.queryCounts?.[Query.REPROCESSING]?.count;
   }
 
   displayReprocessingLayout(showReprocessingTab: boolean, query: string) {

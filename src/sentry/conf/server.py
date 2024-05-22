@@ -1730,6 +1730,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-onboarding-checklist": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
+    # Enable span search bar in Insights module sample panels
+    "organizations:performance-sample-panel-search": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
@@ -1877,6 +1879,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Measure usage by spans instead of transactions
+    "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enables the resource module ui
@@ -2005,9 +2009,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:similarity-embeddings-metadata": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
+    "projects:span-metrics-extraction-addons": False,
+    "organizations:indexed-spans-extraction": False,
     "projects:discard-transaction": False,
     "projects:extract-transaction-from-segment-span": False,
-    "projects:span-metrics-double-write-distributions-as-gauges": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated

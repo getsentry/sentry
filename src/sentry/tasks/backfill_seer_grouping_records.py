@@ -39,7 +39,7 @@ from sentry.utils import json, metrics, redis
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 BACKFILL_NAME = "backfill_grouping_records"
 
 logger = logging.getLogger(__name__)

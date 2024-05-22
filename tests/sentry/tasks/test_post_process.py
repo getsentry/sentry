@@ -15,7 +15,6 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
@@ -71,6 +70,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -416,6 +416,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
 
+    @mock_redis_buffer()
     def test_rule_processor_buffer_values(self):
         # Test that pending buffer values for `times_seen` are applied to the group and that alerts
         # fire as expected
@@ -423,10 +424,9 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
-        redis_buffer = RedisBuffer()
         with (
-            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
-            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
             patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
             patch("sentry.rules.rules", init_registry()) as rules,
         ):
@@ -1674,14 +1674,14 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
         assert mock_send_unignored_robust.called
 
+    @mock_redis_buffer()
     @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
-        redis_buffer = RedisBuffer()
         with (
-            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
-            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
