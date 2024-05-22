@@ -909,7 +909,7 @@ class Factories:
         data,
         project_id: int,
         assert_no_errors: bool = True,
-        event_type: str = EventType.DEFAULT,
+        event_type: EventType = EventType.DEFAULT,
         sent_at: datetime | None = None,
     ) -> Event:
         """
