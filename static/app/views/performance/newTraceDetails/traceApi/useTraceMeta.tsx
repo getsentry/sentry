@@ -6,11 +6,10 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {type ApiQueryKey, useApiQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useParams} from 'sentry/utils/useParams';
 
 function getMetaQueryParams(
   query: Location['query'],
@@ -43,12 +42,42 @@ function getMetaQueryParams(
   };
 }
 
-export function useTraceMeta(
-  traceSlug?: string
-): UseApiQueryResult<TraceMeta | null, any> {
+function getTraceMetaQueryKey(
+  traceSlug: string,
+  orgSlug: string,
+  queryParams:
+    | {
+        // demo has the format ${projectSlug}:${eventId}
+        // used to query a demo transaction event from the backend.
+        demo: string | undefined;
+        statsPeriod: string;
+      }
+    | {
+        demo: string | undefined;
+        timestamp: string;
+      }
+): ApiQueryKey {
+  return [
+    `/organizations/${orgSlug}/events-trace-meta/${traceSlug}/`,
+    {query: queryParams},
+  ];
+}
+
+export type TraceMetaQueryResults = {
+  data: TraceMeta;
+  isLoading: boolean;
+  isRefetching: boolean;
+  refetch: () => void;
+};
+
+export function useTraceMeta(traceSlugs: string[]): {
+  data: TraceMeta;
+  isLoading: boolean;
+  isRefetching: boolean;
+  refetch: () => void;
+} {
   const filters = usePageFilters();
   const organization = useOrganization();
-  const params = useParams<{traceSlug?: string}>();
 
   const queryParams = useMemo(() => {
     const query = qs.parse(location.search);
@@ -57,18 +86,54 @@ export function useTraceMeta(
   }, []);
 
   const mode = queryParams.demo ? 'demo' : undefined;
-  const trace = traceSlug ?? params.traceSlug;
 
-  const traceMetaQueryResults = useApiQuery<TraceMeta>(
-    [
-      `/organizations/${organization.slug}/events-trace-meta/${trace ?? ''}/`,
-      {query: queryParams},
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!trace && !!organization.slug && mode !== 'demo',
+  const queryKeys = useMemo(() => {
+    return traceSlugs.map(traceSlug =>
+      getTraceMetaQueryKey(traceSlug, organization.slug, queryParams)
+    );
+  }, [traceSlugs, organization, queryParams]);
+
+  const results = useApiQueries<TraceMeta>(queryKeys, {
+    enabled: traceSlugs.length > 0 && !!organization.slug && mode !== 'demo',
+    staleTime: Infinity,
+  });
+
+  const {data, isLoading, isRefetching, refetch} = useMemo(() => {
+    const mergedResult: {
+      data: TraceMeta;
+      isLoading: boolean;
+      isRefetching: boolean;
+      refetch: () => void;
+    } = {
+      data: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+      },
+      isLoading: false,
+      isRefetching: false,
+      refetch: () => {
+        results.forEach(result => result.refetch());
+      },
+    };
+
+    for (const metaResult of results) {
+      mergedResult.isLoading ||= metaResult.isLoading;
+      mergedResult.isRefetching ||= metaResult.isRefetching;
+      mergedResult.data.errors += metaResult.data?.errors ?? 0;
+      mergedResult.data.performance_issues += metaResult.data?.performance_issues ?? 0;
+      // TODO: We want the count of unique projects, not the sum of all projects. When there are multiple traces, taking the best guess by using the max
+      // project count accross all traces for now.
+      mergedResult.data.projects += Math.max(
+        metaResult.data?.projects ?? 0,
+        mergedResult.data.projects
+      );
+      mergedResult.data.transactions += metaResult.data?.transactions ?? 0;
     }
-  );
+
+    return mergedResult;
+  }, [results]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
@@ -84,32 +149,11 @@ export function useTraceMeta(
         projects: 1,
         transactions: 1,
       },
-      failureCount: 0,
-      errorUpdateCount: 0,
-      failureReason: null,
-      error: null,
-      isError: false,
-      isFetched: true,
-      isFetchedAfterMount: true,
-      isFetching: false,
       isLoading: false,
-      isLoadingError: false,
-      isInitialLoading: false,
-      isPaused: false,
-      isPlaceholderData: false,
-      isPreviousData: false,
-      isRefetchError: false,
       isRefetching: false,
-      isStale: false,
-      isSuccess: true,
-      status: 'success',
-      fetchStatus: 'idle',
-      dataUpdatedAt: Date.now(),
-      errorUpdatedAt: Date.now(),
-      refetch: traceMetaQueryResults.refetch,
-      remove: traceMetaQueryResults.remove,
+      refetch: () => {},
     };
   }
 
-  return traceMetaQueryResults;
+  return {data, isLoading, isRefetching, refetch};
 }

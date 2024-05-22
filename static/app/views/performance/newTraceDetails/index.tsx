@@ -1,5 +1,7 @@
 import type React from 'react';
 import {
+  type Dispatch,
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -22,13 +24,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
-  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -37,6 +39,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import {
@@ -63,7 +66,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
@@ -71,7 +74,11 @@ import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
-import {TraceReducer, type TraceReducerState} from './traceState';
+import {
+  TraceReducer,
+  type TraceReducerAction,
+  type TraceReducerState,
+} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -191,7 +198,7 @@ export function TraceView() {
   }, [queryParams, traceSlug]);
 
   const trace = useTrace();
-  const meta = useTraceMeta();
+  const meta = useTraceMeta([traceSlug]);
 
   return (
     <SentryDocumentTitle
@@ -206,6 +213,7 @@ export function TraceView() {
           organization={organization}
           traceEventView={traceEventView}
           metaResults={meta}
+          source="performance"
         />
       </NoProjectMessage>
     </SentryDocumentTitle>
@@ -225,15 +233,16 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 
 type TraceViewContentProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
+  metaResults: TraceMetaQueryResults;
   organization: Organization;
+  source: 'replay' | 'performance';
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
 };
 
-function TraceViewContent(props: TraceViewContentProps) {
+export function TraceViewContent({...props}: TraceViewContentProps) {
   const api = useApi();
   const organization = props.organization;
   const {projects} = useProjects();
@@ -254,6 +263,10 @@ function TraceViewContent(props: TraceViewContentProps) {
   );
 
   const tree = useMemo(() => {
+    if (props.trace && props.status === 'success') {
+      return TraceTree.FromTrace(props.trace);
+    }
+
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
         {
@@ -285,10 +298,6 @@ function TraceViewContent(props: TraceViewContentProps) {
 
       loadingTraceRef.current = loadingTrace;
       return loadingTrace;
-    }
-
-    if (props.trace) {
-      return TraceTree.FromTrace(props.trace);
     }
 
     throw new Error('Invalid trace state');
@@ -845,7 +854,33 @@ function TraceViewContent(props: TraceViewContentProps) {
     };
   }, [viewManager, tree]);
 
-  return (
+  const traceViewWaterfallProps = {
+    traceState,
+    traceDispatch,
+    onTraceSearch,
+    viewManager,
+    organization,
+    setTraceGridRef,
+    tree,
+    traceSlug: props.traceSlug,
+    rerender,
+    scrollQueueRef,
+    initializedRef,
+    onRowClick,
+    onTraceLoad,
+    previouslyFocusedNodeRef,
+    forceRender,
+    metaResults: props.metaResults,
+    trace: props.trace,
+    rootEvent,
+    traceEventView: props.traceEventView,
+    onTabScrollToNode,
+    traceGridRef,
+    onScrollToNode,
+    shape,
+  };
+
+  return props.source === 'performance' ? (
     <TraceExternalLayout>
       <TraceUXChangeAlert />
       <TraceMetadataHeader
@@ -856,57 +891,123 @@ function TraceViewContent(props: TraceViewContentProps) {
         traceEventView={props.traceEventView}
       />
       <TraceInnerLayout>
-        <TraceToolbar>
-          <TraceSearchInput
-            trace_state={traceState}
-            trace_dispatch={traceDispatch}
-            onTraceSearch={onTraceSearch}
-          />
-          <TraceResetZoomButton viewManager={viewManager} organization={organization} />
-          <TraceShortcuts />
-        </TraceToolbar>
-        <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
-          <Trace
-            trace={tree}
-            rerender={rerender}
-            trace_id={props.traceSlug}
-            trace_state={traceState}
-            trace_dispatch={traceDispatch}
-            scrollQueueRef={scrollQueueRef}
-            initializedRef={initializedRef}
-            onRowClick={onRowClick}
-            onTraceLoad={onTraceLoad}
-            onTraceSearch={onTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            forceRerender={forceRender}
-          />
-
-          {tree.type === 'error' ? (
-            <TraceError />
-          ) : tree.type === 'empty' ? (
-            <TraceEmpty />
-          ) : tree.type === 'loading' || scrollQueueRef.current ? (
-            <TraceLoading />
-          ) : null}
-
-          <TraceDrawer
-            metaResults={props.metaResults}
-            traceType={shape}
-            trace={tree}
-            traceGridRef={traceGridRef}
-            traces={props.trace}
-            manager={viewManager}
-            trace_state={traceState}
-            trace_dispatch={traceDispatch}
-            onTabScrollToNode={onTabScrollToNode}
-            onScrollToNode={onScrollToNode}
-            rootEventResults={rootEvent}
-            traceEventView={props.traceEventView}
-          />
-        </TraceGrid>
+        <TraceViewWaterFall {...traceViewWaterfallProps} />
       </TraceInnerLayout>
     </TraceExternalLayout>
+  ) : (
+    <TraceViewWaterFall {...traceViewWaterfallProps} />
+  );
+}
+
+type TraceViewWaterfallRefs = {
+  initializedRef: React.MutableRefObject<boolean>;
+  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
+  scrollQueueRef: React.MutableRefObject<{
+    eventId?: string;
+    path?: TraceTree.NodePath[];
+  } | null>;
+  setTraceGridRef: (ref: HTMLElement | null) => void;
+  traceGridRef: HTMLElement | null;
+};
+
+type TraceViewWaterFallCallBacks = {
+  onRowClick: (
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    event: React.MouseEvent<HTMLElement, MouseEvent>,
+    index: number
+  ) => void;
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onTraceLoad: (
+    trace: TraceTree,
+    nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
+    indexOfNodeToScrollTo: number | null
+  ) => void;
+  onTraceSearch: (
+    query: string,
+    activeNode: TraceTreeNode<TraceTree.NodeValue> | null,
+    behavior: 'track result' | 'persist'
+  ) => void;
+};
+
+type TraceViewWaterFallDispatching = {
+  traceDispatch: Dispatch<TraceReducerAction>;
+  traceState: TraceReducerState;
+};
+
+type TraceViewWaterFallProps = {
+  forceRender: number;
+  metaResults: TraceMetaQueryResults;
+  organization: Organization;
+  rerender: () => void;
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  shape: TraceType;
+  trace: TraceSplitResults<TraceFullDetailed> | null;
+  traceEventView: EventView;
+  traceSlug: string;
+  tree: TraceTree;
+  viewManager: VirtualizedViewManager;
+} & TraceViewWaterfallRefs &
+  TraceViewWaterFallCallBacks &
+  TraceViewWaterFallDispatching;
+
+function TraceViewWaterFall(props: TraceViewWaterFallProps) {
+  return (
+    <Fragment>
+      <TraceToolbar>
+        <TraceSearchInput
+          trace_state={props.traceState}
+          trace_dispatch={props.traceDispatch}
+          onTraceSearch={props.onTraceSearch}
+        />
+        <TraceResetZoomButton
+          viewManager={props.viewManager}
+          organization={props.organization}
+        />
+        <TraceShortcuts />
+      </TraceToolbar>
+      <TraceGrid layout={props.traceState.preferences.layout} ref={props.setTraceGridRef}>
+        <Trace
+          trace={props.tree}
+          rerender={props.rerender}
+          trace_id={props.traceSlug}
+          trace_state={props.traceState}
+          trace_dispatch={props.traceDispatch}
+          scrollQueueRef={props.scrollQueueRef}
+          initializedRef={props.initializedRef}
+          onRowClick={props.onRowClick}
+          onTraceLoad={props.onTraceLoad}
+          onTraceSearch={props.onTraceSearch}
+          previouslyFocusedNodeRef={props.previouslyFocusedNodeRef}
+          manager={props.viewManager}
+          forceRerender={props.forceRender}
+        />
+
+        {props.tree.type === 'error' ? (
+          <TraceError />
+        ) : props.tree.type === 'empty' ? (
+          <TraceEmpty />
+        ) : props.tree.type === 'loading' ||
+          (props.scrollQueueRef.current && props.tree.type !== 'trace') ? (
+          <TraceLoading />
+        ) : null}
+
+        <TraceDrawer
+          metaResults={props.metaResults}
+          traceType={props.shape}
+          trace={props.tree}
+          traceGridRef={props.traceGridRef}
+          traces={props.trace}
+          manager={props.viewManager}
+          trace_state={props.traceState}
+          trace_dispatch={props.traceDispatch}
+          onTabScrollToNode={props.onTabScrollToNode}
+          onScrollToNode={props.onScrollToNode}
+          rootEventResults={props.rootEvent}
+          traceEventView={props.traceEventView}
+        />
+      </TraceGrid>
+    </Fragment>
   );
 }
 

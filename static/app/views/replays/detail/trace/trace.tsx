@@ -14,6 +14,8 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {ReplayTraceView} from 'sentry/views/performance/newTraceDetails/replayTraceView';
+import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -21,6 +23,7 @@ import {hasTraceData} from 'sentry/views/performance/traceDetails/utils';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
+  type ExternalState,
   useFetchTransactions,
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
@@ -84,9 +87,11 @@ function Trace({replayRecord}: Props) {
     eventView,
   } = useTransactionData();
 
+  const metaResults = useReplayTraceMeta(replayRecord);
+
   useFetchTransactions();
 
-  if (!replayRecord || !didInit || (isFetching && !traces?.length)) {
+  if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
@@ -111,6 +116,21 @@ function Trace({replayRecord}: Props) {
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
+
+  if (organization.features.includes('replay-trace-view-v1')) {
+    return (
+      <ReplayTraceView
+        replayRecord={replayRecord}
+        traces={{
+          transactions: traces ?? [],
+          orphan_errors: orphanErrors ?? [],
+        }}
+        eventView={eventView}
+        metaResults={metaResults}
+        status={getTraceStatus({errors, isFetching, traces, didInit})}
+      />
+    );
+  }
 
   if (!hasTraceData(traces, orphanErrors)) {
     return <TracesNotFound performanceActive={performanceActive} />;
@@ -146,5 +166,19 @@ const OverflowScrollBorderedSection = styled(BorderedSection)`
     border: none;
   }
 `;
+
+function getTraceStatus(traceState: ExternalState) {
+  const {errors, isFetching} = traceState;
+
+  if (errors.length > 0) {
+    return 'error';
+  }
+
+  if (isFetching) {
+    return 'loading';
+  }
+
+  return 'success';
+}
 
 export default Trace;

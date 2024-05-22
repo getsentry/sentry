@@ -11,7 +11,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {
   TraceErrorOrIssue,
   TraceFullDetailed,
-  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -21,11 +20,12 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanTimeRenderer} from 'sentry/views/performance/traces/fieldRenderers';
 
 import {isTraceNode} from '../../../guards';
+import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
+  metaResults: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;

@@ -423,7 +423,7 @@ export function Trace({
   );
 
   const render = useMemo(() => {
-    return trace.type !== 'trace' || scrollQueueRef.current
+    return trace.type === 'loading' || (scrollQueueRef.current && trace.type !== 'trace')
       ? r => renderLoadingRow(r)
       : r => renderVirtualizedRow(r);
   }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
