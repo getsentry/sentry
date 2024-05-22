@@ -5,6 +5,8 @@ from django.urls import reverse
 from sentry.remote_config.storage import StorageBackend
 from sentry.testutils.cases import APITestCase
 
+REMOTE_CONFIG_FEATURES = {"organizations:remote-config": True}
+
 
 class ConfiguratioAPITestCase(APITestCase):
     endpoint = "sentry-api-0-project-key-configuration"
@@ -31,7 +33,9 @@ class ConfiguratioAPITestCase(APITestCase):
             },
         )
 
-        response = self.client.get(self.url)
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.get(self.url)
+
         assert response.status_code == 200
         assert response.json() == {
             "data": {
@@ -43,23 +47,26 @@ class ConfiguratioAPITestCase(APITestCase):
         }
 
     def test_get_configuration_not_found(self):
-        response = self.client.get(self.url)
-        assert response.status_code == 404
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 404
 
     def test_post_configuration(self):
-        response = self.client.post(
-            self.url,
-            data={
-                "data": {
-                    "sample_rate": 1.0,
-                    "traces_sample_rate": 0.2,
-                    "user_config": {
-                        "hello": "world",
-                    },
-                }
-            },
-            format="json",
-        )
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(
+                self.url,
+                data={
+                    "data": {
+                        "sample_rate": 1.0,
+                        "traces_sample_rate": 0.2,
+                        "user_config": {
+                            "hello": "world",
+                        },
+                    }
+                },
+                format="json",
+            )
+
         assert response.status_code == 201, response.content
         assert response.json() == {
             "data": {
@@ -80,52 +87,60 @@ class ConfiguratioAPITestCase(APITestCase):
 
         # Null type
         data["data"]["user_config"] = None
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] is None
 
         # Bool types
         data["data"]["user_config"] = False
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] is False
 
         # String types
         data["data"]["user_config"] = "string"
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] == "string"
 
         # Integer types
         data["data"]["user_config"] = 1
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] == 1
 
         # Float types
         data["data"]["user_config"] = 1.0
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] == 1.0
 
         # Array types
         data["data"]["user_config"] = ["a", "b"]
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] == ["a", "b"]
 
         # Object types
         data["data"]["user_config"] = {"hello": "world"}
-        response = self.client.post(self.url, data=data, format="json")
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
         assert response.json()["data"]["user_config"] == {"hello": "world"}
 
     def test_post_configuration_validation_error(self):
-        response = self.client.post(
-            self.url,
-            data={"data": {}},
-            format="json",
-        )
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.post(
+                self.url,
+                data={"data": {}},
+                format="json",
+            )
         assert response.status_code == 400, response.content
 
         result = response.json()
@@ -145,7 +160,8 @@ class ConfiguratioAPITestCase(APITestCase):
         )
         assert self.storage.get() is not None
 
-        response = self.client.delete(self.url)
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.delete(self.url)
         assert response.status_code == 204
         assert self.storage.get() is None
 
@@ -153,5 +169,6 @@ class ConfiguratioAPITestCase(APITestCase):
         # Eagerly delete option if one exists.
         self.storage.pop()
 
-        response = self.client.delete(self.url)
+        with self.feature(REMOTE_CONFIG_FEATURES):
+            response = self.client.delete(self.url)
         assert response.status_code == 204

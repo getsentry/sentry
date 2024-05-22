@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -48,6 +49,11 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, key: ProjectKey) -> Response:
         """Get remote configuration from project options."""
+        if not features.has(
+            "organizations:remote-config", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         remote_config = make_storage(key).get()
         if remote_config is None:
             return Response("Not found.", status=404)
@@ -55,6 +61,11 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, key: ProjectKey) -> Response:
         """Set remote configuration in project options."""
+        if not features.has(
+            "organizations:remote-config", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         validator = ConfigurationContainerValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -69,5 +80,10 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
 
     def delete(self, request: Request, project: Project, key: ProjectKey) -> Response:
         """Delete remote configuration from project options."""
+        if not features.has(
+            "organizations:remote-config", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
         make_storage(key).pop()
         return Response("", status=204)

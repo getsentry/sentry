@@ -44,6 +44,7 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:performance-view",
         "organizations:profiling-view",
         "organizations:relay",
+        "organizations:remote-config",
         "organizations:session-replay",
         "organizations:sso-basic",
         "organizations:sso-saml2",

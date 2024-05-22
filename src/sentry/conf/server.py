@@ -1820,6 +1820,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
+    # Enable core remote-config backend APIs
+    "organizations:remote-config": False,
     # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
     # Enable the Replay Details > Accessibility tab
