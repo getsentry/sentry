@@ -35,16 +35,27 @@ export const useModuleURL = (
   moduleName: RoutableModuleNames,
   bare: boolean = false
 ): string => {
+  const builder = useModuleURLBuilder();
+  return builder(moduleName, bare);
+};
+
+type URLBuilder = (moduleName: RoutableModuleNames, bare?: boolean) => string;
+
+export function useModuleURLBuilder(): URLBuilder {
   const {slug} = useOrganization();
 
-  if (moduleName === ModuleName.AI) {
-    // AI Doesn't live under "/performance"
-    return bare
-      ? `${slug}${AI_BASE_URL}`
-      : normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
-  }
+  return function (moduleName: RoutableModuleNames, bare: boolean = false) {
+    if (moduleName === ModuleName.AI) {
+      // AI Doesn't live under "/performance"
+      return bare
+        ? `${AI_BASE_URL}`
+        : normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
+    }
 
-  return bare
-    ? `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
-    : normalizeUrl(`${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`);
-};
+    return bare
+      ? `${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+      : normalizeUrl(
+          `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+        );
+  };
+}
