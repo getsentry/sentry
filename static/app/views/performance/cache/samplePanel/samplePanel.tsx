@@ -3,20 +3,24 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -28,6 +32,7 @@ import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSample
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -52,12 +57,15 @@ export function CacheSamplePanel() {
   const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
 
   const query = useLocationQuery({
     fields: {
       project: decodeScalar,
       transaction: decodeScalar,
       statusClass: decodeScalar,
+      spanSearchQuery: decodeScalar,
     },
   });
 
@@ -140,7 +148,11 @@ export function CacheSamplePanel() {
 
   const useIndexedCacheSpans = (isCacheHit, limit) =>
     useIndexedSpans({
-      search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': isCacheHit}),
+      search: MutableSearch.fromQueryObject({
+        ...sampleFilters,
+        ...new MutableSearch(query.spanSearchQuery).filters,
+        'cache.hit': isCacheHit,
+      }),
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
@@ -204,6 +216,16 @@ export function CacheSamplePanel() {
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
 
   const handleClose = () => {
     router.replace({
@@ -361,6 +383,22 @@ export function CacheSamplePanel() {
               }}
             />
           </ModuleLayout.Half>
+
+          <ModuleLayout.Full>
+            <Feature features="performance-sample-panel-search">
+              <SearchBar
+                searchSource={`${ModuleName.CACHE}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </Feature>
+          </ModuleLayout.Full>
 
           <Fragment>
             <ModuleLayout.Full>

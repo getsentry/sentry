@@ -2,20 +2,24 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -37,6 +41,7 @@ import {
   RETRY_COUNT_OPTIONS,
   TRACE_STATUS_OPTIONS,
 } from 'sentry/views/performance/queues/settings';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -58,10 +63,14 @@ export function MessageSpanSamplesPanel() {
       transaction: decodeScalar,
       retryCount: decodeRetryCount,
       traceStatus: decodeTraceStatus,
+      spanSearchQuery: decodeScalar,
       'span.op': decodeScalar,
     },
   });
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
+
   const project = projects.find(p => query.project === p.id);
 
   const organization = useOrganization();
@@ -127,6 +136,13 @@ export function MessageSpanSamplesPanel() {
   const sampleFilters = new MutableSearch(queryFilter);
   sampleFilters.addFilterValue('transaction', query.transaction);
   sampleFilters.addFilterValue('messaging.destination.name', query.destination);
+
+  // filter by key-value filters specified in the search bar query
+  Object.entries(new MutableSearch(query.spanSearchQuery).filters).forEach(
+    ([key, value]) => {
+      sampleFilters.addFilterValues(key, value);
+    }
+  );
 
   if (query.traceStatus.length > 0) {
     sampleFilters.addFilterValue('trace.status', query.traceStatus);
@@ -205,6 +221,16 @@ export function MessageSpanSamplesPanel() {
     return durationSamplesData.find(
       s => s.timestamp === dataPoint.name && s['span.duration'] === dataPoint.value
     );
+  };
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
   };
 
   const handleClose = () => {
@@ -331,6 +357,22 @@ export function MessageSpanSamplesPanel() {
               isLoading={isDurationDataFetching}
               error={durationError}
             />
+          </ModuleLayout.Full>
+
+          <ModuleLayout.Full>
+            <Feature features="performance-sample-panel-search">
+              <SearchBar
+                searchSource={`queue-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </Feature>
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
