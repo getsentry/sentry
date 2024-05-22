@@ -29,7 +29,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   const hasTraceId = !!event.contexts?.trace?.trace_id;
 
-  let timelineStatus: string | undefined;
+  let timelineStatus: string | undefined = 'empty';
   let timelineSkipped = false;
   let issues: {id: number; project: string; title: string}[] = [];
   if (hasTraceId && !isLoading) {
@@ -98,8 +98,12 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   );
 }
 
+/**
+ * Extracts issues from events
+ */
 function getIssuesFromEvents(
   events: TimelineEvent[]
+  // XXX: We do not use any of the values but only care about the count of issues. Prob change this
 ): {id: number; project: string; title: string}[] {
   return events
     .filter(

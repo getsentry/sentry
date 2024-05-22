@@ -152,4 +152,71 @@ describe('TraceTimeline', () => {
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
+
+  it('skips the timeline and shows related issues (2 issues)', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: discoverBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    // I believe the call to projects is to determine what projects a user belongs to
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    // Enable related issues feature flag
+    organization.features = ['related-issues-issue-details-page'];
+    render(<TraceTimeline event={event} />, {organization});
+
+    // Instead of a timeline, we should see related issues
+    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(
+      await screen.findByText('AttributeError: Something Failed')
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'empty',
+    });
+  });
+
+  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      // Only 1 issue
+      body: discoverBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    // I believe the call to projects is to determine what projects a user belongs to
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    // Enable related issues feature flag
+    organization.features = ['related-issues-issue-details-page'];
+    render(<TraceTimeline event={event} />, {organization});
+
+    // We do not display any related issues because we only have 1 issue
+    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
+    expect(
+      await screen.queryByText('AttributeError: Something Failed')
+    ).not.toBeInTheDocument();
+
+    // We do not display the timeline because we only have 1 event
+    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'empty',
+    });
+  });
 });
