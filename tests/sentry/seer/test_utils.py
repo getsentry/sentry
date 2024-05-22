@@ -296,6 +296,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
         extra={
             "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
             "project_id": 1,
+            "stacktrace_length_sum": 24,
         },
     )
 
@@ -317,6 +318,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
             "project_id": 1,
             "reason": "ReadTimeoutError",
             "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            "stacktrace_length_sum": 24,
         },
     )
 
@@ -339,6 +341,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
             "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
             "project_id": 1,
             "reason": "INTERNAL SERVER ERROR",
+            "stacktrace_length_sum": 24,
         },
     )
 

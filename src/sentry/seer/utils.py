@@ -289,6 +289,9 @@ def post_bulk_grouping_records(
     extra = {
         "group_ids": json.dumps(grouping_records_request["group_id_list"]),
         "project_id": grouping_records_request["data"][0]["project_id"],
+        "stacktrace_length_sum": sum(
+            [len(stacktrace) for stacktrace in grouping_records_request["stacktrace_list"]]
+        ),
     }
 
     try:
