@@ -170,12 +170,10 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
 
         return aggregated_projects
 
-    def fetch_projects_with_recent_sessions(
-        self, org_id: int, project_ids: Sequence[int]
-    ) -> Totals:
+    def fetch_projects_with_recent_sessions(self) -> Totals:
         if options.get("release-health.use-org-and-project-filter"):
-            return self.fetch_projects_with_recent_sessions_with_filter(org_id, project_ids)
-        return self.fetch_projects_with_recent_sessions_with_offset(org_id, project_ids)
+            return self.fetch_projects_with_recent_sessions_with_filter()
+        return self.fetch_projects_with_recent_sessions_with_offset()
 
     def fetch_project_release_health_totals(
         self, org_id: int, project_ids: Sequence[int]
