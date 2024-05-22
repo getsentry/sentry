@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanFieldSupportedTags} from 'sentry/views/starfish/utils/useSpanFieldSupportedTags';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
