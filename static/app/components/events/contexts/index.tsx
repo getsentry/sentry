@@ -35,12 +35,13 @@ export interface ContextItem {
 
 export function getOrderedContextItems(event): ContextItem[] {
   const {user, contexts} = event;
+  const {data: customUserData, ...userContext} = user;
 
   const {feedback, response, ...otherContexts} = contexts ?? {};
   const orderedContext: [ContextItem['alias'], ContextValue][] = [
     ['response', response],
     ['feedback', feedback],
-    ['user', user],
+    ['user', {...userContext, ...customUserData}],
     ...Object.entries(otherContexts),
   ];
   // For these context aliases, use the alias as 'type' rather than 'value.type'
