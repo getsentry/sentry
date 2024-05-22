@@ -351,11 +351,16 @@ def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
     "2 missed check-ins, 1 timeout check-in and 1 error check-in were detected"
     "A failed check-in was detected"
     """
+
     status_counts = Counter(
         checkin["status"]
         for checkin in failed_checkins
         if checkin["status"] in HUMAN_FAILURE_STATUS_MAP.keys()
     )
+
+    if len(status_counts) == 0:
+        # XXX(epurkhiser): Seems like sometimes this may be empty, why?
+        logger.info("get_failure_reason_check_ins", extra={"check_ins": failed_checkins})
 
     if sum(status_counts.values()) == 1:
         return SINGULAR_HUMAN_FAILURE_MAP[list(status_counts.keys())[0]]
