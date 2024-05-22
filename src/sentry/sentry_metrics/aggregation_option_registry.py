@@ -34,7 +34,7 @@ def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, Ti
         "sentry-metrics.drop-percentiles.per-use-case.with-org-override"
     )
     use_case_id: UseCaseID = extract_use_case_id(mri)
-    use_case_agg_options: Mapping[UseCaseID, Mapping[AggregationOption, TimeWindow]] = {}
+    use_case_agg_options: dict[UseCaseID, dict[AggregationOption, TimeWindow]] = {}
 
     # As of now this option is still restricted
     # to the scope of the custom use case

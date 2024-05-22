@@ -34,10 +34,6 @@ MOCK_METRIC_ID_AGG_OPTION = {
     "d:transactions/alert@none": {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS},
 }
 
-MOCK_USE_CASE_AGG_OPTION = {
-    UseCaseID.TRANSACTIONS: {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS}
-}
-
 
 pytestmark = pytest.mark.sentry_metrics
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
