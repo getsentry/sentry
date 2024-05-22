@@ -1,6 +1,10 @@
 import pytest
 
-from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
+from sentry.grouping.parameterization import (
+    ParameterizationRegexExperiment,
+    Parameterizer,
+    UniqueIdExperiment,
+)
 
 
 @pytest.fixture
@@ -209,6 +213,27 @@ def test_parameterize_standard(name, input, expected, parameterizer):
 )
 def test_parametrize_experiemntal(name, input, expected, parameterizer):
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
+    if "<uniq_id>" in expected:
+        experiments = parameterizer.get_successful_experiments()
+        assert len(experiments) == 1
+        assert experiments[0] == UniqueIdExperiment
+
+
+def test_parametrize_experiemntal_regex():
+    """
+    We don't have any of these yet, but we need to test that they work
+    """
+    FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
+
+    parameterizer = Parameterizer(
+        regex_pattern_keys=(),
+        experiments=(FooExperiment,),
+    )
+    input = "blah foobarbaz fooooo"
+    normalized = parameterizer.parameterize_all(input)
+    assert normalized == "blah <foo>barbaz <foo>ooo"
+    assert len(parameterizer.get_successful_experiments()) == 1
+    assert parameterizer.get_successful_experiments()[0] == FooExperiment
 
 
 # These are test cases that we should fix
