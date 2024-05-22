@@ -25,6 +25,6 @@ export const BASE_FILTERS = {
 };
 
 export const MODULE_DESCRIPTION = t(
-  'Find large and slow-to-load resources used by your application and understand their impact on page performance.'
+  'Monitor outgoing HTTP requests and investigate errors and performance bottlenecks tied to domains.'
 );
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/performance/requests/';
