@@ -362,7 +362,7 @@ export function MessageSpanSamplesPanel() {
           <ModuleLayout.Full>
             <Feature features="performance-sample-panel-search">
               <SearchBar
-                searchSource={`queue-sample-panel`}
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
                 query={query.spanSearchQuery}
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
