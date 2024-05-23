@@ -692,18 +692,14 @@ def chained_exception(
     }
 
     # Filter the exceptions according to rules for handling exception groups.
-    with sentry_sdk.start_span(
-        op="grouping.strategies.newstyle.filter_exceptions_for_exception_groups"
-    ) as span:
-        try:
-            exceptions = filter_exceptions_for_exception_groups(
-                all_exceptions, exception_components, event
-            )
-        except Exception:
-            # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
-            sentry_sdk.capture_exception()
-            span.set_status("internal_error")
-            exceptions = all_exceptions
+    try:
+        exceptions = filter_exceptions_for_exception_groups(
+            all_exceptions, exception_components, event
+        )
+    except Exception:
+        # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
+        sentry_sdk.capture_exception()
+        exceptions = all_exceptions
 
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting

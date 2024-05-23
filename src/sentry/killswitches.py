@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from typing import Any, Optional, Union
 
 import click
-import sentry_sdk
 
 from sentry import options
 from sentry.utils import metrics
@@ -274,7 +273,6 @@ def normalize_value(
     return rv
 
 
-@sentry_sdk.tracing.trace
 def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)

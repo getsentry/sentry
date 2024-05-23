@@ -157,19 +157,6 @@ def _do_symbolicate_event(
     project_id = data["project"]
     has_changed = False
 
-    stacktraces = find_stacktraces_in_data(data)
-
-    # Backwards compatibility: If the current platform is JS, we may need to do
-    # native afterwards. Otherwise we don't do anything.
-    if symbolicate_platforms is None:
-        if (
-            task_kind.platform == SymbolicatorPlatform.js
-            and get_native_symbolication_function(data, stacktraces) is not None
-        ):
-            symbolicate_platforms = [SymbolicatorPlatform.native]
-        else:
-            symbolicate_platforms = []
-
     set_current_event_project(project_id)
 
     # check whether the event is in the wrong queue and if so, move it to the other one.
@@ -218,6 +205,7 @@ def _do_symbolicate_event(
         )
 
     try:
+        stacktraces = find_stacktraces_in_data(data)
         symbolication_function = get_symbolication_function_for_platform(
             task_kind.platform, data, stacktraces
         )
