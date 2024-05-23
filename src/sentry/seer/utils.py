@@ -6,11 +6,8 @@ from typing import Any, ClassVar, NotRequired, Self, TypedDict
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
-from urllib3.exceptions import ReadTimeoutError
 
 from sentry.conf.server import (
-    SEER_GROUPING_RECORDS_DELETE_URL,
-    SEER_GROUPING_RECORDS_URL,
     SEER_MAX_GROUPING_DISTANCE,
     SEER_SIMILAR_ISSUES_URL,
     SEER_SIMILARITY_MODEL_VERSION,
@@ -22,7 +19,6 @@ from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
 
-POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
 
 logger = logging.getLogger(__name__)
 
@@ -199,24 +195,6 @@ class SeerSimilarIssuesMetadata:
     similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
 
 
-class CreateGroupingRecordData(TypedDict):
-    group_id: int
-    hash: str
-    project_id: int
-    message: str
-
-
-class CreateGroupingRecordsRequest(TypedDict):
-    group_id_list: list[int]
-    data: list[CreateGroupingRecordData]
-    stacktrace_list: list[str]
-
-
-class BulkCreateGroupingRecordsResponse(TypedDict):
-    success: bool
-    groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
-
-
 # TODO: Handle non-200 responses
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
@@ -277,70 +255,3 @@ def get_similarity_data_from_seer(
         normalized,
         key=lambda issue_data: issue_data.stacktrace_distance,
     )
-
-
-def post_bulk_grouping_records(
-    grouping_records_request: CreateGroupingRecordsRequest,
-) -> BulkCreateGroupingRecordsResponse:
-    """Call /v0/issues/similar-issues/grouping-record endpoint from seer."""
-    if not grouping_records_request.get("data"):
-        return {"success": True}
-
-    extra = {
-        "group_ids": json.dumps(grouping_records_request["group_id_list"]),
-        "project_id": grouping_records_request["data"][0]["project_id"],
-        "stacktrace_length_sum": sum(
-            [len(stacktrace) for stacktrace in grouping_records_request["stacktrace_list"]]
-        ),
-    }
-
-    try:
-        response = seer_grouping_connection_pool.urlopen(
-            "POST",
-            SEER_GROUPING_RECORDS_URL,
-            body=json.dumps(grouping_records_request),
-            headers={"Content-Type": "application/json;charset=utf-8"},
-            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
-        )
-    except ReadTimeoutError:
-        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
-        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False}
-
-    if response.status >= 200 and response.status < 300:
-        logger.info("seer.post_bulk_grouping_records.success", extra=extra)
-        return json.loads(response.data.decode("utf-8"))
-    else:
-        extra.update({"reason": response.reason})
-        logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
-        return {"success": False}
-
-
-def delete_grouping_records(
-    project_id: int,
-) -> bool:
-    try:
-        response = seer_grouping_connection_pool.urlopen(
-            "GET",
-            f"{SEER_GROUPING_RECORDS_DELETE_URL}/{project_id}",
-            headers={"Content-Type": "application/json;charset=utf-8"},
-            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
-        )
-    except ReadTimeoutError:
-        logger.exception(
-            "seer.delete_grouping_records.timeout",
-            extra={"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT},
-        )
-        return False
-
-    if response.status >= 200 and response.status < 300:
-        logger.info(
-            "seer.delete_grouping_records.success",
-            extra={"project_id": project_id},
-        )
-        return True
-    else:
-        logger.error(
-            "seer.delete_grouping_records.failure",
-        )
-        return False
