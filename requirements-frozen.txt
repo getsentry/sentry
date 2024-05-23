@@ -91,7 +91,7 @@ psutil==5.9.7
 psycopg2-binary==2.9.9
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
-pycountry==17.5.14
+pycountry==23.12.11
 pycparser==2.21
 pydantic==1.10.9
 pyjwt==2.4.0
