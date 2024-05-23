@@ -1,11 +1,5 @@
-import {
-  forwardRef as reactForwardRef,
-  memo,
-  type SyntheticEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {forwardRef as reactForwardRef, memo, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {type Theme, useTheme} from '@emotion/react';
@@ -237,10 +231,6 @@ const POPPER_OPTIONS = {
   ],
 };
 
-function stopPropagation(e: SyntheticEvent) {
-  e.stopPropagation();
-}
-
 function DetailsOverlay({
   children,
   size,
@@ -257,12 +247,8 @@ function DetailsOverlay({
 
   const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
 
-  return (
+  return createPortal(
     <StyledPositionWrapper
-      // Stop propagation so listeners on the menu-item are not triggered
-      onPointerDown={stopPropagation}
-      onMouseDown={stopPropagation}
-      onTouchStart={stopPropagation}
       {...popper.attributes.popper}
       ref={setOverlayElement}
       zIndex={theme.zIndex.tooltip}
@@ -271,7 +257,11 @@ function DetailsOverlay({
       <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>
         {children}
       </StyledOverlay>
-    </StyledPositionWrapper>
+    </StyledPositionWrapper>,
+    // Safari will clip the overlay if it is inside a scrollable container, even though it is positioned fixed.
+    // See https://bugs.webkit.org/show_bug.cgi?id=160953
+    // To work around this, we append the overlay to the body
+    document.body
   );
 }
 

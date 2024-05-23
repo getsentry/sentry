@@ -8,7 +8,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.buffer.redis import RedisBuffer
+from sentry import buffer
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -24,6 +24,7 @@ from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RulePr
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
@@ -47,6 +48,7 @@ class MockConditionTrue(EventCondition):
         return True
 
 
+@mock_redis_buffer()
 class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
     def setUp(self):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -113,7 +115,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
 
     @with_feature("organizations:process-slow-alerts")
-    def test_delayed_rule_match_any_slow_conditionss(self):
+    def test_delayed_rule_match_any_slow_conditions(self):
         """
         Test that a rule with only 'slow' conditions and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
@@ -134,13 +136,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
@@ -178,13 +181,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
                 {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
@@ -215,13 +219,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}
@@ -303,13 +308,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
-        buffer = RedisBuffer()
-        project_ids = buffer.get_sorted_set(
+        project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
         assert len(project_ids) == 1
         assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.get_hash(model=Project, field={"project_id": self.project.id})
+        rulegroup_to_events = buffer.backend.get_hash(
+            model=Project, field={"project_id": self.project.id}
+        )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
                 {"event_id": self.group_event.event_id, "occurrence_id": None}

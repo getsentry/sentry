@@ -25,13 +25,10 @@ type Props = {
   triggerAutofix: (value: string) => void;
 };
 
-export function AutofixBanner({
+function SuccessfulSetup({
   groupId,
-  projectId,
   triggerAutofix,
-  hasSuccessfulSetup,
-}: Props) {
-  const isSentryEmployee = useIsSentryEmployee();
+}: Pick<Props, 'groupId' | 'triggerAutofix'>) {
   const onClickGiveInstructions = () => {
     openModal(deps => (
       <AutofixInstructionsModal
@@ -41,7 +38,78 @@ export function AutofixBanner({
       />
     ));
   };
+
+  return (
+    <Fragment>
+      <Button
+        onClick={() => triggerAutofix('')}
+        size="sm"
+        analyticsEventKey="autofix.start_fix_clicked"
+        analyticsEventName="Autofix: Start Fix Clicked"
+        analyticsParams={{group_id: groupId}}
+      >
+        {t('Get root causes')}
+      </Button>
+      <Button
+        onClick={onClickGiveInstructions}
+        size="sm"
+        analyticsEventKey="autofix.give_instructions_clicked"
+        analyticsEventName="Autofix: Give Instructions Clicked"
+        analyticsParams={{group_id: groupId}}
+      >
+        {t('Provide context first')}
+      </Button>
+    </Fragment>
+  );
+}
+
+function AutofixBannerContent({
+  groupId,
+  triggerAutofix,
+  hasSuccessfulSetup,
+  projectId,
+}: Props) {
   const {status: indexingStatus} = useAutofixCodebaseIndexing({projectId, groupId});
+
+  if (hasSuccessfulSetup) {
+    return <SuccessfulSetup groupId={groupId} triggerAutofix={triggerAutofix} />;
+  }
+
+  if (indexingStatus === AutofixCodebaseIndexingStatus.INDEXING) {
+    return (
+      <RowStack>
+        <LoadingIndicator mini />
+        <LoadingMessage>
+          Indexing your repositories, hold tight this may take up to 30 minutes...
+        </LoadingMessage>
+      </RowStack>
+    );
+  }
+
+  return (
+    <Button
+      analyticsEventKey="autofix.setup_clicked"
+      analyticsEventName="Autofix: Setup Clicked"
+      analyticsParams={{group_id: groupId}}
+      onClick={() => {
+        openModal(deps => (
+          <AutofixSetupModal {...deps} groupId={groupId} projectId={projectId} />
+        ));
+      }}
+      size="sm"
+    >
+      Set up Autofix
+    </Button>
+  );
+}
+
+export function AutofixBanner({
+  groupId,
+  projectId,
+  triggerAutofix,
+  hasSuccessfulSetup,
+}: Props) {
+  const isSentryEmployee = useIsSentryEmployee();
 
   return (
     <Wrapper>
@@ -53,52 +121,17 @@ export function AutofixBanner({
       <Body>
         <div>
           <Title>{t('Try Autofix')}</Title>
-          <SubTitle>{t('You might get lucky, but then again, maybe not...')}</SubTitle>
+          <SubTitle>
+            {t('Sit back and let Autofix find potential root causes and fixes')}
+          </SubTitle>
         </div>
         <ContextArea>
-          {hasSuccessfulSetup ? (
-            <Fragment>
-              <Button
-                onClick={() => triggerAutofix('')}
-                size="sm"
-                analyticsEventKey="autofix.start_fix_clicked"
-                analyticsEventName="Autofix: Start Fix Clicked"
-                analyticsParams={{group_id: groupId}}
-              >
-                {t('Gimme Fix')}
-              </Button>
-              <Button
-                onClick={onClickGiveInstructions}
-                size="sm"
-                analyticsEventKey="autofix.give_instructions_clicked"
-                analyticsEventName="Autofix: Give Instructions Clicked"
-                analyticsParams={{group_id: groupId}}
-              >
-                {t('Give Instructions')}
-              </Button>
-            </Fragment>
-          ) : indexingStatus === AutofixCodebaseIndexingStatus.INDEXING ? (
-            <RowStack>
-              <LoadingIndicator mini />
-              <LoadingMessage>
-                Indexing your repositories, hold tight this may take up to 30 minutes...
-              </LoadingMessage>
-            </RowStack>
-          ) : (
-            <Button
-              analyticsEventKey="autofix.setup_clicked"
-              analyticsEventName="Autofix: Setup Clicked"
-              analyticsParams={{group_id: groupId}}
-              onClick={() => {
-                openModal(deps => (
-                  <AutofixSetupModal {...deps} groupId={groupId} projectId={projectId} />
-                ));
-              }}
-              size="sm"
-            >
-              Setup Autofix
-            </Button>
-          )}
+          <AutofixBannerContent
+            groupId={groupId}
+            projectId={projectId}
+            triggerAutofix={triggerAutofix}
+            hasSuccessfulSetup={hasSuccessfulSetup}
+          />
         </ContextArea>
         {isSentryEmployee && hasSuccessfulSetup && (
           <Fragment>

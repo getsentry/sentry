@@ -8,13 +8,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
@@ -53,8 +51,6 @@ describe('HTTPSamplesPanel', () => {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -4,6 +4,7 @@ from logging import Logger, getLogger
 
 import orjson
 
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
@@ -16,6 +17,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
 )
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.base import ActivityNotification
@@ -114,6 +116,22 @@ class SlackService:
             )
             return None
 
+        organization_id = activity.group.organization.id
+        # If the feature is turned off for the organization, exit early as there's nothing to do
+        if not OrganizationOption.objects.get_value(
+            organization=activity.group.organization,
+            key="sentry:issue_alerts_thread_flag",
+            default=ISSUE_ALERTS_THREAD_DEFAULT,
+        ):
+            self._logger.info(
+                "feature is turned off for this organization",
+                extra={
+                    "activity_id": activity.id,
+                    "organization_id": organization_id,
+                    "project_id": activity.project.id,
+                },
+            )
+            return None
         # The same message is sent to all the threads, so this needs to only happen once
         notification_to_send = self._get_notification_message_to_send(activity=activity)
         if not notification_to_send:
@@ -126,7 +144,7 @@ class SlackService:
             return None
 
         integration = get_active_integration_for_organization(
-            organization_id=activity.group.organization.id,
+            organization_id=organization_id,
             provider=ExternalProviderEnum.SLACK,
         )
         if integration is None:
@@ -134,7 +152,7 @@ class SlackService:
                 "no integration found for activity",
                 extra={
                     "activity_id": activity.id,
-                    "organization_id": activity.project.organization_id,
+                    "organization_id": organization_id,
                     "project_id": activity.project.id,
                 },
             )

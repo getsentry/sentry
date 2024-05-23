@@ -13,7 +13,7 @@ import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/performance/queues/settin
 import {INSIGHTS_BASE_URL} from 'sentry/views/performance/settings';
 import {ModuleName} from 'sentry/views/starfish/types';
 
-const MODULE_BASE_URLS: Record<ModuleName, string> = {
+export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_BASE_URL,
   [ModuleName.HTTP]: HTTP_BASE_URL,
   [ModuleName.CACHE]: CACHE_BASE_URL,
