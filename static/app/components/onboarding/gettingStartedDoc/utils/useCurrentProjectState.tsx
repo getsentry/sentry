@@ -5,6 +5,7 @@ import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
@@ -14,15 +15,27 @@ type Props = {
   targetPanel: SidebarPanelKey;
 };
 
+function getDefaultCurrentProject(projects: Project[], projectSlug?: string) {
+  if (!projectSlug) {
+    return undefined;
+  }
+  return projects.find(p => p.slug === projectSlug) ?? undefined;
+}
+
 function useCurrentProjectState({
   currentPanel,
   targetPanel,
   onboardingPlatforms,
   allPlatforms,
 }: Props) {
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
+  const params = useParams<{projectId?: string}>();
+  const projectSlug = params.projectId;
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
+
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(() =>
+    getDefaultCurrentProject(projects, projectSlug)
+  );
 
   const isActive = currentPanel === targetPanel;
 
@@ -37,7 +50,7 @@ function useCurrentProjectState({
 
   useEffect(() => {
     if (!isActive) {
-      setCurrentProject(undefined);
+      setCurrentProject(getDefaultCurrentProject(projects, projectSlug));
       return;
     }
 
@@ -92,6 +105,7 @@ function useCurrentProjectState({
     selection.projects,
     projectsWithOnboarding,
     supportedProjects,
+    projectSlug,
   ]);
 
   return {
