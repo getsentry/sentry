@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.grouping.parameterization import (
@@ -145,6 +147,11 @@ def parameterizer():
             """Blocked 'font' from 'www.time.co'""",
             """Blocked 'font' from '<hostname>'""",
         ),
+        (
+            "Nothing to replace",
+            """A quick brown fox jumped over the lazy dog""",
+            """A quick brown fox jumped over the lazy dog""",
+        ),
     ],
 )
 def test_parameterize_standard(name, input, expected, parameterizer):
@@ -234,6 +241,26 @@ def test_parameterize_regex_experiment():
     assert normalized == "blah <foo>barbaz <foo>ooo"
     assert len(parameterizer.get_successful_experiments()) == 1
     assert parameterizer.get_successful_experiments()[0] == FooExperiment
+
+
+def test_parameterize_regex_experiment_cached_compiled():
+
+    with mock.patch.object(
+        ParameterizationRegexExperiment,
+        "pattern",
+        new_callable=mock.PropertyMock,
+        return_value=r"(?P<foo>f[oO]{2})",
+    ) as mocked_pattern:
+        FooExperiment = ParameterizationRegexExperiment(name="foo", raw_pattern=r"f[oO]{2}")
+        parameterizer = Parameterizer(
+            regex_pattern_keys=(),
+            experiments=(FooExperiment,),
+        )
+        input = "blah foobarbaz fooooo"
+        _ = parameterizer.parameterize_all(input)
+        _ = parameterizer.parameterize_all(input)
+
+    mocked_pattern.assert_called_once()
 
 
 # These are test cases that we should fix
