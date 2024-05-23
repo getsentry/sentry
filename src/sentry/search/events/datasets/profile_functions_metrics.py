@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from datetime import datetime
 
 from snuba_sdk import Column, Condition, Function, Op
 
@@ -117,7 +118,7 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_cpm_cond(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | Column | SelectType | int | float | datetime],
         alias: str | None,
         cond: str,
     ) -> SelectType:

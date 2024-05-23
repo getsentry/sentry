@@ -411,6 +411,7 @@ module = [
     "sentry.search.events.datasets.metrics",
     "sentry.search.events.datasets.metrics_layer",
     "sentry.search.events.datasets.profile_functions",
+    "sentry.search.events.datasets.profile_functions_metrics",
     "sentry.search.events.datasets.profiles",
     "sentry.search.events.datasets.spans_metrics",
     "sentry.search.events.fields",
