@@ -421,9 +421,9 @@ from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
 from .endpoints.organization_metric_details import OrganizationMetricDetailsEndpoint
-from .endpoints.organization_metrics import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_data import OrganizationMetricsDataEndpoint
+from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_estimation_stats import (
     OrganizationMetricsEstimationStatsEndpoint,
 )
