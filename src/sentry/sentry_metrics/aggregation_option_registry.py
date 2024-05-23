@@ -1,4 +1,3 @@
-from collections.abc import Mapping, Sequence
 from enum import Enum
 
 from sentry import options
@@ -28,24 +27,15 @@ METRIC_ID_AGG_OPTION = {
 # They are all set via specific overrides, so we removed the global mapping
 
 
-def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, TimeWindow] | None:
+def get_aggregation_options(mri: str) -> dict[AggregationOption, TimeWindow] | None:
 
-    drop_uc_org_override: Mapping[str, Sequence[int]] = options.get(
-        "sentry-metrics.drop-percentiles.per-use-case.with-org-override"
-    )
     use_case_id: UseCaseID = extract_use_case_id(mri)
 
-    # We check first if the org ID has specifically disabled percentiles
-    # Note: This is currently an unused option
-    if org_id in options.get("sentry-metrics.drop-percentiles.per-org"):
-        return {AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS}
-    # We then check if the particular metric ID has a specified aggregation
-    elif mri in METRIC_ID_AGG_OPTION:
+    # We first check if the particular metric ID has a specified aggregation
+    if mri in METRIC_ID_AGG_OPTION:
         return METRIC_ID_AGG_OPTION[mri]
     # Then move to use case-level disabled percentiles
-    elif (use_case_id.value in drop_uc_org_override) and (
-        org_id not in drop_uc_org_override[use_case_id.value]
-    ):
+    elif use_case_id.value in options.get("sentry-metrics.drop-percentiles.per-use-case"):
         return {AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS}
     # And finally 10s granularity if none of the above apply for custom
     elif (use_case_id == UseCaseID.CUSTOM) and options.get("sentry-metrics.10s-granularity"):

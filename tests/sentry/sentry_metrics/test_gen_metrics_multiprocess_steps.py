@@ -312,7 +312,7 @@ def __translated_payload(
         for k, v in payload["tags"].items()
     }
 
-    agg_options = get_aggregation_options(payload["name"], payload["org_id"])
+    agg_options = get_aggregation_options(payload["name"])
 
     if agg_options:
         # Keep this assert for now to indicate that we only have maximum 1 aggregation
@@ -361,10 +361,7 @@ def test_process_messages() -> None:
     with override_options(
         {
             "sentry-metrics.10s-granularity": True,
-            "sentry-metrics.drop-percentiles.per-use-case.with-org-override": {
-                "spans": [2],
-                "transactions": [2],
-            },
+            "sentry-metrics.drop-percentiles.per-use-case": {"spans", "transactions"},
         }
     ):
         new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
