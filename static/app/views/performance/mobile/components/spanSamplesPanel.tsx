@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -11,10 +11,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanSamplesContainer} from 'sentry/views/performance/mobile/components/spanSamplesPanelContainer';
+import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import type {ModuleName} from 'sentry/views/starfish/types';
@@ -54,12 +54,7 @@ export function SpanSamplesPanel({
 
   const organization = useOrganization();
   const {query} = useLocation();
-  const {projects} = useProjects();
-
-  const project = useMemo(
-    () => projects.find(p => p.id === String(query.project)),
-    [projects, query.project]
-  );
+  const {project} = usePlatformSelector();
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {

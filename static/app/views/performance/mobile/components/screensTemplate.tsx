@@ -22,6 +22,7 @@ import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
 } from 'sentry/views/performance/mobile/appStarts/settings';
+import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -43,6 +44,7 @@ export default function ScreensTemplate({
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const location = useLocation();
+  const {isProjectCrossPlatform, PlatformSelector} = usePlatformSelector();
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -71,6 +73,7 @@ export default function ScreensTemplate({
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
+              {isProjectCrossPlatform && <PlatformSelector />}
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>

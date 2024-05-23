@@ -10,7 +10,6 @@ import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -37,10 +36,8 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {SETUP_CONTENT} from 'sentry/views/performance/mobile/screenload/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/screens/tabbedCodeSnippets';
-import {
-  isCrossPlatform,
-  transformReleaseEvents,
-} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -125,19 +122,18 @@ type Props = {
   yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
-  project?: Project | null;
 };
 
-export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Props) {
+export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
+  const {isProjectCrossPlatform} = usePlatformSelector();
   const {query: locationQuery} = location;
 
   const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
   const platform =
@@ -163,7 +159,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
       ...(additionalFilters ?? []),
     ]);
 
-    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+    if (isProjectCrossPlatform) {
       query.addFilterValue('os.name', platform);
     }
 
@@ -175,11 +171,10 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
   }, [
     additionalFilters,
-    hasPlatformSelectFeature,
+    isProjectCrossPlatform,
     locationQuery.query,
     platform,
     primaryRelease,
-    project,
     secondaryRelease,
   ]);
 
@@ -228,7 +223,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
       ...(additionalFilters ?? []),
     ]);
 
-    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+    if (isProjectCrossPlatform) {
       topEventsQuery.addFilterValue('os.name', platform);
     }
 
@@ -241,12 +236,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
     }`.trim();
   }, [
     additionalFilters,
-    platform,
+    isProjectCrossPlatform,
     primaryRelease,
-    project,
     secondaryRelease,
     topTransactions,
-    hasPlatformSelectFeature,
+    platform,
   ]);
 
   const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
@@ -394,7 +388,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
         isLoading={topTransactionsLoading}
         pageLinks={pageLinks}
         onCursor={handleCursor}
-        project={project}
       />
     </div>
   );

@@ -10,7 +10,6 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
@@ -33,10 +32,8 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {
-  isCrossPlatform,
-  transformDeviceClassEvents,
-} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -60,13 +57,13 @@ type Props = {
   yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
-  project?: Project | null;
 };
 
-export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
+export function ScreenCharts({yAxes, additionalFilters}: Props) {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const {isProjectCrossPlatform} = usePlatformSelector();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
@@ -89,7 +86,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
       ...(additionalFilters ?? []),
     ]);
 
-    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+    if (isProjectCrossPlatform && hasPlatformSelectFeature) {
       query.addFilterValue('os.name', platform);
     }
 
@@ -97,9 +94,9 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
   }, [
     additionalFilters,
     hasPlatformSelectFeature,
+    isProjectCrossPlatform,
     platform,
     primaryRelease,
-    project,
     secondaryRelease,
   ]);
 
