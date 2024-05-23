@@ -1,13 +1,17 @@
-import type {ComponentProps} from 'react';
+import {type ComponentProps, useEffect} from 'react';
+import * as qs from 'query-string';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NoAccess} from 'sentry/views/performance/database/noAccess';
 import {useInsightsTitle} from 'sentry/views/performance/utils/useInsightsTitle';
 import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import type {ModuleName} from 'sentry/views/starfish/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -22,6 +26,9 @@ interface Props {
 
 export function ModulePageProviders({moduleName, pageTitle, children, features}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const moduleURL = useModuleURL(moduleName);
 
   const insightsTitle = useInsightsTitle(moduleName);
   const moduleTitle = useModuleTitle(moduleName);
@@ -29,6 +36,22 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   const fullPageTitle = [pageTitle, moduleTitle, insightsTitle]
     .filter(Boolean)
     .join(' — ');
+  const areInsightsEnabled = organization?.features?.includes('performance-insights');
+  const isOnInsightsRoute = location.pathname.includes(`/insights/`);
+
+  useEffect(() => {
+    // If the Insights feature is enabled, redirect users to the `/insights/` equivalent URL!
+    if (areInsightsEnabled && !isOnInsightsRoute) {
+      navigate(`${moduleURL}/${qs.stringify(location.query)}`);
+    }
+  }, [
+    navigate,
+    location.query,
+    moduleURL,
+    organization.slug,
+    areInsightsEnabled,
+    isOnInsightsRoute,
+  ]);
 
   return (
     <PageFiltersContainer>
