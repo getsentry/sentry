@@ -1197,7 +1197,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         Returns the basic lookup for a search filter.
         """
-        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
+        dataset = Dataset.Events if joined_entity.name == "events" else Dataset.IssuePlatform
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
@@ -1456,7 +1456,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     ) -> Condition:
         """
         Returns the handled and unhandled lookup for a search filter.
-        Does not use the functions that Snbua has, instead replicates that logic
+        Does not use the functions that Snuba has, instead replicates that logic
         and queries the exception_stacks.mechanism_handled colunn directly
         """
         if search_filter.key.name == "error.handled":
@@ -1640,7 +1640,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             entities_to_check.append(search_issues_entity)
 
         for joined_entity in entities_to_check:
-            is_errors = joined_entity.alias == "e"
+            is_errors = joined_entity.name == "events"
             where_conditions = [
                 Condition(Column("project_id", joined_entity), Op.IN, [p.id for p in projects]),
                 Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
