@@ -9,11 +9,8 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.seer.utils import (
-    SeerSimilarIssuesMetadata,
-    SimilarIssuesEmbeddingsRequest,
-    get_similarity_data_from_seer,
-)
+from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
+from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")

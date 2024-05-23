@@ -145,7 +145,9 @@ function MonitorDetails({params, location}: Props) {
               </Alert>
             )}
             {!!checkinErrors?.length && (
-              <MonitorProcessingErrors checkinErrors={checkinErrors} />
+              <MonitorProcessingErrors checkinErrors={checkinErrors}>
+                {t('Errors were encountered while ingesting check-ins for this monitor')}
+              </MonitorProcessingErrors>
             )}
             {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding monitor={monitor} />

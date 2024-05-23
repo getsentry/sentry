@@ -80,8 +80,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         self,
         *,
         region_name: str,
-        organization_ids_and_slugs: set[tuple[int, str]] | None = None,
-        slug_mapping: dict[int, str] | None = None,
+        slug_mapping: dict[int, str],
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug

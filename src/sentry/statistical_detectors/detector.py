@@ -25,7 +25,7 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.seer.breakpoints import BreakpointData, detect_breakpoints
 from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression

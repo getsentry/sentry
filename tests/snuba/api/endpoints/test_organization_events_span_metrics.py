@@ -1666,6 +1666,41 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             },
         ]
 
+    def test_messaging_does_not_exist_as_metric(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            tags={"messaging.destination.name": "foo", "trace.status": "ok"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "messaging.destination.name",
+                    "trace.status",
+                    "avg(messaging.message.receive.latency)",
+                    "avg(span.duration)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {
+                "messaging.destination.name": "foo",
+                "trace.status": "ok",
+                "avg(messaging.message.receive.latency)": None,
+                "avg(span.duration)": 100,
+            },
+        ]
+        meta = response.data["meta"]
+        assert meta["fields"]["avg(messaging.message.receive.latency)"] == "null"
+
     def test_trace_status_rate(self):
         self.store_span_metric(
             1,
@@ -1713,6 +1748,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
+                "statsPeriod": "1h",
             }
         )
 
@@ -1730,6 +1766,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["trace_status_rate(unknown)"] == "percentage"
         assert meta["fields"]["trace_status_rate(internal_error)"] == "percentage"
         assert meta["fields"]["trace_status_rate(unauthenticated)"] == "percentage"
+
+    def test_trace_error_rate(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "unknown"},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "internal_error"},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "unauthenticated"},
+        )
+
+        self.store_span_metric(
+            4,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "ok"},
+        )
+
+        self.store_span_metric(
+            5,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "ok"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "trace_error_rate()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["trace_error_rate()"] == 0.4
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["trace_error_rate()"] == "percentage"
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

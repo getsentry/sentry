@@ -838,6 +838,7 @@ CELERY_QUEUES_REGION = [
     Queue("app_platform", routing_key="app_platform"),
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
+    Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("buffers.process_pending_batch", routing_key="buffers.process_pending_batch"),
     Queue("buffers.incr", routing_key="buffers.incr"),
@@ -1832,6 +1833,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
     "organizations:session-replay-enable-canvas-replayer": False,
+    # Enable Hydration Error Issue Creation In Recording Consumer
+    "organizations:session-replay-hydration-error-issue-creation": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
     # Enable mobile replay player
@@ -1858,6 +1861,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
+    # Enable the UI for user spend notification settings
+    "organizations:user-spend-notifications-settings": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": True,
     # Send Slack notifications to threads for Issue Alerts
@@ -1897,6 +1902,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
+    "organizations:performance-webvitals-avg": False,
     # Rename current Performance modules to "Insights"
     "organizations:performance-insights": False,
     # Enable queues module ui

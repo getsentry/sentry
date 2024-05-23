@@ -90,10 +90,10 @@ function SudoModal({
   const location = useLocation();
 
   useEffect(() => {
-    const getAuthenticators = async () => {
+    const getAuthenticators = () => {
       if (!loadOrganization) return;
       try {
-        await loadOrganization().then(async () => {
+        loadOrganization().finally(async () => {
           const fetchedAuthenticators = await api.requestPromise('/authenticators/');
           setState(prevState => ({
             ...prevState,

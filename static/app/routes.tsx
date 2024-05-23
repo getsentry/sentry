@@ -1363,13 +1363,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-  const releaseThresholdRoutes = (
-    <Route path="/release-thresholds/" withOrgPath>
-      <IndexRoute
-        component={make(() => import('sentry/views/releases/thresholdsList'))}
-      />
-    </Route>
-  );
 
   const activityRoutes = (
     <Route
@@ -1438,7 +1431,7 @@ function buildRoutes() {
   );
 
   const llmMonitoringRoutes = (
-    <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
+    <Route path={`/${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
       <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
       <Route
         path="pipeline-type/:groupId/"
@@ -1558,6 +1551,17 @@ function buildRoutes() {
           path="spans/"
           component={make(
             () => import('sentry/views/performance/mobile/ui/screenSummary')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/llmMonitoring/landing'))}
+        />
+        <Route
+          path="pipeline-type/:groupId/"
+          component={make(
+            () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
           )}
         />
       </Route>
@@ -2070,7 +2074,6 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {releaseThresholdRoutes}
       {activityRoutes}
       {statsRoutes}
       {discoverRoutes}

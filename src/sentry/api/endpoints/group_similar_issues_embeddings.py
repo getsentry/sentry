@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -15,11 +15,8 @@ from sentry.api.serializers import serialize
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.seer.utils import (
-    SeerSimilarIssueData,
-    SimilarIssuesEmbeddingsRequest,
-    get_similarity_data_from_seer,
-)
+from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
+from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -134,9 +131,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
     def get(self, request: Request, group) -> Response:
-        if not features.has("projects:similarity-embeddings", group.project):
-            return Response(status=404)
-
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -32,9 +31,8 @@ import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
-  MODULE_TITLE,
+  MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
 import {
   DomainTransactionsTable,
@@ -182,7 +180,6 @@ export function HTTPDomainSummaryPage() {
             {project && <ProjectAvatar project={project} size={36} />}
             {domain || NULL_DOMAIN_DESCRIPTION}
             <DomainStatusLink domain={domain} />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
@@ -199,11 +196,7 @@ export function HTTPDomainSummaryPage() {
               {tct(
                 '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                 {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
-                      documentation
-                    </ExternalLink>
-                  ),
+                  link: <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>,
                 }
               )}
             </Alert>
@@ -348,7 +341,8 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
+      moduleName="http"
+      pageTitle={t('Domain Summary')}
       features="spans-first-ui"
     >
       <HTTPDomainSummaryPage />
