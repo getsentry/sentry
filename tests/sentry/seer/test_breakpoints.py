@@ -3,11 +3,11 @@ from unittest import mock
 import pytest
 from urllib3.response import HTTPResponse
 
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.breakpoints import detect_breakpoints
 from sentry.utils import json
 
 
-@mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
+@mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 def test_detect_breakpoints(mock_urlopen):
     data = {
         "data": [
@@ -39,7 +39,7 @@ def test_detect_breakpoints(mock_urlopen):
     ],
 )
 @mock.patch("sentry_sdk.capture_exception")
-@mock.patch("sentry.seer.utils.seer_breakpoint_connection_pool.urlopen")
+@mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status):
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
