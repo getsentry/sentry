@@ -149,6 +149,20 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_organization_contexts(
+        self,
+        *,
+        organization_id: int | None = None,
+        integration_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+        """
+        :deprecated: Use organization_contexts() instead.
+        """
+
+    @rpc_method
+    @abstractmethod
     def organization_context(
         self,
         *,
