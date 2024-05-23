@@ -30,6 +30,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         self.monitor2 = self._create_monitor()
         self.env_prod = self._create_monitor_environment(monitor=self.monitor1)
         self.env_debug = self._create_monitor_environment(monitor=self.monitor1, name="debug")
+        self.env_prod_2 = self._create_monitor_environment(monitor=self.monitor2)
 
         # Be sure to note the freeze time above
         self.since = self.monitor1.date_added
@@ -62,8 +63,8 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             status=CheckInStatus.TIMEOUT,
         )
 
-        self.add_checkin(self.monitor2, offset={"minutes": 1})
-        self.add_checkin(self.monitor2, offset={"minutes": 2})
+        self.add_checkin(self.monitor2, env=self.env_prod_2, offset={"minutes": 1})
+        self.add_checkin(self.monitor2, env=self.env_prod_2, offset={"minutes": 2})
 
     def test_simple(self):
         resp = self.get_success_response(
