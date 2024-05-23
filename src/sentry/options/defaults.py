@@ -97,12 +97,7 @@ register(
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-# Enable date-util parsing for timestamps
-register(
-    "system.use-date-util-timestamps",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 # Redis
 register(
     "redis.clusters",
@@ -840,54 +835,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for all Seer services
-#
-# TODO: So far this is only being checked when calling the Seer similar issues service during
-# ingestion
-register(
-    "seer.global-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitches for individual Seer services
-#
-# TODO: Most of these are not yet being used. The one current exception is the similarity service
-# killswitch, which is checked before calling Seer when potentially creating a  new group as part of
-# ingestion.
-register(
-    "seer.similarity-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.severity-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.breakpoint-detection-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.autofix-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.anomaly-detection-killswitch.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 register(
     "issues.similarity-embeddings.projects-allowlist",
     type=Sequence,
@@ -931,14 +878,6 @@ register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
     default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# seer embeddings backfill batch size
-register(
-    "embeddings-grouping.seer.backfill-batch-size",
-    type=Int,
-    default=10,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -999,14 +938,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Switch for new logic for release health metrics, based on filtering on org & project ids
-register(
-    "release-health.use-org-and-project-filter",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Switch for more performant project counter incr
@@ -1313,10 +1244,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to remove support for percentiles on a per-org basis.
+# Add the org_id to list to disable percentiles.
+register(
+    "sentry-metrics.drop-percentiles.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Option to remove support for percentiles on a per-use case basis.
-# Add the use case name (e.g. "custom") to this list
-# to disable percentiles storage for the use case
+# Add the use case to list to disable percentiles.
 register(
     "sentry-metrics.drop-percentiles.per-use-case",
     default=[],
@@ -2189,26 +2126,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.sdk_crash_detection.dart.project_id",
-    default=0,
-    type=Int,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.sdk_crash_detection.dart.organization_allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.sdk_crash_detection.dart.sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # END: SDK Crash Detection
 
 register(
@@ -2616,7 +2533,15 @@ register(
 register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
     type=Int,
-    default=20000000,
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "sentry.save-event-attachments.project-per-sec-limit",
+    type=Int,
+    default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2624,15 +2549,6 @@ register(
 # also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
 register(
     "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
