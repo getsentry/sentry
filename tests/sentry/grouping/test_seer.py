@@ -5,7 +5,7 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.grouping.result import CalculatedHashes
-from sentry.seer.utils import SeerSimilarIssueData
+from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event

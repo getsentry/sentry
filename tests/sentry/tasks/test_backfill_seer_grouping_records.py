@@ -16,7 +16,7 @@ from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
-from sentry.seer.utils import RawSeerSimilarIssueData
+from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.tasks.backfill_seer_grouping_records import (
     GroupStacktraceData,
     backfill_seer_grouping_records,
