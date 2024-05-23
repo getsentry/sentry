@@ -161,7 +161,7 @@ function mutliSelectTokenValue(
   }
 }
 
-function deleteLastMutliSelectTokenValue(
+function deleteLastMultiSelectTokenValue(
   state: QueryBuilderState,
   action: DeleteLastMultiSelectFilterValueAction
 ) {
@@ -201,7 +201,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
         case 'TOGGLE_FILTER_VALUE':
           return mutliSelectTokenValue(state, action);
         case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
-          return deleteLastMutliSelectTokenValue(state, action);
+          return deleteLastMultiSelectTokenValue(state, action);
         default:
           return state;
       }
