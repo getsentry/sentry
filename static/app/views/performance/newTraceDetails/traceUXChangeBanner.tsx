@@ -29,7 +29,9 @@ export function TraceUXChangeAlert() {
         {
           why: (
             <a
-              href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/" target="_blank"
+              href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/"
+              target="_blank"
+              rel="noreferrer"
             >
               {t('why')}
             </a>
