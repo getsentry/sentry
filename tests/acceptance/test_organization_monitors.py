@@ -113,8 +113,7 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until(xpath="//a//*[text()='My Monitor']")
-
-        assert self.browser.element_exists_by_test_id("monitor-checkin-tick")
+        self.browser.wait_until('[data-test-id="monitor-checkin-tick"]')
 
     def test_edit_monitor(self):
         Monitor.objects.create(
