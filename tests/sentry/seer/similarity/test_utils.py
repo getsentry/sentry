@@ -1,8 +1,14 @@
 import copy
 from collections.abc import Callable
 from typing import Any
+from uuid import uuid1
 
-from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.eventstore.models import Event
+from sentry.seer.similarity.utils import (
+    SEER_ELIGIBLE_PLATFORMS,
+    event_content_is_seer_eligible,
+    get_stacktrace_string,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -581,3 +587,69 @@ class GetStacktraceStringTest(TestCase):
         data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
         stacktrace_str = get_stacktrace_string(data_no_exception)
         assert stacktrace_str == ""
+
+
+class EventContentIsSeerEligibleTest(TestCase):
+    def get_eligible_event_data(self) -> dict[str, Any]:
+        return {
+            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "Charlie didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dogpark.py",
+                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+
+    def test_no_stacktrace_no_title(self):
+        good_event_data = self.get_eligible_event_data()
+        good_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=good_event_data,
+        )
+
+        bad_event_data = self.get_eligible_event_data()
+        bad_event_data["title"] = "<untitled>"
+        del bad_event_data["exception"]
+        bad_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=bad_event_data,
+        )
+
+        assert event_content_is_seer_eligible(good_event) is True
+        assert event_content_is_seer_eligible(bad_event) is False
+
+    def test_platform_filter(self):
+        good_event_data = self.get_eligible_event_data()
+        good_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=good_event_data,
+        )
+
+        bad_event_data = self.get_eligible_event_data()
+        bad_event_data["platform"] = "other"
+        bad_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=bad_event_data,
+        )
+
+        assert good_event_data["platform"] in SEER_ELIGIBLE_PLATFORMS
+        assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
+        assert event_content_is_seer_eligible(good_event) is True
+        assert event_content_is_seer_eligible(bad_event) is False
