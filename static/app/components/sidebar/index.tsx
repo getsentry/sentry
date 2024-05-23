@@ -59,10 +59,7 @@ import {
   MODULE_TITLE as CACHE_MODULE_TITLE,
   releaseLevelAsBadgeProps as CacheModuleBadgeProps,
 } from 'sentry/views/performance/cache/settings';
-import {
-  MODULE_TITLE as HTTP_MODULE_TITLE,
-  releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
-} from 'sentry/views/performance/http/settings';
+import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/performance/http/settings';
 import {
   MODULE_TITLE as QUEUES_MODULE_TITLE,
   releaseLevelAsBadgeProps as QueuesModuleBadgeProps,
@@ -295,7 +292,6 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
                   id="performance-http"
                   icon={<SubitemDot collapsed />}
-                  {...HTTPModuleBadgeProps}
                 />
               </Feature>
               <Feature features="performance-cache-view" organization={organization}>
