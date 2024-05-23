@@ -17,8 +17,6 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.exceptions import InvalidParams
@@ -33,9 +31,7 @@ from sentry.sentry_metrics.querying.errors import (
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.metadata import (
-    MetricCodeLocations,
     convert_metric_names_to_mris,
-    get_metric_code_locations,
     get_metrics_meta,
     get_tag_values,
 )
@@ -515,52 +511,3 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             return Response(status=500, data={"detail": str(e)})
 
         return Response(status=200, data=results)
-
-
-@region_silo_endpoint
-class OrganizationMetricsCodeLocationsEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-    }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
-    """
-    Gets the code locations of a metric.
-    """
-
-    def get(self, request: Request, organization) -> Response:
-        start, end = get_date_range_from_params(request.GET)
-        projects = self.get_projects(request, organization)
-
-        def data_fn(offset: int, limit: int):
-            return get_metric_code_locations(
-                metric_mris=[request.GET["metric"]],
-                start=start,
-                end=end,
-                organization=organization,
-                projects=projects,
-                offset=offset,
-                limit=limit,
-            )
-
-        def on_results(data: tuple[bool, Sequence[MetricCodeLocations]]):
-            return serialize(data, request.user, MetricCodeLocationsSerializer())
-
-        return self.paginate(
-            request=request,
-            paginator=MetricsCodeLocationsPaginator(data_fn=data_fn),
-            on_results=on_results,
-        )
-
-
-class MetricsCodeLocationsPaginator(GenericOffsetPaginator):
-    def get_result(self, limit, cursor=None):
-        assert limit > 0
-        offset = cursor.offset if cursor is not None else 0
-        has_more, data = self.data_fn(offset=offset, limit=limit)
-
-        return CursorResult(
-            data,
-            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
-            next=Cursor(0, max(0, offset + limit), False, has_more),
-        )
