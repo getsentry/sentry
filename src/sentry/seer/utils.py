@@ -1,21 +1,20 @@
 import logging
-from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import Any, ClassVar, NotRequired, Self, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.conf import settings
 from urllib3 import Retry
 
-from sentry.conf.server import (
-    SEER_MAX_GROUPING_DISTANCE,
-    SEER_SIMILAR_ISSUES_URL,
-    SEER_SIMILARITY_MODEL_VERSION,
-)
-from sentry.models.grouphash import GroupHash
+from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
 from sentry.net.http import connection_from_url
+from sentry.seer.similarity.types import (
+    IncompleteSeerDataError,
+    SeerSimilarIssueData,
+    SimilarGroupNotFoundError,
+    SimilarIssuesEmbeddingsRequest,
+)
 from sentry.utils import json, metrics
-from sentry.utils.json import JSONDecodeError, apply_key_filter
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 class SeerException(Exception):
-    pass
-
-
-class IncompleteSeerDataError(Exception):
-    pass
-
-
-class SimilarGroupNotFoundError(Exception):
     pass
 
 
@@ -97,102 +88,6 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
 
     # assume no breakpoints if an error was returned from seer
     return {"data": []}
-
-
-class SimilarIssuesEmbeddingsRequest(TypedDict):
-    project_id: int
-    stacktrace: str
-    message: str
-    hash: str
-    k: NotRequired[int]  # how many neighbors to find
-    threshold: NotRequired[float]
-
-
-class RawSeerSimilarIssueData(TypedDict):
-    parent_hash: str
-    stacktrace_distance: float
-    message_distance: float
-    should_group: bool
-
-
-class SimilarIssuesEmbeddingsResponse(TypedDict):
-    responses: list[RawSeerSimilarIssueData]
-
-
-# Like the data that comes back from seer, but guaranteed to have a parent group id
-@dataclass
-class SeerSimilarIssueData:
-    stacktrace_distance: float
-    message_distance: float
-    should_group: bool
-    parent_group_id: int
-    parent_hash: str
-
-    # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
-    # definition because Python has no way to derive it from the type (nor vice-versa)
-    required_incoming_keys: ClassVar = {
-        "stacktrace_distance",
-        "message_distance",
-        "should_group",
-        "parent_hash",
-    }
-    optional_incoming_keys: ClassVar = {}
-    expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
-
-    @classmethod
-    def from_raw(cls, project_id: int, raw_similar_issue_data: Mapping[str, Any]) -> Self:
-        """
-        Create an instance of `SeerSimilarIssueData` from the raw data that comes back from Seer,
-        using the parent hash to look up the parent group id. Needs to be run individually on each
-        similar issue in the Seer response.
-
-        Throws an `IncompleteSeerDataError` if given data with any required keys missing, and a
-        `SimilarGroupNotFoundError` if the data points to a group which no longer exists. The latter
-        guarantees that if this successfully returns, the parent group id in the return value points
-        to an existing group.
-
-        """
-
-        # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
-        raw_similar_issue_data = apply_key_filter(
-            raw_similar_issue_data, keep_keys=cls.expected_incoming_keys
-        )
-        missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
-        if missing_keys:
-            raise IncompleteSeerDataError(
-                "Seer similar issues response entry missing "
-                + ("keys " if len(missing_keys) > 1 else "key ")
-                + ", ".join(map(lambda key: f"'{key}'", sorted(missing_keys)))
-            )
-
-        # Now that we know we have all the right data, use the parent group's hash to look up its id
-        parent_grouphash = (
-            GroupHash.objects.filter(
-                project_id=project_id, hash=raw_similar_issue_data["parent_hash"]
-            )
-            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
-            .first()
-        )
-
-        if not parent_grouphash:
-            # TODO: Report back to seer that the hash has been deleted.
-            raise SimilarGroupNotFoundError("Similar group suggested by Seer does not exist")
-
-        # TODO: The `Any` casting here isn't great, but Python currently has no way to
-        # relate typeddict keys to dataclass properties
-        similar_issue_data: Any = {
-            **raw_similar_issue_data,
-            "parent_group_id": parent_grouphash.group_id,
-        }
-
-        return cls(**similar_issue_data)
-
-
-@dataclass
-class SeerSimilarIssuesMetadata:
-    request_hash: str
-    results: list[SeerSimilarIssueData]
-    similarity_model_version: str = SEER_SIMILARITY_MODEL_VERSION
 
 
 # TODO: Handle non-200 responses
