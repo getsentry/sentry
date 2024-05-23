@@ -170,9 +170,11 @@ describe('TraceTimeline', () => {
       body: [],
     });
 
-    // Enable related issues feature flag
-    organization.features = ['related-issues-issue-details-page'];
-    render(<TraceTimeline event={event} />, {organization});
+    render(<TraceTimeline event={event} />, {
+      organization: OrganizationFixture({
+        features: ['related-issues-issue-details-page'],
+      }),
+    });
 
     // Instead of a timeline, we should see related issues
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
@@ -203,9 +205,11 @@ describe('TraceTimeline', () => {
       body: [],
     });
 
-    // Enable related issues feature flag
-    organization.features = ['related-issues-issue-details-page'];
-    render(<TraceTimeline event={event} />, {organization});
+    render(<TraceTimeline event={event} />, {
+      organization: OrganizationFixture({
+        features: ['related-issues-issue-details-page'],
+      }),
+    });
 
     // We do not display any related issues because we only have 1 issue
     expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
