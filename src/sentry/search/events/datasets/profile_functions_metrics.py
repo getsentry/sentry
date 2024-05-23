@@ -174,6 +174,44 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_regression_score(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float | datetime],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "minus",
+            [
+                Function(
+                    "multiply",
+                    [
+                        self._resolve_cpm_cond(args, alias, "greater"),
+                        function_aliases.resolve_metrics_percentile(
+                            args=args,
+                            alias=alias,
+                            extra_conditions=[
+                                Function("greater", [Column("timestamp"), args["timestamp"]])
+                            ],
+                        ),
+                    ],
+                ),
+                Function(
+                    "multiply",
+                    [
+                        self._resolve_cpm_cond(args, alias, "less"),
+                        function_aliases.resolve_metrics_percentile(
+                            args=args,
+                            alias=alias,
+                            extra_conditions=[
+                                Function("less", [Column("timestamp"), args["timestamp"]])
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
@@ -419,7 +457,6 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                     is_percentile=True,
                     default_result_type="duration",
                 ),
-                ###
                 fields.MetricsFunction(
                     "percentile_delta",
                     required_args=[
@@ -460,7 +497,21 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                     is_percentile=True,
                     default_result_type="duration",
                 ),
-                # TODO "regression_score",
+                fields.MetricsFunction(
+                    "regression_score",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["function.duration"],
+                            allow_custom_measurements=False,
+                        ),
+                        fields.TimestampArg("timestamp"),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_regression_score,
+                    default_result_type="number",
+                ),
             ]
         }
         return function_converter
