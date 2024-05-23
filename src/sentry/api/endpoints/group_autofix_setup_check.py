@@ -17,7 +17,6 @@ from sentry.api.helpers.autofix import (
     get_project_codebase_indexing_status,
 )
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.constants import ObjectStatus
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.organization import Organization
