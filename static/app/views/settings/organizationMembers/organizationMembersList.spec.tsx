@@ -100,7 +100,7 @@ describe('OrganizationMembersList', function () {
   jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser.user);
 
   afterAll(function () {
-    (ConfigStore.get as jest.Mock).mockRestore();
+    jest.mocked(ConfigStore.get).mockRestore();
   });
 
   beforeEach(function () {
@@ -171,7 +171,7 @@ describe('OrganizationMembersList', function () {
         snoozed_ts: undefined,
       },
     });
-    (browserHistory.push as jest.Mock).mockReset();
+    jest.mocked(browserHistory.push).mockReset();
     OrganizationsStore.load([organization]);
   });
 
