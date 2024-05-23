@@ -211,7 +211,7 @@ export function SampleList({
 
         <Feature features="performance-sample-panel-search">
           <StyledSearchBar
-            searchSource="queries-sample-panel"
+            searchSource={`${moduleName}-sample-panel`}
             query={spanSearchQuery}
             onSearch={handleSearch}
             placeholder={t('Search for span attributes')}
