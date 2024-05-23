@@ -27,8 +27,8 @@ def handle_github_pr_webhook_for_autofix(
     org: Organization, action: str, pull_request: dict[str, Any], github_user: dict[str, Any]
 ) -> None:
     if (
-        not hasattr(settings, "AUTOFIX_GITHUB_APP_USER_ID")
-        or github_user["id"] != settings.AUTOFIX_GITHUB_APP_USER_ID
+        not hasattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID")
+        or github_user["id"] != settings.SEER_AUTOFIX_GITHUB_APP_USER_ID
     ):
         return None
 

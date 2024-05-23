@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class AutofixPrWebhookTest(APITestCase):
-    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
@@ -22,7 +22,7 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "opened",
             {"id": 1, "merged": False},
-            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
         mock_metrics_incr.assert_called_with("ai.autofix.pr.opened")
@@ -35,7 +35,7 @@ class AutofixPrWebhookTest(APITestCase):
             run_id=1,
         )
 
-    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
@@ -49,7 +49,7 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": False},
-            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
         mock_metrics_incr.assert_called_with("ai.autofix.pr.closed")
@@ -62,7 +62,7 @@ class AutofixPrWebhookTest(APITestCase):
             run_id=1,
         )
 
-    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value={"run_id": 1, "request": {"project_id": 2, "issue": {"id": 3}}},
@@ -76,7 +76,7 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": True},
-            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
         mock_metrics_incr.assert_called_with("ai.autofix.pr.merged")
         mock_analytics_record.assert_called_with(
@@ -88,7 +88,7 @@ class AutofixPrWebhookTest(APITestCase):
             run_id=1,
         )
 
-    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
@@ -102,13 +102,14 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": True},
-            {"id": settings.AUTOFIX_GITHUB_APP_USER_ID},
+            {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
         for key in ["ai.autofix.pr.merged", "ai.autofix.pr.closed", "ai.autofix.pr.opened"]:
             assert call(key) not in mock_metrics_incr.call_args_list
             assert call(key) not in mock_analytics_record.call_args_list
 
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID=None)
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
@@ -122,14 +123,14 @@ class AutofixPrWebhookTest(APITestCase):
             self.organization,
             "closed",
             {"id": 1, "merged": True},
-            {"id": "12345"},
+            {"id": "5655"},
         )
 
         for key in ["ai.autofix.pr.merged", "ai.autofix.pr.closed", "ai.autofix.pr.opened"]:
             assert call(key) not in mock_metrics_incr.call_args_list
             assert call(key) not in mock_analytics_record.call_args_list
 
-    @override_settings(AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
         "sentry.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=None,
