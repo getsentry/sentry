@@ -165,6 +165,7 @@ module = [
     "sentry.api.endpoints.organization_member_unreleased_commits",
     "sentry.api.endpoints.organization_metrics",
     "sentry.api.endpoints.organization_metrics_meta",
+    "sentry.api.endpoints.organization_metrics_samples",
     "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
     "sentry.api.endpoints.organization_projects_experiment",

@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
-from rest_framework import serializers
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,9 +9,7 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.api.bases.organization import (
-    NoProjects,
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationMetricsPermission,
@@ -22,10 +19,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
-from sentry.api.utils import get_date_range_from_params, handle_query_errors
+from sentry.api.utils import get_date_range_from_params
 from sentry.auth.elevated_mode import has_elevated_mode
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
-from sentry.models.organization import Organization
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MQLQuery,
@@ -43,7 +39,6 @@ from sentry.sentry_metrics.querying.metadata import (
     get_metrics_meta,
     get_tag_values,
 )
-from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
@@ -52,14 +47,13 @@ from sentry.sentry_metrics.use_case_id_registry import (
 )
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import QueryDefinition, get_all_tags, get_series, get_single_metric_info
-from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.dates import get_rollup_from_request, parse_stats_period
+from sentry.utils.dates import parse_stats_period
 
 
 def can_access_use_case_id(request: Request, use_case_id: UseCaseID) -> bool:
@@ -521,90 +515,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             return Response(status=500, data={"detail": str(e)})
 
         return Response(status=200, data=results)
-
-
-class MetricsSamplesSerializer(serializers.Serializer):
-    mri = serializers.CharField(required=True)
-    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
-    max = serializers.FloatField(required=False)
-    min = serializers.FloatField(required=False)
-    operation = serializers.CharField(required=False)
-    query = serializers.CharField(required=False)
-    referrer = serializers.CharField(required=False)
-    sort = serializers.CharField(required=False)
-
-    def validate_mri(self, mri: str) -> str:
-        if not is_mri(mri):
-            raise serializers.ValidationError(f"Invalid MRI: {mri}")
-
-        return mri
-
-
-@region_silo_endpoint
-class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-    }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
-    def get(self, request: Request, organization: Organization) -> Response:
-        try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
-        except NoProjects:
-            return Response(status=404)
-
-        try:
-            rollup = get_rollup_from_request(
-                request,
-                params,
-                default_interval=None,
-                error=InvalidSearchQuery(),
-            )
-        except InvalidSearchQuery:
-            rollup = 3600  # use a default of 1 hour
-
-        serializer = MetricsSamplesSerializer(data=request.GET)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        serialized = serializer.validated_data
-
-        executor_cls = get_sample_list_executor_cls(serialized["mri"])
-        if not executor_cls:
-            raise ParseError(f"Unsupported MRI: {serialized['mri']}")
-
-        sort = serialized.get("sort")
-        if sort is not None:
-            column = sort[1:] if sort.startswith("-") else sort
-            if not executor_cls.supports_sort(column):
-                raise ParseError(f"Unsupported sort: {sort} for MRI")
-
-        executor = executor_cls(
-            mri=serialized["mri"],
-            params=params,
-            snuba_params=snuba_params,
-            fields=serialized["field"],
-            operation=serialized.get("operation"),
-            query=serialized.get("query", ""),
-            min=serialized.get("min"),
-            max=serialized.get("max"),
-            sort=serialized.get("sort"),
-            rollup=rollup,
-            referrer=Referrer.API_ORGANIZATION_METRICS_SAMPLES,
-        )
-
-        with handle_query_errors():
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=executor.get_matching_spans),
-                on_results=lambda results: self.handle_results_with_meta(
-                    request,
-                    organization,
-                    params["project_id"],
-                    results,
-                    standard_meta=True,
-                ),
-            )
 
 
 @region_silo_endpoint
