@@ -5,6 +5,7 @@ from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
@@ -26,7 +27,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
-from sentry.utils import json
 from sentry.utils.safe import get_path
 
 # IMPORTANT:
@@ -74,7 +74,7 @@ def make_compressed_zip_file(files):
 
         zip_file.writestr(
             "manifest.json",
-            json.dumps(
+            orjson.dumps(
                 {
                     # We remove the "content" key in the original dict, thus no subsequent calls should be made.
                     "files": {
@@ -82,7 +82,7 @@ def make_compressed_zip_file(files):
                         for file_path, info in files.items()
                     }
                 }
-            ),
+            ).decode(),
         )
     compressed.seek(0)
 
@@ -1125,7 +1125,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                     content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
                     entry["headers"] = {"Sourcemap": "file.sourcemap.js"}
                 zip_file.writestr(rel_path, content)
-            zip_file.writestr("manifest.json", json.dumps(manifest))
+            zip_file.writestr("manifest.json", orjson.dumps(manifest).decode())
         compressed.seek(0)
 
         file = File.objects.create(name="doesnt_matter", type="release.bundle")
@@ -1473,7 +1473,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "org": self.organization.slug,
                         "release": release.version,
@@ -1518,7 +1518,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
         file = File.objects.create(name="bundle.zip", type="artifact.bundle")
@@ -1648,7 +1648,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/file.min.js": {
@@ -1691,7 +1691,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                             },
                         }
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1804,7 +1804,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/file.min.js": {
@@ -1847,7 +1847,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                             },
                         }
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1964,7 +1964,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                     content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
                     entry["headers"] = {"Sourcemap": "file.sourcemap.js"}
                 zip_file.writestr(rel_path, content)
-            zip_file.writestr("manifest.json", json.dumps(manifest))
+            zip_file.writestr("manifest.json", orjson.dumps(manifest).decode())
         compressed.seek(0)
 
         file = File.objects.create(name="release_bundle.zip", type="release.bundle")
@@ -2067,7 +2067,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             )
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/file.min.js": {
@@ -2110,7 +2110,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -2222,7 +2222,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/file.min.js": {
@@ -2263,7 +2263,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                             },
                         }
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -2364,7 +2364,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/file.min.js": {
@@ -2405,7 +2405,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                             },
                         }
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 

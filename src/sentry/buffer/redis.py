@@ -9,6 +9,7 @@ from enum import Enum
 from time import time
 from typing import Any, TypeVar
 
+import orjson
 import rb
 from django.utils.encoding import force_bytes, force_str
 from rediscluster import RedisCluster
@@ -16,7 +17,7 @@ from rediscluster import RedisCluster
 from sentry.buffer.base import Buffer
 from sentry.db import models
 from sentry.tasks.process_buffer import process_incr
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import (
@@ -47,7 +48,11 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
         _last_validation_log = time()
         try:
             if (
-                RedisBuffer._load_values(json.loads(json.dumps(RedisBuffer._dump_values(value))))
+                RedisBuffer._load_values(
+                    orjson.loads(
+                        orjson.dumps(RedisBuffer._dump_values(value), option=orjson.OPT_UTC_Z)
+                    )
+                )
                 != value
             ):
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
@@ -343,7 +348,9 @@ class RedisBuffer(Buffer):
         _validate_json_roundtrip(filters, model)
 
         if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
+            pipe.hsetnx(
+                key, "f", orjson.dumps(self._dump_values(filters), option=orjson.OPT_UTC_Z).decode()
+            )
         else:
             pipe.hsetnx(key, "f", pickle.dumps(filters))
 
@@ -357,7 +364,11 @@ class RedisBuffer(Buffer):
             _validate_json_roundtrip(extra, model)
             for column, value in extra.items():
                 if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-                    pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
+                    pipe.hset(
+                        key,
+                        "e+" + column,
+                        orjson.dumps(self._dump_value(value), option=orjson.OPT_UTC_Z).decode(),
+                    )
                 else:
                     pipe.hset(key, "e+" + column, pickle.dumps(value))
 
@@ -470,7 +481,7 @@ class RedisBuffer(Buffer):
             model = import_string(force_str(values.pop("m")))
 
             if values["f"].startswith(b"{" if not self.is_redis_cluster else "{"):
-                filters = self._load_values(json.loads(force_str(values.pop("f"))))
+                filters = self._load_values(orjson.loads(force_str(values.pop("f"))))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(force_bytes(values.pop("f")))
@@ -483,7 +494,7 @@ class RedisBuffer(Buffer):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
                     if v.startswith(b"[" if not self.is_redis_cluster else "["):
-                        extra_values[k[2:]] = self._load_value(json.loads(force_str(v)))
+                        extra_values[k[2:]] = self._load_value(orjson.loads(force_str(v)))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(force_bytes(v))

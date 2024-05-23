@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+import orjson
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -18,7 +19,6 @@ from sentry.models.outbox import outbox_context
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
-from sentry.utils import json
 from sentry.utils.signing import sign
 
 
@@ -111,9 +111,9 @@ class SlackRequestParserTest(TestCase):
     def test_triggers_async_response(self, mock_slack_task, mock_signing_secret):
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {"team_id": self.integration.external_id, "response_url": response_url}
-            )
+            ).decode()
         }
         request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
         parser = SlackRequestParser(request, self.get_response)
@@ -138,9 +138,9 @@ class SlackRequestParserTest(TestCase):
     ):
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {"team_id": self.integration.external_id, "response_url": response_url}
-            )
+            ).decode()
         }
         with assume_test_silo_mode_of(OrganizationIntegration), outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationIntegration))
@@ -154,12 +154,12 @@ class SlackRequestParserTest(TestCase):
 
     def test_async_request_payload(self):
         data = {
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {
                     "team_id": self.integration.external_id,
                     "response_url": "https://hooks.slack.com/commands/TXXXXX1/12345678/something",
                 }
-            )
+            ).decode()
         }
         request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
         result = create_async_request_payload(request)
