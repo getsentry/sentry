@@ -831,7 +831,6 @@ def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                         set_tag(data, key, value)
 
 
-@sentry_sdk.tracing.trace
 def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
@@ -845,7 +844,6 @@ def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
                 data.pop(iface.path, None)
 
 
-@sentry_sdk.tracing.trace
 def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         # we want to freeze not just the metadata and type in but also the
