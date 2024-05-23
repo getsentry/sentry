@@ -39,7 +39,7 @@ REFERRER = "sentry.utils.eventuser"
 
 SNUBA_KEYWORD_SET = {"id", "username", "email", "ip"}
 # Keyword 'ip' is a special case since we need to handle IPv4/IPv6 differently
-SNUBA_KEYWORD_COLUMN_MAP: Mapping[str, str | None] = {
+SNUBA_KEYWORD_COLUMN_MAP = {
     "id": "user_id",
     "username": "user_name",
     "email": "user_email",
@@ -56,10 +56,6 @@ KEYWORD_MAP = BidirectionalMapping(
         "ip_address": "ip",
     }
 )
-
-SNUBA_COLUMN_COALASCE = {"ip_address_v4": "toIPv4", "ip_address_v6": "toIPv6"}
-
-
 MAX_QUERY_TRIES = 5
 OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
