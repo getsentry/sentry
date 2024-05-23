@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import queryString from 'query-string';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -95,7 +94,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
             isActive={() => tab === activeTab}
-            to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
+            to={{pathname, query: {...query, t_main: tab}}}
             onClick={e => {
               e.preventDefault();
               setActiveTab(tab);
