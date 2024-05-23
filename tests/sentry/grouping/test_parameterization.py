@@ -259,5 +259,5 @@ def test_parameterize_regex_experiment():
         ),
     ],
 )
-def test_fail_parametrize(name, input, expected, parameterizer):
+def test_fail_parameterize(name, input, expected, parameterizer):
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
