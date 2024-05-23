@@ -4,12 +4,13 @@ from unittest import mock
 import pytest
 from urllib3.response import HTTPResponse
 
+from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import (
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
     SimilarIssuesEmbeddingsRequest,
 )
-from sentry.seer.utils import detect_breakpoints, get_similarity_data_from_seer
+from sentry.seer.utils import detect_breakpoints
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -57,7 +58,7 @@ def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, s
 
 
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
 def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
     """Test that valid responses are decoded and returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
@@ -89,7 +90,7 @@ def test_similar_issues_embeddings_simple(mock_seer_request, default_project):
 
 
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
 def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
     """Test that empty responses are returned."""
     event = save_new_event({"message": "Dogs are great!"}, default_project)
@@ -106,7 +107,7 @@ def test_empty_similar_issues_embeddings(mock_seer_request, default_project):
 
 
 @django_db_all
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
 def test_returns_sorted_similarity_results(mock_seer_request, default_project):
     event = save_new_event({"message": "Dogs are great!"}, default_project)
     similar_event = save_new_event({"message": "Adopt don't shop"}, default_project)
