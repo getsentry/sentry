@@ -38,7 +38,7 @@ cssutils==2.9.0
 datadog==0.49.1
 distlib==0.3.8
 distro==1.8.0
-django==5.0.4
+django==5.0.6
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
@@ -108,7 +108,7 @@ openapi-core==0.18.2
 openapi-pydantic==0.4.0
 openapi-schema-validator==0.6.2
 openapi-spec-validator==0.7.1
-orjson==3.10.0
+orjson==3.10.3
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
@@ -138,7 +138,6 @@ pycparser==2.21
 pydantic==1.10.9
 pyflakes==3.2.0
 pyjwt==2.4.0
-pylibmc==1.6.3
 pymemcache==4.0.0
 pyparsing==3.0.9
 pysocks==1.7.1
@@ -151,7 +150,7 @@ pytest-metadata==3.1.1
 pytest-rerunfailures==11.0
 pytest-sentry==0.3.0
 pytest-xdist==3.0.2
-python-dateutil==2.8.2
+python-dateutil==2.9.0
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
 python-utils==3.3.3
@@ -183,8 +182,8 @@ sentry-forked-djangorestframework-stubs==3.15.0.post1
 sentry-kafka-schemas==0.1.81
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.66
-sentry-sdk==2.2.0
+sentry-relay==0.8.67
+sentry-sdk==2.2.1
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0

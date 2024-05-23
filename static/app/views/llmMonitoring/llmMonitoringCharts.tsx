@@ -1,66 +1,46 @@
-import styled from '@emotion/styled';
-
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponseLastMeta} from 'sentry/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 
 interface TotalTokensUsedChartProps {
   groupId?: string;
 }
+
 export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
-  const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  const aggregate = 'ai_total_tokens_used()';
+
   let query = 'span.category:"ai"';
   if (groupId) {
     query = `${query} span.ai.pipeline.group:"${groupId}"`;
   }
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(
-    [
-      {
-        name: 'total',
-        mri: `c:spans/ai.total_tokens.used@none`,
-        op: 'sum',
-        query,
-      },
-    ],
-    selection,
+  const {data, isLoading, error} = useSpanMetricsSeries(
     {
-      intervalLadder: 'dashboard',
-    }
+      yAxis: [aggregate],
+      search: new MutableSearch(query),
+    },
+    'api.ai-pipelines.view'
   );
 
-  if (!isGlobalSelectionReady) {
-    return null;
-  }
-
-  if (isError) {
-    return <div>{'' + error}</div>;
-  }
-
   return (
-    <TokenChartContainer>
-      <PanelTitle>{t('Total tokens used')}</PanelTitle>
-      <MetricChartContainer
-        timeseriesData={timeseriesData}
-        isLoading={isLoading}
-        metricQueries={[
-          {
-            name: 'mql',
-            formula: '$total',
-          },
-        ]}
-        displayType={MetricDisplayType.LINE}
-        chartHeight={200}
+    <ChartPanel title={t('Total tokens used')}>
+      <Chart
+        height={200}
+        grid={{
+          left: '4px',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        data={[data[aggregate]]}
+        loading={isLoading}
+        error={error}
+        type={ChartType.LINE}
+        chartColors={[CHART_PALETTE[2][0]]}
       />
-    </TokenChartContainer>
+    </ChartPanel>
   );
 }
 
@@ -68,55 +48,37 @@ interface NumberOfPipelinesChartProps {
   groupId?: string;
 }
 export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
-  const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  const aggregate = 'count()';
+
   let query = 'span.category:"ai.pipeline"';
   if (groupId) {
     query = `${query} span.group:"${groupId}"`;
   }
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(
-    [
-      {
-        name: 'number',
-        mri: `d:spans/exclusive_time_light@millisecond`,
-        op: 'count',
-        query,
-      },
-    ],
-    selection,
+  const {data, isLoading, error} = useSpanMetricsSeries(
     {
-      intervalLadder: 'dashboard',
-    }
+      yAxis: [aggregate],
+      search: new MutableSearch(query),
+    },
+    'api.ai-pipelines.view'
   );
 
-  if (!isGlobalSelectionReady) {
-    return null;
-  }
-
-  if (isError) {
-    return <div>{'' + error}</div>;
-  }
-
   return (
-    <TokenChartContainer>
-      <PanelTitle>{t('Number of AI pipelines')}</PanelTitle>
-      <MetricChartContainer
-        timeseriesData={timeseriesData}
-        isLoading={isLoading}
-        metricQueries={[
-          {
-            name: 'mql',
-            formula: '$number',
-          },
-        ]}
-        displayType={MetricDisplayType.LINE}
-        chartHeight={200}
+    <ChartPanel title={t('Number of AI pipelines')}>
+      <Chart
+        height={200}
+        grid={{
+          left: '4px',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        data={[data[aggregate]]}
+        loading={isLoading}
+        error={error}
+        type={ChartType.LINE}
+        chartColors={[CHART_PALETTE[2][1]]}
       />
-    </TokenChartContainer>
+    </ChartPanel>
   );
 }
 
@@ -124,72 +86,35 @@ interface PipelineDurationChartProps {
   groupId?: string;
 }
 export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
-  const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
+  const aggregate = 'avg(span.duration)';
   let query = 'span.category:"ai.pipeline"';
   if (groupId) {
     query = `${query} span.group:"${groupId}"`;
   }
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(
-    [
-      {
-        name: 'duration',
-        mri: `d:spans/duration@millisecond`,
-        op: 'avg',
-        query,
-      },
-    ],
-    selection,
+  const {data, isLoading, error} = useSpanMetricsSeries(
     {
-      intervalLadder: 'dashboard',
-    }
+      yAxis: [aggregate],
+      search: new MutableSearch(query),
+    },
+    'api.ai-pipelines.view'
   );
-  const lastMeta = timeseriesData?.meta?.findLast(_ => true);
-  if (lastMeta && lastMeta.length >= 2) {
-    // TODO hack: there is a bug somewhere that is dropping the unit
-    (lastMeta[1] as MetricsQueryApiResponseLastMeta).unit ??= 'millisecond';
-  }
-
-  if (!isGlobalSelectionReady) {
-    return null;
-  }
-
-  if (isError) {
-    return <div>{'' + error}</div>;
-  }
 
   return (
-    <TokenChartContainer>
-      <PanelTitle>{t('AI pipeline duration')}</PanelTitle>
-      <MetricChartContainer
-        timeseriesData={timeseriesData}
-        isLoading={isLoading}
-        metricQueries={[
-          {
-            name: 'mql',
-            formula: '$duration',
-          },
-        ]}
-        displayType={MetricDisplayType.LINE}
-        chartHeight={200}
+    <ChartPanel title={t('Pipeline Duration')}>
+      <Chart
+        height={200}
+        grid={{
+          left: '4px',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        data={[data[aggregate]]}
+        loading={isLoading}
+        error={error}
+        type={ChartType.LINE}
+        chartColors={[CHART_PALETTE[2][2]]}
       />
-    </TokenChartContainer>
+    </ChartPanel>
   );
 }
-
-const PanelTitle = styled('h5')`
-  padding: ${space(3)} ${space(3)} 0;
-  margin: 0;
-`;
-
-const TokenChartContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;

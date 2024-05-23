@@ -20,11 +20,10 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
-import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   SpanFunction,
@@ -43,7 +42,6 @@ type Query = {
 };
 
 export function LLMMonitoringPage({params}: Props) {
-  const moduleURL = useModuleURL('ai');
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -87,6 +85,8 @@ export function LLMMonitoringPage({params}: Props) {
   );
   const tokenUsedMetric = totalTokenData[0] ?? {};
 
+  const crumbs = useModuleBreadcrumbs('ai');
+
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
@@ -94,13 +94,7 @@ export function LLMMonitoringPage({params}: Props) {
           <Layout.HeaderContent>
             <Breadcrumbs
               crumbs={[
-                {
-                  label: t('Dashboard'),
-                },
-                {
-                  label: t('LLM Monitoring'),
-                  to: moduleURL,
-                },
+                ...crumbs,
                 {
                   label: spanDescription ?? t('(no name)'),
                 },
@@ -180,7 +174,6 @@ function PageWithProviders({params}: Props) {
   return (
     <ModulePageProviders
       title={[spanDescription ?? t('(no name)'), t('Pipeline Details')].join(' — ')}
-      baseURL={BASE_URL}
       features="ai-analytics"
     >
       <LLMMonitoringPage params={params} />

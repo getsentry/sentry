@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -19,6 +19,7 @@ type MetricChartContainerProps = {
   isLoading: boolean;
   metricQueries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
+  showLegend?: boolean;
   timeseriesData?: MetricsQueryApiResponse;
 };
 
@@ -28,6 +29,7 @@ export function MetricChartContainer({
   metricQueries,
   chartHeight,
   displayType,
+  showLegend,
 }: MetricChartContainerProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -50,6 +52,7 @@ export function MetricChartContainer({
           group={DASHBOARD_CHART_GROUP}
           height={chartHeight}
           enableZoom
+          showLegend={showLegend}
         />
       </TransitionChart>
     </MetricWidgetChartWrapper>
@@ -60,5 +63,5 @@ const MetricWidgetChartWrapper = styled('div')`
   height: 100%;
   width: 100%;
   padding: ${space(3)};
-  padding-top: ${space(2)};
+  padding-top: ${space(0.25)};
 `;

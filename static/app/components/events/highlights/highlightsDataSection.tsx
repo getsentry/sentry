@@ -102,7 +102,7 @@ function HighlightsData({
       content={content}
       event={event}
       tagKey={content.originalTag.key}
-      project={project}
+      project={detailedProject ?? project}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
         disableRichValue: content.value === EMPTY_HIGHLIGHT_DEFAULT,

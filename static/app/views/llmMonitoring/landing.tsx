@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -9,44 +7,37 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
-import {LLMMonitoringOnboarding} from 'sentry/views/llmMonitoring/onboarding';
 import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
-import {BASE_URL} from 'sentry/views/llmMonitoring/settings';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import {MODULE_DOC_LINK} from 'sentry/views/llmMonitoring/settings';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
-  const isOnboarding = !!onboardingProject;
+
+  const crumbs = useModuleBreadcrumbs('ai');
 
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Dashboard'),
-                },
-                {
-                  label: t('LLM Monitoring'),
-                },
-              ]}
-            />
+            <Breadcrumbs crumbs={crumbs} />
             <Layout.Title>
               {t('LLM Monitoring')}
               <PageHeadingQuestionTooltip
                 title={t('View analytics and information about your AI pipelines')}
-                docsUrl="https://docs.sentry.io/product/llm-monitoring/"
+                docsUrl={MODULE_DOC_LINK}
               />
             </Layout.Title>
           </Layout.HeaderContent>
@@ -61,26 +52,30 @@ export function LLMMonitoringPage() {
                   <DatePageFilter />
                 </PageFilterBar>
               </ModuleLayout.Full>
-              {isOnboarding ? (
+              <ModulesOnboarding
+                moduleQueryFilter={new MutableSearch('span.op:ai.pipeline*')}
+                onboardingContent={
+                  <OnboardingContent
+                    title={t('Get actionable insights about your LLMs')}
+                    description={t('Send your first AI pipeline to see data here.')}
+                    link={MODULE_DOC_LINK}
+                  />
+                }
+                referrer="api.ai-pipelines.view"
+              >
+                <ModuleLayout.Third>
+                  <TotalTokensUsedChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  <NumberOfPipelinesChart />
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  <PipelineDurationChart />
+                </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  <LLMMonitoringOnboarding />
+                  <PipelinesTable />
                 </ModuleLayout.Full>
-              ) : (
-                <Fragment>
-                  <ModuleLayout.Third>
-                    <TotalTokensUsedChart />
-                  </ModuleLayout.Third>
-                  <ModuleLayout.Third>
-                    <NumberOfPipelinesChart />
-                  </ModuleLayout.Third>
-                  <ModuleLayout.Third>
-                    <PipelineDurationChart />
-                  </ModuleLayout.Third>
-                  <ModuleLayout.Full>
-                    <PipelinesTable />
-                  </ModuleLayout.Full>
-                </Fragment>
-              )}
+              </ModulesOnboarding>
             </ModuleLayout.Layout>
           </Layout.Main>
         </Layout.Body>
@@ -91,11 +86,7 @@ export function LLMMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={t('LLM Monitoring')}
-      baseURL={BASE_URL}
-      features="ai-analytics"
-    >
+    <ModulePageProviders title={t('LLM Monitoring')} features="ai-analytics">
       <LLMMonitoringPage />
     </ModulePageProviders>
   );

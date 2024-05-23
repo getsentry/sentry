@@ -11,13 +11,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconLightning, IconReleases, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
+  getDefaultAggregate,
   isAllowedOp,
   isCustomMetric,
+  isSpanDuration,
   isSpanMeasurement,
-  isSpanSelfTime,
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
@@ -46,16 +47,12 @@ const isVisibleTransactionMetric = (metric: MetricMeta) =>
   isTransactionDuration(metric) || isTransactionMeasurement(metric);
 
 const isVisibleSpanMetric = (metric: MetricMeta) =>
-  isSpanSelfTime(metric) || isSpanMeasurement(metric);
+  isSpanDuration(metric) || isSpanMeasurement(metric);
 
 const isShownByDefault = (metric: MetricMeta) =>
   isCustomMetric(metric) ||
   isVisibleTransactionMetric(metric) ||
   isVisibleSpanMetric(metric);
-
-function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
-  return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
-}
 
 function useMriMode() {
   const [mriMode, setMriMode] = useState(false);
@@ -153,24 +150,34 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const handleMRIChange = useCallback(
     ({value}) => {
-      const availableOps = getOpsForMRI(value, meta);
-      const selectedOp = availableOps.includes(
-        (metricsQuery.op ?? '') as MetricsOperation
-      )
-        ? metricsQuery.op
-        : availableOps?.[0];
+      const currentMRI = parseMRI(metricsQuery.mri);
+      const newMRI = parseMRI(value);
 
-      const queryChanges = {
-        mri: value,
-        op: selectedOp,
-        groupBy: undefined,
-      };
+      if (!currentMRI || !newMRI) {
+        return;
+      }
+
+      let queryChanges = {};
+
+      // If the type is the same, we can keep the current aggregate
+      if (currentMRI.type === newMRI.type) {
+        queryChanges = {
+          mri: value,
+          groupBy: undefined,
+        };
+      } else {
+        queryChanges = {
+          mri: value,
+          op: getDefaultAggregate(value),
+          groupBy: undefined,
+        };
+      }
 
       trackAnalytics('ddm.widget.metric', {organization});
       incrementQueryMetric('ddm.widget.metric', queryChanges);
       onChange(queryChanges);
     },
-    [incrementQueryMetric, meta, metricsQuery.op, onChange, organization]
+    [incrementQueryMetric, metricsQuery.mri, onChange, organization]
   );
 
   const handleOpChange = useCallback(
@@ -224,8 +231,11 @@ export const QueryBuilder = memo(function QueryBuilder({
         label: mriMode
           ? metric.mri
           : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
-        // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-        textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
+        textValue: mriMode
+          ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+            `${metric.mri}${getReadableMetricType(metric.type)}`
+          : // enable search in the full formatted string
+            formatMRI(metric.mri),
         value: metric.mri,
         details:
           metric.projectIds.length > 0 ? (

@@ -23,9 +23,7 @@ import {
 } from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
@@ -34,7 +32,7 @@ import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
 import {Referrer} from 'sentry/views/performance/http/referrers';
 import {
   BASE_FILTERS,
-  BASE_URL,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   NULL_DOMAIN_DESCRIPTION,
   RELEASE_LEVEL,
@@ -46,7 +44,7 @@ import {
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -62,9 +60,7 @@ type Query = {
 };
 
 export function HTTPDomainSummaryPage() {
-  const moduleURL = useModuleURL('http');
   const location = useLocation<Query>();
-  const organization = useOrganization();
   const {projects} = useProjects();
 
   // TODO: Fetch sort information using `useLocationQuery`
@@ -169,22 +165,15 @@ export function HTTPDomainSummaryPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
+  const crumbs = useModuleBreadcrumbs('http');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-                to: moduleURL,
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: 'Domain Summary',
               },
@@ -211,11 +200,7 @@ export function HTTPDomainSummaryPage() {
               {tct(
                 '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
                 {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/performance/requests/">
-                      documentation
-                    </ExternalLink>
-                  ),
+                  link: <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>,
                 }
               )}
             </Alert>
@@ -360,7 +345,6 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      baseURL={`/performance/${BASE_URL}`}
       title={[t('Performance'), MODULE_TITLE, t('Domain Summary')].join(' — ')}
       features="spans-first-ui"
     >

@@ -69,13 +69,13 @@ class BufferHookRegistry:
     def has(self, key: BufferHookEvent) -> bool:
         return self._registry.get(key) is not None
 
-    def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
+    def callback(self, buffer_hook_event: BufferHookEvent) -> bool:
         try:
             callback = self._registry[buffer_hook_event]
         except KeyError:
             logger.exception("buffer_hook_event.missing")
 
-        return callback(data)
+        return callback()
 
 
 redis_buffer_registry = BufferHookRegistry()
@@ -241,6 +241,8 @@ class RedisBuffer(Buffer):
     def _execute_redis_operation(
         self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
     ) -> Any:
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str)
         pipe = self.get_redis_connection(self.pending_key)
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
@@ -250,10 +252,6 @@ class RedisBuffer(Buffer):
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         value_dict = {value: time()}
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
-        logger.info(
-            "redis_buffer.push_to_sorted_set",
-            extra={"key_name": key, "value": json.dumps(value_dict)},
-        )
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         redis_set = self._execute_redis_operation(
@@ -315,7 +313,7 @@ class RedisBuffer(Buffer):
 
     def process_batch(self) -> None:
         try:
-            redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
+            redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         except Exception:
             logger.exception("process_batch.error")
 

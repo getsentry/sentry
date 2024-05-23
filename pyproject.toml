@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools>=40.2.0,<64.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
@@ -169,6 +165,7 @@ module = [
     "sentry.api.endpoints.organization_member_unreleased_commits",
     "sentry.api.endpoints.organization_metrics",
     "sentry.api.endpoints.organization_metrics_meta",
+    "sentry.api.endpoints.organization_metrics_samples",
     "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
     "sentry.api.endpoints.organization_projects_experiment",
@@ -457,14 +454,11 @@ module = [
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",
     "sentry.testutils.helpers.slack",
-    "sentry.testutils.helpers.task_runner",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.types.integrations",
     "sentry.utils.auth",
     "sentry.utils.committers",
-    "sentry.utils.distutils.commands.base",
-    "sentry.utils.distutils.commands.build_assets",
     "sentry.utils.services",
     "sentry.utils.snowflake",
     "sentry.web.forms.accounts",
@@ -634,6 +628,7 @@ module = [
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.store",
+    "sentry.testutils.helpers.task_runner",
     "sentry.types.actor",
     "sentry.types.region",
     "sentry.utils.arroyo",
