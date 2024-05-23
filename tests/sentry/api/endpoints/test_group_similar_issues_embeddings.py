@@ -687,8 +687,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ["Yes", "No"],
         )
 
-    @mock.patch("sentry.seer.utils.metrics")
-    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
     def test_simple(self, mock_logger, mock_seer_request, mock_metrics):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -737,7 +737,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_multiple(self, mock_seer_request, mock_record):
         over_threshold_group_event = save_new_event({"message": "Maisey is silly"}, self.project)
         under_threshold_group_event = save_new_event({"message": "Charlie is goofy"}, self.project)
@@ -792,9 +792,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
-    @mock.patch("sentry.seer.utils.metrics")
-    @mock.patch("sentry.seer.utils.logger")
-    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics")
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics):
         # Two suggested groups, one with valid data, one missing parent hash. We should log the
         # second and return the first.
@@ -844,8 +844,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
-    @mock.patch("sentry.seer.utils.metrics")
-    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_nonexistent_group(self, mock_seer_request, mock_metrics):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
@@ -880,7 +880,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_empty_seer_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
@@ -947,7 +947,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
-    @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
