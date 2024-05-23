@@ -612,4 +612,3 @@ def test_valid_metric_name() -> None:
 def test_process_messages_is_pickleable():
     # needed so that the parallel transform step starts up properly
     pickle.dumps(MESSAGE_PROCESSOR.process_messages)
-    pickle.dumps(MESSAGE_PROCESSOR.process_messages)
