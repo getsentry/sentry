@@ -205,7 +205,6 @@ const LinkedFeedbackCard = styled(Link)`
 
 const Row = styled(Flex)`
   place-items: center;
-  overflow: hidden;
 `;
 
 const BottomGrid = styled('div')`
@@ -231,6 +230,7 @@ const PreviewRow = styled(Row)<{isOpen: boolean}>`
 const DotRow = styled(Row)`
   height: 2.2em;
   align-items: flex-start;
+  justify-content: center;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
