@@ -1,6 +1,7 @@
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getWebVitalsFromTableData} from 'sentry/views/performance/browser/webVitals/utils/getWebVitalValues';
 import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {WebVitalsAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 
 export const PERFORMANCE_SCORE_WEIGHTS = {
   lcp: 30,
@@ -39,10 +40,14 @@ export type Vitals = {
   ttfb?: number;
 };
 
-export const calculatePerformanceScoreFromTableDataRow = (
-  data?: TableDataRow
-): ProjectScore => {
-  const webVitals = data ? getWebVitalsFromTableData(data) : {};
+export const calculatePerformanceScoreFromTableDataRow = ({
+  data,
+  aggregateFunction,
+}: {
+  aggregateFunction: WebVitalsAggregateFunction;
+  data?: TableDataRow;
+}): ProjectScore => {
+  const webVitals = data ? getWebVitalsFromTableData(data, aggregateFunction) : {};
   return calculatePerformanceScore(webVitals);
 };
 

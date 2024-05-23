@@ -124,7 +124,10 @@ export const useTransactionRawWebVitalsQuery = ({
           }))
           .map(row => {
             const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
-              calculatePerformanceScoreFromTableDataRow({id: '', ...row}); // dummy id to satisfy type
+              calculatePerformanceScoreFromTableDataRow({
+                data: {id: '', ...row},
+                aggregateFunction,
+              }); // dummy id to satisfy type
             return {
               ...row,
               totalScore: totalScore ?? 0,
