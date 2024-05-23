@@ -185,6 +185,10 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       trace_timeline_status: 'empty',
     });
+    let element = await screen.getByTestId('this-event-1');
+    expect(element).toHaveTextContent('This event');
+    element = await screen.getByTestId('this-event-abc');
+    expect(element).toHaveTextContent('');
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {

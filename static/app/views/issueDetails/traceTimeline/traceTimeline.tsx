@@ -86,9 +86,18 @@ export function TraceTimeline({event}: TraceTimelineProps) {
       ) : (
         <Feature features="related-issues-issue-details-page">
           {timelineSkipped && (
+            // XXX: Temporary. This will need to be replaced with a styled component
             <div style={{width: '400px'}}>
               {traceEvents.map((traceEvent, index) => (
-                <EventItem key={index} timelineEvent={traceEvent} />
+                <div key={index} style={{display: 'flex', alignItems: 'center'}}>
+                  <div
+                    style={{whiteSpace: 'nowrap', minWidth: '75px'}}
+                    data-test-id={`this-event-${traceEvent.id}`}
+                  >
+                    {event.id === traceEvent.id && <span>This event</span>}
+                  </div>
+                  <EventItem key={index} timelineEvent={traceEvent} />
+                </div>
               ))}
             </div>
           )}
