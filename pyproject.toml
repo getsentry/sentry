@@ -549,6 +549,7 @@ module = [
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
+    "sentry.grouping.parameterization",
     "sentry.hybridcloud",
     "sentry.hybridcloud.migrations.*",
     "sentry.hybridcloud.options",
