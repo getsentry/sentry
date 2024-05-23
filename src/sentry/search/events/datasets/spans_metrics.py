@@ -20,6 +20,7 @@ from sentry.snuba.referrer import Referrer
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
+    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
 
     def __init__(self, builder: builder.SpansMetricsQueryBuilder):
         self.builder = builder
@@ -55,8 +56,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
         # If its still None its not a custom measurement
         if metric_id is None:
-            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-        self.builder.metric_ids.add(metric_id)
+            if constants.SPAN_METRICS_MAP.get(value, value) in self.nullable_metrics:
+                metric_id = 0
+            else:
+                raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
+        if metric_id != 0:
+            self.builder.metric_ids.add(metric_id)
         return metric_id
 
     @property
