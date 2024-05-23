@@ -867,6 +867,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time-Consuming Queries'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/database/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -909,6 +913,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time-Consuming Domains'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/http/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -948,6 +956,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time Consuming Resources'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/browser/resources/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -993,6 +1005,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Highest Cache Miss Rates'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/caches'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
