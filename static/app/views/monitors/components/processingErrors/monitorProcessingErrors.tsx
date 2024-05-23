@@ -19,8 +19,10 @@ import {ProcessingErrorTitle} from './processingErrorTitle';
 
 export default function MonitorProcessingErrors({
   checkinErrors,
+  children,
 }: {
   checkinErrors: CheckinProcessingError[];
+  children: React.ReactNode;
 }) {
   const flattenedErrors = checkinErrors.flatMap(({errors, checkin}) =>
     errors.map(error => ({error, checkin}))
@@ -78,7 +80,7 @@ export default function MonitorProcessingErrors({
 
   return (
     <ScrollableAlert type="error" showIcon expand={accordionErrors}>
-      {t('Errors were encountered while ingesting check-ins for this monitor')}
+      {children}
     </ScrollableAlert>
   );
 }
