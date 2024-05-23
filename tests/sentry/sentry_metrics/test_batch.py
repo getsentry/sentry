@@ -2097,7 +2097,9 @@ def test_aggregation_options():
         assert get_aggregation_options("c:custom/count@none", 1) == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
         }
-        assert get_aggregation_options("c:custom/count@none", 2) is None
+        assert get_aggregation_options("c:custom/count@none", 2) == {
+            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
+        }
         assert get_aggregation_options("c:transactions/count@none", 3) is None
         assert get_aggregation_options("c:transactions/count@none", 1) == {
             AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS

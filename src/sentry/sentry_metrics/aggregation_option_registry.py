@@ -34,29 +34,21 @@ def get_aggregation_options(mri: str, org_id: int) -> dict[AggregationOption, Ti
         "sentry-metrics.drop-percentiles.per-use-case.with-org-override"
     )
     use_case_id: UseCaseID = extract_use_case_id(mri)
-    use_case_agg_options: dict[UseCaseID, dict[AggregationOption, TimeWindow]] = {}
 
-    # As of now this option is still restricted
-    # to the scope of the custom use case
-    if options.get("sentry-metrics.10s-granularity"):
-        use_case_agg_options[UseCaseID.CUSTOM] = {
-            AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS
-        }
-
-    for use_case in drop_uc_org_override:
-        use_case_agg_options[UseCaseID(use_case)] = {
-            AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS
-        }
-
-    # We check first if the org ID has disabled percentiles
+    # We check first if the org ID has specifically disabled percentiles
+    # Note: This is currently an unused option
     if org_id in options.get("sentry-metrics.drop-percentiles.per-org"):
         return {AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS}
     # We then check if the particular metric ID has a specified aggregation
     elif mri in METRIC_ID_AGG_OPTION:
         return METRIC_ID_AGG_OPTION[mri]
-    # And move to the use case if not
-    elif use_case_id in use_case_agg_options:
-        if org_id not in drop_uc_org_override.get(use_case_id.value, []):
-            return use_case_agg_options[use_case_id]
+    # Then move to use case-level disabled percentiles
+    elif (use_case_id.value in drop_uc_org_override) and (
+        org_id not in drop_uc_org_override[use_case_id.value]
+    ):
+        return {AggregationOption.DISABLE_PERCENTILES: TimeWindow.NINETY_DAYS}
+    # And finally 10s granularity if none of the above apply for custom
+    elif (use_case_id == UseCaseID.CUSTOM) and options.get("sentry-metrics.10s-granularity"):
+        return {AggregationOption.TEN_SECOND: TimeWindow.SEVEN_DAYS}
 
     return None
