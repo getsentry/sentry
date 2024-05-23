@@ -118,7 +118,8 @@ function PageWithProviders() {
 
   return (
     <ModulePageProviders
-      title={[transaction, t('Screen Loads')].join(' — ')}
+      moduleName="mobile-ui"
+      pageTitle={transaction}
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />

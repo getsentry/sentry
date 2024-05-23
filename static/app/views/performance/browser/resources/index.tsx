@@ -89,10 +89,7 @@ function ResourcesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources')].join(' — ')}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="resource" features="spans-first-ui">
       <ResourcesLandingPage />
     </ModulePageProviders>
   );

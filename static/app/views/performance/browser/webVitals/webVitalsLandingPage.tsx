@@ -182,10 +182,7 @@ export function WebVitalsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="vital" features="spans-first-ui">
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );

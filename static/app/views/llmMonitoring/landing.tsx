@@ -86,7 +86,7 @@ export function LLMMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders title={t('LLM Monitoring')} features="ai-analytics">
+    <ModulePageProviders moduleName="ai" features="ai-analytics">
       <LLMMonitoringPage />
     </ModulePageProviders>
   );

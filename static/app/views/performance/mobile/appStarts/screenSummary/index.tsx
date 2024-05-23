@@ -30,7 +30,6 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 import AppStartWidgets from './widgets';
 
@@ -199,7 +198,8 @@ function PageWithProviders() {
 
   return (
     <ModulePageProviders
-      title={[transaction, ROUTE_NAMES['app-startup']].join(' — ')}
+      moduleName="app_start"
+      pageTitle={transaction}
       features="spans-first-ui"
     >
       <ScreenSummary />

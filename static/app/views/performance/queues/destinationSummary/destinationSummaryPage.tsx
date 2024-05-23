@@ -27,11 +27,7 @@ import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinati
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
-import {
-  DESTINATION_TITLE,
-  MODULE_TITLE,
-  RELEASE_LEVEL,
-} from 'sentry/views/performance/queues/settings';
+import {DESTINATION_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/settings';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
@@ -170,7 +166,8 @@ function DestinationSummaryPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
+      moduleName="queue"
+      pageTitle={t('Destination Summary')}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

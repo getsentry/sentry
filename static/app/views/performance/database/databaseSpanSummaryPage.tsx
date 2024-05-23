@@ -302,7 +302,8 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders(props) {
   return (
     <ModulePageProviders
-      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      moduleName="db"
+      pageTitle={t('Query Summary')}
       features="spans-first-ui"
     >
       <DatabaseSpanSummaryPage {...props} />

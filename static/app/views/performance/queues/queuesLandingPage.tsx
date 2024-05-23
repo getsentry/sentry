@@ -142,10 +142,7 @@ function QueuesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      features="performance-queues-view"
-    >
+    <ModulePageProviders moduleName="queue" features="performance-queues-view">
       <QueuesLandingPage />
     </ModulePageProviders>
   );

@@ -18,7 +18,7 @@ export function InitializationModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders title={ROUTE_NAMES['app-startup']} features="spans-first-ui">
+    <ModulePageProviders moduleName="app_start" features="spans-first-ui">
       <InitializationModule />
     </ModulePageProviders>
   );

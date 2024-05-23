@@ -173,7 +173,8 @@ function PageWithProviders({params}: Props) {
 
   return (
     <ModulePageProviders
-      title={[spanDescription ?? t('(no name)'), t('Pipeline Details')].join(' — ')}
+      moduleName="ai"
+      pageTitle={spanDescription ?? t('(no name)')}
       features="ai-analytics"
     >
       <LLMMonitoringPage params={params} />

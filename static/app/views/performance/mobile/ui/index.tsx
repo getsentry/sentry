@@ -17,7 +17,7 @@ export function ResponsivenessModule() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={ROUTE_NAMES.mobileUI}
+      moduleName="mobile-ui"
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ResponsivenessModule />
