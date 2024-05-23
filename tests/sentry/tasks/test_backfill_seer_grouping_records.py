@@ -9,7 +9,6 @@ import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 
-from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.occurrence_consumer import EventLookupError
@@ -17,6 +16,7 @@ from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
+from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.tasks.backfill_seer_grouping_records import (
     GroupStacktraceData,
     backfill_seer_grouping_records,
