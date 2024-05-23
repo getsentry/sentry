@@ -14,7 +14,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.constants import METRICS_GRANULARITIES
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query

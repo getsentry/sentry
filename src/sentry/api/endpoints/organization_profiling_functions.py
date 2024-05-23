@@ -19,7 +19,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.seer.breakpoints import BreakpointData, detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer

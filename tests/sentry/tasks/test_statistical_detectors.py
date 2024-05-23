@@ -22,7 +22,7 @@ from sentry.models.statistical_detectors import (
     RegressionType,
     get_regression_groups,
 )
-from sentry.seer.utils import BreakpointData
+from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
