@@ -26,7 +26,7 @@ class ConfigurationContainerValidator(Serializer):
 
 
 @region_silo_endpoint
-class ProjectConfigurationEndpoint(ProjectEndpoint):
+class ProjectKeyConfigurationEndpoint(ProjectEndpoint):
     owner = ApiOwner.REMOTE_CONFIG
     permission_classes = (ProjectEventPermission,)
     publish_status = {

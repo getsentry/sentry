@@ -163,7 +163,7 @@ from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsE
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
 )
-from sentry.remote_config.endpoints import ProjectConfigurationEndpoint
+from sentry.remote_config.endpoints import ProjectKeyConfigurationEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -2367,7 +2367,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/configuration/$",
-        ProjectConfigurationEndpoint.as_view(),
+        ProjectKeyConfigurationEndpoint.as_view(),
         name="sentry-api-0-project-key-configuration",
     ),
     re_path(
