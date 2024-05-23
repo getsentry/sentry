@@ -11,6 +11,15 @@ describe('ContextData', function () {
       expect(screen.getByText(URL)).toBeInTheDocument();
       expect(screen.getByRole('link')).toHaveAttribute('href', URL);
     });
+
+    it('should render multiline strings correctly', function () {
+      const data = 'foo\nbar\nbaz';
+      render(<StructuredEventData data={data} />);
+
+      expect(screen.getByTestId('value-multiline-string')).toHaveTextContent(
+        'foo bar baz'
+      );
+    });
   });
 
   describe('boolean', function () {

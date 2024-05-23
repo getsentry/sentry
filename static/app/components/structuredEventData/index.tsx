@@ -202,16 +202,18 @@ export function StructuredData({
     }
 
     if (looksLikeMultiLineString(value)) {
-      <Wrapper>
-        <ValueMultiLineString>
-          <AnnotatedValue
-            value={value}
-            meta={meta}
-            withAnnotatedText={withAnnotatedText}
-            withOnlyFormattedText={withOnlyFormattedText}
-          />
-        </ValueMultiLineString>
-      </Wrapper>;
+      return (
+        <Wrapper>
+          <ValueMultiLineString data-test-id="value-multiline-string">
+            <AnnotatedValue
+              value={value}
+              meta={meta}
+              withAnnotatedText={withAnnotatedText}
+              withOnlyFormattedText={withOnlyFormattedText}
+            />
+          </ValueMultiLineString>
+        </Wrapper>
+      );
     }
 
     return (
