@@ -227,9 +227,9 @@ describe('PageFiltersContainer', function () {
       organization
     );
 
-    (globalActions.updateDateTime as jest.Mock).mockClear();
-    (globalActions.updateProjects as jest.Mock).mockClear();
-    (globalActions.updateEnvironments as jest.Mock).mockClear();
+    jest.mocked(globalActions.updateDateTime).mockClear();
+    jest.mocked(globalActions.updateProjects).mockClear();
+    jest.mocked(globalActions.updateEnvironments).mockClear();
 
     rerender(<PageFiltersContainer />);
 
@@ -736,8 +736,8 @@ describe('PageFiltersContainer', function () {
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
 
-        (initialData.router.push as jest.Mock).mockClear();
-        (initialData.router.replace as jest.Mock).mockClear();
+        jest.mocked(initialData.router.push).mockClear();
+        jest.mocked(initialData.router.replace).mockClear();
       });
 
       it('uses first project in org projects when mounting', function () {
@@ -810,8 +810,8 @@ describe('PageFiltersContainer', function () {
 
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
-        (initialData.router.push as jest.Mock).mockClear();
-        (initialData.router.replace as jest.Mock).mockClear();
+        jest.mocked(initialData.router.push).mockClear();
+        jest.mocked(initialData.router.replace).mockClear();
       });
 
       it('appends projectId to URL when mounted with `forceProject`', function () {
@@ -876,8 +876,8 @@ describe('PageFiltersContainer', function () {
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
 
-        (initialData.router.push as jest.Mock).mockClear();
-        (initialData.router.replace as jest.Mock).mockClear();
+        jest.mocked(initialData.router.push).mockClear();
+        jest.mocked(initialData.router.replace).mockClear();
       });
 
       it('does not use first project in org projects when mounting (and without localStorage data)', function () {

@@ -31,7 +31,7 @@ describe('OnDemandMetricRequest', function () {
 
   describe('with props changes', function () {
     beforeAll(function () {
-      (doEventsRequest as jest.Mock).mockImplementation(() =>
+      jest.mocked(doEventsRequest).mockImplementation(() =>
         Promise.resolve({
           isMetricsData: true,
           data: [],
@@ -71,7 +71,6 @@ describe('OnDemandMetricRequest', function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} project={[123]}>
@@ -92,7 +91,6 @@ describe('OnDemandMetricRequest', function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} environment={['dev']}>
@@ -113,7 +111,6 @@ describe('OnDemandMetricRequest', function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} period="7d">

@@ -343,7 +343,7 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.replace as jest.Mock).mockClear();
+    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
@@ -544,7 +544,7 @@ describe('EventCause', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.replace as jest.Mock).mockClear();
+    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('renders suspect commit', async function () {

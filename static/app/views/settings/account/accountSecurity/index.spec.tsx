@@ -38,7 +38,7 @@ describe('AccountSecurity', function () {
   });
 
   afterEach(function () {
-    (window.location.assign as jest.Mock).mockRestore();
+    jest.mocked(window.location.assign).mockRestore();
   });
 
   function renderComponent() {

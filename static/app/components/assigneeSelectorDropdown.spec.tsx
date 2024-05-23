@@ -621,7 +621,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
-    (ConfigStore.get as jest.Mock).mockRestore();
+    jest.mocked(ConfigStore.get).mockRestore();
   });
 
   it('renders unassigned', async () => {
