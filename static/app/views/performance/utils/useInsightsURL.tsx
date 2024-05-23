@@ -4,7 +4,7 @@ import {ModuleName} from 'sentry/views/starfish/types';
 type ModuleNameStrings = `${ModuleName}`;
 type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
-export function useInsightsURL(moduleName: RoutableModuleName) {
+export function useInsightsURL(moduleName: RoutableModuleNames) {
   const builder = useInsightsURLBuilder();
   return builder(moduleName);
 }
