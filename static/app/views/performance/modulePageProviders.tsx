@@ -11,7 +11,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {NoAccess} from 'sentry/views/performance/database/noAccess';
 import {useInsightsTitle} from 'sentry/views/performance/utils/useInsightsTitle';
 import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import type {ModuleName} from 'sentry/views/starfish/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -28,7 +27,6 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const moduleURL = useModuleURL(moduleName);
 
   const insightsTitle = useInsightsTitle(moduleName);
   const moduleTitle = useModuleTitle(moduleName);
@@ -42,13 +40,13 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   useEffect(() => {
     // If the Insights feature is enabled, redirect users to the `/insights/` equivalent URL!
     if (areInsightsEnabled && !isOnInsightsRoute) {
-      navigate(`${moduleURL}/?${qs.stringify(location.query)}`);
+      const newPathname = location.pathname.replace(/\/performance\//g, '/insights/');
+      navigate(`${newPathname}?${qs.stringify(location.query)}`);
     }
   }, [
     navigate,
+    location.pathname,
     location.query,
-    moduleURL,
-    organization.slug,
     areInsightsEnabled,
     isOnInsightsRoute,
   ]);
