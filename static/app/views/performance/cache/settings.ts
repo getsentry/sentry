@@ -31,5 +31,4 @@ export const ONBOARDING_CONTENT = {
 export const MODULE_DESCRIPTION = t(
   'Discover whether your application is utilizing caching effectively and understand the latency associated with cache misses.'
 );
-export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/performance/cache-monitoring/';
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/performance/caches/';
