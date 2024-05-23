@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -10,6 +12,7 @@ import type {Group, Organization, Project} from 'sentry/types';
 
 type Props = {
   groupId: Group['id'];
+  location: Location;
   onToggleCollapse: () => void;
   onUnmerge: () => void;
   orgId: Organization['slug'];
@@ -22,6 +25,7 @@ export function MergedToolbar({
   orgId,
   onUnmerge,
   onToggleCollapse,
+  location,
 }: Props) {
   const {
     unmergeList,
@@ -55,6 +59,7 @@ export function MergedToolbar({
       orgId,
       baseEventId,
       targetEventId,
+      location,
     });
   }
 

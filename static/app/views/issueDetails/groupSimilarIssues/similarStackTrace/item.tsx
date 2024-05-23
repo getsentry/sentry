@@ -2,6 +2,7 @@ import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -23,6 +24,7 @@ import type {Project} from 'sentry/types/project';
 type Props = {
   groupId: Group['id'];
   issue: Group;
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   aggregate?: {
@@ -60,16 +62,23 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project, aggregate} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, aggregate, location} = this.props;
     const {id: targetIssueId} = issue;
 
-    const hasSimilarityEmbeddingsFeature = project.features.includes(
-      'similarity-embeddings'
-    );
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
     const shouldBeGrouped = hasSimilarityEmbeddingsFeature
       ? aggregate?.shouldBeGrouped
       : '';
-    openDiffModal({baseIssueId, targetIssueId, project, orgId, shouldBeGrouped});
+    openDiffModal({
+      baseIssueId,
+      targetIssueId,
+      project,
+      orgId,
+      shouldBeGrouped,
+      location,
+    });
     event.stopPropagation();
   };
 
