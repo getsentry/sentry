@@ -197,7 +197,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             )
 
             return self._respond_with_error(
-                "Failed to send autofix to seer.",
+                "Autofix failed to start.",
                 500,
             )
 
