@@ -1902,6 +1902,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
+    "organizations:performance-webvitals-avg": False,
     # Rename current Performance modules to "Insights"
     "organizations:performance-insights": False,
     # Enable queues module ui
