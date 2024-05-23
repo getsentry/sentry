@@ -42,7 +42,7 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   useEffect(() => {
     // If the Insights feature is enabled, redirect users to the `/insights/` equivalent URL!
     if (areInsightsEnabled && !isOnInsightsRoute) {
-      navigate(`${moduleURL}/${qs.stringify(location.query)}`);
+      navigate(`${moduleURL}/?${qs.stringify(location.query)}`);
     }
   }, [
     navigate,
