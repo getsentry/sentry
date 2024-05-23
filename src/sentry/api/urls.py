@@ -426,7 +426,6 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
     OrganizationMetricsQueryEndpoint,
-    OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -437,6 +436,7 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
+from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
