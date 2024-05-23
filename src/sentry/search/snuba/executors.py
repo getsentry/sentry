@@ -107,6 +107,11 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
 ]
 
 
+ENTITY_EVENTS = "events"
+ENTITY_GROUP_ATTRIBUTES = "group_attributes"
+ENTITY_SEARCH_ISSUES = "search_issues"
+
+
 def map_field_name_from_format_search_filter(field: str) -> str:
     """
     Maps the field name we get from the format_search_filter to the field used in Suba
@@ -1197,7 +1202,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         """
         Returns the basic lookup for a search filter.
         """
-        dataset = Dataset.Events if joined_entity.name == "events" else Dataset.IssuePlatform
+        dataset = Dataset.Events if joined_entity.name == ENTITY_EVENTS else Dataset.IssuePlatform
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
@@ -1502,9 +1507,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
-        "event": Entity("events", alias="e"),
-        "attrs": Entity("group_attributes", alias="g"),
-        "search_issues": Entity("search_issues", alias="si"),
+        "event": Entity(ENTITY_EVENTS, alias="e"),
+        "attrs": Entity(ENTITY_GROUP_ATTRIBUTES, alias="g"),
+        "search_issues": Entity(ENTITY_SEARCH_ISSUES, alias="si"),
     }
 
     group_conditions_lookup = {
@@ -1640,7 +1645,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             entities_to_check.append(search_issues_entity)
 
         for joined_entity in entities_to_check:
-            is_errors = joined_entity.name == "events"
+            is_errors = joined_entity.name == ENTITY_EVENTS
             where_conditions = [
                 Condition(Column("project_id", joined_entity), Op.IN, [p.id for p in projects]),
                 Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
