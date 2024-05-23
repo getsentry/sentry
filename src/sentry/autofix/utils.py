@@ -1,16 +1,14 @@
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
 
-def get_repos_from_project_code_mappings(project: Project) -> list[dict]:
-    repo_configs: list[RepositoryProjectPathConfig] = RepositoryProjectPathConfig.objects.filter(
-        project__in=[project]
-    )
+def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
+    code_mappings = get_sorted_code_mapping_configs(project)
 
     repos: dict[tuple, dict] = {}
-    for repo_config in repo_configs:
-        repo: Repository = repo_config.repository
+    for code_mapping in code_mappings:
+        repo: Repository = code_mapping.repository
         repo_name_sections = repo.name.split("/")
 
         # We expect a repository name to be in the format of "owner/name" for now.
