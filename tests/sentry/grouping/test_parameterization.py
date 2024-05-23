@@ -218,7 +218,7 @@ def test_parameterize_standard(name, input, expected, parameterizer):
         ),
     ],
 )
-def test_parametrize_experiemntal(name, input, expected, parameterizer):
+def test_parameterize_experiment(name, input, expected, parameterizer):
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
     if "<uniq_id>" in expected:
         experiments = parameterizer.get_successful_experiments()
