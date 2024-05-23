@@ -2,7 +2,6 @@ import logging
 from dataclasses import asdict
 
 from sentry import features
-from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
@@ -11,6 +10,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
