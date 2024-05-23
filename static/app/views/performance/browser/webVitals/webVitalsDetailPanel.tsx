@@ -200,9 +200,9 @@ export function WebVitalsDetailPanel({
       );
     }
     if (col.key === 'webVital') {
-      let value: string | number = row[mapWebVitalToColumn(webVital)];
+      let value = row[mapWebVitalToColumn(webVital)];
       if (webVital && ['lcp', 'fcp', 'ttfb', 'fid', 'inp'].includes(webVital)) {
-        value = getFormattedDuration(value);
+        value = getFormattedDuration(parseInt(value, 10));
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
       }
