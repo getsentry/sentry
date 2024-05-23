@@ -112,11 +112,11 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, project} = this.props;
+    const {aggregate, scoresByInterface, issue, project, location} = this.props;
     const {visible, busy} = this.state;
-    const hasSimilarityEmbeddingsFeature = project.features.includes(
-      'similarity-embeddings'
-    );
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
     const similarInterfaces = hasSimilarityEmbeddingsFeature
       ? ['exception', 'message', 'shouldBeGrouped']
       : ['exception', 'message'];
