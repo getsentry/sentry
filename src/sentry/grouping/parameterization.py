@@ -186,7 +186,7 @@ DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAM
 class ParameterizationCallable:
     """
     Represents a callable that can be used to modify a string, which can give
-    us more felxibility than just using regex.
+    us more flexibility than just using regex.
     """
 
     name: str  # name of the pattern also used as group name in combined regex
