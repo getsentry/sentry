@@ -71,13 +71,17 @@ export function useReplayTraceMeta(
 
   const meta = useTraceMeta(traceIds);
 
-  return {
-    data: meta.data,
-    isLoading: eventsIsLoading || meta.isLoading,
-    isRefetching: meta.isRefetching,
-    refetch: () => {
-      meta.refetch();
-      eventsRefetch();
-    },
-  };
+  const metaResults = useMemo(() => {
+    return {
+      data: meta.data,
+      isLoading: eventsIsLoading || meta.isLoading,
+      isRefetching: meta.isRefetching,
+      refetch: () => {
+        meta.refetch();
+        eventsRefetch();
+      },
+    };
+  }, [meta, eventsIsLoading, eventsRefetch]);
+
+  return metaResults;
 }

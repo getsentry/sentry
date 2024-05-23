@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Loading from 'sentry/components/loadingIndicator';
@@ -89,6 +90,13 @@ function Trace({replayRecord}: Props) {
 
   const metaResults = useReplayTraceMeta(replayRecord);
 
+  const traceSplitResults = useMemo(() => {
+    return {
+      transactions: traces ?? [],
+      orphan_errors: orphanErrors ?? [],
+    };
+  }, [traces, orphanErrors]);
+
   useFetchTransactions();
 
   if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
@@ -117,23 +125,20 @@ function Trace({replayRecord}: Props) {
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
 
+  if (!hasTraceData(traces, orphanErrors)) {
+    return <TracesNotFound performanceActive={performanceActive} />;
+  }
+
   if (organization.features.includes('replay-trace-view-v1')) {
     return (
       <ReplayTraceView
         replayRecord={replayRecord}
-        traces={{
-          transactions: traces ?? [],
-          orphan_errors: orphanErrors ?? [],
-        }}
+        traces={traceSplitResults}
         eventView={eventView}
         metaResults={metaResults}
         status={getTraceStatus({errors, isFetching, traces, didInit})}
       />
     );
-  }
-
-  if (!hasTraceData(traces, orphanErrors)) {
-    return <TracesNotFound performanceActive={performanceActive} />;
   }
 
   return (

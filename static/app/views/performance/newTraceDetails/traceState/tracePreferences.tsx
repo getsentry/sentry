@@ -2,6 +2,8 @@ import * as Sentry from '@sentry/react';
 
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
+import {TraceViewSources} from '..';
+
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
 type TracePreferencesAction =
@@ -34,6 +36,9 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer bottom': 0.5,
 };
 
+const TRACE_VIEW_PREFERENCES_KEY = 'trace-view-preferences';
+const REPLAY_TRACE_VIEW_PREFERENCES_KEY = 'replay-trace-view-preferences';
+
 const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
@@ -49,11 +54,33 @@ const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-export function storeTraceViewPreferences(state: TracePreferencesState): void {
+const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+  drawer: {
+    minimized: false,
+    sizes: {
+      'drawer left': 0.33,
+      'drawer right': 0.33,
+      'drawer bottom': 0.4,
+    },
+  },
+  layout: 'drawer right',
+  list: {
+    width: 0.5,
+  },
+};
+
+export function storeTraceViewPreferences(
+  state: TracePreferencesState,
+  source: TraceViewSources
+): void {
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem('trace-view-preferences', JSON.stringify(state));
+      const key =
+        source === TraceViewSources.REPLAY
+          ? REPLAY_TRACE_VIEW_PREFERENCES_KEY
+          : TRACE_VIEW_PREFERENCES_KEY;
+      localStorage.setItem(key, JSON.stringify(state));
     } catch (e) {
       Sentry.captureException(e);
     }
@@ -63,8 +90,15 @@ export function storeTraceViewPreferences(state: TracePreferencesState): void {
 function isInt(value: any): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
-export function loadTraceViewPreferences(): TracePreferencesState {
-  const stored = localStorage.getItem('trace-view-preferences');
+export function loadTraceViewPreferences(
+  source: TraceViewSources
+): TracePreferencesState {
+  const stored = localStorage.getItem(
+    source === TraceViewSources.REPLAY
+      ? REPLAY_TRACE_VIEW_PREFERENCES_KEY
+      : TRACE_VIEW_PREFERENCES_KEY
+  );
+
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
@@ -90,7 +124,9 @@ export function loadTraceViewPreferences(): TracePreferencesState {
     }
   }
 
-  return DEFAULT_TRACE_VIEW_PREFERENCES;
+  return source === TraceViewSources.REPLAY
+    ? DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES
+    : DEFAULT_TRACE_VIEW_PREFERENCES;
 }
 
 export function tracePreferencesReducer(

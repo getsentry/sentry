@@ -213,7 +213,7 @@ export function TraceView() {
           organization={organization}
           traceEventView={traceEventView}
           metaResults={meta}
-          source="performance"
+          source={TraceViewSources.PERFORMANCE}
         />
       </NoProjectMessage>
     </SentryDocumentTitle>
@@ -232,10 +232,15 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 
 const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 
+export enum TraceViewSources {
+  REPLAY = 'replay',
+  PERFORMANCE = 'performance',
+}
+
 type TraceViewContentProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
-  source: 'replay' | 'performance';
+  source: TraceViewSources;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
@@ -251,9 +256,23 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
   const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
 
   const initializedRef = useRef(false);
-  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
-    null
-  );
+  const scrollQueueRef = useRef<
+    {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
+  >(undefined);
+
+  if (scrollQueueRef.current === undefined) {
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
+
+    if (maybeQueue || queryParams.eventId) {
+      scrollQueueRef.current = {
+        eventId: queryParams.eventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    } else {
+      scrollQueueRef.current = null;
+    }
+  }
 
   const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
@@ -314,7 +333,10 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const preferences = useMemo(() => loadTraceViewPreferences(), []);
+  const preferences = useMemo(
+    () => loadTraceViewPreferences(props.source),
+    [props.source]
+  );
 
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
     TraceReducer,
@@ -818,8 +840,8 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
 
   useTraceQueryParamStateSync(traceQueryStateSync);
   useLayoutEffect(() => {
-    storeTraceViewPreferences(traceState.preferences);
-  }, [traceState.preferences]);
+    storeTraceViewPreferences(traceState.preferences, props.source);
+  }, [traceState.preferences, props.source]);
 
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
@@ -839,7 +861,6 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
       return undefined;
     }
 
-    initializedRef.current = true;
     viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
 
     // Whenever the timeline changes, update the trace space
@@ -854,7 +875,7 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
     };
   }, [viewManager, tree]);
 
-  const traceViewWaterfallProps = {
+  const traceViewWaterfallProps: TraceViewWaterFallProps = {
     traceState,
     traceDispatch,
     onTraceSearch,
@@ -902,10 +923,14 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
 type TraceViewWaterfallRefs = {
   initializedRef: React.MutableRefObject<boolean>;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
-  scrollQueueRef: React.MutableRefObject<{
-    eventId?: string;
-    path?: TraceTree.NodePath[];
-  } | null>;
+  scrollQueueRef: React.MutableRefObject<
+    | {
+        eventId?: string;
+        path?: TraceTree.NodePath[];
+      }
+    | null
+    | undefined
+  >;
   setTraceGridRef: (ref: HTMLElement | null) => void;
   traceGridRef: HTMLElement | null;
 };

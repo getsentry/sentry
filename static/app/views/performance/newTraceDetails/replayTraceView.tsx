@@ -1,4 +1,5 @@
 import {useEffect, useLayoutEffect} from 'react';
+import styled from '@emotion/styled';
 import qs from 'qs';
 
 import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
@@ -13,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
-import {TraceViewContent} from '.';
+import {TraceViewContent, TraceViewSources} from '.';
 
 type Props = {
   eventView: EventView;
@@ -48,14 +49,23 @@ export function ReplayTraceView(props: Props) {
   }, [organization]);
 
   return (
-    <TraceViewContent
-      status={props.status}
-      trace={props.traces}
-      traceSlug={''}
-      organization={organization}
-      traceEventView={props.eventView}
-      metaResults={props.metaResults}
-      source="replay"
-    />
+    <Wrapper>
+      <TraceViewContent
+        status={props.status}
+        trace={props.traces}
+        traceSlug={'70485d02dd5c4703ae635ab8fb3dcb72'}
+        organization={organization}
+        traceEventView={props.eventView}
+        metaResults={props.metaResults}
+        source={TraceViewSources.REPLAY}
+      />
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1px;
+`;
