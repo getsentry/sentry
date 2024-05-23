@@ -12,7 +12,6 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationPermission,
 )
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.metadata import get_metrics_meta
@@ -22,9 +21,6 @@ from sentry.sentry_metrics.use_case_id_registry import (
     get_use_case_id_api_access,
 )
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.snuba.metrics import get_single_metric_info
-from sentry.snuba.metrics.utils import DerivedMetricParseException
-from sentry.snuba.sessions_v2 import InvalidField
 
 
 def can_access_use_case_id(request: Request, use_case_id: UseCaseID) -> bool:
@@ -124,35 +120,3 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
         )
 
         return Response(metrics, status=200)
-
-
-@region_silo_endpoint
-class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-    }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
-    """Get metric name, available operations, metric unit and available tags"""
-
-    def get(self, request: Request, organization, metric_name) -> Response:
-        # Right now this endpoint is not used, however we are planning an entire refactor of
-        # the metrics endpoints.
-        projects = self.get_projects(request, organization)
-        if not projects:
-            raise InvalidParams(
-                "You must supply at least one project to see the details of a metric"
-            )
-
-        try:
-            metric = get_single_metric_info(
-                projects=projects,
-                metric_name=metric_name,
-                use_case_id=get_use_case_id(request),
-            )
-        except InvalidParams as exc:
-            raise ResourceDoesNotExist(detail=str(exc))
-        except (InvalidField, DerivedMetricParseException) as exc:
-            raise ParseError(detail=str(exc))
-
-        return Response(metric, status=200)
