@@ -57,10 +57,12 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
     const insightsURL = insightsURLBuilder(moduleName);
 
     if (moduleName === ModuleName.AI) {
-      // AI Doesn't live under "/performance"
+      // AI Doesn't live under "/performance", which means `insightsURL` might be an empty string, so we need to account for that
+      const moduleURLSegment = [insightsURL, AI_BASE_URL].filter(Boolean).join('/');
+
       return bare
-        ? `${AI_BASE_URL}`
-        : normalizeUrl(`/organizations/${slug}/${AI_BASE_URL}`);
+        ? moduleURLSegment
+        : normalizeUrl(`/organizations/${slug}/${moduleURLSegment}`);
     }
 
     return bare
