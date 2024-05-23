@@ -1,6 +1,5 @@
 import React, {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -28,7 +27,6 @@ import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
@@ -155,7 +153,6 @@ export function HTTPLandingPage() {
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
