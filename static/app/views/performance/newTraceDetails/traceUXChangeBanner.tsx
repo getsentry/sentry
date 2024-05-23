@@ -1,5 +1,6 @@
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -28,13 +29,9 @@ export function TraceUXChangeAlert() {
         'Get deeper context with the new trace view, which links events directly inside traces. Read [why] we are doing this and how it helps you.',
         {
           why: (
-            <a
-              href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/">
               {t('why')}
-            </a>
+            </ExternalLink>
           ),
         }
       )}
