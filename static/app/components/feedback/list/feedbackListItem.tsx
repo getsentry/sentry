@@ -79,14 +79,17 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           >
             <InteractionStateLayer />
 
-            <Row style={{gridArea: 'checkbox'}}>
+            <Row
+              style={{gridArea: 'checkbox'}}
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
               <Checkbox
-                style={{gridArea: 'checkbox'}}
                 disabled={isSelected === 'all-selected'}
                 checked={isSelected !== false}
                 onChange={e => {
                   onSelect(e.target.checked);
-                  e.stopPropagation();
                 }}
                 invertColors={isOpen}
               />
