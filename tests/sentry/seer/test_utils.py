@@ -8,9 +8,12 @@ from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import HTTPResponse
 
-from sentry.seer.utils import (
+from sentry.seer.similarity.backfill import (
     POST_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
+    post_bulk_grouping_records,
+)
+from sentry.seer.utils import (
     IncompleteSeerDataError,
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
@@ -18,7 +21,6 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     detect_breakpoints,
     get_similarity_data_from_seer,
-    post_bulk_grouping_records,
 )
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -278,8 +280,8 @@ def test_from_raw_nonexistent_group(default_project):
         SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
 
 
-@mock.patch("sentry.seer.utils.logger")
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.backfill.logger")
+@mock.patch("sentry.seer.similarity.backfill.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
     expected_return_value = {
         "success": True,
@@ -301,8 +303,8 @@ def test_post_bulk_grouping_records_success(mock_seer_request, mock_logger):
     )
 
 
-@mock.patch("sentry.seer.utils.logger")
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.backfill.logger")
+@mock.patch("sentry.seer.similarity.backfill.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
     expected_return_value = {"success": False}
     mock_seer_request.side_effect = ReadTimeoutError(
@@ -323,8 +325,8 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request, mock_logger):
     )
 
 
-@mock.patch("sentry.seer.utils.logger")
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.backfill.logger")
+@mock.patch("sentry.seer.similarity.backfill.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
     expected_return_value = {"success": False}
     mock_seer_request.return_value = HTTPResponse(
@@ -346,7 +348,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request, mock_logger):
     )
 
 
-@mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
+@mock.patch("sentry.seer.similarity.backfill.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_empty_data(mock_seer_request):
     """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
     expected_return_value = {"success": True}

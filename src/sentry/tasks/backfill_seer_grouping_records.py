@@ -22,14 +22,16 @@ from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.seer.utils import (
+from sentry.seer.similarity.backfill import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
+    delete_grouping_records,
+    post_bulk_grouping_records,
+)
+from sentry.seer.utils import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
-    delete_grouping_records,
-    post_bulk_grouping_records,
 )
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
