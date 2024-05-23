@@ -46,6 +46,18 @@ class ConfiguratioAPITestCase(APITestCase):
             }
         }
 
+    def test_get_configuration_not_enabled(self):
+        self.storage.set(
+            {
+                "id": self.projectkey.public_key,
+                "sample_rate": 0.5,
+                "traces_sample_rate": 0,
+                "user_config": {"abc": "def"},
+            },
+        )
+        response = self.client.get(self.url)
+        assert response.status_code == 404
+
     def test_get_configuration_not_found(self):
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.get(self.url)
@@ -81,6 +93,10 @@ class ConfiguratioAPITestCase(APITestCase):
 
         # Assert the configuration was stored successfully.
         assert self.storage.get() == response.json()["data"]
+
+    def test_post_configuration_not_enabled(self):
+        response = self.client.post(self.url, data={}, format="json")
+        assert response.status_code == 404
 
     def test_post_configuration_different_types(self):
         data: dict[str, Any] = {"data": {"sample_rate": 1.0, "traces_sample_rate": 0.2}}
@@ -172,3 +188,7 @@ class ConfiguratioAPITestCase(APITestCase):
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.delete(self.url)
         assert response.status_code == 204
+
+    def test_delete_configuration_not_enabled(self):
+        response = self.client.delete(self.url)
+        assert response.status_code == 404
