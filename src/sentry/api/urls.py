@@ -422,12 +422,12 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
-    OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
+from .endpoints.organization_metrics_data import OrganizationMetricsDataEndpoint
 from .endpoints.organization_metrics_estimation_stats import (
     OrganizationMetricsEstimationStatsEndpoint,
 )
