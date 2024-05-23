@@ -13,7 +13,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import features, nodestore, options
-from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
@@ -33,6 +32,7 @@ from sentry.seer.similarity.types import (
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
 )
+from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
