@@ -269,10 +269,7 @@ const LIMIT: number = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Database')].join(' — ')}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="db" features="spans-first-ui">
       <DatabaseLandingPage />
     </ModulePageProviders>
   );
