@@ -1,11 +1,14 @@
 import logging
 from typing import Any
 
+from sentry.constants import PLACEHOLDER_EVENT_TITLES
+from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
 MAX_FRAME_COUNT = 50
+SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -73,3 +76,24 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             stacktrace_str += frame_str
 
     return stacktrace_str.strip()
+
+
+def event_content_is_seer_eligible(event: Event) -> bool:
+    """
+    Determine if an event's contents makes it fit for using with Seer's similar issues model.
+    """
+    # TODO: Determine if we want to filter out non-sourcemapped events
+
+    # If an event has no stacktrace, and only one of our placeholder titles ("<untitled>",
+    # "<unknown>", etc.), there's no data for Seer to analyze, so no point in making the API call.
+    if (
+        event.title in PLACEHOLDER_EVENT_TITLES
+        and not get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
+        and not get_path(event.data, "threads", "values", -1, "stacktrace", "frames")
+    ):
+        return False
+
+    if event.platform not in SEER_ELIGIBLE_PLATFORMS:
+        return False
+
+    return True
