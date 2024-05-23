@@ -13,7 +13,10 @@ import {defined} from 'sentry/utils';
 
 export interface ContentProps {
   /**
-   * Item to display
+   * Specifies the item to display.
+   * - If set, item.subjectNode will override displaying item.subject.
+   * - If item.subjectNode is null, the value section will span the whole card.
+   * - The only displayed action is item.action.link, not item.actionButton
    */
   item: KeyValueListDataItem;
   /**
@@ -54,8 +57,8 @@ export function Content({
 
   return (
     <ContentWrapper hasErrors={hasErrors} {...props}>
-      <Subject>{subjectNode ? subjectNode : subject}</Subject>
-      <ValueSection hasErrors={hasErrors}>
+      {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
+      <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper>
           {!disableRichValue && defined(action?.link) ? (
             <Link to={action.link}>{dataComponent}</Link>
@@ -188,9 +191,9 @@ const Subject = styled('div')`
   word-break: break-word;
 `;
 
-const ValueSection = styled(Subject)<{hasErrors: boolean}>`
+const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boolean}>`
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
-  grid-column: span 1;
+  grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
   grid-template-columns: 1fr auto;
   grid-column-gap: ${space(0.5)};
