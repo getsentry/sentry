@@ -28,7 +28,7 @@ from sentry.seer.similarity.backfill import (
     delete_grouping_records,
     post_bulk_grouping_records,
 )
-from sentry.seer.utils import (
+from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,

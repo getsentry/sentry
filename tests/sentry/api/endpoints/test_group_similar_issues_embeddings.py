@@ -13,7 +13,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
-from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
+from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils.types import NonNone

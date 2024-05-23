@@ -15,11 +15,8 @@ from sentry.api.serializers import serialize
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.models.user import User
-from sentry.seer.utils import (
-    SeerSimilarIssueData,
-    SimilarIssuesEmbeddingsRequest,
-    get_similarity_data_from_seer,
-)
+from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
+from sentry.seer.utils import get_similarity_data_from_seer
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
