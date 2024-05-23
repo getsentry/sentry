@@ -29,6 +29,8 @@ type SearchQueryBuilderInputProps = {
 };
 
 type SearchQueryBuilderInputInternalProps = {
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
   tabIndex: number;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
 };
@@ -142,8 +144,10 @@ function KeyDescription({tag}: {tag: Tag}) {
 }
 
 function SearchQueryBuilderInputInternal({
+  item,
   token,
   tabIndex,
+  state,
 }: SearchQueryBuilderInputInternalProps) {
   const trimmedTokenValue = token.value.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -171,6 +175,33 @@ function SearchQueryBuilderInputInternal({
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
   }
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // At start and pressing backspace, focus the previous full token
+      if (
+        e.currentTarget.selectionStart === 0 &&
+        e.currentTarget.selectionEnd === 0 &&
+        e.key === 'Backspace'
+      ) {
+        if (state.collection.getKeyBefore(item.key)) {
+          state.selectionManager.setFocusedKey(state.collection.getKeyBefore(item.key));
+        }
+      }
+
+      // At end and pressing delete, focus the next full token
+      if (
+        e.currentTarget.selectionStart === e.currentTarget.value.length &&
+        e.currentTarget.selectionEnd === e.currentTarget.value.length &&
+        e.key === 'Delete'
+      ) {
+        if (state.collection.getKeyAfter(item.key)) {
+          state.selectionManager.setFocusedKey(state.collection.getKeyAfter(item.key));
+        }
+      }
+    },
+    [item.key, state.collection, state.selectionManager]
+  );
 
   return (
     <SearchQueryBuilderCombobox
@@ -204,14 +235,15 @@ function SearchQueryBuilderInputInternal({
           setSelectionIndex(e.target.selectionStart ?? 0);
         }
       }}
+      onKeyDown={onKeyDown}
       tabIndex={tabIndex}
       maxOptions={100}
     >
       {sections.map(({title, children}) => (
         <Section title={title} key={title}>
-          {children.map(item => (
-            <Item {...item} key={item.key}>
-              {item.label}
+          {children.map(child => (
+            <Item {...child} key={child.key}>
+              {child.label}
             </Item>
           ))}
         </Section>
@@ -249,7 +281,12 @@ export function SearchQueryBuilderInput({
   return (
     <Row {...mergeProps(rowProps, {onFocus})} ref={ref} tabIndex={-1}>
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
-        <SearchQueryBuilderInputInternal token={token} tabIndex={isFocused ? 0 : -1} />
+        <SearchQueryBuilderInputInternal
+          item={item}
+          state={state}
+          token={token}
+          tabIndex={isFocused ? 0 : -1}
+        />
       </GridCell>
     </Row>
   );
