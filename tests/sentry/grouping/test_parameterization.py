@@ -219,7 +219,7 @@ def test_parametrize_experiemntal(name, input, expected, parameterizer):
         assert experiments[0] == UniqueIdExperiment
 
 
-def test_parametrize_experiemntal_regex():
+def test_parameterize_regex_experiment():
     """
     We don't have any of these yet, but we need to test that they work
     """
