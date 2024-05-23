@@ -477,6 +477,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
           event={embeddedChildren}
           location={location}
           orgSlug={organization.slug}
+          skipLight={false}
         >
           {results => (
             <ProfilesProvider
