@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from urllib3.response import HTTPResponse
 
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.breakpoints import detect_breakpoints
 from sentry.utils import json
 
 
