@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event_flutter import get_crash_event
+from fixtures.sdk_crash_detection.crash_event_dart import get_crash_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path

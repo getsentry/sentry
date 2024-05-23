@@ -91,6 +91,7 @@ export function AssigneeBadge({
     <StyledTag icon={loadingIcon} />
   ) : assignedTo ? (
     <Tooltip
+      isHoverable
       title={
         <TooltipWrapper>
           {t('Assigned to ')}
@@ -105,6 +106,7 @@ export function AssigneeBadge({
     </Tooltip>
   ) : (
     <Tooltip
+      isHoverable
       title={
         <TooltipWrapper>
           <div>{t('Unassigned')}</div>

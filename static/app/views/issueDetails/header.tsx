@@ -69,7 +69,8 @@ function GroupHeaderTabs({
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasReplaySupport =
-    organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
+    organizationFeatures.has('session-replay') &&
+    projectCanLinkToReplay(organization, project);
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -173,12 +174,6 @@ function GroupHeader({
   const location = useLocation();
 
   const disabledTabs = useMemo(() => {
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
-
-    if (!hasReprocessingV2Feature) {
-      return [];
-    }
-
     if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
       return [
         Tab.ACTIVITY,
@@ -204,7 +199,7 @@ function GroupHeader({
     }
 
     return [];
-  }, [organization, groupReprocessingStatus]);
+  }, [groupReprocessingStatus]);
 
   const eventRoute = useMemo(() => {
     const searchTermWithoutQuery = omit(location.query, 'query');

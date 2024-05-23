@@ -19,6 +19,7 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
 from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
@@ -60,7 +61,7 @@ def process_organization_mapping_customer_id_update(
 
     if payload and "customer_id" in payload:
         update = update_organization_mapping_from_instance(
-            org, get_local_region(), customer_id=(payload["customer_id"],)
+            org, get_local_region(), customer_id=CustomerId(value=payload["customer_id"])
         )
         organization_mapping_service.upsert(organization_id=org.id, update=update)
 

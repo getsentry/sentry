@@ -278,10 +278,14 @@ def create_issue_platform_occurrence(
         subtitle="Your monitor has reached its failure threshold.",
         evidence_display=[
             IssueEvidence(
-                name="Failure reason", value=get_failure_reason(failed_checkins), important=True
+                name="Failure reason",
+                value=str(get_failure_reason(failed_checkins)),
+                important=True,
             ),
             IssueEvidence(
-                name="Environment", value=monitor_env.get_environment().name, important=False
+                name="Environment",
+                value=monitor_env.get_environment().name,
+                important=False,
             ),
             IssueEvidence(
                 name="Last successful check-in",
@@ -345,17 +349,22 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 
 def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
     """
-    Builds a humam readible strong from a list of failed check-ins.
+    Builds a humam readible string from a list of failed check-ins.
 
     "3 missed check-ins detected"
     "2 missed check-ins, 1 timeout check-in and 1 error check-in were detected"
     "A failed check-in was detected"
     """
+
     status_counts = Counter(
         checkin["status"]
         for checkin in failed_checkins
         if checkin["status"] in HUMAN_FAILURE_STATUS_MAP.keys()
     )
+
+    if len(status_counts) == 0:
+        # XXX(epurkhiser): Seems like sometimes this may be empty, why?
+        logger.info("get_failure_reason_check_ins", extra={"check_ins": failed_checkins})
 
     if sum(status_counts.values()) == 1:
         return SINGULAR_HUMAN_FAILURE_MAP[list(status_counts.keys())[0]]

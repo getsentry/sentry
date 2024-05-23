@@ -5,7 +5,7 @@ import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';
 
-export const RELEASE_LEVEL: BadgeType = 'alpha';
+export const RELEASE_LEVEL: BadgeType = 'beta';
 
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
 export const releaseLevelAsBadgeProps = {
@@ -27,3 +27,8 @@ export const ONBOARDING_CONTENT = {
   description: t('Our robot is waiting to collect your first cache hit.'),
   link: 'https://develop.sentry.dev/sdk/performance/modules/caches/',
 };
+
+export const MODULE_DESCRIPTION = t(
+  'Discover whether your application is utilizing caching effectively and understand the latency associated with cache misses.'
+);
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/performance/caches/';

@@ -12,9 +12,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
@@ -26,6 +24,7 @@ import RenderBlockingSelector from 'sentry/views/performance/browser/resources/s
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -42,9 +41,7 @@ const {
 } = SpanMetricsField;
 
 function ResourceSummary() {
-  const resourcesModuleURL = useModuleURL('resource');
   const webVitalsModuleURL = useModuleURL('vital');
-  const organization = useOrganization();
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
@@ -83,22 +80,16 @@ function ResourceSummary() {
       spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
+
+  const crumbs = useModuleBreadcrumbs('resource');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Resources',
-                to: resourcesModuleURL,
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: 'Resource Summary',
               },
@@ -159,7 +150,8 @@ function ResourceSummary() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      moduleName="resource"
+      pageTitle={t('Resource Summary')}
       features="spans-first-ui"
     >
       <ResourceSummary />

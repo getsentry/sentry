@@ -10,6 +10,7 @@ import orjson
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
+from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
@@ -26,6 +27,7 @@ from sentry.backup.scopes import ImportScope
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
 from sentry.nodestore.django.models import Node
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
@@ -80,6 +82,9 @@ DELETED_MODELS = {"sentry.actor"}
 
 # The maximum number of models that may be sent at a time.
 MAX_BATCH_SIZE = 20
+
+# The maximum number of times we attempt to drain an organization's outbox before slug provisioning.
+MAX_SHARD_DRAIN_ATTEMPTS = 3
 
 
 class ImportingError(Exception):
@@ -429,14 +434,55 @@ def _import(
         if not org_pk_mapping:
             return
 
-        org_ids_and_slugs: set[tuple[int, str]] = set()
+        slug_mapping: dict[int, str] = {}
         for old_primary_key in org_pk_mapping:
             org_id, _, org_slug = org_pk_mapping[old_primary_key]
-            org_ids_and_slugs.add((org_id, org_slug or ""))
+            slug_mapping[org_id] = org_slug or ""
 
-        if len(org_ids_and_slugs) > 0:
+        if len(slug_mapping) > 0:
+            # HACK(azaslavsky): Okay, this gets a bit complicated, but bear with me: the following
+            # `bulk_create...` calls will result in some actions on the control silo that call back
+            # into this region. So the client (this region) calls the server (the control silo)
+            # which may need to make one or more calls back into the client (this region). Because
+            # some of our `OrganizationMemberTeam` outboxes may not be drained due to the HACK we
+            # performed in `import_export/impl.py` (see that file for more details), there may be a
+            # massive backlog of `OrganizationMemberTeam` outboxes that need to clear before this
+            # region can respond. In the worst case scenario, this will result in a timeout of the
+            # original, outer `bulk_create...` call.
+            #
+            # So, the solution we take here is to manually clear all `ORGANIZATION_SCOPE` outboxes
+            # for each imported organization on this side first, so that when this region responds
+            # to the call triggered from the server-side of `bulk_create...`, the
+            # `ORGANIZATION`-scoped outbox queue is empty and is free to only serve requests
+            # specifically related to slug provisioning.
+            for id in slug_mapping.keys():
+                # To combat ephemeral errors, we'll try this a few times before accepting failure.
+                for attempt in range(MAX_SHARD_DRAIN_ATTEMPTS):
+                    try:
+                        # Manually create an empty outbox targeting this organization's shard, so
+                        # that we can force it to drain.
+                        RegionOutbox(
+                            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                            shard_identifier=id,
+                            category=OutboxCategory.ORGANIZATION_UPDATE,
+                            object_identifier=id,
+                        ).drain_shard(flush_all=True)
+
+                        # If we reach this line without throwing, we've successfully drained the
+                        # outboxes for this organization, and are free to continue the outer loop.
+                        break
+                    except (OutboxFlushError, DatabaseError):
+                        # We'll capture this for now to see how often it happens, though eventually
+                        # we might want to remove this to reduce log spam on Sentry's side.
+                        capture_exception()
+
+                        # Only re-raise if we've exhausted our retries and want to actually error
+                        # out.
+                        if attempt + 1 == MAX_SHARD_DRAIN_ATTEMPTS:
+                            raise
+
             organization_provisioning_service.bulk_create_organization_slugs(
-                org_ids_and_slugs=org_ids_and_slugs
+                slug_mapping=slug_mapping
             )
 
     pk_map = PrimaryKeyMap()

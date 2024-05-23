@@ -97,7 +97,12 @@ register(
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-
+# Enable date-util parsing for timestamps
+register(
+    "system.use-date-util-timestamps",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Redis
 register(
     "redis.clusters",
@@ -835,6 +840,54 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for all Seer services
+#
+# TODO: So far this is only being checked when calling the Seer similar issues service during
+# ingestion
+register(
+    "seer.global-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitches for individual Seer services
+#
+# TODO: Most of these are not yet being used. The one current exception is the similarity service
+# killswitch, which is checked before calling Seer when potentially creating a  new group as part of
+# ingestion.
+register(
+    "seer.similarity-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.severity-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.breakpoint-detection-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.autofix-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.anomaly-detection-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 register(
     "issues.similarity-embeddings.projects-allowlist",
     type=Sequence,
@@ -878,6 +931,14 @@ register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
     default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings backfill batch size
+register(
+    "embeddings-grouping.seer.backfill-batch-size",
+    type=Int,
+    default=10,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -938,6 +999,14 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Switch for new logic for release health metrics, based on filtering on org & project ids
+register(
+    "release-health.use-org-and-project-filter",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Switch for more performant project counter incr
@@ -2561,6 +2630,15 @@ register(
 # also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
 register(
     "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

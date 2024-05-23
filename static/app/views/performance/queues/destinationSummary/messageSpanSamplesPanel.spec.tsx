@@ -3,18 +3,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock;
+  let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock, spanFieldTagsMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -42,8 +40,6 @@ describe('messageSpanSamplesPanel', () => {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(() => {
     eventsStatsRequestMock = MockApiClient.addMockResponse({
@@ -114,6 +110,21 @@ describe('messageSpanSamplesPanel', () => {
         ],
       },
     });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
   });
 
   afterAll(() => {
@@ -134,7 +145,7 @@ describe('messageSpanSamplesPanel', () => {
       action: 'PUSH',
       key: '',
     });
-    render(<MessageSpanSamplesPanel />);
+    render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
@@ -191,6 +202,18 @@ describe('messageSpanSamplesPanel', () => {
         }),
       })
     );
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
+      })
+    );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
     expect(screen.getByText('Consumer')).toBeInTheDocument();
     // Metrics Ribbon
@@ -218,7 +241,7 @@ describe('messageSpanSamplesPanel', () => {
       action: 'PUSH',
       key: '',
     });
-    render(<MessageSpanSamplesPanel />);
+    render(<MessageSpanSamplesPanel />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(eventsStatsRequestMock).toHaveBeenCalled();
     expect(eventsRequestMock).toHaveBeenCalledWith(
@@ -273,6 +296,17 @@ describe('messageSpanSamplesPanel', () => {
           statsPeriod: '10d',
           upperBound: 8000,
         }),
+      })
+    );
+    expect(spanFieldTagsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();

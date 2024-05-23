@@ -126,10 +126,10 @@ export function SetupReplaysCTA({
   const [expanded, setExpanded] = useState(-1);
   const FAQ = [
     {
-      header: () => (
+      header: (
         <QuestionContent>{t('Can I use Session Replay with my app?')}</QuestionContent>
       ),
-      content: () => (
+      content: (
         <AnswerContent>
           <div>
             {t(
@@ -160,10 +160,8 @@ export function SetupReplaysCTA({
       ),
     },
     {
-      header: () => (
-        <QuestionContent>{t('What’s the performance overhead?')}</QuestionContent>
-      ),
-      content: () => (
+      header: <QuestionContent>{t('What’s the performance overhead?')}</QuestionContent>,
+      content: (
         <AnswerContent>
           <div>
             {t(
@@ -189,10 +187,8 @@ export function SetupReplaysCTA({
       ),
     },
     {
-      header: () => (
-        <QuestionContent>{t('How do you protect user data?')}</QuestionContent>
-      ),
-      content: () => (
+      header: <QuestionContent>{t('How do you protect user data?')}</QuestionContent>,
+      content: (
         <AnswerContent>
           <div>
             {t(
