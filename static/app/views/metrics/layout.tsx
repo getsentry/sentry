@@ -222,4 +222,6 @@ const EmptyStateImage = styled('img')`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  grid-auto-flow: row;
+  gap: ${space(1)};
 `;
