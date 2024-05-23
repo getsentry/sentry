@@ -13,7 +13,6 @@ from sentry.api.bases.organization import (
     OrganizationPermission,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.utils import get_date_range_from_params
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.metadata import get_metrics_meta
@@ -23,7 +22,7 @@ from sentry.sentry_metrics.use_case_id_registry import (
     get_use_case_id_api_access,
 )
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.snuba.metrics import get_all_tags, get_single_metric_info
+from sentry.snuba.metrics import get_single_metric_info
 from sentry.snuba.metrics.utils import DerivedMetricParseException
 from sentry.snuba.sessions_v2 import InvalidField
 
@@ -157,42 +156,3 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
             raise ParseError(detail=str(exc))
 
         return Response(metric, status=200)
-
-
-@region_silo_endpoint
-class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-    }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-    permission_classes = (OrganizationAndStaffPermission,)
-
-    """Get list of tag names for this project
-
-    If the ``metric`` query param is provided, only tags for a certain metric
-    are provided.
-
-    If the ``metric`` query param is provided more than once, the *intersection*
-    of available tags is used.
-    """
-
-    def get(self, request: Request, organization) -> Response:
-        metric_names = request.GET.getlist("metric") or []
-        projects = self.get_projects(request, organization)
-        if not projects:
-            raise InvalidParams("You must supply at least one project to see the tag names")
-
-        start, end = get_date_range_from_params(request.GET)
-
-        try:
-            tags = get_all_tags(
-                projects=projects,
-                metric_names=metric_names,
-                use_case_id=get_use_case_id(request),
-                start=start,
-                end=end,
-            )
-        except (InvalidParams, DerivedMetricParseException) as exc:
-            raise (ParseError(detail=str(exc)))
-
-        return Response(tags, status=200)
