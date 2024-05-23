@@ -189,6 +189,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             ("s:custom/user@none", "set", project_2),
             ("c:custom/clicks@none", "counter", project_1),
             ("d:custom/page_load@millisecond", "distribution", project_2),
+            ("g:custom/page_load@millisecond", "distribution", project_2),
         )
         for mri, entity, project in metrics:
             self.store_metric(
@@ -205,7 +206,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         response = self.get_success_response(
             self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
         )
-        assert len(response.data) == 3
+        assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
@@ -216,9 +217,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert data[1]["blockingStatus"] == [
             {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
         ]
-        assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
-        assert data[2]["blockingStatus"] == [
+        assert data[3]["mri"] == "s:custom/user@none"
+        assert sorted(data[3]["projectIds"]) == sorted([project_1.id, project_2.id])
+        assert data[3]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
         assert sorted(data[1]["operations"]) == [
@@ -229,6 +230,14 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "max_timestamp",
             "min",
             "min_timestamp",
+            "sum",
+        ]
+
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "max",
+            "min",
             "sum",
         ]
 
@@ -258,3 +267,20 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
                 "p99",
                 "sum",
             ]
+
+            with override_options(
+                {"sentry-metrics.metrics-api.enable-gauge-last-for-orgs": [self.organization.id]},
+            ):
+                response = self.get_success_response(
+                    self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+                )
+                data = sorted(response.data, key=lambda d: d["mri"])
+
+                assert sorted(data[2]["operations"]) == [
+                    "avg",
+                    "count",
+                    "last",
+                    "max",
+                    "min",
+                    "sum",
+                ]

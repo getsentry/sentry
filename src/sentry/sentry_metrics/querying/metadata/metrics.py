@@ -5,7 +5,10 @@ from typing import cast
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.utils import METRICS_API_HIDDEN_OPERATIONS
+from sentry.sentry_metrics.querying.metadata.utils import (
+    METRICS_API_HIDDEN_OPERATIONS,
+    OperationsConfiguration,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.datasource import get_metrics_blocking_state_of_projects
@@ -29,6 +32,7 @@ def get_metrics_meta(
         return []
 
     metrics_metas = []
+    operations_config = generate_operations_config(organization)
 
     for use_case_id in use_case_ids:
         stored_metrics = get_available_mris(organization, projects, use_case_id)
@@ -57,7 +61,7 @@ def get_metrics_meta(
                 del metrics_blocking_state[metric_mri]
 
             metrics_metas.append(
-                _build_metric_meta(organization, parsed_mri, project_ids, blocking_status)
+                _build_metric_meta(parsed_mri, project_ids, blocking_status, operations_config)
             )
 
         for metric_mri, metric_blocking in metrics_blocking_state.items():
@@ -67,7 +71,6 @@ def get_metrics_meta(
 
             metrics_metas.append(
                 _build_metric_meta(
-                    organization,
                     parsed_mri,
                     [],
                     [
@@ -76,10 +79,25 @@ def get_metrics_meta(
                         )
                         for is_blocked, blocked_tags, project_id in metric_blocking
                     ],
+                    operations_config,
                 )
             )
 
     return metrics_metas
+
+
+def generate_operations_config(organization: Organization) -> OperationsConfiguration:
+    operations_config = OperationsConfiguration()
+    configuration_options = [
+        "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+        "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
+    ]
+
+    for option in configuration_options:
+        if organization.id not in options.get(option):
+            operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option])
+
+    return operations_config
 
 
 def get_available_mris(
@@ -108,21 +126,17 @@ def _convert_to_mris_to_project_ids_mapping(project_id_to_mris: dict[int, list[s
 
 
 def _build_metric_meta(
-    organization: Organization,
     parsed_mri: ParsedMRI,
     project_ids: Sequence[int],
     blocking_status: Sequence[BlockedMetric],
+    operations_config: OperationsConfiguration,
 ) -> MetricMeta:
     available_operations = get_available_operations(parsed_mri)
-
-    if organization.id not in options.get(
-        "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs"
-    ):
-        available_operations = [
-            operation
-            for operation in available_operations
-            if operation not in METRICS_API_HIDDEN_OPERATIONS
-        ]
+    available_operations = [
+        operation
+        for operation in available_operations
+        if operation not in operations_config.get_hidden_operations()
+    ]
 
     return MetricMeta(
         type=cast(MetricType, parsed_mri.entity),
