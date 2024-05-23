@@ -3561,6 +3561,128 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_heavy_sdk_name_with_negations_and_positive_checks(self) -> None:
+        # Store an event with sdk.name as sentry.python
+        event_python = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "sentry.python", "version": "0.13.19"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store another event with sdk.name as sentry.javascript
+        event_javascript = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=400)),
+                "fingerprint": ["group-2"],
+                "sdk": {"name": "sentry.javascript", "version": "2.1.1"},
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        # Query for events not using sentry.javascript SDK
+        response_negation = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="!sdk.name:sentry.javascript",
+            useGroupSnubaDataset=1,
+        )
+        assert response_negation.status_code == 200
+        assert len(response_negation.data) == 1
+        assert [int(r["id"]) for r in response_negation.data] == [event_python.group.id]
+
+        # Query for events specifically using sentry.python SDK
+        response_positive = self.get_response(
+            sort_by="date",
+            query="sdk.name:sentry.javascript",
+            useGroupSnubaDataset=1,
+        )
+        assert response_positive.status_code == 200
+        assert len(response_negation.data) == 1
+        assert [int(r["id"]) for r in response_positive.data] == [event_javascript.group.id]
+
+        # Query for events specifically using sentry.python SDK
+        response_positive = self.get_response(
+            sort_by="date",
+            query="sdk.name:sentry.*",
+            useGroupSnubaDataset=1,
+        )
+        assert response_positive.status_code == 200
+        assert len(response_positive.data) == 2
+        assert {int(r["id"]) for r in response_positive.data} == {
+            event_python.group.id,
+            event_javascript.group.id,
+        }
+
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_heavy_error_handled_boolean(self):
+        # Create an event with an unhandled exception
+        unhandled_event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=300)),
+                "level": "error",
+                "fingerprint": ["unhandled-group"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "UncaughtExceptionHandler",
+                            "value": "Unhandled exception",
+                            "mechanism": {"handled": False, "type": "generic"},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an event with a handled exception
+        handled_event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=300)),
+                "fingerprint": ["handled-group"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "value": "Handled exception",
+                            "mechanism": {"handled": True, "type": "generic"},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # Fetch unhandled exceptions
+        response_unhandled = self.get_response(query="error.handled:false", useGroupSnubaDataset=1)
+        assert response_unhandled.status_code == 200
+        assert len(response_unhandled.data) == 1
+        assert int(response_unhandled.data[0]["id"]) == unhandled_event.group.id
+
+        # Fetch handled exceptions
+        response_handled = self.get_response(query="error.handled:true", useGroupSnubaDataset=1)
+        assert response_handled.status_code == 200
+        assert len(response_handled.data) == 1
+        assert int(response_handled.data[0]["id"]) == handled_event.group.id
+
+        # Test for error.unhandled:1 (equivalent to error.handled:false)
+        response_unhandled_1 = self.get_response(query="error.unhandled:1", useGroupSnubaDataset=1)
+        assert response_unhandled_1.status_code == 200
+        assert len(response_unhandled_1.data) == 1
+        assert int(response_unhandled_1.data[0]["id"]) == unhandled_event.group.id
+
+        # Test for error.unhandled:0 (equivalent to error.handled:true)
+        response_handled_0 = self.get_response(query="error.unhandled:0", useGroupSnubaDataset=1)
+        assert response_handled_0.status_code == 200
+        assert len(response_handled_0.data) == 1
+        assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
