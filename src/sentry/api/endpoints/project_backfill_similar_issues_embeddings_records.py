@@ -31,11 +31,15 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
 
         last_processed_index = None
         dry_run = False
+        only_delete = False
         if request.data.get("last_processed_index"):
             last_processed_index = int(request.data["last_processed_index"])
 
         if request.data.get("dry_run"):
             dry_run = True
 
-        backfill_seer_grouping_records.delay(project.id, last_processed_index, dry_run)
+        if request.data.get("only_delete"):
+            only_delete = True
+
+        backfill_seer_grouping_records.delay(project.id, last_processed_index, dry_run, only_delete)
         return Response(status=204)

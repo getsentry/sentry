@@ -296,7 +296,7 @@ def process_delayed_alert_conditions() -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, min=float("-inf"), max=float("+inf")
+            PROJECT_ID_BUFFER_LIST_KEY, min=0, max=fetch_time.timestamp()
         )
         log_str = ""
         for project_id, timestamp in project_ids:
@@ -380,7 +380,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                         "delayed_processing.last_active",
                         extra={"last_active": status.last_active, "freq_offset": freq_offset},
                     )
-                    return
+                    break
 
                 updated = (
                     GroupRuleStatus.objects.filter(id=status.id)
@@ -390,7 +390,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
 
                 if not updated:
                     logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
-                    return
+                    break
 
                 notification_uuid = str(uuid.uuid4())
                 groupevent = group_to_groupevent[group]

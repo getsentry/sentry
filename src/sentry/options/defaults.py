@@ -97,7 +97,12 @@ register(
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-
+# Enable date-util parsing for timestamps
+register(
+    "system.use-date-util-timestamps",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Redis
 register(
     "redis.clusters",
@@ -881,6 +886,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# seer embeddings backfill batch size
+register(
+    "embeddings-grouping.seer.backfill-batch-size",
+    type=Int,
+    default=10,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -938,6 +951,14 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Switch for new logic for release health metrics, based on filtering on org & project ids
+register(
+    "release-health.use-org-and-project-filter",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Switch for more performant project counter incr
@@ -2561,6 +2582,15 @@ register(
 # also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
 register(
     "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

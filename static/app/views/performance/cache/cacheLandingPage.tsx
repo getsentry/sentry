@@ -10,19 +10,20 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
 import {
   BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
   RELEASE_LEVEL,
@@ -35,6 +36,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -45,7 +47,6 @@ const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 export function CacheLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
@@ -130,25 +131,20 @@ export function CacheLandingPage() {
 
   addCustomMeta(meta);
 
+  const crumbs = useModuleBreadcrumbs('cache');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>

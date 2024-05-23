@@ -12,7 +12,6 @@ from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
-from sentry.utils.canonical import CanonicalKeyDict
 
 logger = logging.getLogger(__name__)
 epoch = datetime.fromtimestamp(0)
@@ -177,7 +176,6 @@ def load_data(
     if data is None:
         return
 
-    data = CanonicalKeyDict(data)
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
 

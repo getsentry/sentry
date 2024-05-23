@@ -16,7 +16,6 @@ from sentry.models.group import Group
 from sentry.seer.utils import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.types import NonNone
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
@@ -688,12 +687,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ["Yes", "No"],
         )
 
-    def test_no_feature_flag(self):
-        response = self.client.get(self.path)
-
-        assert response.status_code == 404, response.content
-
-    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
@@ -743,7 +736,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "seer.similar_issue_request.parent_issue", tags={"outcome": "found"}
         )
 
-    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_multiple(self, mock_seer_request, mock_record):
@@ -800,7 +792,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
-    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.logger")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
@@ -853,7 +844,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
-    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.metrics")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_nonexistent_group(self, mock_seer_request, mock_metrics):
@@ -889,7 +879,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
-    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_empty_seer_return(self, mock_seer_request, mock_record):
@@ -907,7 +896,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
-    @with_feature("projects:similarity-embeddings")
     def test_no_contributing_exception(self):
         data_no_contributing_exception = {
             "fingerprint": ["message"],
@@ -948,7 +936,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
-    @with_feature("projects:similarity-embeddings")
     def test_no_exception(self):
         event_no_exception = self.store_event(data={}, project_id=self.project)
         group_no_exception = event_no_exception.group
@@ -960,7 +947,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
-    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
