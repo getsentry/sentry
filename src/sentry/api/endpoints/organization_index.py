@@ -84,7 +84,8 @@ class OrganizationIndexEndpoint(Endpoint):
     )
     def get(self, request: Request) -> Response:
         """
-        Return a list of organizations available to the authenticated session. This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
+        Return a list of organizations available to the authenticated session in a region.
+        This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
         """
         owner_only = request.GET.get("owner") in ("1", "true")
 

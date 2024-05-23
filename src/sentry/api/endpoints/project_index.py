@@ -21,7 +21,7 @@ from sentry.search.utils import tokenize_query
 @region_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectPermission,)
 
@@ -31,7 +31,7 @@ class ProjectIndexEndpoint(Endpoint):
         ``````````````````
 
         Return a list of projects available to the authenticated
-        session.
+        session in a region.
 
         :auth: required
         """
