@@ -83,3 +83,13 @@ class RpcIntegrationIdentityContext(RpcModel):
     identity_provider: RpcIdentityProvider | None
     identity: RpcIdentity | None
     user: RpcUser | None
+
+
+class RpcOrganizationContext(RpcModel):
+    integration: RpcIntegration | None
+    organization_integration: RpcOrganizationIntegration | None
+
+
+class RpcOrganizationContextList(RpcModel):
+    integration: RpcIntegration | None
+    organization_integrations: list[RpcOrganizationIntegration]
