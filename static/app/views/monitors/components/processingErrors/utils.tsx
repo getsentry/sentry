@@ -10,3 +10,13 @@ export function makeMonitorErrorsQueryKey(
     {},
   ] as const;
 }
+
+export function makeMonitorListErrorsQueryKey(
+  organization: Organization,
+  project?: string[]
+) {
+  return [
+    `/organizations/${organization.slug}/processing-errors/`,
+    {query: {project}},
+  ] as const;
+}
