@@ -37,6 +37,7 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -85,6 +86,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const organization = useOrganization();
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
+  const aggregateFunction = useAggregateFunction();
 
   const isInp = webVital === 'inp';
 
@@ -346,9 +348,9 @@ export function PageOverviewWebVitalsDetailPanel({
   };
 
   const webVitalScore = projectScore[`${webVital}Score`];
-  const webVitalValue = projectData?.data[0]?.[`p75(measurements.${webVital})`] as
-    | number
-    | undefined;
+  const webVitalValue = projectData?.data[0]?.[
+    `${aggregateFunction}(measurements.${webVital})`
+  ] as number | undefined;
 
   return (
     <PageAlertProvider>

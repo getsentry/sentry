@@ -22,6 +22,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
@@ -70,6 +71,7 @@ type WebVitalDetailHeaderProps = {
 };
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
+  const aggregateFunction = useAggregateFunction();
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
   const dotColor = colors[ORDER_WITH_INP.indexOf(webVital)];
@@ -78,7 +80,7 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
   return (
     <Header>
       <span>
-        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (${aggregateFunction.toUpperCase()})`}</WebVitalName>
         <Value>
           <Dot color={dotColor} />
           {value ?? ' \u2014 '}

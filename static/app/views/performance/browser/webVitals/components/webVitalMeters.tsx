@@ -20,6 +20,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -70,6 +71,7 @@ export default function WebVitalMeters({
   showTooltip = true,
 }: Props) {
   const theme = useTheme();
+  const aggregateFunction = useAggregateFunction();
 
   if (!projectScore) {
     return null;
@@ -87,7 +89,9 @@ export default function WebVitalMeters({
           const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
           const formattedMeterValueText = webVitalExists ? (
             webVitalsConfig[webVital].formatter(
-              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
+              projectData?.data?.[0]?.[
+                `${aggregateFunction}(measurements.${webVital})`
+              ] as number
             )
           ) : (
             <NoValue />
@@ -103,10 +107,11 @@ export default function WebVitalMeters({
                     title={
                       <span>
                         {tct(
-                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
+                          `The [aggregateFunction] [webVital] value and aggregate [webVital] score of your selected project(s).
                           Scores and values may share some (but not perfect) correlation.`,
                           {
                             webVital: webVital.toUpperCase(),
+                            aggregateFunction,
                           }
                         )}
                         <br />

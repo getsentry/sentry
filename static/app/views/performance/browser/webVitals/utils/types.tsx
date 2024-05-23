@@ -3,13 +3,19 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 export type Row = {
   'count()': number;
-  'p75(measurements.cls)': number;
-  'p75(measurements.fcp)': number;
-  'p75(measurements.fid)': number;
-  'p75(measurements.inp)': number;
-  'p75(measurements.lcp)': number;
-  'p75(measurements.ttfb)': number;
   transaction: string;
+  'avg(measurements.cls)'?: number;
+  'avg(measurements.fcp)'?: number;
+  'avg(measurements.fid)'?: number;
+  'avg(measurements.inp)'?: number;
+  'avg(measurements.lcp)'?: number;
+  'avg(measurements.ttfb)'?: number;
+  'p75(measurements.cls)'?: number;
+  'p75(measurements.fcp)'?: number;
+  'p75(measurements.fid)'?: number;
+  'p75(measurements.inp)'?: number;
+  'p75(measurements.lcp)'?: number;
+  'p75(measurements.ttfb)'?: number;
 };
 
 export type TransactionSampleRow = {
@@ -91,6 +97,12 @@ export const SORTABLE_SCORE_FIELDS = [
 
 export const SORTABLE_FIELDS = [
   'count()',
+  'avg(measurements.cls)',
+  'avg(measurements.fcp)',
+  'avg(measurements.fid)',
+  'avg(measurements.inp)',
+  'avg(measurements.lcp)',
+  'avg(measurements.ttfb)',
   'p75(measurements.cls)',
   'p75(measurements.fcp)',
   'p75(measurements.fid)',

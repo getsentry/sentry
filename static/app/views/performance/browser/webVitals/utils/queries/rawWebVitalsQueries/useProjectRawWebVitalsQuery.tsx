@@ -6,6 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 
 type Props = {
   dataset?: DiscoverDatasets;
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props = {}) => {
+  const aggregateFunction = useAggregateFunction();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -28,13 +30,13 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(measurements.inp)',
-        'p75(transaction.duration)',
+        `${aggregateFunction}(measurements.lcp)`,
+        `${aggregateFunction}(measurements.fcp)`,
+        `${aggregateFunction}(measurements.cls)`,
+        `${aggregateFunction}(measurements.ttfb)`,
+        `${aggregateFunction}(measurements.fid)`,
+        `${aggregateFunction}(measurements.inp)`,
+        `${aggregateFunction}(transaction.duration)`,
         'count_web_vitals(measurements.lcp, any)',
         'count_web_vitals(measurements.fcp, any)',
         'count_web_vitals(measurements.cls, any)',

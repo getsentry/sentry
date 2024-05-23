@@ -11,6 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 
 type Props = {
   enabled?: boolean;
@@ -33,6 +34,7 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
   tag,
   enabled = true,
 }: Props) => {
+  const aggregateFunction = useAggregateFunction();
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -46,11 +48,11 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
+        `${aggregateFunction}(measurements.lcp)`,
+        `${aggregateFunction}(measurements.fcp)`,
+        `${aggregateFunction}(measurements.cls)`,
+        `${aggregateFunction}(measurements.ttfb)`,
+        `${aggregateFunction}(measurements.fid)`,
         'count()',
       ],
       name: 'Web Vitals',
@@ -100,29 +102,33 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     total: [],
   };
 
-  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
-    const [lcp, fcp, cls, ttfb, fid] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].map(
-      webVital => {
-        return result?.data?.[`p75(measurements.${webVital})`]?.data[index][1][0].count;
-      }
-    );
-    // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
-    // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
-    const scores = calculatePerformanceScore({
-      lcp: lcp === 0 ? Infinity : lcp,
-      fcp: fcp === 0 ? Infinity : fcp,
-      cls: cls === 0 ? Infinity : cls,
-      ttfb: ttfb === 0 ? Infinity : ttfb,
-      fid: fid === 0 ? Infinity : fid,
-    });
-
-    ['total', 'lcp', 'fcp', 'fid', 'cls', 'ttfb'].forEach(webVital => {
-      data[webVital].push({
-        value: scores[`${webVital}Score`],
-        name: interval[0] * 1000,
+  result?.data?.[`${aggregateFunction}(measurements.lcp)`]?.data.forEach(
+    (interval, index) => {
+      const [lcp, fcp, cls, ttfb, fid] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].map(
+        webVital => {
+          return result?.data?.[`${aggregateFunction}(measurements.${webVital})`]?.data[
+            index
+          ][1][0].count;
+        }
+      );
+      // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
+      // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
+      const scores = calculatePerformanceScore({
+        lcp: lcp === 0 ? Infinity : lcp,
+        fcp: fcp === 0 ? Infinity : fcp,
+        cls: cls === 0 ? Infinity : cls,
+        ttfb: ttfb === 0 ? Infinity : ttfb,
+        fid: fid === 0 ? Infinity : fid,
       });
-    });
-  });
+
+      ['total', 'lcp', 'fcp', 'fid', 'cls', 'ttfb'].forEach(webVital => {
+        data[webVital].push({
+          value: scores[`${webVital}Score`],
+          name: interval[0] * 1000,
+        });
+      });
+    }
+  );
 
   return {data, isLoading: result.isLoading};
 };

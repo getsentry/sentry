@@ -1,9 +1,10 @@
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {WebVitalsAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 
 export const mapWebVitalToOrderBy = (
   webVital?: WebVitals | null,
-  aggregateFunction?: 'avg' | 'p75'
+  aggregateFunction?: WebVitalsAggregateFunction
 ) => {
   let webVitalKey = webVital ? WEBVITAL_TO_KEY[webVital] : undefined;
   if (!webVitalKey) {

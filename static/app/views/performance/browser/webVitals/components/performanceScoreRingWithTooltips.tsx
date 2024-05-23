@@ -16,6 +16,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {ORDER_WITH_INP} from '../performanceScoreChart';
@@ -84,15 +85,20 @@ function WebVitalLabel({
   inPerformanceWidget,
   projectData,
 }: WebVitalLabelProps) {
+  const aggregateFunction = useAggregateFunction();
   const moduleURL = useModuleURL('vital');
   const xOffset = webVitalLabelCoordinates?.[webVital]?.x ?? 0;
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round((projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100) /
-        100
+      ? Math.round(
+          (projectData?.data?.[0]?.[`${aggregateFunction}(measurements.cls)`] as number) *
+            100
+        ) / 100
       : getFormattedDuration(
-          (projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
+          (projectData?.data?.[0]?.[
+            `${aggregateFunction}(measurements.${webVital})`
+          ] as number) / 1000
         );
 
   return (

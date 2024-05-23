@@ -11,6 +11,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -34,6 +35,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   query,
   shouldEscapeFilters = true,
 }: Props) => {
+  const aggregateFunction = useAggregateFunction();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -51,12 +53,12 @@ export const useTransactionWebVitalsScoresQuery = ({
     {
       fields: [
         'transaction',
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(measurements.inp)',
+        `${aggregateFunction}(measurements.lcp)`,
+        `${aggregateFunction}(measurements.fcp)`,
+        `${aggregateFunction}(measurements.cls)`,
+        `${aggregateFunction}(measurements.ttfb)`,
+        `${aggregateFunction}(measurements.fid)`,
+        `${aggregateFunction}(measurements.inp)`,
         ...(webVital !== 'total'
           ? [`performance_score(measurements.score.${webVital})`]
           : []),
@@ -112,12 +114,24 @@ export const useTransactionWebVitalsScoresQuery = ({
           } = calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
-            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
-            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
-            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
-            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
-            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
-            'p75(measurements.inp)': row['p75(measurements.inp)'] as number,
+            [`${aggregateFunction}(measurements.lcp)`]: row[
+              `${aggregateFunction}(measurements.lcp)`
+            ] as number,
+            [`${aggregateFunction}(measurements.fcp)`]: row[
+              `${aggregateFunction}(measurements.fcp)`
+            ] as number,
+            [`${aggregateFunction}(measurements.cls)`]: row[
+              `${aggregateFunction}(measurements.cls)`
+            ] as number,
+            [`${aggregateFunction}(measurements.ttfb)`]: row[
+              `${aggregateFunction}(measurements.ttfb)`
+            ] as number,
+            [`${aggregateFunction}(measurements.fid)`]: row[
+              `${aggregateFunction}(measurements.fid)`
+            ] as number,
+            [`${aggregateFunction}(measurements.inp)`]: row[
+              `${aggregateFunction}(measurements.inp)`
+            ] as number,
             'count()': row['count()'] as number,
             'count_scores(measurements.score.lcp)': row[
               'count_scores(measurements.score.lcp)'

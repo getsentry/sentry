@@ -30,6 +30,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -54,6 +55,7 @@ export function WebVitalsDetailPanel({
   webVital: WebVitals | null;
 }) {
   const location = useLocation();
+  const aggregateFunction = useAggregateFunction();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -123,12 +125,31 @@ export function WebVitalsDetailPanel({
 
   const detailKey = webVital;
 
+  const mapWebVitalToColumn = (webVitalColumn?: WebVitals | null) => {
+    switch (webVitalColumn) {
+      case 'lcp':
+        return `${aggregateFunction}(measurements.lcp)`;
+      case 'fcp':
+        return `${aggregateFunction}(measurements.fcp)`;
+      case 'cls':
+        return `${aggregateFunction}(measurements.cls)`;
+      case 'ttfb':
+        return `${aggregateFunction}(measurements.ttfb)`;
+      case 'fid':
+        return `${aggregateFunction}(measurements.fid)`;
+      case 'inp':
+        return `${aggregateFunction}(measurements.inp)`;
+      default:
+        return 'count()';
+    }
+  };
+
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
       return <NoOverflow>{col.name}</NoOverflow>;
     }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital} P75`}</AlignRight>;
+      return <AlignRight>{`${webVital} ${aggregateFunction}`}</AlignRight>;
     }
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
@@ -257,25 +278,6 @@ export function WebVitalsDetailPanel({
     </PageAlertProvider>
   );
 }
-
-const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
-  switch (webVital) {
-    case 'lcp':
-      return 'p75(measurements.lcp)';
-    case 'fcp':
-      return 'p75(measurements.fcp)';
-    case 'cls':
-      return 'p75(measurements.cls)';
-    case 'ttfb':
-      return 'p75(measurements.ttfb)';
-    case 'fid':
-      return 'p75(measurements.fid)';
-    case 'inp':
-      return 'p75(measurements.inp)';
-    default:
-      return 'count()';
-  }
-};
 
 const NoOverflow = styled('span')`
   overflow: hidden;

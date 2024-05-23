@@ -10,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 
 type Props = {
   datetime?: PageFilters['datetime'];
@@ -20,6 +21,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   transaction,
   datetime,
 }: Props) => {
+  const aggregateFunction = useAggregateFunction();
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
@@ -30,12 +32,12 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(measurements.inp)',
+        `${aggregateFunction}(measurements.lcp)`,
+        `${aggregateFunction}(measurements.fcp)`,
+        `${aggregateFunction}(measurements.cls)`,
+        `${aggregateFunction}(measurements.ttfb)`,
+        `${aggregateFunction}(measurements.fid)`,
+        `${aggregateFunction}(measurements.inp)`,
         'count()',
         'count_scores(measurements.score.inp)',
       ],
@@ -104,26 +106,28 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     countInp: [],
   };
 
-  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
-    const map: {key: string; series: SeriesDataUnit[]}[] = [
-      {key: 'p75(measurements.cls)', series: data.cls},
-      {key: 'p75(measurements.lcp)', series: data.lcp},
-      {key: 'p75(measurements.fcp)', series: data.fcp},
-      {key: 'p75(measurements.ttfb)', series: data.ttfb},
-      {key: 'p75(measurements.fid)', series: data.fid},
-      {key: 'p75(measurements.inp)', series: data.inp},
-      {key: 'count()', series: data.count},
-      {key: 'count_scores(measurements.score.inp)', series: data.countInp},
-    ];
-    map.forEach(({key, series}) => {
-      if (result?.data?.[key].data[index][1][0].count !== null) {
-        series.push({
-          value: result?.data?.[key].data[index][1][0].count,
-          name: interval[0] * 1000,
-        });
-      }
-    });
-  });
+  result?.data?.[`${aggregateFunction}(measurements.lcp)`]?.data.forEach(
+    (interval, index) => {
+      const map: {key: string; series: SeriesDataUnit[]}[] = [
+        {key: `${aggregateFunction}(measurements.cls)`, series: data.cls},
+        {key: `${aggregateFunction}(measurements.lcp)`, series: data.lcp},
+        {key: `${aggregateFunction}(measurements.fcp)`, series: data.fcp},
+        {key: `${aggregateFunction}(measurements.ttfb)`, series: data.ttfb},
+        {key: `${aggregateFunction}(measurements.fid)`, series: data.fid},
+        {key: `${aggregateFunction}(measurements.inp)`, series: data.inp},
+        {key: 'count()', series: data.count},
+        {key: 'count_scores(measurements.score.inp)', series: data.countInp},
+      ];
+      map.forEach(({key, series}) => {
+        if (result?.data?.[key].data[index][1][0].count !== null) {
+          series.push({
+            value: result?.data?.[key].data[index][1][0].count,
+            name: interval[0] * 1000,
+          });
+        }
+      });
+    }
+  );
 
   return {data, isLoading: result.isLoading};
 };

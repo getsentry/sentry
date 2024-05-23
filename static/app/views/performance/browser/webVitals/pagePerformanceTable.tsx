@@ -23,6 +23,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
@@ -30,6 +31,7 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/w
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SORTABLE_FIELDS} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useAggregateFunction} from 'sentry/views/performance/browser/webVitals/utils/useAggregateFunction';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
@@ -58,10 +60,47 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const aggregateFunction = useAggregateFunction();
+  const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
 
-  const columnOrder = COLUMN_ORDER;
+  let columnOrder = COLUMN_ORDER;
+  if (organization.features.includes('performance-webvitals-avg')) {
+    columnOrder = columnOrder.map(col => {
+      if (col.key === 'p75(measurements.lcp)') {
+        return {
+          ...col,
+          key: `${aggregateFunction}(measurements.lcp)`,
+        };
+      }
+      if (col.key === 'p75(measurements.fcp)') {
+        return {
+          ...col,
+          key: `${aggregateFunction}(measurements.fcp)`,
+        };
+      }
+      if (col.key === 'p75(measurements.inp)') {
+        return {
+          ...col,
+          key: `${aggregateFunction}(measurements.inp)`,
+        };
+      }
+      if (col.key === 'p75(measurements.cls)') {
+        return {
+          ...col,
+          key: `${aggregateFunction}(measurements.cls)`,
+        };
+      }
+      if (col.key === 'p75(measurements.ttfb)') {
+        return {
+          ...col,
+          key: `${aggregateFunction}(measurements.ttfb)`,
+        };
+      }
+      return col;
+    });
+  }
 
   const query = decodeScalar(location.query.query, '');
 
@@ -72,8 +111,8 @@ export function PagePerformanceTable() {
 
   let sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
   // Need to map fid back to inp for rendering
-  if (sort.field === 'p75(measurements.fid)') {
-    sort = {...sort, field: 'p75(measurements.inp)'};
+  if (sort.field === `${aggregateFunction}(measurements.fid)`) {
+    sort = {...sort, field: `${aggregateFunction}(measurements.inp)`};
   }
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
@@ -238,11 +277,11 @@ export function PagePerformanceTable() {
     }
     if (
       [
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(measurements.inp)',
+        `${aggregateFunction}(measurements.fcp)`,
+        `${aggregateFunction}(measurements.lcp)`,
+        `${aggregateFunction}(measurements.ttfb)`,
+        `${aggregateFunction}(measurements.fid)`,
+        `${aggregateFunction}(measurements.inp)`,
       ].includes(key)
     ) {
       const measurement = parseFunction(key)?.arguments?.[0];
@@ -259,7 +298,7 @@ export function PagePerformanceTable() {
       }
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
-    if (key === 'p75(measurements.cls)') {
+    if (key === `${aggregateFunction}(measurements.cls)`) {
       const countWebVitalKey = 'count_scores(measurements.score.cls)';
       const countWebVital = row[countWebVitalKey];
       if (countWebVital === 0) {
