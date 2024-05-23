@@ -869,7 +869,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/database/'
+      '/performance/database/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -915,7 +915,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/http/'
+      '/performance/http/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -959,7 +959,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/browser/resources/'
+      '/performance/browser/resources/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -1008,7 +1008,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/caches'
+      '/performance/caches/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
