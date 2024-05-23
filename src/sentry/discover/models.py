@@ -19,16 +19,18 @@ MAX_TEAM_KEY_TRANSACTIONS = 100
 
 
 class DiscoverSavedQueryTypes(TypesClass):
-    ERROR_EVENTS = 0
+    DISCOVER = 0
+    ERROR_EVENTS = 1
     """
      Error side of the split from Discover.
     """
-    TRANSACTION_LIKE = 1
+    TRANSACTION_LIKE = 2
     """
     This targets transaction-like data from the split from discover.
     """
 
     TYPES = [
+        (DISCOVER, "discover"),
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
     ]
@@ -67,7 +69,9 @@ class DiscoverSavedQuery(Model):
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     is_homepage = models.BooleanField(null=True, blank=True)
-    dataset = BoundedPositiveIntegerField(choices=DiscoverSavedQueryTypes.as_choices(), null=True)
+    dataset = BoundedPositiveIntegerField(
+        choices=DiscoverSavedQueryTypes.as_choices(), default=DiscoverSavedQueryTypes.DISCOVER
+    )
 
     class Meta:
         app_label = "sentry"
