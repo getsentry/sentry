@@ -359,8 +359,8 @@ export function MessageSpanSamplesPanel() {
             />
           </ModuleLayout.Full>
 
-          <ModuleLayout.Full>
-            <Feature features="performance-sample-panel-search">
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
               <SearchBar
                 searchSource={`${ModuleName.QUEUE}-sample-panel`}
                 query={query.spanSearchQuery}
@@ -372,8 +372,8 @@ export function MessageSpanSamplesPanel() {
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
               />
-            </Feature>
-          </ModuleLayout.Full>
+            </ModuleLayout.Full>
+          </Feature>
 
           <ModuleLayout.Full>
             <MessageSpanSamplesTable

@@ -384,8 +384,8 @@ export function CacheSamplePanel() {
             />
           </ModuleLayout.Half>
 
-          <ModuleLayout.Full>
-            <Feature features="performance-sample-panel-search">
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
               <SearchBar
                 searchSource={`${ModuleName.CACHE}-sample-panel`}
                 query={query.spanSearchQuery}
@@ -397,8 +397,8 @@ export function CacheSamplePanel() {
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
               />
-            </Feature>
-          </ModuleLayout.Full>
+            </ModuleLayout.Full>
+          </Feature>
 
           <Fragment>
             <ModuleLayout.Full>
