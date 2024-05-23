@@ -1770,7 +1770,7 @@ const TraceStylingWrapper = styled('div')`
       text-align: center;
       position: absolute;
       font-size: 10px;
-      font-weight: bold;
+      font-weight: ${p => p.theme.fontWeightBold};
       color: ${p => p.theme.textColor};
       background-color: ${p => p.theme.background};
       border-radius: ${p => p.theme.borderRadius};
@@ -1819,7 +1819,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabel {
-        font-weight: normal;
+        font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
         top: 8px;
         width: auto;
@@ -2123,7 +2123,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       .TraceDescription {
-        font-weight: bold;
+        font-weight: ${p => p.theme.fontWeightBold};
       }
 
       .TraceChildrenCountWrapper {
@@ -2412,7 +2412,7 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   .TraceEmDash {

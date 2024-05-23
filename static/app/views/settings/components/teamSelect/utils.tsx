@@ -179,13 +179,13 @@ function renderDropdownHeader({
 }
 
 const DropdownTeamBadge = styled(TeamBadge)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: none;
 `;
 
 const DropdownTeamBadgeDisabled = styled(TeamBadge)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: none;
   filter: grayscale(1);

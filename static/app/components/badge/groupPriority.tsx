@@ -265,7 +265,7 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   border: none;
   padding: 0;
   height: unset;
@@ -301,7 +301,7 @@ const MenuTitleContainer = styled('div')`
 const StyledButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: 0;
   border: none;
 

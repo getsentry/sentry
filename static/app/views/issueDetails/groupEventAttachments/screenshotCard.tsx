@@ -161,7 +161,7 @@ export function ScreenshotCard({
 
 const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Detail = styled('div')`

@@ -198,7 +198,7 @@ const Title = styled('p')`
   padding: ${space(0.25)} ${space(0.75)};
   margin: 0;
   color: ${p => p.theme.headingColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const ContentWrapper = styled('div')<{hasErrors: boolean}>`

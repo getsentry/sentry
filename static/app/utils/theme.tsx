@@ -766,6 +766,9 @@ const commonTheme = {
   codeFontSize: '13px' as const,
   headerFontSize: '22px' as const,
 
+  fontWeightNormal: 400 as const,
+  fontWeightBold: 600 as const,
+
   settings: {
     // Max-width for settings breadcrumbs
     // i.e. organization, project, or team
