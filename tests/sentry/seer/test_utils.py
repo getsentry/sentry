@@ -4,15 +4,12 @@ from unittest import mock
 import pytest
 from urllib3.response import HTTPResponse
 
-from sentry.seer.utils import (
-    IncompleteSeerDataError,
+from sentry.seer.similarity.types import (
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
-    detect_breakpoints,
-    get_similarity_data_from_seer,
 )
+from sentry.seer.utils import detect_breakpoints, get_similarity_data_from_seer
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -153,109 +150,3 @@ def test_returns_sorted_similarity_results(mock_seer_request, default_project):
         SeerSimilarIssueData(**similar_issue_data),
         SeerSimilarIssueData(**less_similar_issue_data),
     ]
-
-
-@django_db_all
-def test_from_raw_simple(default_project):
-    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
-    raw_similar_issue_data: RawSeerSimilarIssueData = {
-        "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
-        "should_group": True,
-        "stacktrace_distance": 0.01,
-    }
-
-    similar_issue_data = {
-        **raw_similar_issue_data,
-        "parent_group_id": NonNone(similar_event.group_id),
-    }
-
-    assert SeerSimilarIssueData.from_raw(
-        default_project.id, raw_similar_issue_data
-    ) == SeerSimilarIssueData(
-        **similar_issue_data  # type:ignore[arg-type]
-    )
-
-
-@django_db_all
-def test_from_raw_unexpected_data(default_project):
-    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
-    raw_similar_issue_data = {
-        "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
-        "should_group": True,
-        "stacktrace_distance": 0.01,
-        "something": "unexpected",
-    }
-
-    expected_similar_issue_data = {
-        "message_distance": 0.05,
-        "parent_hash": NonNone(similar_event.get_primary_hash()),
-        "should_group": True,
-        "stacktrace_distance": 0.01,
-        "parent_group_id": NonNone(similar_event.group_id),
-    }
-
-    # Everything worked fine, in spite of the extra data
-    assert SeerSimilarIssueData.from_raw(
-        default_project.id, raw_similar_issue_data
-    ) == SeerSimilarIssueData(
-        **expected_similar_issue_data  # type:ignore[arg-type]
-    )
-
-
-@django_db_all
-def test_from_raw_missing_data(default_project):
-    similar_event = save_new_event({"message": "Dogs are great!"}, default_project)
-
-    with pytest.raises(
-        IncompleteSeerDataError,
-        match="Seer similar issues response entry missing key 'parent_hash'",
-    ):
-        raw_similar_issue_data: Any = {
-            # missing `parent_hash`
-            "message_distance": 0.05,
-            "should_group": True,
-            "stacktrace_distance": 0.01,
-        }
-
-        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
-
-    with pytest.raises(
-        IncompleteSeerDataError,
-        match="Seer similar issues response entry missing key 'message_distance'",
-    ):
-        raw_similar_issue_data = {
-            "parent_hash": NonNone(similar_event.get_primary_hash()),
-            # missing `message_distance`
-            "should_group": True,
-            "stacktrace_distance": 0.01,
-        }
-
-        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
-
-    with pytest.raises(
-        IncompleteSeerDataError,
-        match="Seer similar issues response entry missing keys 'message_distance', 'stacktrace_distance'",
-    ):
-        raw_similar_issue_data = {
-            "parent_hash": NonNone(similar_event.get_primary_hash()),
-            # missing `message_distance`
-            "should_group": True,
-            # missing `stacktrace_distance`
-        }
-
-        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
-
-
-@django_db_all
-def test_from_raw_nonexistent_group(default_project):
-    with pytest.raises(SimilarGroupNotFoundError):
-        raw_similar_issue_data = {
-            "parent_hash": "not a real hash",
-            "message_distance": 0.05,
-            "should_group": True,
-            "stacktrace_distance": 0.01,
-        }
-
-        SeerSimilarIssueData.from_raw(default_project.id, raw_similar_issue_data)
