@@ -423,7 +423,6 @@ from .endpoints.organization_member_unreleased_commits import (
 from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDetailsEndpoint,
-    OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
@@ -437,6 +436,7 @@ from .endpoints.organization_metrics_meta import (
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
 from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
+from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
