@@ -595,6 +595,27 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "trace_error_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_error_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -1189,6 +1210,37 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             condition,
+            alias,
+        )
+
+    def _resolve_trace_error_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        success_statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "not",
+                [
+                    Function(
+                        "in",
+                        [
+                            self.builder.column("trace.status"),
+                            list(status for status in success_statuses if status is not None),
+                        ],
+                    )
+                ],
+            ),
             alias,
         )
 
