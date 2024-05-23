@@ -4,15 +4,14 @@ from unittest import mock
 import pytest
 from urllib3.response import HTTPResponse
 
-from sentry.seer.utils import (
+from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     RawSeerSimilarIssueData,
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
-    detect_breakpoints,
-    get_similarity_data_from_seer,
 )
+from sentry.seer.utils import detect_breakpoints, get_similarity_data_from_seer
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
