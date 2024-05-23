@@ -28,7 +28,11 @@ export function TraceUXChangeAlert() {
         'Get deeper context with the new trace view, which links events directly inside traces. Read [why] we are doing this and how it helps you.',
         {
           why: (
-            <a href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/" target="_blank">
+            <a
+              href="https://docs.sentry.io/product/sentry-basics/concepts/tracing/trace-view/"
+              target="_blank"
+              rel="noreferrer"
+            >
               {t('why')}
             </a>
           ),
