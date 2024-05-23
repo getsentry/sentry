@@ -17,7 +17,11 @@ import {
   emptyMetricsQueryWidget,
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
-import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
+import {
+  isMetricsQueryWidget,
+  MetricExpressionType,
+  type MetricsWidget,
+} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
@@ -122,6 +126,19 @@ export function useMetricWidgets(mri: MRI) {
     (index: number, data: Partial<Omit<MetricsWidget, 'type'>>) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
+        const oldWidget = currentWidgets[index];
+
+        if (isMetricsQueryWidget(oldWidget)) {
+          // Reset focused series if mri, query or groupBy changes
+          if (
+            ('mri' in data && data.mri !== oldWidget.mri) ||
+            ('query' in data && data.query !== oldWidget.query) ||
+            ('groupBy' in data && !isEqual(data.groupBy, oldWidget.groupBy))
+          ) {
+            data.focusedSeries = undefined;
+          }
+        }
+
         newWidgets[index] = {
           ...currentWidgets[index],
           ...data,

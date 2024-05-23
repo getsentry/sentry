@@ -186,11 +186,7 @@ function Query({
 
   const handleChange = useCallback(
     (data: Partial<MetricsQuery>) => {
-      const changes: Partial<MetricsQueryWidget> = {...data};
-      if (changes.mri || changes.groupBy) {
-        changes.focusedSeries = undefined;
-      }
-      onChange(index, changes);
+      onChange(index, data);
     },
     [index, onChange]
   );

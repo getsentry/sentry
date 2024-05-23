@@ -5,6 +5,7 @@ import {
   type SearchConfig,
   Token,
 } from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils';
 import {
   MetricSeriesFilterUpdateType,
   type MetricsQuery,
@@ -93,7 +94,7 @@ export function updateQueryWithSeriesFilter(
 
   const groupByEntries = Object.entries(groupBys);
   groupByEntries.forEach(([key, value]) => {
-    if (!value) {
+    if (!defined(value)) {
       return;
     }
     updateType === MetricSeriesFilterUpdateType.ADD
