@@ -77,7 +77,7 @@ export function ContextCardContent({
       <ContextValueSection hasErrors={hasErrors}>
         <ContextValueWrapper>
           {!config?.disableRichValue && defined(action?.link) ? (
-            <Link to={action.link}>{dataComponent}</Link>
+            <ContextLink to={action.link}>{dataComponent}</ContextLink>
           ) : (
             dataComponent
           )}
@@ -178,6 +178,10 @@ const ContextValueSection = styled(ContextSubject)<{hasErrors: boolean}>`
 
 const ContextValueWrapper = styled('div')`
   word-break: break-word;
+`;
+
+const ContextLink = styled(Link)`
+  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
 
 const ContextErrors = styled('div')``;
