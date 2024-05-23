@@ -656,7 +656,7 @@ describe('Results', function () {
       // NOTE: This uses a legacy redirect for project event to the issue group event link
       expect(screen.getByRole('link', {name: 'deadbeef'})).toHaveAttribute(
         'href',
-        '/org-slug/project-slug/events/deadbeef/?referrer=discover-events-table?id=1&statsPeriod=24h'
+        '/org-slug/project-slug/events/deadbeef/?id=1&referrer=discover-events-table&statsPeriod=24h'
       );
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
