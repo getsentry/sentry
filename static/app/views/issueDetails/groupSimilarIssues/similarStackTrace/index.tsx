@@ -217,6 +217,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           project={project}
           groupId={groupId}
           pageLinks={items.pageLinks}
+          location={location}
         />
       )}
       {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
@@ -228,6 +229,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           project={project}
           groupId={groupId}
           pageLinks={items.pageLinks}
+          location={location}
         />
       )}
       <DataConsentBanner source="grouping" />
