@@ -36,7 +36,7 @@ function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
 
   return (
     <BorderedSection data-test-id="replay-details-trace-tab">
-      <EmptyState>
+      <EmptyState data-test-id="empty-state">
         <p>{t('No traces found')}</p>
       </EmptyState>
     </BorderedSection>

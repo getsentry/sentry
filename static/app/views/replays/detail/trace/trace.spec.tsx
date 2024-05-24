@@ -2,7 +2,9 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import EventView from 'sentry/utils/discover/eventView';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 
@@ -18,7 +20,7 @@ function setMockTransactionState({
   isFetching = false,
   traces = undefined,
 }: Partial<ReturnType<typeof useTransactionData>['state']>) {
-  const eventView = null;
+  const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   mockUseTransactionData.mockReturnValue({
     state: {didInit, errors, isFetching, traces},
     eventView,
@@ -27,6 +29,10 @@ function setMockTransactionState({
 
 describe('trace', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      body: {},
+    });
     mockUseTransactionData.mockReset();
   });
 

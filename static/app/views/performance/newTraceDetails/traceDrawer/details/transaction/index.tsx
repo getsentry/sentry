@@ -22,6 +22,7 @@ import type {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import {TraceViewSources} from '../../../traceViewSources';
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
 
@@ -86,6 +87,7 @@ export function TransactionNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
+  source,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
   const {projects} = useProjects();
@@ -164,7 +166,9 @@ export function TransactionNodeDetails({
 
       {project ? <EventEvidence event={event} project={project} /> : null}
 
-      <ReplayPreview event={event} organization={organization} />
+      {source !== TraceViewSources.REPLAY ? (
+        <ReplayPreview event={event} organization={organization} />
+      ) : null}
 
       <BreadCrumbs event={event} organization={organization} />
 

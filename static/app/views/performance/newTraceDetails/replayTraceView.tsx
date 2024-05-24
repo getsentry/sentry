@@ -14,7 +14,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
-import {TraceViewContent, TraceViewSources} from '.';
+import {TraceViewSources} from './traceViewSources';
+import {TraceViewContent} from '.';
 
 type Props = {
   eventView: EventView;
@@ -53,7 +54,8 @@ export function ReplayTraceView(props: Props) {
       <TraceViewContent
         status={props.status}
         trace={props.traces}
-        traceSlug={'70485d02dd5c4703ae635ab8fb3dcb72'}
+        traceSlug={'Replay'}
+        replayRecord={props.replayRecord}
         organization={organization}
         traceEventView={props.eventView}
         metaResults={props.metaResults}

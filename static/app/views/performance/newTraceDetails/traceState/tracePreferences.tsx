@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-import {TraceViewSources} from '..';
+import {TraceViewSources} from '../traceViewSources';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
@@ -63,7 +63,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer bottom': 0.4,
     },
   },
-  layout: 'drawer right',
+  layout: 'drawer bottom',
   list: {
     width: 0.5,
   },

@@ -22,6 +22,7 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {isRootTransaction} from '../../traceDetails/utils';
 import {
@@ -38,6 +39,7 @@ import {
   shouldAddMissingInstrumentationSpan,
 } from '../guards';
 import {TraceType} from '../traceType';
+import {TraceViewSources} from '../traceViewSources';
 
 /**
  *
@@ -431,7 +433,11 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace): TraceTree {
+  static FromTrace(
+    trace: TraceTree.Trace,
+    source: TraceViewSources,
+    replayRecord?: ReplayRecord
+  ): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -552,6 +558,18 @@ export class TraceTree {
 
         indicator.start *= traceNode.multiplier;
       }
+    }
+
+    // The sum of all durations of traces that exist under a replay is not always
+    // equal to the duration of the replay. We need to adjust the traceview bounds
+    // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
+    // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
+    if (source === TraceViewSources.REPLAY && replayRecord) {
+      const replayStart = replayRecord.started_at.getTime() / 1000;
+      const replayEnd = replayRecord.finished_at.getTime() / 1000;
+
+      traceStart = Math.min(traceStart, replayStart);
+      traceEnd = Math.max(traceEnd, replayEnd);
     }
 
     traceNode.space = [
@@ -2466,7 +2484,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace);
+  const tree = TraceTree.FromTrace(trace, TraceViewSources.PERFORMANCE);
 
   return tree;
 }

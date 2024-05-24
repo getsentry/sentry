@@ -64,6 +64,7 @@ import {
   loadTraceViewPreferences,
   storeTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
@@ -81,6 +82,7 @@ import {
 } from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
+import {TraceViewSources} from './traceViewSources';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -232,11 +234,6 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 
 const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 
-export enum TraceViewSources {
-  REPLAY = 'replay',
-  PERFORMANCE = 'performance',
-}
-
 type TraceViewContentProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
@@ -245,6 +242,7 @@ type TraceViewContentProps = {
   trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
+  replayRecord?: ReplayRecord;
 };
 
 export function TraceViewContent({...props}: TraceViewContentProps) {
@@ -282,10 +280,6 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
   );
 
   const tree = useMemo(() => {
-    if (props.trace && props.status === 'success') {
-      return TraceTree.FromTrace(props.trace);
-    }
-
     if (props.status === 'error') {
       const errorTree = TraceTree.Error(
         {
@@ -319,8 +313,19 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
       return loadingTrace;
     }
 
+    if (props.trace && props.status === 'success') {
+      return TraceTree.FromTrace(props.trace, props.source, props.replayRecord);
+    }
+
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects]);
+  }, [
+    props.traceSlug,
+    props.trace,
+    props.status,
+    projects,
+    props.source,
+    props.replayRecord,
+  ]);
 
   const initialQuery = useMemo((): string | undefined => {
     const query = qs.parse(location.search);
@@ -899,6 +904,7 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
     traceGridRef,
     onScrollToNode,
     shape,
+    source: props.source,
   };
 
   return props.source === 'performance' ? (
@@ -967,6 +973,7 @@ type TraceViewWaterFallProps = {
   rerender: () => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   shape: TraceType;
+  source: TraceViewSources;
   trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
@@ -1020,6 +1027,7 @@ function TraceViewWaterFall(props: TraceViewWaterFallProps) {
         <TraceDrawer
           metaResults={props.metaResults}
           traceType={props.shape}
+          source={props.source}
           trace={props.tree}
           traceGridRef={props.traceGridRef}
           traces={props.trace}
@@ -1248,3 +1256,4 @@ function TraceEmpty() {
 const NoMarginIndicator = styled(LoadingIndicator)`
   margin: 0;
 `;
+export {TraceViewSources};

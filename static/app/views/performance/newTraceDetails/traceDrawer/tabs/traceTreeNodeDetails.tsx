@@ -11,6 +11,7 @@ import {
   isTransactionNode,
 } from '../../guards';
 import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
+import type {TraceViewSources} from '../../traceViewSources';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {NoDataDetails} from '../details/noData';
@@ -25,6 +26,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
+  source: TraceViewSources;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
