@@ -50,11 +50,9 @@ def get_org_integrations(
     can be shared by multiple orgs.
     """
 
-    _, org_integrations = integration_service.get_organization_contexts(
-        integration_id=integration_id
-    )
+    result = integration_service.organization_contexts(integration_id=integration_id)
 
-    return org_integrations
+    return result.organization_integrations
 
 
 def bind_org_context_from_integration(

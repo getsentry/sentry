@@ -270,9 +270,11 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             provider=self.provider, external_id=external_id
         )
+        integration = result.integration
+        installs = result.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."

@@ -121,10 +121,10 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
         :param integration_id:
         :return:
         """
-        integration, org_integration = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
-        if not integration or not org_integration:
+        if not result.integration or not result.organization_integration:
             raise Http404
 
-        return integration
+        return result.integration

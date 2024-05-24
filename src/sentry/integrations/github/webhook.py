@@ -91,9 +91,12 @@ class Webhook:
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         external_id = get_github_external_id(event=event, host=host)
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
         )
+        integration = result.integration
+        installs = result.organization_integrations
+
         if integration is None or not installs:
             # It seems possible for the GH or GHE app to be installed on their
             # end, but the integration to not exist. Possibly from deleting in
@@ -214,10 +217,13 @@ class InstallationEventWebhook:
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
-            integration, org_integrations = integration_service.get_organization_contexts(
+            result = integration_service.organization_contexts(
                 provider=self.provider,
                 external_id=external_id,
             )
+            integration = result.integration
+            org_integrations = result.organization_integrations
+
             if integration is not None:
                 self._handle_delete(event, integration, org_integrations)
             else:

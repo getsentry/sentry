@@ -79,9 +79,11 @@ def send_incident_alert_notification(
 ) -> bool:
     from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 
-    integration, org_integration = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
+    integration = result.integration
+    org_integration = result.organization_integration
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         logger.info("Opsgenie integration removed, but the rule is still active.")
         return False
