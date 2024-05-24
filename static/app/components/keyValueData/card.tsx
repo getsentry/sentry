@@ -155,7 +155,7 @@ const filterChildren = (children: ReactNode): ReactNode[] => {
       return renderedChild !== null;
     }
 
-    return child !== null && child !== undefined;
+    return child != null
   });
 };
 
