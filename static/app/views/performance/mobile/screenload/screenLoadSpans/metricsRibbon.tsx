@@ -49,17 +49,17 @@ export function MetricsRibbon({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const {platform} = usePlatformSelector();
+  const {selectedPlatform} = usePlatformSelector();
 
   const queryString = useMemo(() => {
     const searchQuery = new MutableSearch([...(filters ?? [])]);
 
     if (project && isCrossPlatform(project)) {
-      searchQuery.addFilterValue('os.name', platform);
+      searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
     return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
-  }, [filters, platform, primaryRelease, project, secondaryRelease]);
+  }, [filters, primaryRelease, project, secondaryRelease, selectedPlatform]);
 
   const newQuery: NewQuery = {
     name: 'ScreenMetricsRibbon',

@@ -123,7 +123,6 @@ export function SpanSamplesPanel({
               transactionMethod={transactionMethod}
               release={primaryRelease}
               sectionTitle={t('Release 1')}
-              project={project}
               searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
@@ -137,7 +136,6 @@ export function SpanSamplesPanel({
               transactionMethod={transactionMethod}
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
-              project={project}
               searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}

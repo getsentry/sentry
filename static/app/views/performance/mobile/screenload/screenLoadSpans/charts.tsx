@@ -55,7 +55,7 @@ type Props = {
 export function ScreenCharts({yAxes, additionalFilters}: Props) {
   const pageFilter = usePageFilters();
   const location = useLocation();
-  const {isProjectCrossPlatform, platform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform: platform} = usePlatformSelector();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 

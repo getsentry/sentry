@@ -125,7 +125,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
-  const {isProjectCrossPlatform, platform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform} = usePlatformSelector();
   const {query: locationQuery} = location;
 
   const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
@@ -151,7 +151,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     ]);
 
     if (isProjectCrossPlatform) {
-      query.addFilterValue('os.name', platform);
+      query.addFilterValue('os.name', selectedPlatform);
     }
 
     const searchQuery = decodeScalar(locationQuery.query, '');
@@ -164,9 +164,9 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     additionalFilters,
     isProjectCrossPlatform,
     locationQuery.query,
-    platform,
     primaryRelease,
     secondaryRelease,
+    selectedPlatform,
   ]);
 
   const orderby = decodeScalar(locationQuery.sort, `-count`);
@@ -215,7 +215,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     ]);
 
     if (isProjectCrossPlatform) {
-      topEventsQuery.addFilterValue('os.name', platform);
+      topEventsQuery.addFilterValue('os.name', selectedPlatform);
     }
 
     return `${appendReleaseFilters(topEventsQuery, primaryRelease, secondaryRelease)} ${
@@ -231,7 +231,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     primaryRelease,
     secondaryRelease,
     topTransactions,
-    platform,
+    selectedPlatform,
   ]);
 
   const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({

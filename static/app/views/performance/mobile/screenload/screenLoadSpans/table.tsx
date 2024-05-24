@@ -65,7 +65,7 @@ export function ScreenLoadSpansTable({
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
-  const {isProjectCrossPlatform, platform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform} = usePlatformSelector();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
@@ -83,15 +83,15 @@ export function ScreenLoadSpansTable({
     ]);
 
     if (isProjectCrossPlatform) {
-      searchQuery.addFilterValue('os.name', platform);
+      searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
     return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
   }, [
     isProjectCrossPlatform,
-    platform,
     primaryRelease,
     secondaryRelease,
+    selectedPlatform,
     spanOp,
     transaction,
   ]);

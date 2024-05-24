@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -20,7 +19,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -41,7 +39,6 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   additionalFilters?: Record<string, string>;
-  project?: Project | null;
   release?: string;
   searchQueryKey?: string;
   sectionSubtitle?: string;
@@ -56,7 +53,6 @@ export function SpanSamplesContainer({
   transactionName,
   transactionMethod,
   release,
-  project,
   searchQueryKey,
   spanOp,
   additionalFilters,
@@ -66,7 +62,7 @@ export function SpanSamplesContainer({
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
-  const {platform} = usePlatformSelector();
+  const {selectedPlatform, isProjectCrossPlatform} = usePlatformSelector();
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -105,8 +101,8 @@ export function SpanSamplesContainer({
     filters.release = release;
   }
 
-  if (project && isCrossPlatform(project)) {
-    filters['os.name'] = platform;
+  if (isProjectCrossPlatform) {
+    filters['os.name'] = selectedPlatform;
   }
 
   if (spanOp) {
@@ -186,7 +182,7 @@ export function SpanSamplesContainer({
         onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
         highlightedSpanId={highlightedSpanId}
         release={release}
-        platform={platform}
+        platform={isProjectCrossPlatform ? selectedPlatform : undefined}
       />
 
       <Feature features="performance-sample-panel-search">

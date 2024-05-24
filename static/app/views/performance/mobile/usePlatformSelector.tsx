@@ -29,14 +29,14 @@ function usePlatformSelector() {
     [project]
   );
 
-  const platform =
+  const selectedPlatform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
     DEFAULT_PLATFORM;
 
   return {
     project,
-    platform,
+    selectedPlatform,
     isProjectCrossPlatform,
     PlatformSelector,
   };

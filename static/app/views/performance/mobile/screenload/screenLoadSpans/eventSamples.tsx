@@ -41,7 +41,7 @@ export function ScreenLoadEventSamples({
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
-  const {platform, isProjectCrossPlatform} = usePlatformSelector();
+  const {selectedPlatform: platform, isProjectCrossPlatform} = usePlatformSelector();
 
   const deviceClass = decodeScalar(location.query['device.class']);
 
