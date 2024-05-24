@@ -13,7 +13,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry import features, nodestore, options
-from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
@@ -22,15 +21,18 @@ from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.seer.utils import (
+from sentry.seer.similarity.backfill import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
-    IncompleteSeerDataError,
-    SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
     delete_grouping_records,
     post_bulk_grouping_records,
 )
+from sentry.seer.similarity.types import (
+    IncompleteSeerDataError,
+    SeerSimilarIssueData,
+    SimilarGroupNotFoundError,
+)
+from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -300,7 +302,11 @@ def backfill_seer_grouping_records(
     else:
         logger.info(
             "backfill_seer_snuba_returned_empty_result",
-            extra={"project_id": project.id},
+            extra={
+                "project_id": project.id,
+                "snuba_result": result,
+                "group_id_batch": group_id_batch,
+            },
         )
 
 

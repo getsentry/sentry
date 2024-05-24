@@ -39,7 +39,7 @@ describe('StreamGroup', function () {
   });
 
   afterEach(function () {
-    (trackAnalytics as jest.Mock).mockClear();
+    jest.mocked(trackAnalytics).mockClear();
     GroupStore.reset();
   });
 

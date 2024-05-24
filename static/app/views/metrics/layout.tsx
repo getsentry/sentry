@@ -58,6 +58,8 @@ export const MetricsLayout = memo(() => {
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const [isBannerDismissed] = useLocalStorageState('metrics-banner-dismissed', false);
 
+  const showOnboardingPanel = !isEmptyStateDismissed && !hasCustomMetrics;
+
   const addCustomMetric = useCallback(
     (referrer: 'header' | 'onboarding_panel' | 'banner') => {
       Sentry.metrics.increment('ddm.add_custom_metric', 1, {
@@ -107,12 +109,14 @@ export const MetricsLayout = memo(() => {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <PageHeaderActions
-            showCustomMetricButton={
-              hasCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
-            }
-            addCustomMetric={() => addCustomMetric('header')}
-          />
+          {!showOnboardingPanel ? (
+            <PageHeaderActions
+              showCustomMetricButton={
+                hasCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
+              }
+              addCustomMetric={() => addCustomMetric('header')}
+            />
+          ) : null}
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -147,7 +151,7 @@ export const MetricsLayout = memo(() => {
           </FilterContainer>
           {isHasMetricsLoading ? (
             <LoadingIndicator />
-          ) : hasCustomMetrics || isEmptyStateDismissed ? (
+          ) : !showOnboardingPanel ? (
             <Fragment>
               <GuideAnchor target="metrics_onboarding" />
               <Queries />
@@ -222,4 +226,6 @@ const EmptyStateImage = styled('img')`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  grid-auto-flow: row;
+  gap: ${space(1)};
 `;

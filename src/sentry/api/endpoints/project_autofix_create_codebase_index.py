@@ -11,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.helpers.repos import get_repos_from_project_code_mappings
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class ProjectAutofixCreateCodebaseIndexEndpoint(ProjectEndpoint):
         """
         Create a codebase index for for a project's repositories, uses the code mapping to determine which repositories to index
         """
-        repos = get_repos_from_project_code_mappings(project)
+        repos = get_autofix_repos_from_project_code_mappings(project)
 
         for repo in repos:
             response = requests.post(

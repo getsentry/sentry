@@ -326,6 +326,8 @@ DEFAULT_METRIC_TAGS = {
     "trace.status",
     "messaging.destination.name",
 }
+SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
@@ -338,9 +340,8 @@ SPAN_METRICS_MAP = {
     "mobile.frozen_frames": "g:spans/mobile.frozen_frames@none",
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
-    "messaging.message.receive.latency": "g:spans/messaging.message.receive.latency@millisecond",
+    "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
 }
-SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 

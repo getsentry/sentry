@@ -12,7 +12,7 @@ jest.mock('sentry/utils/usePageFilters');
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock;
+  let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock, spanFieldTagsMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -110,6 +110,21 @@ describe('messageSpanSamplesPanel', () => {
         ],
       },
     });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
   });
 
   afterAll(() => {
@@ -185,6 +200,18 @@ describe('messageSpanSamplesPanel', () => {
           statsPeriod: '10d',
           upperBound: 8000,
         }),
+      })
+    );
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
@@ -269,6 +296,17 @@ describe('messageSpanSamplesPanel', () => {
           statsPeriod: '10d',
           upperBound: 8000,
         }),
+      })
+    );
+    expect(spanFieldTagsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
