@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -36,12 +35,14 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 
 import {excludeTransaction} from '../../utils';
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -781,15 +782,17 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         },
       ];
 
+  const moduleURLBuilder = useModuleURLBuilder(true);
+
   const getContainerActions = provided => {
     const route =
       {
-        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: 'performance/database/',
+        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
         [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
-          'performance/browser/resources/',
-        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: 'performance/http/',
+          moduleURLBuilder('resource'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: moduleURLBuilder('http'),
         [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
-          CACHE_BASE_URL.slice(1),
+          moduleURLBuilder('cache'),
       }[props.chartSetting] ?? '';
 
     return [
@@ -800,7 +803,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton to={`/organizations/${organization.slug}/${route}`} size="sm">
+          <LinkButton to={`/${route}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

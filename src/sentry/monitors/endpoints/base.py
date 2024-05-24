@@ -136,10 +136,8 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
                 project_id=kwargs["project"].id, guid=monitor_id_or_slug
             )
             return args, kwargs
-        except ValueError:
-            # monitor_id_or_slug does not look like a GUID
-            pass
-        except Monitor.DoesNotExist:
+        except (ValueError, Monitor.DoesNotExist):
+            # ValueError when the provided ID isn't a UUID
             pass
 
         raise ResourceDoesNotExist

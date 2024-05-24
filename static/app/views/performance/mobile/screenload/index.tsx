@@ -103,7 +103,7 @@ export function PageloadModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders title={t('Screen Loads')} features="spans-first-ui">
+    <ModulePageProviders moduleName="screen_load" features="spans-first-ui">
       <PageloadModule />
     </ModulePageProviders>
   );

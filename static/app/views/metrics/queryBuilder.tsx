@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -8,7 +8,7 @@ import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconLightning, IconReleases, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
@@ -307,12 +307,6 @@ export const QueryBuilder = memo(function QueryBuilder({
               options={groupByOptions.map(tag => ({
                 label: tag.key,
                 value: tag.key,
-                trailingItems: tag.trailingItems ?? (
-                  <Fragment>
-                    {tag.key === 'release' && <IconReleases size="xs" />}
-                    {tag.key === 'transaction' && <IconLightning size="xs" />}
-                  </Fragment>
-                ),
               }))}
               disabled={!metricsQuery.mri || tagsIsLoading}
               value={metricsQuery.groupBy}

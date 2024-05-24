@@ -79,14 +79,17 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
           >
             <InteractionStateLayer />
 
-            <Row style={{gridArea: 'checkbox'}}>
+            <Row
+              style={{gridArea: 'checkbox'}}
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
               <Checkbox
-                style={{gridArea: 'checkbox'}}
                 disabled={isSelected === 'all-selected'}
                 checked={isSelected !== false}
                 onChange={e => {
                   onSelect(e.target.checked);
-                  e.stopPropagation();
                 }}
                 invertColors={isOpen}
               />
@@ -202,7 +205,6 @@ const LinkedFeedbackCard = styled(Link)`
 
 const Row = styled(Flex)`
   place-items: center;
-  overflow: hidden;
 `;
 
 const BottomGrid = styled('div')`
@@ -228,6 +230,7 @@ const PreviewRow = styled(Row)<{isOpen: boolean}>`
 const DotRow = styled(Row)`
   height: 2.2em;
   align-items: flex-start;
+  justify-content: center;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`

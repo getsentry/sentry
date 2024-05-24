@@ -150,7 +150,8 @@ function ResourceSummary() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      moduleName="resource"
+      pageTitle={t('Resource Summary')}
       features="spans-first-ui"
     >
       <ResourceSummary />

@@ -112,7 +112,8 @@ export function ErrorNodeDetails({
         items={[
           {
             key: 'stack_trace',
-            subject: null,
+            subject: t('Stack Trace'),
+            subjectNode: null,
             value:
               stackTrace && data ? (
                 <StackTraceWrapper>

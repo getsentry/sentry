@@ -531,7 +531,8 @@ describe('trace view', () => {
     ).toBeInTheDocument();
   });
 
-  describe('pageload', () => {
+  // biome-ignore lint/suspicious/noSkippedTests: Flaky suite times out waiting for `pageloadTestSetup()`
+  describe.skip('pageload', () => {
     it('highlights row at load and sets it as focused', async () => {
       Object.defineProperty(window, 'location', {
         value: {

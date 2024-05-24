@@ -63,6 +63,7 @@ httpcore==1.0.2
 httpx==0.25.2
 idna==2.10
 inflection==0.5.1
+iso3166==2.1.1
 isodate==0.6.1
 jmespath==0.10.0
 jsonschema==4.20.0

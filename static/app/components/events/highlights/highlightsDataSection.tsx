@@ -29,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -296,4 +297,11 @@ const HighlightContextContent = styled(ContextCardContent)`
 
 export const highlightModalCss = css`
   width: 850px;
+  padding: 0 ${space(2)};
+  margin: ${space(2)} 0;
+  /* Disable overriding margins with breakpoint on default modal */
+  @media (min-width: ${theme.breakpoints.medium}) {
+    margin: ${space(2)} 0;
+    padding: 0 ${space(2)};
+  }
 `;

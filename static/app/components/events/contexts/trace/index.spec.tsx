@@ -1,6 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {TraceEventContext} from 'sentry/components/events/contexts/trace';
@@ -38,13 +43,13 @@ describe('trace event context', function () {
     },
   };
 
-  it('renders text url as a link', function () {
-    render(<TraceEventContext data={data} event={event} />);
+  it('renders text url as a link', async function () {
+    renderGlobalModal();
+    render(<TraceEventContext data={data} event={EventFixture()} />);
 
-    expect(screen.getByRole('link', {name: 'Open link'})).toHaveAttribute(
-      'href',
-      data.tags.url
-    );
+    const linkHint = screen.getByRole('link', {name: 'Open link'});
+    await userEvent.click(linkHint);
+    expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
   });
 
   it('display redacted data', async function () {
