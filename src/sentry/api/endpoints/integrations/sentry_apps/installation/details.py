@@ -27,9 +27,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     }
 
     def get(self, request: Request, installation) -> Response:
-        return Response(
-            serialize(SentryAppInstallation.objects.get(id=installation.id), access=request.access)
-        )
+        return Response(serialize(SentryAppInstallation.objects.get(id=installation.id)))
 
     def delete(self, request: Request, installation) -> Response:
         installation = SentryAppInstallation.objects.get(id=installation.id)

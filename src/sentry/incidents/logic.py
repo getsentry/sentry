@@ -1499,9 +1499,11 @@ def get_alert_rule_trigger_action_opsgenie_team(
 ) -> tuple[str, str]:
     from sentry.integrations.opsgenie.utils import get_team
 
-    integration, oi = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=organization.id, integration_id=integration_id
     )
+    integration = result.integration
+    oi = result.organization_integration
     if integration is None or oi is None:
         raise InvalidTriggerActionError("Opsgenie integration not found.")
 
