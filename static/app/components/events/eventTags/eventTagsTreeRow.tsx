@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -118,6 +119,9 @@ function EventTagsTreeRowDropdown({
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const router = useRouter();
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: content.value,
+  });
   const {mutate: saveTag} = useMutateProject({organization, project});
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
@@ -174,6 +178,11 @@ function EventTagsTreeRowDropdown({
               router
             );
           },
+        },
+        {
+          key: 'copy-value',
+          label: t('Copy tag value to clipboard'),
+          onAction: handleCopy,
         },
         {
           key: 'add-to-highlights',
