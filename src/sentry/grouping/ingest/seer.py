@@ -1,7 +1,7 @@
 import logging
 from dataclasses import asdict
 
-from sentry import features
+from sentry import features, options
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
@@ -10,6 +10,7 @@ from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import event_content_is_seer_eligible, get_stacktrace_string
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -22,12 +23,41 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     # TODO: Implement rate limits, kill switches, other flags, etc
     # TODO: Return False if the event has a custom fingerprint (check for both client- and server-side fingerprints)
 
+    if _killswitch_enabled(event, project):
+        return False
+
     if not event_content_is_seer_eligible(event):
         return False
 
     return features.has("projects:similarity-embeddings-metadata", project) or features.has(
         "projects:similarity-embeddings-grouping", project
     )
+
+
+def _killswitch_enabled(event: Event, project: Project) -> bool:
+    """
+    Check both the global and similarity-specific Seer killswitches.
+    """
+
+    logger_extra = {"event_id": event.event_id, "project_id": project.id}
+
+    if options.get("seer.global-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
+        return True
+
+    if options.get("seer.similarity-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
+        return True
+
+    return False
 
 
 def get_seer_similar_issues(
