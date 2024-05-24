@@ -1,4 +1,4 @@
-import {Children, useRef, useState} from 'react';
+import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -8,7 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem, MetaError} from 'sentry/types';
+import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
 export interface ContentProps {
@@ -132,12 +132,42 @@ export function Card({
   );
 }
 
+type ReactFCWithProps = React.FC<CardProps>;
+
+const isReactComponent = (type): type is ReactFCWithProps => {
+  return (
+    typeof type === 'function' ||
+    (typeof type === 'object' && type !== null && 'render' in type)
+  );
+};
+
+// Returns an array of children where null/undefind children and children returning null are filtered out.
+// For example:
+// <Component1/> --> returns a <Card/>
+// {null}
+// <Component2/> --> returns null
+// Gives us back [<Component1/>]
+const filterChildren = (children: ReactNode): ReactNode[] => {
+  return Children.toArray(children).filter((child: React.ReactNode) => {
+    if (isValidElement(child) && isReactComponent(child.type)) {
+      // Render the child and check if it returns null
+      const renderedChild = child.type(child.props);
+      return renderedChild !== null;
+    }
+
+    return child !== null && child !== undefined;
+  });
+};
+
 export function Group({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
 
   const columns: React.ReactNode[] = [];
-  const cards = Children.toArray(children);
+
+  // Filter out null/undefined children, so that we don't count them
+  // when determining column size.
+  const cards = filterChildren(children);
 
   // Evenly distributing the cards into columns.
   const columnSize = Math.ceil(cards.length / columnCount);

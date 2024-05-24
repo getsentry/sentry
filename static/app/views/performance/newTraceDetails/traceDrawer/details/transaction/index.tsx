@@ -11,7 +11,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
@@ -142,6 +144,7 @@ export function TransactionNodeDetails({
             projectId={event.projectID}
           />
         ) : null}
+        <TraceDrawerComponents.TraceDataSection event={event} />
       </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
