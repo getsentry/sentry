@@ -11,11 +11,9 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {TraceIssueEvent} from './traceIssue';
 import {TraceTimelineEvents} from './traceTimelineEvents';
-import {EventItem} from './traceTimelineTooltip';
 import {type TimelineEvent, useTraceTimelineEvents} from './useTraceTimelineEvents';
-
-const ISSUES_TO_SKIP_TIMELINE = 2;
 
 interface TraceTimelineProps {
   event: Event;
@@ -30,16 +28,14 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const hasTraceId = !!event.contexts?.trace?.trace_id;
 
   let timelineStatus: string | undefined = 'empty';
-  let timelineSkipped = false;
-  let issuesCount = 0;
+  let oneOtherIssueEvent;
   if (hasTraceId && !isLoading) {
     if (!organization.features.includes('related-issues-issue-details-page')) {
       timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
     } else {
-      issuesCount = getIssuesCountFromEvents(traceEvents);
-      // When we have more than 2 issues regardless of the number of events we skip the timeline
-      timelineSkipped = issuesCount === ISSUES_TO_SKIP_TIMELINE;
-      timelineStatus = timelineSkipped ? 'empty' : 'shown';
+      oneOtherIssueEvent = getOneOtherIssueEvent(event, traceEvents);
+      // When we have another issue we skip the timeline
+      timelineStatus = oneOtherIssueEvent ? 'empty' : 'shown';
     }
   } else if (!hasTraceId) {
     timelineStatus = 'no_trace_id';
@@ -85,20 +81,10 @@ export function TraceTimeline({event}: TraceTimelineProps) {
         </TimelineWrapper>
       ) : (
         <Feature features="related-issues-issue-details-page">
-          {timelineSkipped && (
-            // XXX: Temporary. This will need to be replaced with a styled component
-            <div style={{width: '400px'}}>
-              {traceEvents.map((traceEvent, index) => (
-                <div key={index} style={{display: 'flex', alignItems: 'center'}}>
-                  <div
-                    style={{whiteSpace: 'nowrap', minWidth: '75px'}}
-                    data-test-id={`this-event-${traceEvent.id}`}
-                  >
-                    {event.id === traceEvent.id && <span>This event</span>}
-                  </div>
-                  <EventItem key={index} timelineEvent={traceEvent} />
-                </div>
-              ))}
+          {oneOtherIssueEvent && (
+            <div>
+              One other issue happened in the same trace. View full trace.
+              <TraceIssueEvent event={oneOtherIssueEvent} />
             </div>
           )}
         </Feature>
@@ -107,13 +93,22 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   );
 }
 
-function getIssuesCountFromEvents(events: TimelineEvent[]): number {
-  const distinctIssues = events.filter(
-    (event, index, self) =>
-      event['issue.id'] !== undefined &&
-      self.findIndex(e => e['issue.id'] === event['issue.id']) === index
+function getOneOtherIssueEvent(
+  event: Event,
+  allTraceEvents: TimelineEvent[]
+): TimelineEvent | undefined {
+  const groupId = event.groupID;
+  if (!groupId) {
+    return undefined;
+  }
+  const otherIssues = allTraceEvents.filter(
+    (_event, index, self) =>
+      _event['issue.id'] !== undefined &&
+      // Exclude the current issue
+      _event['issue.id'] !== Number(groupId) &&
+      self.findIndex(e => e['issue.id'] === _event['issue.id']) === index
   );
-  return distinctIssues.length;
+  return otherIssues.length === 1 ? otherIssues[0] : undefined;
 }
 
 const TimelineWrapper = styled('div')`
