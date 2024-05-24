@@ -130,19 +130,15 @@ export function SpanSamplesContainer({
 
   const spanMetrics = data[0] ?? {};
 
-  let handleSearch: ((query: string) => void) | undefined = undefined;
-
-  if (searchQueryKey) {
-    handleSearch = (newSearchQuery: string) => {
-      router.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [searchQueryKey]: newSearchQuery,
-        },
-      });
-    };
-  }
+  const handleSearch = (newSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        ...(searchQueryKey && {[searchQueryKey]: newSearchQuery}),
+      },
+    });
+  };
 
   return (
     <Fragment>
