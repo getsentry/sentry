@@ -74,7 +74,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
 
         assert isinstance(response.data, list)
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_with_public_use_case(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -104,7 +104,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             use_case_ids=[UseCaseID.SESSIONS],
         )
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_with_private_use_case(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -133,7 +133,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         )
         get_metrics_meta.assert_not_called()
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_default_use_cases(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
