@@ -138,11 +138,7 @@ export function MessageSpanSamplesPanel() {
   sampleFilters.addFilterValue('messaging.destination.name', query.destination);
 
   // filter by key-value filters specified in the search bar query
-  Object.entries(new MutableSearch(query.spanSearchQuery).filters).forEach(
-    ([key, value]) => {
-      sampleFilters.addFilterValues(key, value);
-    }
-  );
+  sampleFilters.addStringMultiFilter(query.spanSearchQuery);
 
   if (query.traceStatus.length > 0) {
     sampleFilters.addFilterValue('trace.status', query.traceStatus);

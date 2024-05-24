@@ -175,6 +175,21 @@ export class MutableSearch {
     return formattedTokens.join(' ').trim();
   }
 
+  /**
+   * Adds the filters from a string query to the current MutableSearch query.
+   * The string query may consist of multiple key:value pairs separated
+   * by spaces.
+   */
+  addStringMultiFilter(multiFilter: string, shouldEscape = true) {
+    Object.entries(new MutableSearch(multiFilter).filters).forEach(([key, values]) => {
+      this.addFilterValues(key, values, shouldEscape);
+    });
+  }
+
+  /**
+   * Adds a string filter to the current MutableSearch query. The filter should follow
+   * the format key:value.
+   */
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
     this.addFilterValues(key, [value], shouldEscape);

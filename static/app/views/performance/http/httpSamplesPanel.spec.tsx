@@ -95,7 +95,7 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Status panel', () => {
-    let eventsStatsRequestMock, samplesRequestMock;
+    let eventsStatsRequestMock, samplesRequestMock, spanFieldTagsMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -162,6 +162,21 @@ describe('HTTPSamplesPanel', () => {
           ],
           meta: {},
         },
+      });
+
+      spanFieldTagsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/spans/fields/`,
+        method: 'GET',
+        body: [
+          {
+            key: 'api_key',
+            name: 'Api Key',
+          },
+          {
+            key: 'bytes.size',
+            name: 'Bytes.Size',
+          },
+        ],
       });
     });
 
@@ -247,6 +262,19 @@ describe('HTTPSamplesPanel', () => {
         })
       );
 
+      expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+        1,
+        `/organizations/${organization.slug}/spans/fields/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            project: [],
+            environment: [],
+            statsPeriod: '1h',
+          },
+        })
+      );
+
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     });
 
@@ -278,7 +306,7 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Duration panel', () => {
-    let chartRequestMock, samplesRequestMock;
+    let chartRequestMock, samplesRequestMock, spanFieldTagsMock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -326,6 +354,21 @@ describe('HTTPSamplesPanel', () => {
             },
           ],
         },
+      });
+
+      spanFieldTagsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/spans/fields/`,
+        method: 'GET',
+        body: [
+          {
+            key: 'api_key',
+            name: 'Api Key',
+          },
+          {
+            key: 'bytes.size',
+            name: 'Bytes.Size',
+          },
+        ],
       });
     });
 
@@ -376,6 +419,19 @@ describe('HTTPSamplesPanel', () => {
             referrer: 'api.performance.http.samples-panel-duration-samples',
             statsPeriod: '10d',
           }),
+        })
+      );
+
+      expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+        1,
+        `/organizations/${organization.slug}/spans/fields/`,
+        expect.objectContaining({
+          method: 'GET',
+          query: {
+            project: [],
+            environment: [],
+            statsPeriod: '1h',
+          },
         })
       );
     });

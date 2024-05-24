@@ -12,7 +12,7 @@ jest.mock('sentry/utils/usePageFilters');
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture();
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock;
+  let domainChartsRequestMock, domainTransactionsListRequestMock, spanFieldTagsMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -63,6 +63,21 @@ describe('HTTPSummaryPage', function () {
           ],
         },
       },
+    });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
     });
   });
 
@@ -205,6 +220,19 @@ describe('HTTPSummaryPage', function () {
           sort: '-time_spent_percentage()',
           referrer: 'api.performance.http.domain-summary-transactions-list',
           statsPeriod: '10d',
+        },
+      })
+    );
+
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
         },
       })
     );
