@@ -76,6 +76,7 @@ function LinkHint({meta, value}: {value: string; meta?: Record<any, any>}) {
         e.preventDefault();
         openNavigateToExternalLinkModal({linkText: value});
       }}
+      role="link"
       className="external-icon"
     >
       <StyledIconOpen size="xs" aria-label={t('Open link')} />
