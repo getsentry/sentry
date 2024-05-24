@@ -19,7 +19,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
@@ -200,10 +199,9 @@ def process_segment(spans: list[dict[str, Any]]):
 
     projects = {project.id: project}
 
-    data = CanonicalKeyDict(event)
     jobs: Sequence[Job] = [
         {
-            "data": data,
+            "data": event,
             "project_id": project.id,
             "raw": False,
             "start_time": None,
