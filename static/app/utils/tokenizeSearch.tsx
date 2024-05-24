@@ -175,6 +175,12 @@ export class MutableSearch {
     return formattedTokens.join(' ').trim();
   }
 
+  addStringMultiFilter(multiFilter: string) {
+    Object.entries(new MutableSearch(multiFilter).filters).forEach(([key, values]) => {
+      this.addFilterValues(key, values);
+    });
+  }
+
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
     this.addFilterValues(key, [value], shouldEscape);
