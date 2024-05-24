@@ -125,7 +125,8 @@ export function TagsSummary(props: TagSummaryProps) {
       items={[
         {
           key: 'tags',
-          subject: null,
+          subject: t('Tags'),
+          subjectNode: null,
           value: (
             <Fragment>
               {tags.length > 0 ? (

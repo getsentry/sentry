@@ -211,7 +211,8 @@ function RequestBodySection({
                   depth={0}
                 />
               ),
-              subject: null,
+              subject: t('Body'),
+              subjectNode: null,
             },
           ]}
           title={t('Body')}
@@ -256,7 +257,8 @@ function RequestBodySection({
                   maxDefaultDepth={2}
                 />
               ),
-              subject: null,
+              subject: t('Body'),
+              subjectNode: null,
             },
           ]}
           title={t('Body')}

@@ -925,6 +925,7 @@ export type KeyValueListDataItem = {
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
+  subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };
 

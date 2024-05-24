@@ -114,7 +114,8 @@ export function SpanDescription({
       items={[
         {
           key: 'description',
-          subject: null,
+          subject: t('Description'),
+          subjectNode: null,
           value,
         },
       ]}

@@ -189,7 +189,8 @@ export function getSpanAncestryAndGroupingItems({
         <CopyToClipboardButton borderless size="zero" iconSize="xs" text={span.span_id} />
       </Fragment>
     ),
-    subject: (
+    subject: 'Span ID',
+    subjectNode: (
       <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
         <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
           Span ID
