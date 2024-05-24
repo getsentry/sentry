@@ -41,7 +41,7 @@ function ProjectBadge({
   className,
   ...props
 }: ProjectBadgeProps) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {slug, id} = project;
 
   const badge = (
