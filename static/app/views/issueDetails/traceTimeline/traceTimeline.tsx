@@ -58,11 +58,17 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     // display empty placeholder to reduce layout shift
     return null;
   }
+  const isRelatedIssuesEnabled = organization.features.includes(
+    'related-issues-issue-details-page'
+  );
 
   return (
     <ErrorBoundary mini>
       {timelineStatus === 'shown' ? (
         <Fragment>
+          {isRelatedIssuesEnabled && oneOtherIssueEvent === undefined && (
+            <TraceLink event={event} />
+          )}
           <TimelineWrapper>
             <div ref={timelineRef}>
               <TimelineEventsContainer>
