@@ -75,7 +75,7 @@ export default function ContextCard({
   if (objectIsEmpty(value)) {
     return null;
   }
-  const meta = getContextMeta(event, type);
+  const meta = getContextMeta(event, type === 'default' ? alias : type);
 
   const contextItems = getFormattedContextData({
     event,
