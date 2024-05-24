@@ -420,15 +420,10 @@ from .endpoints.organization_member.team_details import OrganizationMemberTeamDe
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
-from .endpoints.organization_metrics import (
-    OrganizationMetricDetailsEndpoint,
-    OrganizationMetricsCodeLocationsEndpoint,
-    OrganizationMetricsDataEndpoint,
-    OrganizationMetricsDetailsEndpoint,
-    OrganizationMetricsQueryEndpoint,
-    OrganizationMetricsTagDetailsEndpoint,
-    OrganizationMetricsTagsEndpoint,
-)
+from .endpoints.organization_metric_details import OrganizationMetricDetailsEndpoint
+from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
+from .endpoints.organization_metrics_data import OrganizationMetricsDataEndpoint
+from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_estimation_stats import (
     OrganizationMetricsEstimationStatsEndpoint,
 )
@@ -436,7 +431,10 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
+from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
 from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
+from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
+from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
