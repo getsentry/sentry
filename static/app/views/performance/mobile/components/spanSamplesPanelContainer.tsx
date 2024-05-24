@@ -45,10 +45,10 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   additionalFilters?: Record<string, string>;
-  handleSearch?: (newSpanSearchQuery: string) => void;
   project?: Project | null;
   release?: string;
   searchQuery?: string;
+  searchQueryKey?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;
   spanOp?: string;
@@ -63,7 +63,7 @@ export function SpanSamplesContainer({
   release,
   project,
   searchQuery,
-  handleSearch,
+  searchQueryKey,
   spanOp,
   additionalFilters,
 }: Props) {
@@ -129,6 +129,20 @@ export function SpanSamplesContainer({
   );
 
   const spanMetrics = data[0] ?? {};
+
+  let handleSearch: ((query: string) => void) | undefined = undefined;
+
+  if (searchQueryKey) {
+    handleSearch = (newSearchQuery: string) => {
+      router.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [searchQueryKey]: newSearchQuery,
+        },
+      });
+    };
+  }
 
   return (
     <Fragment>

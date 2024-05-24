@@ -32,6 +32,9 @@ type Props = {
   transactionRoute?: string;
 };
 
+const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
+const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
+
 export function SpanSamplesPanel({
   groupId,
   moduleName,
@@ -57,8 +60,8 @@ export function SpanSamplesPanel({
   const {query} = useLocation();
   const {projects} = useProjects();
 
-  const primarySpanSearchQuery = decodeScalar(query.primarySpanSearchQuery);
-  const secondarySpanSearchQuery = decodeScalar(query.secondarySpanSearchQuery);
+  const primarySpanSearchQuery = decodeScalar(query[PRIMARY_SPAN_QUERY_KEY]);
+  const secondarySpanSearchQuery = decodeScalar(query[SECONDARY_SPAN_QUERY_KEY]);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(query.project)),
@@ -85,26 +88,6 @@ export function SpanSamplesPanel({
       transaction: transactionName,
     })}`
   );
-
-  const handlePrimarySearch = (newSpanSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...query,
-        primarySpanSearchQuery: newSpanSearchQuery,
-      },
-    });
-  };
-
-  const handleSecondarySearch = (newSpanSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...query,
-        secondarySpanSearchQuery: newSpanSearchQuery,
-      },
-    });
-  };
 
   function defaultOnClose() {
     router.replace({
@@ -151,7 +134,7 @@ export function SpanSamplesPanel({
               sectionTitle={t('Release 1')}
               project={project}
               searchQuery={primarySpanSearchQuery}
-              handleSearch={handlePrimarySearch}
+              searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
@@ -166,7 +149,7 @@ export function SpanSamplesPanel({
               sectionTitle={t('Release 2')}
               project={project}
               searchQuery={secondarySpanSearchQuery}
-              handleSearch={handleSecondarySearch}
+              searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
