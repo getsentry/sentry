@@ -689,10 +689,11 @@ def test_with_blocked_metrics(default_project, feature_flag):
         config = project_config.to_dict()["config"]
         _validate_project_config(config)
 
+        config = config["metrics"]
         if not feature_flag:
-            assert "metrics" not in config
+            assert "deniedNames" not in config
+            assert "deniedTags" not in config
         else:
-            config = config["metrics"]
             assert len(config["deniedNames"]) == 1
             assert len(config["deniedTags"]) == 1
 
