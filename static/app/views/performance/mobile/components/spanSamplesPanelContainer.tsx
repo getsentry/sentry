@@ -45,8 +45,10 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   additionalFilters?: Record<string, string>;
+  handleSearch?: (newSpanSearchQuery: string) => void;
   project?: Project | null;
   release?: string;
+  searchQuery?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;
   spanOp?: string;
@@ -60,6 +62,8 @@ export function SpanSamplesContainer({
   transactionMethod,
   release,
   project,
+  searchQuery,
+  handleSearch,
   spanOp,
   additionalFilters,
 }: Props) {
@@ -74,7 +78,6 @@ export function SpanSamplesContainer({
   const supportedTags = useSpanFieldSupportedTags();
 
   const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
   const platform =
     decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
     localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
@@ -88,17 +91,7 @@ export function SpanSamplesContainer({
     []
   );
 
-  const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        spanSearchQuery: newSpanSearchQuery,
-      },
-    });
-  };
-
-  const spanSearch = new MutableSearch(spanSearchQuery ?? '');
+  const spanSearch = new MutableSearch(searchQuery ?? '');
   if (additionalFilters) {
     Object.entries(additionalFilters).forEach(([key, value]) => {
       spanSearch.addFilterValue(key, value);
@@ -199,7 +192,7 @@ export function SpanSamplesContainer({
       <Feature features="performance-sample-panel-search">
         <StyledSearchBar
           searchSource="queries-sample-panel"
-          query={spanSearchQuery}
+          query={searchQuery}
           onSearch={handleSearch}
           placeholder={t('Search for span attributes')}
           organization={organization}

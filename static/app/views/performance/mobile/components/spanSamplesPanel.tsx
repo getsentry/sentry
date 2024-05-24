@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -56,6 +57,9 @@ export function SpanSamplesPanel({
   const {query} = useLocation();
   const {projects} = useProjects();
 
+  const primarySpanSearchQuery = decodeScalar(query.primarySpanSearchQuery);
+  const secondarySpanSearchQuery = decodeScalar(query.secondarySpanSearchQuery);
+
   const project = useMemo(
     () => projects.find(p => p.id === String(query.project)),
     [projects, query.project]
@@ -81,6 +85,26 @@ export function SpanSamplesPanel({
       transaction: transactionName,
     })}`
   );
+
+  const handlePrimarySearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        primarySpanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
+
+  const handleSecondarySearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        secondarySpanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
 
   function defaultOnClose() {
     router.replace({
@@ -126,6 +150,8 @@ export function SpanSamplesPanel({
               release={primaryRelease}
               sectionTitle={t('Release 1')}
               project={project}
+              searchQuery={primarySpanSearchQuery}
+              handleSearch={handlePrimarySearch}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
@@ -139,6 +165,8 @@ export function SpanSamplesPanel({
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
               project={project}
+              searchQuery={secondarySpanSearchQuery}
+              handleSearch={handleSecondarySearch}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
