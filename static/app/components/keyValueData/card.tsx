@@ -141,7 +141,7 @@ const isReactComponent = (type): type is ReactFCWithProps => {
   );
 };
 
-// Returns an array of children where null/undefind children and children returning null are filtered out.
+// Returns an array of children where null/undefined children and children returning null are filtered out.
 // For example:
 // <Component1/> --> returns a <Card/>
 // {null}
