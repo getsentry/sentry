@@ -31,6 +31,9 @@ type Props = {
   transactionRoute?: string;
 };
 
+const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
+const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
+
 export function SpanSamplesPanel({
   groupId,
   moduleName,
@@ -126,6 +129,7 @@ export function SpanSamplesPanel({
               release={primaryRelease}
               sectionTitle={t('Release 1')}
               project={project}
+              searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
@@ -139,6 +143,7 @@ export function SpanSamplesPanel({
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
               project={project}
+              searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
