@@ -142,7 +142,7 @@ class EventUser:
             if not isinstance(filter_list, list):
                 raise ValueError(f"{keyword} filter must be a list of values")
             if keyword not in SNUBA_KEYWORD_SET:
-                raise ValueError(f"{keyword} must be one of {', '.join(SNUBA_KEYWORD_SET)}.")
+                continue
             if (snuba_column := SNUBA_KEYWORD_COLUMN_MAP.get(keyword)) is not None:
                 keyword_where_conditions.append(Condition(Column(snuba_column), Op.IN, filter_list))
             elif keyword == "ip":
