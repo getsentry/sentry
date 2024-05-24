@@ -60,7 +60,7 @@ describe('ContextCard', function () {
     const event = EventFixture({
       _meta: {
         contexts: {
-          default: {
+          [alias]: {
             error: {
               '': {
                 err: [

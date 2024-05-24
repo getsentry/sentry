@@ -61,7 +61,7 @@ export function Content({
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper>
           {!disableRichValue && defined(action?.link) ? (
-            <Link to={action.link}>{dataComponent}</Link>
+            <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent
           )}
@@ -220,4 +220,8 @@ const CardWrapper = styled('div')<{columnCount: number}>`
 
 const CardColumn = styled('div')`
   grid-column: span 1;
+`;
+
+const ValueLink = styled(Link)`
+  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
