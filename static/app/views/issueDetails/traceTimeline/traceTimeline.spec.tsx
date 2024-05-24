@@ -183,6 +183,7 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       trace_timeline_status: 'empty',
     });
+    expect(await screen.findByText('View Full Trace (2 issues)')).toBeInTheDocument();
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {

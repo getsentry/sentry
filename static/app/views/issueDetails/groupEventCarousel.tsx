@@ -43,6 +43,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
+import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type GroupEventCarouselProps = {
@@ -356,6 +357,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 }
 
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+  const organization = useOrganization();
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -371,6 +373,19 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   });
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+
+  // The TraceLink component should be controlled within traceTimeline but
+  // we would need to take some decisions around the position of the ActionsWrapper
+  // TraceLink will be calling useTraceTimelineEvents one more time, however, it is memoized
+  const {oneOtherIssueEvent} = useTraceTimelineEvents({event});
+  const isRelatedIssuesEnabled = organization.features.includes(
+    'related-issues-issue-details-page'
+  );
+  const showTraceLink =
+    issueTypeConfig.traceTimeline &&
+    isRelatedIssuesEnabled &&
+    // This is the case when a related issue will be show instead of trace timeline
+    oneOtherIssueEvent === undefined;
 
   return (
     <CarouselAndButtonsWrapper>
@@ -420,7 +435,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        {issueTypeConfig.traceTimeline ? <TraceLink event={event} /> : null}
+        {showTraceLink ? <TraceLink event={event} /> : null}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
