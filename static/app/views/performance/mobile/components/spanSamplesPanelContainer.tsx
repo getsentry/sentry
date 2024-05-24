@@ -47,7 +47,6 @@ type Props = {
   additionalFilters?: Record<string, string>;
   project?: Project | null;
   release?: string;
-  searchQuery?: string;
   searchQueryKey?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;
@@ -62,7 +61,6 @@ export function SpanSamplesContainer({
   transactionMethod,
   release,
   project,
-  searchQuery,
   searchQueryKey,
   spanOp,
   additionalFilters,
@@ -76,6 +74,11 @@ export function SpanSamplesContainer({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const supportedTags = useSpanFieldSupportedTags();
+
+  const searchQuery =
+    searchQueryKey !== undefined
+      ? decodeScalar(location.query[searchQueryKey])
+      : undefined;
 
   const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
   const platform =

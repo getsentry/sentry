@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -59,9 +58,6 @@ export function SpanSamplesPanel({
   const organization = useOrganization();
   const {query} = useLocation();
   const {projects} = useProjects();
-
-  const primarySpanSearchQuery = decodeScalar(query[PRIMARY_SPAN_QUERY_KEY]);
-  const secondarySpanSearchQuery = decodeScalar(query[SECONDARY_SPAN_QUERY_KEY]);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(query.project)),
@@ -133,7 +129,6 @@ export function SpanSamplesPanel({
               release={primaryRelease}
               sectionTitle={t('Release 1')}
               project={project}
-              searchQuery={primarySpanSearchQuery}
               searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
@@ -148,7 +143,6 @@ export function SpanSamplesPanel({
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
               project={project}
-              searchQuery={secondarySpanSearchQuery}
               searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
