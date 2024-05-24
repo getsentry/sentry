@@ -460,23 +460,39 @@ export function HTTPSamplesPanel() {
                   error={durationError}
                 />
               </ModuleLayout.Full>
+            </Fragment>
+          )}
 
-              <Feature features="performance-sample-panel-search">
-                <ModuleLayout.Full>
-                  <SearchBar
-                    searchSource={`${ModuleName.HTTP}-sample-panel`}
-                    query={query.spanSearchQuery}
-                    onSearch={handleSearch}
-                    placeholder={t('Search for span attributes')}
-                    organization={organization}
-                    metricAlert={false}
-                    supportedTags={supportedTags}
-                    dataset={DiscoverDatasets.SPANS_INDEXED}
-                    projectIds={selection.projects}
-                  />
-                </ModuleLayout.Full>
-              </Feature>
+          {query.panel === 'status' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <ResponseCodeCountChart
+                  series={Object.values(responseCodeData).filter(Boolean)}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
 
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
+              <SearchBar
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </ModuleLayout.Full>
+          </Feature>
+
+          {query.panel === 'duration' && (
+            <Fragment>
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={durationSamplesData}
@@ -513,30 +529,6 @@ export function HTTPSamplesPanel() {
 
           {query.panel === 'status' && (
             <Fragment>
-              <ModuleLayout.Full>
-                <ResponseCodeCountChart
-                  series={Object.values(responseCodeData).filter(Boolean)}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
-                />
-              </ModuleLayout.Full>
-
-              <Feature features="performance-sample-panel-search">
-                <ModuleLayout.Full>
-                  <SearchBar
-                    searchSource={`${ModuleName.HTTP}-sample-panel`}
-                    query={query.spanSearchQuery}
-                    onSearch={handleSearch}
-                    placeholder={t('Search for span attributes')}
-                    organization={organization}
-                    metricAlert={false}
-                    supportedTags={supportedTags}
-                    dataset={DiscoverDatasets.SPANS_INDEXED}
-                    projectIds={selection.projects}
-                  />
-                </ModuleLayout.Full>
-              </Feature>
-
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={responseCodeSamplesData ?? []}
