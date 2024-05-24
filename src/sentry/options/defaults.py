@@ -1243,18 +1243,6 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# A slow rollout option for writing "new" cache keys
-# as the transition from UseCaseKey to UseCaseID occurs
-register(
-    "sentry-metrics.indexer.cache-key-rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# A option for double writing old and new cache keys
-# for the same transition
-register(
-    "sentry-metrics.indexer.cache-key-double-write", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # An option to tune the percentage of cache keys that gets replenished during indexer resolve
 register(
     "sentry-metrics.indexer.disable-memcache-replenish-rollout",
@@ -1292,25 +1280,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control whether or not we raise ValidationErrors in the indexer
-# (Temporary) raising the error would mean we skip the processing or DLQing of these
-# invalid messages
-register(
-    "sentry-metrics.indexer.raise-validation-errors",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to enable orjson for JSON parsing in reconstruct_messages function
 register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Option to enable direct storage queries for meta queries in the metrics layer
-register(
-    "sentry-metrics.metrics-layer.use-storage-direct-meta-queries",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -1408,11 +1380,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # per-organization limits on the number of timeseries that can be observed in
 # each window.
 #
@@ -1427,20 +1394,6 @@ register(
 #
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
     default=[
@@ -1484,29 +1437,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.10s-granularity",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry-metrics.producer-schema-validation.release-health.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.producer-schema-validation.performance.rollout-rate",
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1527,6 +1459,24 @@ register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Performance issue option for *all* performance issues detection
@@ -2618,22 +2568,4 @@ register(
     type=Int,
     default=20000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
