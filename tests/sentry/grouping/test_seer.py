@@ -10,6 +10,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.types import NonNone
 
 
@@ -68,6 +69,18 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_global_seer_killswitch(self):
+        for killswitch_enabled, expected_result in [(True, False), (False, True)]:
+            with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_similarity_service_killswitch(self):
+        for killswitch_enabled, expected_result in [(True, False), (False, True)]:
+            with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
                 assert should_call_seer_for_grouping(self.event, self.project) is expected_result
 
 
