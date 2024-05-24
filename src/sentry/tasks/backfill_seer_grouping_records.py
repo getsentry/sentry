@@ -302,7 +302,11 @@ def backfill_seer_grouping_records(
     else:
         logger.info(
             "backfill_seer_snuba_returned_empty_result",
-            extra={"project_id": project.id},
+            extra={
+                "project_id": project.id,
+                "snuba_result": result,
+                "group_id_batch": group_id_batch,
+            },
         )
 
 
