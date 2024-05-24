@@ -5,7 +5,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ModuleName} from 'sentry/views/starfish/types';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
-export function AppStartModule() {
+export function InitializationModule() {
   return (
     <ScreensTemplate
       additionalSelectors={<StartTypeSelector />}
@@ -19,7 +19,7 @@ export function AppStartModule() {
 function PageWithProviders() {
   return (
     <ModulePageProviders moduleName="app_start" features="spans-first-ui">
-      <AppStartModule />
+      <InitializationModule />
     </ModulePageProviders>
   );
 }
