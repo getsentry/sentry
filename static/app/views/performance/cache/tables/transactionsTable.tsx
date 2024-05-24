@@ -82,7 +82,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: `${CACHE_MISS_RATE}()`,
-    name: DataTitles.cacheMissRate,
+    name: DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`],
     width: COL_WIDTH_UNDEFINED,
   },
   {
