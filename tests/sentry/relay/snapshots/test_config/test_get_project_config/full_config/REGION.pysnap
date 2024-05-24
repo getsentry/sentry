@@ -1,5 +1,5 @@
 ---
-created: '2024-05-02T21:08:26.482609+00:00'
+created: '2024-05-24T11:29:34.942206+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -103,6 +103,43 @@ config:
   groupingConfig:
     enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
+  metrics:
+    cardinalityLimits:
+    - id: transactions
+      limit: 10000
+      namespace: transactions
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+    - id: sessions
+      limit: 10000
+      namespace: sessions
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+    - id: spans
+      limit: 10000
+      namespace: spans
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+    - id: custom
+      limit: 10000
+      namespace: custom
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
+    - id: profiles
+      limit: 10000
+      namespace: profiles
+      scope: organization
+      window:
+        granularitySeconds: 600
+        windowSeconds: 3600
   performanceScore:
     profiles:
     - condition:
