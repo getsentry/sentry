@@ -967,9 +967,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
         ],
     )
 
-    features = Feature({"organizations:relay-cardinality-limiter": True})
-
-    with override_options(options), features:
+    with override_options(options):
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
@@ -1029,9 +1027,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
         ],
     )
 
-    features = Feature({"organizations:relay-cardinality-limiter": True})
-
-    with override_options(options), features:
+    with override_options(options):
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
@@ -1084,9 +1080,7 @@ def test_project_config_cardinality_limits_organization_options_override_options
         ],
     )
 
-    features = Feature({"organizations:relay-cardinality-limiter": True})
-
-    with override_options(options), features:
+    with override_options(options):
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
