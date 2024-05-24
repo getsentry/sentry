@@ -8,10 +8,11 @@ import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-
-export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
-export const PLATFORM_QUERY_PARAM = 'platform';
-export const DEFAULT_PLATFORM = 'Android';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/performance/mobile/usePlatformSelector';
 
 export function PlatformSelector() {
   const {query, pathname} = useLocation();

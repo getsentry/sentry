@@ -9,19 +9,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
   type ModuleName,
@@ -59,18 +53,12 @@ export function SpanSamplesContainer({
   additionalFilters,
 }: Props) {
   const router = useRouter();
-  const location = useLocation();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
+  const {platform} = usePlatformSelector();
 
   const organization = useOrganization();
-
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -93,7 +81,7 @@ export function SpanSamplesContainer({
     filters.release = release;
   }
 
-  if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+  if (project && isCrossPlatform(project)) {
     filters['os.name'] = platform;
   }
 
@@ -164,11 +152,7 @@ export function SpanSamplesContainer({
         onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
         highlightedSpanId={highlightedSpanId}
         release={release}
-        platform={
-          project && isCrossPlatform(project) && hasPlatformSelectFeature
-            ? platform
-            : undefined
-        }
+        platform={platform}
       />
       <SampleTable
         spanSearch={MutableSearch.fromQueryObject(additionalFilters ?? {})}

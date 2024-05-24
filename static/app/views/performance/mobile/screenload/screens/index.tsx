@@ -24,11 +24,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {
   ScreensTable,
@@ -130,16 +125,12 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
-  const {isProjectCrossPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, platform} = usePlatformSelector();
   const {query: locationQuery} = location;
 
   const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
-  const platform =
-    decodeScalar(locationQuery[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   const {
     primaryRelease,

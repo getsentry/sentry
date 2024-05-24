@@ -15,21 +15,14 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   CHART_TITLES,
   OUTPUT_TYPE,
   YAXIS_COLUMNS,
 } from 'sentry/views/performance/mobile/screenload/screens';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
@@ -62,8 +55,7 @@ type Props = {
 export function ScreenCharts({yAxes, additionalFilters}: Props) {
   const pageFilter = usePageFilters();
   const location = useLocation();
-  const organization = useOrganization();
-  const {isProjectCrossPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, platform} = usePlatformSelector();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
@@ -73,12 +65,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
-
   const queryString = useMemo(() => {
     const query = new MutableSearch([
       'event.type:transaction',
@@ -86,14 +72,13 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
       ...(additionalFilters ?? []),
     ]);
 
-    if (isProjectCrossPlatform && hasPlatformSelectFeature) {
+    if (isProjectCrossPlatform) {
       query.addFilterValue('os.name', platform);
     }
 
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
   }, [
     additionalFilters,
-    hasPlatformSelectFeature,
     isProjectCrossPlatform,
     platform,
     primaryRelease,

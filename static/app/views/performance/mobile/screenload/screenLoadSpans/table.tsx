@@ -31,11 +31,6 @@ import {
   TTID_CONTRIBUTING_SPAN_OPS,
 } from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/mobile/screenload/settings';
 import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
@@ -70,17 +65,12 @@ export function ScreenLoadSpansTable({
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
-  const {isProjectCrossPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, platform} = usePlatformSelector();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
-
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   const queryStringPrimary = useMemo(() => {
     const searchQuery = new MutableSearch([

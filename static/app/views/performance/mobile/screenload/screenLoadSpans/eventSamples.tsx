@@ -9,11 +9,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import {
@@ -46,14 +41,9 @@ export function ScreenLoadEventSamples({
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
-  const {isProjectCrossPlatform} = usePlatformSelector();
+  const {platform, isProjectCrossPlatform} = usePlatformSelector();
 
   const deviceClass = decodeScalar(location.query['device.class']);
-
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   const searchQuery = useMemo(() => {
     const mutableQuery = new MutableSearch([

@@ -8,19 +8,13 @@ import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
@@ -47,7 +41,6 @@ export function MetricsRibbon({
   project?: Project | null;
 }) {
   const {selection} = usePageFilters();
-  const organization = useOrganization();
   const location = useLocation();
 
   const {
@@ -56,28 +49,17 @@ export function MetricsRibbon({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
+  const {platform} = usePlatformSelector();
 
   const queryString = useMemo(() => {
     const searchQuery = new MutableSearch([...(filters ?? [])]);
 
-    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+    if (project && isCrossPlatform(project)) {
       searchQuery.addFilterValue('os.name', platform);
     }
 
     return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
-  }, [
-    filters,
-    hasPlatformSelectFeature,
-    platform,
-    primaryRelease,
-    project,
-    secondaryRelease,
-  ]);
+  }, [filters, platform, primaryRelease, project, secondaryRelease]);
 
   const newQuery: NewQuery = {
     name: 'ScreenMetricsRibbon',
