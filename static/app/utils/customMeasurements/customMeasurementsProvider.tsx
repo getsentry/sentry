@@ -83,7 +83,7 @@ export function CustomMeasurementsProvider({
           return;
         }
 
-        const errorResponse = t('Unable to fetch custom performance metrics');
+        const errorResponse = t('Unable to fetch custom performance measurements');
         addErrorMessage(errorResponse);
         handleXhrErrorResponse(errorResponse, e);
       });
