@@ -251,8 +251,6 @@ function Sidebar() {
         label={<GuideAnchor target="performance-database">{t('Queries')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('db')}/`}
         id="performance-database"
-        // collapsed controls whether the dot is visible or not.
-        // We always want it visible for these sidebar items so force it to true.
         icon={<SubitemDot collapsed />}
       />
     </Feature>
