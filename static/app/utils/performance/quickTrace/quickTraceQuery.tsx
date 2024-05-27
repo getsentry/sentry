@@ -18,7 +18,7 @@ import {
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
   event: Event | undefined;
-  skipLight: boolean;
+  skipLight?: boolean;
   type?: 'detailed' | 'spans';
 };
 
