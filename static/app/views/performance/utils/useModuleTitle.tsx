@@ -10,7 +10,7 @@ import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/performance/m
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/performance/queues/settings';
 import {ModuleName} from 'sentry/views/starfish/types';
 
-const MODULE_TITLES: Record<ModuleName, string> = {
+export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
   [ModuleName.HTTP]: HTTP_MODULE_TITLE,
   [ModuleName.CACHE]: CACHE_MODULE_TITLE,
