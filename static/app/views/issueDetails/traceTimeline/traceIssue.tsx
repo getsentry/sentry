@@ -45,19 +45,20 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
           disableLink
         />
       )}
-      <TraceIssueEventTitle>{event.title.split(':')[0]}</TraceIssueEventTitle>
-      {event.transaction && (
-        <TraceIssueEventTransaction>{event.transaction}</TraceIssueEventTransaction>
-      )}
+      <IssueDetails>
+        <NoOverflowDiv>
+          <TraceIssueEventTitle>{event.title.split(':')[0]}</TraceIssueEventTitle>
+          {event.transaction}
+        </NoOverflowDiv>
+        <NoOverflowDiv>{event.message}</NoOverflowDiv>
+      </IssueDetails>
     </TraceIssueEventRoot>
   );
 }
 
 const TraceIssueEventRoot = styled(Link)`
   display: flex;
-  grid-template-columns: max-content auto;
   color: ${p => p.theme.textColor};
-  width: 100%;
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -69,12 +70,16 @@ const TraceIssueEventRoot = styled(Link)`
   }
 `;
 
-const TraceIssueEventTitle = styled('span')`
-  font-weight: 600;
-  padding: 0 ${space(0.5)} 0 ${space(1)};
+const IssueDetails = styled('div')`
+  max-width: 100%;
+  padding: ${space(0)} ${space(1)} ${space(0)} ${space(1)};
 `;
 
-const TraceIssueEventTransaction = styled('span')`
+const TraceIssueEventTitle = styled('span')`
+  font-weight: 600;
+`;
+
+const NoOverflowDiv = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
