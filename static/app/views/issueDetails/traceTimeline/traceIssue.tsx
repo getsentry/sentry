@@ -1,11 +1,15 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -21,6 +25,18 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   });
   const project = projects.find(p => p.slug === event.project);
   const issueId = event['issue.id'];
+  const {data: groupData, isLoading: isLoadingGroupData} = useApiQuery<Group>(
+    [
+      `/organizations/${organization.slug}/issues/${issueId}/`,
+      {query: getGroupDetailsQueryData({})},
+    ],
+    {
+      staleTime: 30000,
+      cacheTime: 30000,
+      retry: false,
+    }
+  );
+
   return (
     <TraceIssueEventRoot
       to={{
@@ -46,11 +62,21 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         />
       )}
       <IssueDetails>
-        <NoOverflowDiv>
-          <TraceIssueEventTitle>{event.title.split(':')[0]}</TraceIssueEventTitle>
-          <TraceIssueEventTransaction>{event.transaction}</TraceIssueEventTransaction>
-        </NoOverflowDiv>
-        <NoOverflowDiv>{event.message}</NoOverflowDiv>
+        {isLoadingGroupData
+          ? 'Loading...'
+          : groupData && (
+              <Fragment>
+                <NoOverflowDiv>
+                  <TraceIssueEventTitle>
+                    {groupData.metadata.title || groupData.metadata.type}
+                  </TraceIssueEventTitle>
+                  <TraceIssueEventTransaction>
+                    {event.transaction}
+                  </TraceIssueEventTransaction>
+                </NoOverflowDiv>
+                <NoOverflowDiv>{groupData.metadata.value}</NoOverflowDiv>
+              </Fragment>
+            )}
       </IssueDetails>
     </TraceIssueEventRoot>
   );
