@@ -85,6 +85,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             version=data["version"],
+            dataset=data["dataset"],
         )
 
         model.set_projects(data["project_ids"])
