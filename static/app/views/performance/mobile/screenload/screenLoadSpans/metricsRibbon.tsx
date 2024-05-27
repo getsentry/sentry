@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -13,7 +12,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -27,7 +25,6 @@ interface BlockProps {
 
 export function MetricsRibbon({
   filters,
-  project,
   blocks,
   fields,
   referrer,
@@ -38,7 +35,6 @@ export function MetricsRibbon({
   fields: string[];
   referrer: string;
   filters?: string[];
-  project?: Project | null;
 }) {
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -49,17 +45,23 @@ export function MetricsRibbon({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const {selectedPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform} = usePlatformSelector();
 
   const queryString = useMemo(() => {
     const searchQuery = new MutableSearch([...(filters ?? [])]);
 
-    if (project && isCrossPlatform(project)) {
+    if (isProjectCrossPlatform) {
       searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
     return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
-  }, [filters, primaryRelease, project, secondaryRelease, selectedPlatform]);
+  }, [
+    filters,
+    isProjectCrossPlatform,
+    primaryRelease,
+    secondaryRelease,
+    selectedPlatform,
+  ]);
 
   const newQuery: NewQuery = {
     name: 'ScreenMetricsRibbon',
