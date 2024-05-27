@@ -48,7 +48,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
       <IssueDetails>
         <NoOverflowDiv>
           <TraceIssueEventTitle>{event.title.split(':')[0]}</TraceIssueEventTitle>
-          {event.transaction}
+          <TraceIssueEventTransaction>{event.transaction}</TraceIssueEventTransaction>
         </NoOverflowDiv>
         <NoOverflowDiv>{event.message}</NoOverflowDiv>
       </IssueDetails>
@@ -77,6 +77,10 @@ const IssueDetails = styled('div')`
 
 const TraceIssueEventTitle = styled('span')`
   font-weight: 600;
+`;
+
+const TraceIssueEventTransaction = styled('span')`
+  color: ${p => p.theme.subText};
 `;
 
 const NoOverflowDiv = styled('div')`
