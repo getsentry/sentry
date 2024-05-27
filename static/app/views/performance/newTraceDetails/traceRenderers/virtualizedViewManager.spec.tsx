@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 import {TraceTree} from '../traceModels/traceTree';
+import {TraceViewSources} from '../traceViewSources';
 
 function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
   return {
@@ -93,7 +94,8 @@ function makeSingleTransactionTree(): TraceTree {
           event_id: 'event_id',
         }),
       ],
-    })
+    }),
+    TraceViewSources.PERFORMANCE
   );
 }
 
@@ -313,7 +315,8 @@ describe('VirtualizedViewManger', () => {
         makeTrace({
           transactions: [makeTransaction()],
           orphan_errors: [],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       manager.list = makeList();
@@ -336,7 +339,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       manager.list = makeList();
@@ -368,7 +372,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       manager.list = makeList();
@@ -403,7 +408,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -438,7 +444,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -479,7 +486,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -683,7 +691,8 @@ describe('VirtualizedViewManger', () => {
               timestamp: 1,
             },
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       const result = await TraceTree.ExpandToPath(tree, ['error-ded'], () => void 0, {
