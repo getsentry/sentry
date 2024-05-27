@@ -22,6 +22,7 @@ import {SpanTimeRenderer} from 'sentry/views/performance/traces/fieldRenderers';
 import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import {TraceViewSources} from '../../../traceViewSources';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
@@ -29,6 +30,7 @@ type GeneralInfoProps = {
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  source: TraceViewSources;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
@@ -123,12 +125,17 @@ export function GeneralInfo(props: GeneralInfoProps) {
   const replay_id = props.rootEventResults?.data?.contexts?.replay?.replay_id;
   const browser = props.rootEventResults?.data?.contexts?.browser;
 
-  const items: SectionCardKeyValueList = [
-    {
+  const items: SectionCardKeyValueList = [];
+
+  if (props.source !== TraceViewSources.REPLAY) {
+    items.push({
       key: 'trace_id',
       subject: t('Trace ID'),
       value: <TraceDrawerComponents.CopyableCardValueWithLink value={traceSlug} />,
-    },
+    });
+  }
+
+  items.push(
     {
       key: 'events',
       subject: t('Events'),
@@ -200,10 +207,10 @@ export function GeneralInfo(props: GeneralInfoProps) {
       key: 'browser',
       subject: t('Browser'),
       value: browser ? browser.name + ' ' + browser.version : '\u2014',
-    },
-  ];
+    }
+  );
 
-  if (replay_id) {
+  if (replay_id && props.source !== TraceViewSources.REPLAY) {
     items.push({
       key: 'replay_id',
       subject: t('Replay ID'),

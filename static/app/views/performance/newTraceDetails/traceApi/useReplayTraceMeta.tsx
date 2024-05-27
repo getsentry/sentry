@@ -10,11 +10,14 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
 
+// Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(
   replayRecord: ReplayRecord | undefined
 ): TraceMetaQueryResults {
   const organization = useOrganization();
-  const listEventView = useMemo(() => {
+
+  // EventView that is used to fetch the list of events for the replay
+  const eventView = useMemo(() => {
     if (!replayRecord) {
       return null;
     }
@@ -42,14 +45,15 @@ export function useReplayTraceMeta(
   const {
     data: eventsData,
     isLoading: eventsIsLoading,
+    isRefetching: eventsIsRefetching,
     refetch: eventsRefetch,
   } = useApiQuery<{data: TableDataRow[]}>(
     [
       `/organizations/${organization.slug}/events/`,
       {
-        query: listEventView
+        query: eventView
           ? {
-              ...listEventView.getEventsAPIPayload({
+              ...eventView.getEventsAPIPayload({
                 start,
                 end,
                 limit: 10,
@@ -61,7 +65,7 @@ export function useReplayTraceMeta(
     ],
     {
       staleTime: Infinity,
-      enabled: !!listEventView && !!replayRecord,
+      enabled: !!eventView && !!replayRecord,
     }
   );
 
@@ -75,13 +79,13 @@ export function useReplayTraceMeta(
     return {
       data: meta.data,
       isLoading: eventsIsLoading || meta.isLoading,
-      isRefetching: meta.isRefetching,
+      isRefetching: meta.isRefetching || eventsIsRefetching,
       refetch: () => {
         meta.refetch();
         eventsRefetch();
       },
     };
-  }, [meta, eventsIsLoading, eventsRefetch]);
+  }, [meta, eventsIsLoading, eventsIsRefetching, eventsRefetch]);
 
   return metaResults;
 }

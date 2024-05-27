@@ -124,7 +124,7 @@ export function useTraceMeta(traceSlugs: string[]): {
       mergedResult.data.errors += metaResult.data?.errors ?? 0;
       mergedResult.data.performance_issues += metaResult.data?.performance_issues ?? 0;
       // TODO: We want the count of unique projects, not the sum of all projects. When there are multiple traces, taking the best guess by using the max
-      // project count accross all traces for now.
+      // project count accross all traces for now. We don't use the project count for anything yet, so this is fine for now.
       mergedResult.data.projects += Math.max(
         metaResult.data?.projects ?? 0,
         mergedResult.data.projects

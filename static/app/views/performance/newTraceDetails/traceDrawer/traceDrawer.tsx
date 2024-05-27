@@ -436,6 +436,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
             {props.trace_state.tabs.current_tab ? (
               props.trace_state.tabs.current_tab.node === 'trace' ? (
                 <TraceDetails
+                  source={props.source}
                   metaResults={props.metaResults}
                   traceType={props.traceType}
                   tree={props.trace}

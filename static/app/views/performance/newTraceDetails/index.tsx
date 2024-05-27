@@ -961,7 +961,7 @@ type TraceViewWaterFallCallBacks = {
   ) => void;
 };
 
-type TraceViewWaterFallDispatching = {
+type TraceViewWaterFallState = {
   traceDispatch: Dispatch<TraceReducerAction>;
   traceState: TraceReducerState;
 };
@@ -981,7 +981,7 @@ type TraceViewWaterFallProps = {
   viewManager: VirtualizedViewManager;
 } & TraceViewWaterfallRefs &
   TraceViewWaterFallCallBacks &
-  TraceViewWaterFallDispatching;
+  TraceViewWaterFallState;
 
 function TraceViewWaterFall(props: TraceViewWaterFallProps) {
   return (
@@ -1256,4 +1256,3 @@ function TraceEmpty() {
 const NoMarginIndicator = styled(LoadingIndicator)`
   margin: 0;
 `;
-export {TraceViewSources};
