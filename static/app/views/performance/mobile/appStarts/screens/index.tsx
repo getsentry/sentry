@@ -29,6 +29,7 @@ import {
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -57,6 +58,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
   const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const router = useRouter();
 
@@ -69,6 +71,10 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     `count_starts(measurements.app_start_${appStartType}):>0`,
     ...(additionalFilters ?? []),
   ]);
+
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
 
   const searchQuery = decodeScalar(locationQuery.query, '');
   if (searchQuery) {
