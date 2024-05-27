@@ -101,12 +101,8 @@ export const getReactNativeMetricsOnboarding = ({
 const getJSMetricsOnboardingConfigure = (params: DocsParams) => [
   {
     type: StepType.CONFIGURE,
-    description: tct(
-      'With the default snippet in place, there is no need for any further configuration.',
-      {
-        codeVersion: <code />,
-        codeNamespace: <code />,
-      }
+    description: t(
+      'With the default snippet in place, there is no need for any further configuration.'
     ),
     configurations: [
       {
