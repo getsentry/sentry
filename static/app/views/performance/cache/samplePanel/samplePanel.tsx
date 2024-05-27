@@ -49,6 +49,7 @@ import {
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
+  type SpanIndexedResponse,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -149,7 +150,10 @@ export function CacheSamplePanel() {
     project_id: query.project,
   };
 
-  const useIndexedCacheSpans = (isCacheHit: 'true' | 'false', limit: number) =>
+  const useIndexedCacheSpans = (
+    isCacheHit: SpanIndexedResponse['cache.hit'],
+    limit: number
+  ) =>
     useSpansIndexed(
       {
         search: MutableSearch.fromQueryObject({

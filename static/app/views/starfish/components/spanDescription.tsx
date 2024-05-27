@@ -40,7 +40,6 @@ export function DatabaseSpanDescription({
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId}),
-      sorts: [INDEXED_SPAN_SORT],
       limit: 1,
       fields: [
         SpanIndexedField.PROJECT_ID,
