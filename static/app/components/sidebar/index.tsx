@@ -55,15 +55,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {
-  MODULE_TITLE as CACHE_MODULE_TITLE,
-  releaseLevelAsBadgeProps as CacheModuleBadgeProps,
-} from 'sentry/views/performance/cache/settings';
-import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/performance/http/settings';
-import {
-  MODULE_TITLE as QUEUES_MODULE_TITLE,
-  releaseLevelAsBadgeProps as QueuesModuleBadgeProps,
-} from 'sentry/views/performance/queues/settings';
+import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/performance/cache/settings';
+import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/performance/queues/settings';
+import {MODULE_TITLES} from 'sentry/views/performance/utils/useModuleTitle';
 import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -248,7 +242,9 @@ function Sidebar() {
     <Feature key="db" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-database">{t('Queries')}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance-database">{MODULE_TITLES.db}</GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('db')}/`}
         id="performance-database"
         icon={<SubitemDot collapsed />}
@@ -260,7 +256,7 @@ function Sidebar() {
     <Feature key="http" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-http">{HTTP_MODULE_TITLE}</GuideAnchor>}
+        label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
         id="performance-http"
         icon={<SubitemDot collapsed />}
@@ -272,7 +268,9 @@ function Sidebar() {
     <Feature key="cache" features="performance-cache-view" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-cache">{CACHE_MODULE_TITLE}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance-cache">{MODULE_TITLES.cache}</GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
         id="performance-cache"
         icon={<SubitemDot collapsed />}
@@ -286,7 +284,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         label={
-          <GuideAnchor target="performance-webvitals">{t('Web Vitals')}</GuideAnchor>
+          <GuideAnchor target="performance-webvitals">{MODULE_TITLES.vital}</GuideAnchor>
         }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('vital')}/`}
         id="performance-webvitals"
@@ -300,7 +298,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         label={
-          <GuideAnchor target="performance-queues">{QUEUES_MODULE_TITLE}</GuideAnchor>
+          <GuideAnchor target="performance-queues">{MODULE_TITLES.queue}</GuideAnchor>
         }
         {...QueuesModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
@@ -314,7 +312,7 @@ function Sidebar() {
     <Feature key="screen_load" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={t('Screen Loads')}
+        label={MODULE_TITLES.screen_load}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('screen_load')}/`}
         id="performance-mobile-screens"
         icon={<SubitemDot collapsed />}
@@ -326,7 +324,7 @@ function Sidebar() {
     <Feature key="app_start" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={t('App Starts')}
+        label={MODULE_TITLES.app_start}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('app_start')}/`}
         id="performance-mobile-app-startup"
         icon={<SubitemDot collapsed />}
@@ -342,7 +340,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        label={t('Mobile UI')}
+        label={MODULE_TITLES['mobile-ui']}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui')}/`}
         id="performance-mobile-ui"
         icon={<SubitemDot collapsed />}
@@ -355,7 +353,7 @@ function Sidebar() {
     <Feature key="resource" features="spans-first-ui">
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+        label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
         id="performance-browser-resources"
         icon={<SubitemDot collapsed />}
@@ -381,7 +379,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconRobot />}
-        label={t('LLM Monitoring')}
+        label={MODULE_TITLES.ai}
         isAlpha
         variant="short"
         to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
