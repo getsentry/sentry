@@ -149,7 +149,7 @@ export function MetricListItemDetails({
               size="xs"
               to={`/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`}
               aria-label={t('Open metric settings')}
-              icon={<IconSettings />}
+              icon={<IconSettings color="blue400" />}
               borderless
             />
           ) : (
