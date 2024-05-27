@@ -53,7 +53,6 @@ export function useInpSpanSamplesWebVitalsQuery({
         SpanIndexedField.BROWSER_NAME,
         SpanIndexedField.SPAN_SELF_TIME,
         SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.SPAN_OP,
       ],
       enabled,
       limit,
