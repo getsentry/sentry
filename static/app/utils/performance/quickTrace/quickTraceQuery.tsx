@@ -117,7 +117,7 @@ export default function QuickTraceQuery({
             // swallow any errors from the light results because we
             // should rely on the full results in this situations
             error: traceFullResults.error,
-            trace: [],
+            trace: traceFullResults.traces?.transactions ?? [],
             // if we reach this point but there were some traces in the full results,
             // that means there were other transactions in the trace, but the current
             // event could not be found
