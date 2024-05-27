@@ -12,7 +12,7 @@ import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
   PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/usePlatformSelector';
+} from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 export function PlatformSelector() {
   const {query, pathname} = useLocation();

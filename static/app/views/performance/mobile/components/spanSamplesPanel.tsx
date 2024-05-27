@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanSamplesContainer} from 'sentry/views/performance/mobile/components/spanSamplesPanelContainer';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import type {ModuleName} from 'sentry/views/starfish/types';
@@ -57,7 +57,7 @@ export function SpanSamplesPanel({
 
   const organization = useOrganization();
   const {query} = useLocation();
-  const {project} = usePlatformSelector();
+  const {project} = useCrossPlatformProject();
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {

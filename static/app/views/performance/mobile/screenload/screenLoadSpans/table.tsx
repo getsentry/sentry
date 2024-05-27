@@ -33,7 +33,7 @@ import {
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/mobile/screenload/settings';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -65,7 +65,7 @@ export function ScreenLoadSpansTable({
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
-  const {isProjectCrossPlatform, selectedPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([

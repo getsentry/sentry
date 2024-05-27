@@ -26,7 +26,7 @@ import {
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -55,7 +55,7 @@ type Props = {
 export function ScreenCharts({yAxes, additionalFilters}: Props) {
   const pageFilter = usePageFilters();
   const location = useLocation();
-  const {isProjectCrossPlatform, selectedPlatform: platform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 

@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -41,7 +41,7 @@ export function ScreenLoadEventSamples({
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
-  const {selectedPlatform: platform, isProjectCrossPlatform} = usePlatformSelector();
+  const {selectedPlatform: platform, isProjectCrossPlatform} = useCrossPlatformProject();
 
   const deviceClass = decodeScalar(location.query['device.class']);
 

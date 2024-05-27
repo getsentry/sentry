@@ -16,11 +16,12 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import useOrganization from 'sentry/utils/useOrganization';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
+import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
 } from 'sentry/views/performance/mobile/screenload/settings';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
@@ -29,7 +30,7 @@ import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releas
 export function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const {isProjectCrossPlatform, PlatformSelector} = usePlatformSelector();
+  const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
 

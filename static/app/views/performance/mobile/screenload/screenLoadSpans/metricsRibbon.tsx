@@ -12,7 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
@@ -45,7 +45,7 @@ export function MetricsRibbon({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const {isProjectCrossPlatform, selectedPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const queryString = useMemo(() => {
     const searchQuery = new MutableSearch([...(filters ?? [])]);

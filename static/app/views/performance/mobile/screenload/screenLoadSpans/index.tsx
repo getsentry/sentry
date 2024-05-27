@@ -28,7 +28,8 @@ import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {
@@ -53,7 +54,7 @@ function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
-  const {isProjectCrossPlatform, PlatformSelector} = usePlatformSelector();
+  const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
 

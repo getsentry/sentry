@@ -4,14 +4,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
 
 export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
 export const PLATFORM_QUERY_PARAM = 'platform';
 export const DEFAULT_PLATFORM = 'Android';
 
-function usePlatformSelector() {
+function useCrossPlatformProject() {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const location = useLocation();
@@ -21,11 +20,11 @@ function usePlatformSelector() {
       return null;
     }
 
-    return projects.find(p => p.id === String(selection.projects));
+    return projects.find(p => p.id === String(selection.projects)) ?? null;
   }, [projects, selection.projects]);
 
   const isProjectCrossPlatform = useMemo(
-    () => (project ? isCrossPlatform(project) : false),
+    () => !!(project && isCrossPlatform(project)),
     [project]
   );
 
@@ -38,8 +37,7 @@ function usePlatformSelector() {
     project,
     selectedPlatform,
     isProjectCrossPlatform,
-    PlatformSelector,
   };
 }
 
-export default usePlatformSelector;
+export default useCrossPlatformProject;

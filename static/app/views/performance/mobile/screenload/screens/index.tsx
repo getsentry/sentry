@@ -32,7 +32,7 @@ import {
 import {SETUP_CONTENT} from 'sentry/views/performance/mobile/screenload/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/screens/tabbedCodeSnippets';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -125,7 +125,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
-  const {isProjectCrossPlatform, selectedPlatform} = usePlatformSelector();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const {query: locationQuery} = location;
 
   const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);

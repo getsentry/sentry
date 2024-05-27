@@ -23,7 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -45,7 +45,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const {project} = usePlatformSelector();
+  const {project} = useCrossPlatformProject();
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {

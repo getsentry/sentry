@@ -7,8 +7,7 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {PlatformSelector as PlatformSelectorComponent} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
@@ -45,7 +44,7 @@ function mockProjects(projects: Project[]) {
   });
 }
 
-describe('usePlatformSelector', () => {
+describe('useCrossPlatformProject', () => {
   let mockProject: Project;
   beforeEach(() => {
     jest.clearAllMocks();
@@ -58,7 +57,7 @@ describe('usePlatformSelector', () => {
   it('returns null for project if >1 project is selected', () => {
     mockPageFilters([1, 2, 3]);
 
-    const {result} = renderHook(usePlatformSelector);
+    const {result} = renderHook(useCrossPlatformProject);
 
     const {project, isProjectCrossPlatform} = result.current;
 
@@ -69,17 +68,15 @@ describe('usePlatformSelector', () => {
   it('returns the corresponding project data if a single project is selected', () => {
     mockPageFilters([parseInt(mockProject.id, 10)]);
 
-    const {result} = renderHook(usePlatformSelector);
+    const {result} = renderHook(useCrossPlatformProject);
 
-    const {project, isProjectCrossPlatform, PlatformSelector, selectedPlatform} =
-      result.current;
+    const {project, isProjectCrossPlatform, selectedPlatform} = result.current;
 
     expect(project).toBe(mockProject);
     expect(isProjectCrossPlatform).toBe(true);
 
     // The default selection result is "Android"
     expect(selectedPlatform).toBe('Android');
-    expect(PlatformSelector).toBe(PlatformSelectorComponent);
   });
 
   it('returns false for isProjectCrossPlatform if project is not cross platform', () => {
@@ -88,7 +85,7 @@ describe('usePlatformSelector', () => {
     mockProjects([testProject]);
     mockPageFilters([parseInt(testProject.id, 10)]);
 
-    const {result} = renderHook(usePlatformSelector);
+    const {result} = renderHook(useCrossPlatformProject);
 
     const {project, isProjectCrossPlatform} = result.current;
 

@@ -19,7 +19,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import usePlatformSelector from 'sentry/views/performance/mobile/usePlatformSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
@@ -62,7 +62,7 @@ export function SpanSamplesContainer({
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
-  const {selectedPlatform, isProjectCrossPlatform} = usePlatformSelector();
+  const {selectedPlatform, isProjectCrossPlatform} = useCrossPlatformProject();
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
