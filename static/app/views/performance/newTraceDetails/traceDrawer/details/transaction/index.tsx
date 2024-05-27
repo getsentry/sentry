@@ -151,15 +151,13 @@ export function TransactionNodeDetails({
         />
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
-        {cacheMetrics.length && <CacheMetrics cacheMetrics={cacheMetrics} />}
+        {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
         <Sdk event={event} />
-        {event._metrics_summary ? (
-          <CustomMetricsEventData
-            metricsSummary={event._metrics_summary}
-            startTimestamp={event.startTimestamp}
-            projectId={event.projectID}
-          />
-        ) : null}
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+          projectId={event.projectID}
+        />
         <TraceDrawerComponents.TraceDataSection event={event} />
       </TraceDrawerComponents.SectionCardGroup>
 
