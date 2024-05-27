@@ -91,13 +91,13 @@ export function TraceTimeline({event}: TraceTimelineProps) {
       ) : (
         <Feature features="related-issues-issue-details-page">
           {oneOtherIssueEvent && (
-            <Fragment>
+            <div>
               <TraceIssueEventText>
                 One other issue appears in the same trace.
                 <TraceLink event={event} />
               </TraceIssueEventText>
               <TraceIssueEvent event={oneOtherIssueEvent} />
-            </Fragment>
+            </div>
           )}
         </Feature>
       )}
@@ -107,6 +107,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
 const TraceIssueEventText = styled('div')`
   display: flex;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 const TimelineWrapper = styled('div')`
