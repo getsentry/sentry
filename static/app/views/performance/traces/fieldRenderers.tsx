@@ -25,7 +25,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import type {IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
+import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
 
 import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
@@ -382,7 +382,7 @@ export function SpanTimeRenderer({
   );
 }
 
-type SpanStatus = IndexedResponse[SpanIndexedField.SPAN_STATUS];
+type SpanStatus = SpanIndexedResponse[SpanIndexedField.SPAN_STATUS];
 
 const STATUS_TO_TAG_TYPE: Record<SpanStatus, keyof Theme['tag']> = {
   ok: 'success',

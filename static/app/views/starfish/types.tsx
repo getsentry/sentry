@@ -211,7 +211,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 }
 
-export type IndexedResponse = {
+export type SpanIndexedResponse = {
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
@@ -275,10 +275,10 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
 };
 
-export type IndexedProperty = keyof IndexedResponse;
+export type SpanIndexedPropery = keyof SpanIndexedResponse;
 
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
-export type SpanIndexedFieldTypes = IndexedResponse;
+export type SpanIndexedFieldTypes = SpanIndexedResponse;
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
