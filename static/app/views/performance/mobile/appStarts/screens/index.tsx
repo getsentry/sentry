@@ -124,6 +124,10 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     ...(additionalFilters ?? []),
   ]);
 
+  if (isProjectCrossPlatform) {
+    topEventsQuery.addFilterValue('os.name', selectedPlatform);
+  }
+
   const topEventsQueryString = `${appendReleaseFilters(
     topEventsQuery,
     primaryRelease,
