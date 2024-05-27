@@ -18,6 +18,7 @@ import {
   isTransactionNode,
 } from '../guards';
 import {TraceType} from '../traceType';
+import {TraceViewSources} from '../traceViewSources';
 
 import {
   NoDataNode,
@@ -257,7 +258,8 @@ describe('TreeNode', () => {
               measurements: {ttfb: {value: 0, unit: 'millisecond'}},
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.indicators.length).toBe(1);
@@ -278,7 +280,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.indicators[0].start).toBe(500);
@@ -298,7 +301,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -316,7 +320,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -336,7 +341,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.indicators[0].start).toBe(1000);
@@ -542,7 +548,8 @@ describe('TreeNode', () => {
         makeTrace({
           transactions: [],
           orphan_errors: [makeTraceError({event_id: 'error_id'})],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.list[1].path).toEqual(['error-error_id']);
@@ -558,7 +565,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -613,7 +621,8 @@ describe('TreeNode', () => {
             }),
           ],
           orphan_errors: [],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(adjusted.root.space).toEqual([1000, 2000]);
@@ -638,7 +647,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -666,7 +676,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -714,7 +725,8 @@ describe('TreeNode', () => {
                 event_id: 'event_id',
               }),
             ],
-          })
+          }),
+          TraceViewSources.PERFORMANCE
         );
 
         MockApiClient.addMockResponse({
@@ -761,7 +773,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -813,7 +826,8 @@ describe('TraceTree', () => {
             children: [],
           }),
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(3);
@@ -831,7 +845,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [makeTraceError()],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(4);
@@ -852,7 +867,8 @@ describe('TraceTree', () => {
             event_type: 'error',
           } as TraceTree.TraceError,
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(3);
@@ -872,7 +888,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [makeTraceError({timestamp: 1, level: 'error'})],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(4);
@@ -898,7 +915,8 @@ describe('TraceTree', () => {
           makeTraceError({timestamp: 0.05}),
           makeTraceError({timestamp: 0.3}),
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(5);
@@ -913,7 +931,8 @@ describe('TraceTree', () => {
       makeTrace({
         transactions: [],
         orphan_errors: [],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.shape).toBe(TraceType.EMPTY_TRACE);
@@ -929,7 +948,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.shape).toBe(TraceType.NO_ROOT);
@@ -943,7 +963,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.shape).toBe(TraceType.ONE_ROOT);
@@ -960,7 +981,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.shape).toBe(TraceType.BROKEN_SUBTRACES);
@@ -978,7 +1000,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.shape).toBe(TraceType.MULTIPLE_ROOTS);
@@ -987,7 +1010,8 @@ describe('TraceTree', () => {
       makeTrace({
         transactions: [],
         orphan_errors: [makeTraceError()],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
@@ -1215,7 +1239,8 @@ describe('TraceTree', () => {
             children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
           }),
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     tree.expand(tree.list[0], true);
@@ -1285,7 +1310,8 @@ describe('TraceTree', () => {
             timestamp: 4,
           }),
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(5);
@@ -1312,7 +1338,8 @@ describe('TraceTree', () => {
             timestamp: 4,
           }),
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.list).toHaveLength(4);
@@ -1327,7 +1354,8 @@ describe('TraceTree', () => {
             children: [makeTransaction()],
           }),
         ],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     expect(tree.root.children).toHaveLength(1);
@@ -1344,7 +1372,8 @@ describe('TraceTree', () => {
           makeTransaction(),
         ],
         orphan_errors: [],
-      })
+      }),
+      TraceViewSources.PERFORMANCE
     );
 
     tree.expand(tree.list[1], true);
@@ -1370,7 +1399,8 @@ describe('TraceTree', () => {
             }),
             makeTransaction({transaction: 'sibling'}),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       // -1  root
@@ -1410,7 +1440,8 @@ describe('TraceTree', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       // root
@@ -1447,7 +1478,8 @@ describe('TraceTree', () => {
   describe('expanding', () => {
     it('expands a node and updates the list', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        TraceViewSources.PERFORMANCE
       );
 
       const node = tree.list[1];
@@ -1465,7 +1497,8 @@ describe('TraceTree', () => {
 
     it('collapses a node and updates the list', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        TraceViewSources.PERFORMANCE
       );
 
       const node = tree.list[1];
@@ -1490,7 +1523,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       expect(tree.expand(tree.list[2], false)).toBe(true);
@@ -1509,7 +1543,8 @@ describe('TraceTree', () => {
       const api = new MockApiClient();
 
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        TraceViewSources.PERFORMANCE
       );
 
       const node = tree.list[0];
@@ -1533,7 +1568,8 @@ describe('TraceTree', () => {
       const api = new MockApiClient();
 
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        TraceViewSources.PERFORMANCE
       );
 
       const node = tree.list[0];
@@ -1561,7 +1597,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -1641,7 +1678,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       const request = MockApiClient.addMockResponse({
@@ -1670,7 +1708,8 @@ describe('TraceTree', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       const request = MockApiClient.addMockResponse({
@@ -1718,7 +1757,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -1761,7 +1801,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       const first_request = MockApiClient.addMockResponse({
@@ -1811,7 +1852,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -1848,7 +1890,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -1903,7 +1946,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       const request = MockApiClient.addMockResponse({
@@ -1951,7 +1995,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
@@ -2430,7 +2475,8 @@ describe('TraceTree', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        TraceViewSources.PERFORMANCE
       );
 
       MockApiClient.addMockResponse({
