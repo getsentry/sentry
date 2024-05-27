@@ -666,16 +666,13 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
-    const newState = {
-      modifiedDashboard: {
-        ...(this.state.modifiedDashboard || this.props.dashboard),
-        widgets,
-      },
-    };
     this.setState((state: State) => ({
       ...state,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
-      modifiedDashboard: newState.modifiedDashboard,
+      modifiedDashboard: {
+        ...(state.modifiedDashboard || this.props.dashboard),
+        widgets,
+      },
     }));
   };
 
