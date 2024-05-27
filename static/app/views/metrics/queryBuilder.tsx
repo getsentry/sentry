@@ -237,7 +237,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning size="xs" color="yellow400" />);
         }
-        if (parseMRI(metric.mri)?.useCase !== 'custom' && !mriMode) {
+        if (parseMRI(metric.mri)?.useCase === 'custom' && !mriMode) {
           trailingItems.push(<CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>);
         }
         return {
