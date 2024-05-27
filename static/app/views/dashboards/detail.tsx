@@ -1,7 +1,6 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -496,21 +495,19 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const widgetCopy = cloneDeep(
-      assignTempId({
-        layout,
-        ...defaultMetricWidget(),
-      })
-    );
+    const widgetCopy = assignTempId({
+      layout,
+      ...defaultMetricWidget(),
+    });
+
+    const currentWidgets =
+      this.state.modifiedDashboard?.widgets ?? this.props.dashboard.widgets;
 
     openWidgetViewerModal({
       organization: this.props.organization,
       widget: widgetCopy,
       onMetricWidgetEdit: widget => {
-        const nextList = generateWidgetsAfterCompaction([
-          ...this.props.dashboard.widgets,
-          widget,
-        ]);
+        const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
         this.onUpdateWidget(nextList);
         this.handleUpdateWidgetList(nextList);
       },
@@ -669,13 +666,16 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   onUpdateWidget = (widgets: Widget[]) => {
+    const newState = {
+      modifiedDashboard: {
+        ...(this.state.modifiedDashboard || this.props.dashboard),
+        widgets,
+      },
+    };
     this.setState((state: State) => ({
       ...state,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
-      modifiedDashboard: {
-        ...(state.modifiedDashboard || this.props.dashboard),
-        widgets,
-      },
+      modifiedDashboard: newState.modifiedDashboard,
     }));
   };
 
