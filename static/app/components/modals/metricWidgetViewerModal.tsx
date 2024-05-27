@@ -202,8 +202,7 @@ function MetricWidgetViewerModal({
       toDisplayType(displayType),
       widget.interval
     );
-
-    onMetricWidgetEdit?.(convertedWidget);
+    onMetricWidgetEdit?.({...widget, ...convertedWidget});
 
     closeModal();
   }, [
@@ -213,7 +212,7 @@ function MetricWidgetViewerModal({
     displayType,
     onMetricWidgetEdit,
     closeModal,
-    widget.interval,
+    widget,
   ]);
 
   return (
