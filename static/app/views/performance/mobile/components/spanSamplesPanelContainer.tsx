@@ -9,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -20,12 +19,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {
@@ -45,7 +39,6 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   additionalFilters?: Record<string, string>;
-  project?: Project | null;
   release?: string;
   searchQueryKey?: string;
   sectionSubtitle?: string;
@@ -60,16 +53,16 @@ export function SpanSamplesContainer({
   transactionName,
   transactionMethod,
   release,
-  project,
   searchQueryKey,
   spanOp,
   additionalFilters,
 }: Props) {
-  const router = useRouter();
   const location = useLocation();
+  const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
+  const {selectedPlatform, isProjectCrossPlatform} = useCrossPlatformProject();
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -79,12 +72,6 @@ export function SpanSamplesContainer({
     searchQueryKey !== undefined
       ? decodeScalar(location.query[searchQueryKey])
       : undefined;
-
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -114,8 +101,8 @@ export function SpanSamplesContainer({
     filters.release = release;
   }
 
-  if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
-    filters['os.name'] = platform;
+  if (isProjectCrossPlatform) {
+    filters['os.name'] = selectedPlatform;
   }
 
   if (spanOp) {
@@ -195,11 +182,7 @@ export function SpanSamplesContainer({
         onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
         highlightedSpanId={highlightedSpanId}
         release={release}
-        platform={
-          project && isCrossPlatform(project) && hasPlatformSelectFeature
-            ? platform
-            : undefined
-        }
+        platform={isProjectCrossPlatform ? selectedPlatform : undefined}
       />
 
       <Feature features="performance-sample-panel-search">

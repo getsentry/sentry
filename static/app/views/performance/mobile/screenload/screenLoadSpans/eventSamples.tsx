@@ -2,22 +2,15 @@ import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -34,7 +27,6 @@ type Props = {
   release: string;
   sortKey: string;
   transaction: string;
-  project?: Project | null;
   showDeviceClassSelector?: boolean;
 };
 
@@ -44,21 +36,14 @@ export function ScreenLoadEventSamples({
   release,
   sortKey,
   showDeviceClassSelector,
-  project,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
-  const organization = useOrganization();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
+  const {selectedPlatform: platform, isProjectCrossPlatform} = useCrossPlatformProject();
 
   const deviceClass = decodeScalar(location.query['device.class']);
-
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   const searchQuery = useMemo(() => {
     const mutableQuery = new MutableSearch([
@@ -67,7 +52,7 @@ export function ScreenLoadEventSamples({
       `release:${release}`,
     ]);
 
-    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+    if (isProjectCrossPlatform) {
       mutableQuery.addFilterValue('os.name', platform);
     }
 
@@ -80,7 +65,7 @@ export function ScreenLoadEventSamples({
     }
 
     return mutableQuery;
-  }, [deviceClass, hasPlatformSelectFeature, platform, project, release, transaction]);
+  }, [deviceClass, isProjectCrossPlatform, platform, release, transaction]);
 
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 

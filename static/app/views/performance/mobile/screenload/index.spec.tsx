@@ -11,7 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import PageloadModule from 'sentry/views/performance/mobile/screenload';
-import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
+import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');
