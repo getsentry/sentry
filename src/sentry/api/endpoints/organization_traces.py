@@ -220,6 +220,8 @@ class TraceSamplesExecutor:
 
         with handle_query_errors():
             all_queries = self.get_all_queries(
+                self.params,
+                self.snuba_params,
                 all_projects_params,
                 all_projects_snuba_params,
                 trace_ids,
@@ -541,12 +543,14 @@ class TraceSamplesExecutor:
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
+        all_projects_params: ParamsType,
+        all_projects_snuba_params: SnubaParams,
         trace_ids: list[str],
         span_keys: list[SpanKey] | None,
     ) -> list[QueryBuilder]:
         meta_data_queries = self.get_all_meta_data_queries(
-            params,
-            snuba_params,
+            all_projects_params,
+            all_projects_snuba_params,
             trace_ids,
         )
 
