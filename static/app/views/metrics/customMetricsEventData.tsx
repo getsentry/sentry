@@ -84,6 +84,7 @@ export function CustomMetricsEventData({
 }) {
   const hasNewTagsUI = useHasNewTagsUI();
   const organization = useOrganization();
+
   const start = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS).toISOString();
   const end = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS).toISOString();
 

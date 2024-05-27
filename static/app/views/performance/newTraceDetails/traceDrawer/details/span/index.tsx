@@ -124,13 +124,11 @@ export function SpanNodeDetails({
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
                   <SpanKeys node={node} />
-                  {node.value._metrics_summary ? (
-                    <CustomMetricsEventData
-                      projectId={project?.id || ''}
-                      metricsSummary={node.value._metrics_summary}
-                      startTimestamp={node.value.start_timestamp}
-                    />
-                  ) : null}
+                  <CustomMetricsEventData
+                    projectId={project?.id || ''}
+                    metricsSummary={node.value._metrics_summary}
+                    startTimestamp={node.value.start_timestamp}
+                  />
                 </TraceDrawerComponents.SectionCardGroup>
                 <EventContexts event={event} />
                 {organization.features.includes('profiling') ? (

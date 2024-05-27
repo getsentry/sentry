@@ -159,6 +159,9 @@ const filterChildren = (children: ReactNode): ReactNode[] => {
   });
 };
 
+// Note: When rendered children have hooks, we need to ensure that there are no hook count mismatches between renders.
+// Instead of rendering rendering {condition ? <Component/> : null}, we should render
+// if(!condition) return null inside Component itself, where Component renders a Card.
 export function Group({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
