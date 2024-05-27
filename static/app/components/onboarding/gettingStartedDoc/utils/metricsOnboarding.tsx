@@ -151,9 +151,10 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
 const getJSServerConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
-  _experiments: {
-    metricsAggregator: true,
-  },
+  // Only needed for SDK versions < 8.0.0
+  // _experiments: {
+  //   metricsAggregator: true,
+  // },
 });`;
 
 export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
@@ -175,23 +176,13 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
+      description: t(
+        'With the default snippet in place, there is no need for any further configuration.'
       ),
       configurations: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getJSServerConfigureSnippet(params),
-            },
-          ],
+          code: getJSServerConfigureSnippet(params),
+          language: 'javascript',
         },
       ],
     },
