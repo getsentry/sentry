@@ -27,6 +27,7 @@ import {
   IconProfiling,
   IconProject,
   IconReleases,
+  IconSearch,
   IconSettings,
   IconSiren,
   IconStats,
@@ -190,6 +191,10 @@ function Sidebar() {
     organization,
   };
 
+  // New hierarchy organizes current links into two accordions: "Explore" and "Insights". This means setting up different sidebar groupings, and changing some link icons to small dots, since they now live under an accordion
+  const hasNewSidebarHierarchy =
+    hasOrganization && organization.features.includes('performance-insights');
+
   const sidebarAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
@@ -228,7 +233,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTelescope />}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconTelescope />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
@@ -378,7 +383,7 @@ function Sidebar() {
     <Feature features="ai-analytics" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconRobot />}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconRobot />}
         label={MODULE_TITLES.ai}
         isAlpha
         variant="short"
@@ -395,11 +400,13 @@ function Sidebar() {
       organization={organization}
     >
       {(() => {
-        // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
+        // If the client has the old sidebar hierarchy _and_ something to show inside the Performance dropdown, render an accordion.
         if (
-          organization.features.includes('spans-first-ui') ||
-          organization.features.includes('performance-cache-view') ||
-          organization.features.includes('performance-queues-view')
+          !hasNewSidebarHierarchy &&
+          (organization.features.includes('spans-first-ui') ||
+            organization.features.includes('performance-cache-view') ||
+            organization.features.includes('performance-queues-view') ||
+            organization.features.includes('performance-trace-explorer'))
         ) {
           return (
             <SidebarAccordion
@@ -502,7 +509,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconPlay />}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconPlay />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -516,7 +523,7 @@ function Sidebar() {
   const metrics = hasOrganization && canSeeMetricsPage(organization) && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={<IconGraph />}
+      icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
       label={t('Metrics')}
       to={metricsPath}
       search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
@@ -554,8 +561,8 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconProfiling />}
-        label={t('Profiling')}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconProfiling />}
+        label={hasNewSidebarHierarchy ? t('Profiles') : t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
       />
@@ -582,6 +589,43 @@ function Sidebar() {
     />
   );
 
+  const insights = (
+    <SidebarAccordion
+      {...sidebarItemProps}
+      icon={<IconGraph />}
+      label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+      id="insights"
+      exact={!shouldAccordionFloat}
+    >
+      {requests}
+      {queries}
+      {resources}
+      {appStarts}
+      {screenLoads}
+      {webVitals}
+      {caches}
+      {queues}
+      {mobileUI}
+      {llmMonitoring}
+    </SidebarAccordion>
+  );
+
+  const explore = (
+    <SidebarAccordion
+      {...sidebarItemProps}
+      icon={<IconSearch />}
+      label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
+      id="explore"
+      exact={!shouldAccordionFloat}
+    >
+      {traces}
+      {metrics}
+      {profiling}
+      {replays}
+      {discover2}
+    </SidebarAccordion>
+  );
+
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <ExpandedContextProvider>
@@ -604,23 +648,45 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                <SidebarSection>
-                  {performance}
-                  {profiling}
-                  {metrics}
-                  {replays}
-                  {llmMonitoring}
-                  {feedback}
-                  {monitors}
-                  {alerts}
-                </SidebarSection>
+                {hasNewSidebarHierarchy && (
+                  <Fragment>
+                    <SidebarSection>
+                      {explore}
+                      {insights}
+                    </SidebarSection>
 
-                <SidebarSection>
-                  {discover2}
-                  {dashboards}
-                  {releases}
-                  {userFeedback}
-                </SidebarSection>
+                    <SidebarSection>
+                      {performance}
+                      {feedback}
+                      {monitors}
+                      {alerts}
+                      {dashboards}
+                      {releases}
+                    </SidebarSection>
+                  </Fragment>
+                )}
+
+                {!hasNewSidebarHierarchy && (
+                  <Fragment>
+                    <SidebarSection>
+                      {performance}
+                      {profiling}
+                      {metrics}
+                      {replays}
+                      {llmMonitoring}
+                      {feedback}
+                      {monitors}
+                      {alerts}
+                    </SidebarSection>
+
+                    <SidebarSection>
+                      {discover2}
+                      {dashboards}
+                      {releases}
+                      {userFeedback}
+                    </SidebarSection>
+                  </Fragment>
+                )}
 
                 <SidebarSection>
                   {stats}
