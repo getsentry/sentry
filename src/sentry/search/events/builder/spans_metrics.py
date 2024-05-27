@@ -13,7 +13,6 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
-    free_text_key = "span.description"
 
     @property
     def use_default_tags(self) -> bool:
