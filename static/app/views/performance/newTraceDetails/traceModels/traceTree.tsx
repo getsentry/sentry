@@ -203,6 +203,12 @@ function fetchTransactionSpans(
   );
 }
 
+function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
+  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+    transaction.sdk
+  );
+}
+
 function measurementToTimestamp(
   start_timestamp: number,
   measurement: number,
@@ -588,7 +594,8 @@ export class TraceTree {
       (stats, transaction) => {
         if (isRootTransaction(transaction)) {
           stats.roots++;
-          if (transaction.sdk === 'javascript') {
+
+          if (isJavascriptSDKTransaction(transaction)) {
             stats.javascriptRootTransactions.push(transaction);
           }
         } else {
