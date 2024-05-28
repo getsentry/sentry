@@ -471,7 +471,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self._expand("sentryAppIssues"):
             result["sentryAppIssues"] = attrs["sentryAppIssues"]
 
-        if self._expand("latestEventHasAttachments") and "latestEventHasAttachments" in result:
+        if self._expand("latestEventHasAttachments") and "latestEventHasAttachments" in attrs:
             result["latestEventHasAttachments"] = attrs["latestEventHasAttachments"]
 
         return result

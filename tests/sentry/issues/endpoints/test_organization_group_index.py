@@ -1951,7 +1951,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     @patch("sentry.models.Group.get_latest_event", return_value=None)
     def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event) -> None:
         self.store_event(
-            data={"timestamp": None, "fingerprint": ["group-1"]},
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
