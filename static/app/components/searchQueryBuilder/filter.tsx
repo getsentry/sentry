@@ -138,7 +138,7 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
       <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
-          onChange={() => {
+          onCommit={() => {
             setIsEditing(false);
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(

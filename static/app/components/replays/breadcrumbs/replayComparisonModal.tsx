@@ -235,7 +235,7 @@ const DiffHeader = styled('div')`
   flex-direction: row;
   align-items: center;
   flex: 1;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.2;
 
   div {
