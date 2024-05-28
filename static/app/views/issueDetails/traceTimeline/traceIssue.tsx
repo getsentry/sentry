@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,27 +57,29 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
       {project && (
         <ProjectBadge
           project={project}
-          avatarSize={parseInt(space(2), 10)}
+          avatarSize={parseInt(space(4), 10)}
           hideName
           disableLink
         />
       )}
       <IssueDetails>
-        {isLoadingGroupData
-          ? 'Loading...'
-          : groupData && (
-              <Fragment>
-                <NoOverflowDiv>
-                  <TraceIssueEventTitle>
-                    {groupData.metadata.title || groupData.metadata.type}
-                  </TraceIssueEventTitle>
-                  <TraceIssueEventTransaction>
-                    {event.transaction}
-                  </TraceIssueEventTransaction>
-                </NoOverflowDiv>
-                <NoOverflowDiv>{groupData.metadata.value}</NoOverflowDiv>
-              </Fragment>
-            )}
+        {isLoadingGroupData ? (
+          <LoadingIndicator mini />
+        ) : (
+          groupData && (
+            <Fragment>
+              <NoOverflowDiv>
+                <TraceIssueEventTitle>
+                  {groupData.metadata.title || groupData.metadata.type}
+                </TraceIssueEventTitle>
+                <TraceIssueEventTransaction>
+                  {event.transaction}
+                </TraceIssueEventTransaction>
+              </NoOverflowDiv>
+              <NoOverflowDiv>{groupData.metadata.value}</NoOverflowDiv>
+            </Fragment>
+          )
+        )}
       </IssueDetails>
     </TraceIssueEventRoot>
   );
