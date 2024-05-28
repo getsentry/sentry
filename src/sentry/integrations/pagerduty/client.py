@@ -64,6 +64,8 @@ class PagerDutyClient(ApiClient):
                     "component": group.project.slug,
                     "custom_details": custom_details,
                 },
+                "client": "sentry",
+                "client_url": group.get_absolute_url(params=link_params),
                 "links": [
                     {
                         "href": group.get_absolute_url(params=link_params),
