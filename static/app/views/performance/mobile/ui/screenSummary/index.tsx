@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -10,16 +9,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
-import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 type Query = {
   'device.class': string;
@@ -33,7 +30,6 @@ type Query = {
 };
 
 function ScreenSummary() {
-  const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();
 
@@ -45,37 +41,21 @@ function ScreenSummary() {
     'device.class': deviceClass,
   } = location.query;
 
-  const crumbs: Crumb[] = [
-    {
-      label: t('Performance'),
-      to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-      preservePageFilters: true,
-    },
-    {
-      label: t('Mobile UI'),
-      to: normalizeUrl({
-        pathname: `/organizations/${organization.slug}/performance/mobile/ui/`,
-        query: {
-          ...omit(location.query, [
-            QueryParameterNames.SPANS_SORT,
-            'transaction',
-            SpanMetricsField.SPAN_OP,
-          ]),
-        },
-      }),
-      preservePageFilters: true,
-    },
-    {
-      label: t('Screen Summary'),
-    },
-  ];
+  const crumbs = useModuleBreadcrumbs('mobile-ui');
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: t('Screen Summary'),
+                },
+              ]}
+            />
             <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
@@ -101,11 +81,12 @@ function ScreenSummary() {
             </SamplesContainer>
 
             {spanGroup && spanOp && (
-              <ScreenLoadSpanSamples
+              <SpanSamplesPanel
                 additionalFilters={{
                   ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
                 }}
                 groupId={spanGroup}
+                moduleName={ModuleName.OTHER}
                 transactionName={transactionName}
                 spanDescription={spanDescription}
                 spanOp={spanOp}
@@ -137,8 +118,8 @@ function PageWithProviders() {
 
   return (
     <ModulePageProviders
-      title={[transaction, t('Screen Loads')].join(' — ')}
-      baseURL="/performance/mobile/ui/spans"
+      moduleName="mobile-ui"
+      pageTitle={transaction}
       features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />

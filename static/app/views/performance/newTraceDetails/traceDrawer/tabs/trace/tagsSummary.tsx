@@ -10,7 +10,7 @@ import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFac
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
@@ -125,7 +125,8 @@ export function TagsSummary(props: TagSummaryProps) {
       items={[
         {
           key: 'tags',
-          subject: null,
+          subject: t('Tags'),
+          subjectNode: null,
           value: (
             <Fragment>
               {tags.length > 0 ? (

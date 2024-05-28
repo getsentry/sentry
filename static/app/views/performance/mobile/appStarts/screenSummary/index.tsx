@@ -1,9 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,25 +14,22 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SamplesTables} from 'sentry/views/performance/mobile/appStarts/screenSummary/samples';
 import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpanSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/samples';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 import AppStartWidgets from './widgets';
 
@@ -51,7 +46,6 @@ type Query = {
 };
 
 export function ScreenSummary() {
-  const organization = useOrganization();
   const location = useLocation<Query>();
   const router = useRouter();
 
@@ -79,41 +73,21 @@ export function ScreenSummary() {
     }
   }, [location, appStartType]);
 
-  const startupModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/performance/mobile/app-startup/`,
-    query: {
-      ...omit(location.query, [
-        QueryParameterNames.SPANS_SORT,
-        'transaction',
-        SpanMetricsField.SPAN_OP,
-        SpanMetricsField.APP_START_TYPE,
-      ]),
-    },
-  };
-
-  const crumbs: Crumb[] = [
-    {
-      label: t('Performance'),
-      to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-      preservePageFilters: true,
-    },
-    {
-      to: startupModule,
-      label: t('App Starts'),
-      preservePageFilters: true,
-    },
-    {
-      to: '',
-      label: t('Screen Summary'),
-    },
-  ];
+  const crumbs = useModuleBreadcrumbs('app_start');
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: t('Screen Summary'),
+                },
+              ]}
+            />
             <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
@@ -186,12 +160,13 @@ export function ScreenSummary() {
               <SamplesTables transactionName={transactionName} />
             </SamplesContainer>
             {spanGroup && spanOp && appStartType && (
-              <ScreenLoadSpanSamples
+              <SpanSamplesPanel
                 additionalFilters={{
                   [SpanMetricsField.APP_START_TYPE]: appStartType,
                   ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
                 }}
                 groupId={spanGroup}
+                moduleName={ModuleName.APP_START}
                 transactionName={transactionName}
                 spanDescription={spanDescription}
                 spanOp={spanOp}
@@ -223,8 +198,8 @@ function PageWithProviders() {
 
   return (
     <ModulePageProviders
-      title={[transaction, ROUTE_NAMES['app-startup']].join(' — ')}
-      baseURL="/performance/mobile/app-startup/spans"
+      moduleName="app_start"
+      pageTitle={transaction}
       features="spans-first-ui"
     >
       <ScreenSummary />

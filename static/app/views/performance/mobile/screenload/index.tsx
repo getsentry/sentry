@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -10,59 +9,50 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/mobile/screenload/settings';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 export function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
+  const {isProjectCrossPlatform} = useCrossPlatformProject();
 
-  const project = useMemo(() => {
-    if (selection.projects.length !== 1) {
-      return null;
-    }
-    return projects.find(p => p.id === String(selection.projects));
-  }, [projects, selection.projects]);
+  const crumbs = useModuleBreadcrumbs('screen_load');
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Performance'),
-                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                  preservePageFilters: true,
-                },
-                {
-                  label: ROUTE_NAMES.pageload,
-                },
-              ]}
-            />
+            <Breadcrumbs crumbs={crumbs} />
             <HeaderWrapper>
-              <Layout.Title>{t('Screen Loads')}</Layout.Title>
+              <Layout.Title>
+                {t('Screen Loads')}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Layout.Title>
             </HeaderWrapper>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              {project && isCrossPlatform(project) && <PlatformSelector />}
+              {isProjectCrossPlatform && <PlatformSelector />}
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>
@@ -86,11 +76,7 @@ export function PageloadModule() {
                 </OnboardingContainer>
               )}
               {!onboardingProject && (
-                <ScreensView
-                  yAxes={[YAxis.TTID, YAxis.TTFD]}
-                  chartHeight={240}
-                  project={project}
-                />
+                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
               )}
             </ErrorBoundary>
           </Layout.Main>
@@ -102,11 +88,7 @@ export function PageloadModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={t('Screen Loads')}
-      baseURL="/performance/mobile/screens"
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="screen_load" features="spans-first-ui">
       <PageloadModule />
     </ModulePageProviders>
   );

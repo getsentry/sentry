@@ -48,7 +48,7 @@ def build_checkin_processing_error(
         processing_errors = [
             {
                 "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
-                "existing_environment": "some-env",
+                "existingEnvironment": "some-env",
             },
         ]
     return CheckinProcessingError(processing_errors, build_checkin_item(**checkin_item_params))

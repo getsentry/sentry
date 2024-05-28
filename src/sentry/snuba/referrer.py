@@ -481,6 +481,21 @@ class Referrer(Enum):
         "api.performance.cache.samples-cache-hit-miss-chart",
     )
 
+    # Performance Queues Module
+    API_PERFORMANCE_QUEUES_DEFAULT_REFERRER = "api.performance.queues"
+    API_PERFORMANCE_QUEUES_LANDING_ONBOARDING = "api.performance.queues.landing-onboarding"
+    API_PERFORMANCE_QUEUES_LANDING_CHARTS = "api.performance.queues.landing-charts"
+    API_PERFORMANCE_QUEUES_LANDING_DESTINATIONS_TABLE = (
+        "api.performance.queues.landing-destinations-table"
+    )
+    API_PERFORMANCE_QUEUES_SUMMARY = "api.performance.queues.summary"
+    API_PERFORMANCE_QUEUES_SUMMARY_CHARTS = "api.performance.queues.summary-charts"
+    API_PERFORMANCE_QUEUES_SUMMARY_TRANSACTIONS_TABLE = (
+        "api.performance.queues.summary-transactions-table"
+    )
+    API_PERFORMANCE_QUEUES_SAMPLES_PANEL = "api.performance.queues.samples-panel"
+    API_PERFORMANCE_QUEUES_SAMPLES_PANEL_TABLE = "api.performance.queues.samples-panel-table"
+
     # Performance Requests Module
     API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
     API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"

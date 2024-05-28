@@ -142,7 +142,7 @@ function AccordionWidget({
                 d.dom_element.fullSelector
               )}"`;
               return {
-                header: () => (
+                header: (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element.selector}
@@ -151,7 +151,7 @@ function AccordionWidget({
                     id={d.project_id}
                   />
                 ),
-                content: () => (
+                content: (
                   <ExampleReplaysList
                     location={location}
                     clickType={clickType}

@@ -2,14 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
-
-jest.mock('sentry/utils/useOrganization');
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 describe('queuesTable', () => {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   let eventsMock;
 
@@ -34,6 +31,8 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 0,
             'avg_if(span.duration,span.op,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
+            'trace_status_rate(ok)': 0.8,
+            'time_spent_percentage(app,span.duration)': 0.5,
           },
         ],
         meta: {
@@ -46,13 +45,20 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)': 'duration',
             'avg_if(span.duration,span.op,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
+            'trace_status_rate(ok)': 'percentage',
+            'time_spent_percentage(app,span.duration)': 'percentage',
           },
         },
       },
     });
   });
   it('renders', async () => {
-    render(<QueuesTable />);
+    render(
+      <QueuesTable
+        sort={{field: 'time_spent_percentage(app,span.duration)', kind: 'desc'}}
+      />,
+      {organization}
+    );
     expect(screen.getByRole('table', {name: 'Queues'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Destination'})).toBeInTheDocument();
     expect(
@@ -79,7 +85,8 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
-            'time_spent_percentage()',
+            'trace_status_rate(ok)',
+            'time_spent_percentage(app,span.duration)',
           ],
           dataset: 'spansMetrics',
         }),
@@ -90,14 +97,16 @@ describe('queuesTable', () => {
     expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20%'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
   it('searches for a destination and sorts', async () => {
     render(
       <QueuesTable
         destination="*events*"
-        sort={{field: 'messaging.destination.name', kind: 'desc'}}
-      />
+        sort={{field: SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
+      />,
+      {organization}
     );
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -113,7 +122,8 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.publish)',
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
-            'time_spent_percentage()',
+            'trace_status_rate(ok)',
+            'time_spent_percentage(app,span.duration)',
           ],
           dataset: 'spansMetrics',
           sort: '-messaging.destination.name',

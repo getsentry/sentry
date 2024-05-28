@@ -16,9 +16,11 @@ export enum ModuleName {
   CACHE = 'cache',
   VITAL = 'vital',
   QUEUE = 'queue',
-  SCREEN = 'screen',
-  STARTUP = 'startup',
+  SCREEN_LOAD = 'screen_load',
+  APP_START = 'app_start',
   RESOURCE = 'resource',
+  AI = 'ai',
+  MOBILE_UI = 'mobile-ui',
   ALL = '',
   OTHER = 'other',
 }
@@ -95,7 +97,11 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
-export type ConditionalAggregate = `avg_if` | `count_op`;
+export type ConditionalAggregate =
+  | `avg_if`
+  | `count_op`
+  | 'trace_status_rate'
+  | 'time_spent_percentage';
 
 export const SPAN_FUNCTIONS = [
   'sps',
@@ -168,6 +174,7 @@ export enum SpanIndexedField {
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
+  SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
@@ -201,6 +208,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_BODY_SIZE = 'measurements.messaging.message.body.size',
   MESSAGING_MESSAGE_RECEIVE_LATENCY = 'measurements.messaging.message.receive.latency',
   MESSAGING_MESSAGE_RETRY_COUNT = 'measurements.messaging.message.retry.count',
+  MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 }
 
 export type IndexedResponse = {
@@ -215,6 +223,24 @@ export type IndexedResponse = {
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
+  [SpanIndexedField.SPAN_STATUS]:
+    | 'ok'
+    | 'cancelled'
+    | 'unknown'
+    | 'invalid_argument'
+    | 'deadline_exceeded'
+    | 'not_found'
+    | 'already_exists'
+    | 'permission_denied'
+    | 'resource_exhausted'
+    | 'failed_precondition'
+    | 'aborted'
+    | 'out_of_range'
+    | 'unimplemented'
+    | 'internal_error'
+    | 'unavailable'
+    | 'data_loss'
+    | 'unauthenticated';
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
@@ -246,6 +272,7 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: number;
   [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: number;
+  [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
 };
 
 export type IndexedProperty = keyof IndexedResponse;
@@ -264,6 +291,7 @@ export enum SpanFunction {
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
   COUNT_OP = 'count_op',
+  TRACE_STATUS_RATE = 'trace_status_rate',
 }
 
 export const StarfishDatasetFields = {
@@ -320,6 +348,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
   [SpanFunction.COUNT_OP]: {
     desc: t('Count of spans with matching operation'),
     defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.TRACE_STATUS_RATE]: {
+    desc: t('Percentage of spans with matching trace status'),
+    defaultOutputType: 'percentage',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },

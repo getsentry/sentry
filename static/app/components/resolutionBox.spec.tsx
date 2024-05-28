@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {GroupActivityType} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types/group';
 
 import ResolutionBox from './resolutionBox';
 

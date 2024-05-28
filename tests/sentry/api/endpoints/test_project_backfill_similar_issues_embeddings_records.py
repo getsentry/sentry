@@ -16,8 +16,8 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-backfill-similar-embeddings-records",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -41,24 +41,24 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records.delay"
     )
     @with_feature("projects:similarity-embeddings-backfill")
-    def test_post_success_no_last_processed_id(
+    def test_post_success_no_last_processed_index(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
         response = self.client.post(self.url, data={})
         assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, None, False)
+        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, None, False, False)
 
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records.delay"
     )
     @with_feature("projects:similarity-embeddings-backfill")
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_post_success_no_last_processed_id_single_org(
+    def test_post_success_no_last_processed_index_single_org(
         self, mock_backfill_seer_grouping_records
     ):
         response = self.client.post(self.url, data={})
         assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, None, False)
+        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, None, False, False)
 
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
@@ -68,12 +68,12 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records.delay"
     )
     @with_feature("projects:similarity-embeddings-backfill")
-    def test_post_success_last_processed_id(
+    def test_post_success_last_processed_index(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
-        response = self.client.post(self.url, data={"last_processed_id": "8"})
+        response = self.client.post(self.url, data={"last_processed_index": "8"})
         assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, 8, False)
+        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, 8, False, False)
 
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
@@ -86,6 +86,23 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     def test_post_success_dry_run(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
-        response = self.client.post(self.url, data={"last_processed_id": "8", "dry_run": "true"})
+        response = self.client.post(self.url, data={"last_processed_index": "8", "dry_run": "true"})
         assert response.status_code == 204, response.content
-        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, 8, True)
+        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, 8, True, False)
+
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
+        return_value=True,
+    )
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records.delay"
+    )
+    @with_feature("projects:similarity-embeddings-backfill")
+    def test_post_success_only_delete(
+        self, mock_backfill_seer_grouping_records, mock_is_active_superuser
+    ):
+        response = self.client.post(
+            self.url, data={"last_processed_index": "8", "only_delete": "true"}
+        )
+        assert response.status_code == 204, response.content
+        mock_backfill_seer_grouping_records.assert_called_with(self.project.id, 8, False, True)

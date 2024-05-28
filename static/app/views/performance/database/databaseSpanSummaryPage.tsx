@@ -15,8 +15,6 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
@@ -25,6 +23,7 @@ import {useSelectedDurationAggregate} from 'sentry/views/performance/database/us
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
@@ -46,7 +45,6 @@ type Query = {
 type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
-  const organization = useOrganization();
   const location = useLocation<Query>();
 
   const [selectedAggregate] = useSelectedDurationAggregate();
@@ -151,24 +149,15 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
+  const crumbs = useModuleBreadcrumbs('db');
+
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Queries',
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/database`
-                ),
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: 'Query Summary',
               },
@@ -313,8 +302,8 @@ const MetricsRibbon = styled('div')`
 function PageWithProviders(props) {
   return (
     <ModulePageProviders
-      title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
-      baseURL="/performance/database"
+      moduleName="db"
+      pageTitle={t('Query Summary')}
       features="spans-first-ui"
     >
       <DatabaseSpanSummaryPage {...props} />

@@ -1,14 +1,22 @@
-import {Fragment, startTransition, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  startTransition,
+  type SyntheticEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSettings, IconWarning} from 'sentry/icons';
+import {IconInfo, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MRI, Project} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {Project} from 'sentry/types/project';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
@@ -24,11 +32,18 @@ const MAX_TAGS_TO_SHOW = 5;
 
 const STANDARD_TAGS = ['release', 'environment', 'transaction', 'project'];
 
+function stopPropagationAndPreventDefault(e: SyntheticEvent) {
+  e.stopPropagation();
+  e.preventDefault();
+}
+
 export function MetricListItemDetails({
   metric,
   selectedProjects,
   onTagClick,
+  isDuplicateWithDifferentUnit,
 }: {
+  isDuplicateWithDifferentUnit: boolean;
   metric: MetricMeta;
   onTagClick: (mri: MRI, tag: string) => void;
   selectedProjects: Project[];
@@ -101,16 +116,31 @@ export function MetricListItemDetails({
   const firstMetricProject = metricProjects[0];
 
   return (
-    <DetailsWrapper>
+    <DetailsWrapper
+      // Stop propagation and default behaviour to keep the focus in the combobox
+      onMouseDown={stopPropagationAndPreventDefault}
+    >
       <Header>
         <MetricName>
           {/* Add zero width spaces at delimiter characters for nice word breaks */}
           {formatMRI(metric.mri).replaceAll(/([\.\/-_])/g, '\u200b$1')}
+          {isDuplicateWithDifferentUnit && (
+            <Disclaimer textColor="yellow400">
+              <IconWrapper>
+                <IconWarning color="yellow400" size="xs" />
+              </IconWrapper>
+              {t(
+                'Metrics with the same name and different units were detected. Unwanted metrics can be disabled in settings.'
+              )}
+            </Disclaimer>
+          )}
           {!isCustomMetric && (
-            <SamplingWarning>
-              <IconWarning color="yellow400" size="xs" />
+            <Disclaimer>
+              <IconWrapper>
+                <IconInfo size="xs" />
+              </IconWrapper>
               {t('Prone to client-side sampling')}
-            </SamplingWarning>
+            </Disclaimer>
           )}
         </MetricName>
         {isCustomMetric &&
@@ -248,11 +278,14 @@ const TagWrapper = styled('span')`
   white-space: nowrap;
 `;
 
-const SamplingWarning = styled('div')`
+const Disclaimer = styled('div')<{textColor?: string}>`
   display: grid;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
   grid-template-columns: max-content 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.yellow400};
-  align-items: center;
+  color: ${p => (p.textColor ? p.theme[p.textColor] ?? null : null)};
+`;
+
+const IconWrapper = styled('div')`
+  margin-top: 1px;
 `;

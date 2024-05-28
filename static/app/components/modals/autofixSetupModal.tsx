@@ -1,8 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
 import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
 import {
   type AutofixSetupRepoDefinition,
@@ -17,6 +18,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface AutofixSetupModalProps extends ModalRenderProps {
   groupId: string;
@@ -71,7 +74,7 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
       <Fragment>
         <p>
           {tct(
-            'You have an active GitHub installation, but no linked repositories. Add repositories to the integration on the [integration settings page].',
+            'You have an active GitHub installation, but no code mappings for this project. Add code mappings by visiting the [link:integration settings page] and editing your configuration.',
             {
               link: <ExternalLink href={`/settings/integrations/github/`} />,
             }
@@ -214,11 +217,15 @@ function AutofixCodebaseIndexingStep({
   groupId: string;
   projectId: string;
 }) {
-  const {startIndexing} = useAutofixCodebaseIndexing({projectId, groupId});
+  const {startIndexing, status, reason} = useAutofixCodebaseIndexing({
+    projectId,
+    groupId,
+  });
 
   const canIndex =
-    // autofixSetup.genAIConsent.ok &&
-    autofixSetup.integration.ok && autofixSetup.githubWriteIntegration.ok;
+    autofixSetup.genAIConsent.ok &&
+    autofixSetup.integration.ok &&
+    autofixSetup.githubWriteIntegration.ok;
 
   return (
     <Fragment>
@@ -227,11 +234,16 @@ function AutofixCodebaseIndexingStep({
           'Sentry will index your repositories to enable Autofix. This process may take a few minutes.'
         )}
       </p>
+      {status === AutofixCodebaseIndexingStatus.ERRORED && reason ? (
+        <LoadingError message={t('Failed to index repositories: %s', reason)} />
+      ) : null}
       <GuidedSteps.StepButtons>
         <Button
           priority="primary"
           size="sm"
           disabled={!canIndex}
+          analyticsEventKey="autofix.index_repositories_clicked"
+          analyticsEventName="Autofix: Index Repositories Clicked"
           onClick={() => {
             startIndexing();
             closeModal();
@@ -297,11 +309,28 @@ function AutofixSetupContent({
   groupId: string;
   projectId: string;
 }) {
+  const organization = useOrganization();
   const {data, hasSuccessfulSetup, isLoading, isError} = useAutofixSetup(
     {groupId},
     // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
   );
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    trackAnalytics('autofix.setup_modal_viewed', {
+      groupId,
+      projectId,
+      organization,
+      setup_codebase_index: data.codebaseIndexing.ok,
+      setup_gen_ai_consent: data.genAIConsent.ok,
+      setup_integration: data.integration.ok,
+      setup_write_integration: data.githubWriteIntegration.ok,
+    });
+  }, [data, groupId, organization, projectId]);
 
   if (isLoading) {
     return <LoadingIndicator />;

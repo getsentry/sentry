@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {getFocusableTreeWalker} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
@@ -6,7 +6,8 @@ import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
@@ -17,6 +18,8 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Tag} from 'sentry/types';
+import {toTitleCase} from 'sentry/utils';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 type SearchQueryBuilderInputProps = {
@@ -26,9 +29,13 @@ type SearchQueryBuilderInputProps = {
 };
 
 type SearchQueryBuilderInputInternalProps = {
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
   tabIndex: number;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
 };
+
+const PROMOTED_SECTIONS = [FieldKind.FIELD];
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
@@ -72,9 +79,75 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
+function getItemsBySection(allKeys: Tag[]) {
+  const itemsBySection = allKeys.reduce<{
+    [section: string]: Array<SelectOptionWithKey<string>>;
+  }>((acc, tag) => {
+    const fieldDefinition = getFieldDefinition(tag.key);
+
+    const section = tag.kind ?? fieldDefinition?.kind ?? t('other');
+    const item = {
+      label: tag.key,
+      key: getEscapedKey(tag.key),
+      value: tag.key,
+      textValue: tag.key,
+      hideCheck: true,
+      showDetailsInOverlay: true,
+      details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
+    };
+
+    if (acc[section]) {
+      acc[section].push(item);
+    } else {
+      acc[section] = [item];
+    }
+
+    return acc;
+  }, {});
+
+  return [
+    ...PROMOTED_SECTIONS.filter(section => section in itemsBySection).map(section => {
+      return {
+        title: section,
+        children: itemsBySection[section],
+      };
+    }),
+    ...Object.entries(itemsBySection)
+      .filter(([section]) => !PROMOTED_SECTIONS.includes(section as FieldKind))
+      .map(([section, children]) => {
+        return {title: section, children};
+      }),
+  ];
+}
+
+function KeyDescription({tag}: {tag: Tag}) {
+  const fieldDefinition = getFieldDefinition(tag.key);
+
+  if (!fieldDefinition || !fieldDefinition.desc) {
+    return null;
+  }
+
+  return (
+    <DescriptionWrapper>
+      <div>{fieldDefinition.desc}</div>
+      <Separator />
+      <DescriptionList>
+        {fieldDefinition.valueType ? (
+          <Fragment>
+            <Term>{t('Type')}</Term>
+            <Details>{toTitleCase(fieldDefinition.valueType)}</Details>
+          </Fragment>
+        ) : null}
+      </DescriptionList>
+    </DescriptionWrapper>
+  );
+}
+
 function SearchQueryBuilderInputInternal({
+  item,
   token,
   tabIndex,
+  state,
 }: SearchQueryBuilderInputInternalProps) {
   const trimmedTokenValue = token.value.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -91,23 +164,10 @@ function SearchQueryBuilderInputInternal({
   const {keys, dispatch} = useSearchQueryBuilder();
 
   const allKeys = useMemo(() => {
-    return Object.values(keys);
+    return Object.values(keys).sort((a, b) => a.key.localeCompare(b.key));
   }, [keys]);
-
-  const items = useMemo(() => {
-    return getItemsWithKeys(
-      allKeys.map(tag => {
-        const fieldDefinition = getFieldDefinition(tag.key);
-
-        return {
-          label: fieldDefinition?.kind === FieldKind.FIELD ? tag.name : tag.key,
-          value: tag.key,
-          textValue: tag.key,
-          hideCheck: true,
-        };
-      })
-    );
-  }, [allKeys]);
+  const sections = useMemo(() => getItemsBySection(allKeys), [allKeys]);
+  const items = useMemo(() => sections.flatMap(section => section.children), [sections]);
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -115,6 +175,33 @@ function SearchQueryBuilderInputInternal({
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
   }
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // At start and pressing backspace, focus the previous full token
+      if (
+        e.currentTarget.selectionStart === 0 &&
+        e.currentTarget.selectionEnd === 0 &&
+        e.key === 'Backspace'
+      ) {
+        if (state.collection.getKeyBefore(item.key)) {
+          state.selectionManager.setFocusedKey(state.collection.getKeyBefore(item.key));
+        }
+      }
+
+      // At end and pressing delete, focus the next full token
+      if (
+        e.currentTarget.selectionStart === e.currentTarget.value.length &&
+        e.currentTarget.selectionEnd === e.currentTarget.value.length &&
+        e.key === 'Delete'
+      ) {
+        if (state.collection.getKeyAfter(item.key)) {
+          state.selectionManager.setFocusedKey(state.collection.getKeyAfter(item.key));
+        }
+      }
+    },
+    [item.key, state.collection, state.selectionManager]
+  );
 
   return (
     <SearchQueryBuilderCombobox
@@ -148,15 +235,19 @@ function SearchQueryBuilderInputInternal({
           setSelectionIndex(e.target.selectionStart ?? 0);
         }
       }}
+      onKeyDown={onKeyDown}
       tabIndex={tabIndex}
+      maxOptions={100}
     >
-      <Section>
-        {items.map(item => (
-          <Item {...item} key={item.key}>
-            {item.label}
-          </Item>
-        ))}
-      </Section>
+      {sections.map(({title, children}) => (
+        <Section title={title} key={title}>
+          {children.map(child => (
+            <Item {...child} key={child.key}>
+              {child.label}
+            </Item>
+          ))}
+        </Section>
+      ))}
     </SearchQueryBuilderCombobox>
   );
 }
@@ -190,7 +281,12 @@ export function SearchQueryBuilderInput({
   return (
     <Row {...mergeProps(rowProps, {onFocus})} ref={ref} tabIndex={-1}>
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
-        <SearchQueryBuilderInputInternal token={token} tabIndex={isFocused ? 0 : -1} />
+        <SearchQueryBuilderInputInternal
+          item={item}
+          state={state}
+          token={token}
+          tabIndex={isFocused ? 0 : -1}
+        />
       </GridCell>
     </Row>
   );
@@ -212,3 +308,27 @@ const GridCell = styled('div')`
     min-width: 9px;
   }
 `;
+
+const DescriptionWrapper = styled('div')`
+  padding: ${space(1)} ${space(1.5)};
+  max-width: 220px;
+`;
+
+const Separator = styled('hr')`
+  border-top: 1px solid ${p => p.theme.border};
+  margin: ${space(1)} 0;
+`;
+
+const DescriptionList = styled('dl')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${space(1.5)};
+  margin: 0;
+`;
+
+const Term = styled('dt')`
+  color: ${p => p.theme.subText};
+  font-weight: normal;
+`;
+
+const Details = styled('dd')``;

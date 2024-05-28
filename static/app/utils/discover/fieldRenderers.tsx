@@ -35,6 +35,7 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -697,13 +698,13 @@ const SPECIAL_FIELDS: SpecialFields = {
   'span.status_code': {
     sortField: 'span.status_code',
     renderFunc: data => (
-      <NumberContainer>
+      <Container>
         {data['span.status_code'] ? (
           <ResponseStatusCodeCell code={parseInt(data['span.status_code'], 10)} />
         ) : (
           t('Unknown')
         )}
-      </NumberContainer>
+      </Container>
     ),
   },
 };
@@ -782,10 +783,12 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     );
   },
   time_spent_percentage: fieldName => data => {
+    const parsedFunction = parseFunction(fieldName);
+    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
-        total={data[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        total={data[`sum(${column})`]}
         op={data[`span.op`]}
       />
     );

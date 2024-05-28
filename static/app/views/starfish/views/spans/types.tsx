@@ -23,7 +23,7 @@ export type DataKey =
   | 'bundleSize'
   | 'unsuccessfulHTTPCodes'
   | 'httpCodeBreakdown'
-  | 'cacheMissRate'
+  | 'cache_miss_rate()'
   | 'avg(cache.item_size)'
   | 'transaction.duration';
 
@@ -49,7 +49,7 @@ export const DataTitles: Record<DataKey, string> = {
   'avg(cache.item_size)': t('Avg Value Size'),
   unsuccessfulHTTPCodes: t('Response Codes (3XX, 4XX, 5XX)'),
   httpCodeBreakdown: t('Response Code Breakdown'),
-  cacheMissRate: t('Miss Rate'),
+  'cache_miss_rate()': t('Miss Rate'),
   'transaction.duration': t('Transaction Duration'),
 };
 

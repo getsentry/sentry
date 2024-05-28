@@ -195,6 +195,15 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_subscription_with_query_extra_but_no_query(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        snuba_query = sub.snuba_query
+        snuba_query.update(query="")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     @responses.activate
     def test_adds_type(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)

@@ -14,6 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import FilenameCell from 'sentry/views/starfish/components/tableCells/filenameCell';
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {
   OverflowEllipsisTextContainer,
@@ -22,7 +23,7 @@ import {
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {type ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Keys =
   | 'transaction_id'
@@ -32,7 +33,8 @@ type Keys =
   | 'duration'
   | 'p95_comparison'
   | 'avg_comparison'
-  | 'http.response_content_length';
+  | 'http.response_content_length'
+  | 'span.description';
 export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
 export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
@@ -55,13 +57,13 @@ export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
 
 type SpanTableRow = {
   op: string;
+  trace: string;
   transaction: {
-    id: string;
     'project.name': string;
     timestamp: string;
-    trace: string;
     'transaction.duration': number;
   };
+  'transaction.id': string;
 } & SpanSample;
 
 type Props = {
@@ -92,7 +94,8 @@ export function SpanSamplesTable({
     if (
       column.key === 'p95_comparison' ||
       column.key === 'avg_comparison' ||
-      column.key === 'duration'
+      column.key === 'duration' ||
+      column.key === HTTP_RESPONSE_CONTENT_LENGTH
     ) {
       return (
         <TextAlignRight>
@@ -111,7 +114,7 @@ export function SpanSamplesTable({
           to={generateLinkToEventInTraceView({
             eventId: row['transaction.id'],
             timestamp: row.timestamp,
-            traceSlug: row.transaction?.trace,
+            traceSlug: row.trace,
             projectSlug: row.project,
             organization,
             location,
@@ -135,7 +138,7 @@ export function SpanSamplesTable({
           to={generateLinkToEventInTraceView({
             eventId: row['transaction.id'],
             timestamp: row.timestamp,
-            traceSlug: row.transaction?.trace,
+            traceSlug: row.trace,
             projectSlug: row.project,
             organization,
             location,
@@ -150,6 +153,10 @@ export function SpanSamplesTable({
     if (column.key === HTTP_RESPONSE_CONTENT_LENGTH) {
       const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
       return <ResourceSizeCell bytes={size} />;
+    }
+
+    if (column.key === SPAN_DESCRIPTION) {
+      return <FilenameCell url={row[SPAN_DESCRIPTION]} />;
     }
 
     if (column.key === 'profile_id') {

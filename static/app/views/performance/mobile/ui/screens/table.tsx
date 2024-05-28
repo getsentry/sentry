@@ -8,11 +8,10 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -27,8 +26,8 @@ type Props = {
 };
 
 export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
+  const moduleURL = useModuleURL('mobile-ui');
   const location = useLocation();
-  const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   const columnNameMap = {
@@ -80,17 +79,13 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={normalizeUrl(
-              `/organizations/${
-                organization.slug
-              }/performance/mobile/ui/spans/?${qs.stringify({
-                ...location.query,
-                project: row['project.id'],
-                transaction: row.transaction,
-                primaryRelease,
-                secondaryRelease,
-              })}`
-            )}
+            to={`${moduleURL}/spans/?${qs.stringify({
+              ...location.query,
+              project: row['project.id'],
+              transaction: row.transaction,
+              primaryRelease,
+              secondaryRelease,
+            })}`}
             style={{display: `block`, width: `100%`}}
           >
             {row.transaction}
