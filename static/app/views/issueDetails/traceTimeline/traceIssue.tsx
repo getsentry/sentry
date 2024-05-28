@@ -26,6 +26,9 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   });
   const project = projects.find(p => p.slug === event.project);
   const issueId = event['issue.id'];
+  // We are view issue X and loading data for issue Y. This means that this call will not be cached,
+  // thus, it is a little bit slow to render the component.
+  // XXX: Create new endpoint that only fetches the metadata for the group
   const {data: groupData, isLoading: isLoadingGroupData} = useApiQuery<Group>(
     [
       `/organizations/${organization.slug}/issues/${issueId}/`,

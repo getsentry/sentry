@@ -170,6 +170,16 @@ describe('TraceTimeline', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
+    // We need the metadata from the issue in order to render the related issue
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/1000/`,
+      body: {
+        metadata: {
+          title: 'Slow DB Query',
+          value: 'bar',
+        },
+      },
+    });
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
