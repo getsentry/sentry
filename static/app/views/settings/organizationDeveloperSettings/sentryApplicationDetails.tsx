@@ -244,7 +244,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       // if we are editing an existing app, check the status of the app
       return app.status === 'internal';
     }
-    return this.props.route.path === 'new-internal/';
+    return this.props.location.pathname.endsWith('new-internal/');
   }
 
   get showAuthInfo() {

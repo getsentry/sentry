@@ -1699,6 +1699,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable Discover Saved Query dataset selector
+    "organizations:performance-discover-dataset-selector": False,
     # Enable UI sending a discover split for widget
     "organizations:performance-discover-widget-split-ui": False,
     # Enable backend overriding and always making a fresh split decision
@@ -1902,6 +1904,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
+    "organizations:performance-webvitals-avg": False,
     # Rename current Performance modules to "Insights"
     "organizations:performance-insights": False,
     # Enable queues module ui
@@ -3704,6 +3708,8 @@ SEER_GROUPING_TIMEOUT = 1
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
+SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3987,6 +3993,7 @@ SEER_GROUPING_RECORDS_URL = (
 SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
+
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

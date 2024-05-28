@@ -27,9 +27,8 @@ filterwarnings = [
   # Consider all warnings to be errors other than the ignored ones.
   "error",
 
-  # a bunch of google packages use legacy namespace packages
+  # phabricator uses `pkg_resources` apis
   "ignore:pkg_resources is deprecated as an API",
-  "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
 
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
@@ -549,6 +548,7 @@ module = [
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
+    "sentry.grouping.parameterization",
     "sentry.hybridcloud",
     "sentry.hybridcloud.migrations.*",
     "sentry.hybridcloud.options",

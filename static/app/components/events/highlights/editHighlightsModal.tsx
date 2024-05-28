@@ -457,7 +457,8 @@ function SectionFilterInput(props: InputProps) {
 const modalBodyCss = css`
   margin: 0 -${space(4)};
   padding: 0 ${space(4)};
-  max-height: 75vh;
+  /* Full height minus enough buffer for header, footer and margins */
+  max-height: calc(100vh - 275px);
   overflow-y: auto;
 `;
 

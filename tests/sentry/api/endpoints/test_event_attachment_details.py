@@ -89,10 +89,10 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         with self.options(
             {
-                "eventattachments.store-blobs.sample-rate": 1,
+                "eventattachments.store-small-inline": 1,
             }
         ):
-            self.create_attachment()
+            self.create_attachment(content=b"a small inline attachment")
 
         path2 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
         assert path1 is not path2
@@ -103,7 +103,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.attachment.size)
         assert response.get("Content-Type") == "image/png"
-        assert close_streaming_response(response) == ATTACHMENT_CONTENT
+        assert close_streaming_response(response) == b"a small inline attachment"
 
     @with_feature("organizations:event-attachments")
     def test_zero_sized_attachment(self):
