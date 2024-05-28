@@ -234,6 +234,7 @@ const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boole
 
 const ValueWrapper = styled('div')`
   word-break: break-word;
+  grid-column: 1 / -1;
 `;
 
 const TruncateWrapper = styled('a')`
