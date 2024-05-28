@@ -576,6 +576,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
+
         serializer = org_serializers.OrganizationSerializer
 
         if request.access.has_scope("org:read") or is_active_staff(request):
@@ -605,6 +609,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         from sentry import features
+
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
