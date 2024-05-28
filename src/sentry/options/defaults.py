@@ -893,6 +893,19 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "seer.similarity.global-rate-limit",
+    type=Dict,
+    default={"limit": 20, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.per-project-rate-limit",
+    type=Dict,
+    default={"limit": 5, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "issues.similarity-embeddings.projects-allowlist",
