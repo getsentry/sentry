@@ -1699,6 +1699,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable Discover Saved Query dataset selector
+    "organizations:performance-discover-dataset-selector": False,
     # Enable UI sending a discover split for widget
     "organizations:performance-discover-widget-split-ui": False,
     # Enable backend overriding and always making a fresh split decision
