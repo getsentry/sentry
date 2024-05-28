@@ -310,6 +310,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.want_usernames == [
             "admin@example.com",
             "member@example.com",
+            "superadmin@example.com",
         ]
         assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
@@ -338,6 +339,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.want_usernames == [
             "admin@example.com",
             "member@example.com",
+            "superadmin@example.com",
         ]
         assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
@@ -557,7 +559,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
-        assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=2)
+        assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=3)
 
     def test_fail_no_orgs(
         self,
