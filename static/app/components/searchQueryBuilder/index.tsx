@@ -9,6 +9,7 @@ import {inputStyles} from 'sentry/components/input';
 import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
+import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {
@@ -70,6 +71,16 @@ function Grid(props: GridProps) {
                 state={state}
               />
             );
+          case Token.L_PAREN:
+          case Token.R_PAREN:
+            return (
+              <SearchQueryBuilderParen
+                key={item.key}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
           // TODO(malwilley): Add other token types
           default:
             return null;
@@ -89,7 +100,7 @@ export function SearchQueryBuilder({
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
   const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ')),
+    () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),
     [state.query]
   );
 
