@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -27,7 +26,6 @@ import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {profiling} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
@@ -40,6 +38,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {ProfilingUnsupportedAlert} from 'sentry/views/profiling/unsupportedAlert';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
@@ -139,28 +138,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const withoutProfilingSupport = useMemo((): boolean => {
-    const projectsWithProfilingSupport = new Set(
-      projects
-        .filter(project => !project.platform || profiling.includes(project.platform))
-        .map(project => project.id)
-    );
-    // if it's My Projects or All projects, only show banner if none of them
-    // has profiling support
-    if (
-      selection.projects.length === 0 ||
-      selection.projects[0] === ALL_ACCESS_PROJECTS
-    ) {
-      return projectsWithProfilingSupport.size === 0;
-    }
-
-    // if some projects are selected using the selector, show the banner if none of them
-    // has profiling support
-    return selection.projects.every(
-      project => !projectsWithProfilingSupport.has(String(project))
-    );
-  }, [selection.projects, projects]);
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -222,9 +199,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
-                  {withoutProfilingSupport && (
-                    <UnsupportedAlert featureName="Profiling" />
-                  )}
+                  <ProfilingUnsupportedAlert selectedProjects={selection.projects} />
                   <ProfilingOnboardingPanel
                     content={
                       // If user is on m2, show default
@@ -244,6 +219,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     }
                   >
                     <ProfilingUpgradeButton
+                      data-test-id="profiling-upgrade"
                       organization={organization}
                       priority="primary"
                       onClick={onSetupProfilingClick}

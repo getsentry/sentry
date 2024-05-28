@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -28,7 +28,6 @@ describe('profiling Onboarding View > Unsupported Banner', function () {
       },
       new Set()
     );
-    ProjectsStore.loadInitialData([ProjectFixture({platform: 'nintendo-switch'})]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       method: 'GET',
@@ -42,10 +41,18 @@ describe('profiling Onboarding View > Unsupported Banner', function () {
     jest.mocked(useProfileFilters).mockReturnValue({});
   });
 
-  it('Displays unsupported banner for unsupported projects', function () {
-    act(() => {
-      render(<ProfilingContent location={router.location} />);
-    });
-    expect(screen.getByTestId('unsupported-alert')).toBeInTheDocument();
+  it('Displays unsupported banner for unsupported projects', async function () {
+    ProjectsStore.loadInitialData([ProjectFixture({platform: 'nintendo-switch'})]);
+    render(<ProfilingContent location={router.location} />);
+    expect(await screen.findByTestId('unsupported-alert')).toBeInTheDocument();
+  });
+
+  it('Does not show unsupported banner for supported projects', async function () {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({platform: 'android', hasProfiles: false}),
+    ]);
+    render(<ProfilingContent location={router.location} />);
+    expect(await screen.findByTestId('profiling-upgrade')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-alert')).not.toBeInTheDocument();
   });
 });
