@@ -150,10 +150,14 @@ interface TraceProps {
   ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
-  scrollQueueRef: React.MutableRefObject<{
-    eventId?: string;
-    path?: TraceTree.NodePath[];
-  } | null>;
+  scrollQueueRef: React.MutableRefObject<
+    | {
+        eventId?: string;
+        path?: TraceTree.NodePath[];
+      }
+    | null
+    | undefined
+  >;
   trace: TraceTree;
   trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_id: string;
