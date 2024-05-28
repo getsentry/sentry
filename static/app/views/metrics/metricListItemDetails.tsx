@@ -130,7 +130,7 @@ export function MetricListItemDetails({
                 <IconWarning color="yellow400" size="xs" />
               </IconWrapper>
               {t(
-                'Metrics with the same name and different units were detected. Disable any unwanted ones in settings.'
+                'Metrics with the same name and different units were detected. Unwanted metrics can be disabled in settings.'
               )}
             </Disclaimer>
           )}
@@ -149,7 +149,7 @@ export function MetricListItemDetails({
               size="xs"
               to={`/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`}
               aria-label={t('Open metric settings')}
-              icon={<IconSettings color="blue400" />}
+              icon={<IconSettings />}
               borderless
             />
           ) : (
