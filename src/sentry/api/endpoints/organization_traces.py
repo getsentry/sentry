@@ -1,5 +1,4 @@
 import dataclasses
-import itertools
 import math
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
@@ -46,7 +45,6 @@ class TraceInterval(TypedDict):
     start: int
     end: int
     kind: Literal["project", "missing", "other"]
-    opCategory: str | None
     duration: int
     isRoot: bool
     components: NotRequired[list[tuple[int, int]]]
@@ -68,21 +66,18 @@ class TraceResult(TypedDict):
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
-    breakdownCategory = serializers.ListField(
-        required=False, allow_empty=True, child=serializers.CharField()
-    )
-    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
-    sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     metricsMax = serializers.FloatField(required=False)
     metricsMin = serializers.FloatField(required=False)
     metricsOp = serializers.CharField(required=False)
     metricsQuery = serializers.CharField(required=False)
     mri = serializers.CharField(required=False)
+
+    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+    sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     suggestedQuery = serializers.CharField(required=False)
-    minBreakdownDuration = serializers.IntegerField(default=0, min_value=0)
     minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
@@ -136,8 +131,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             sort=serialized.get("sort"),
             limit=self.get_per_page(request),
             max_spans_per_trace=serialized["maxSpansPerTrace"],
-            breakdown_categories=serialized.get("breakdownCategory", []),
-            min_breakdown_duration=serialized["minBreakdownDuration"],
             min_breakdown_percentage=serialized["minBreakdownPercentage"],
         )
 
@@ -173,8 +166,6 @@ class TraceSamplesExecutor:
         sort: str | None,
         limit: int,
         max_spans_per_trace: int,
-        breakdown_categories: list[str],
-        min_breakdown_duration: int,
         min_breakdown_percentage: float,
     ):
         self.params = params
@@ -190,8 +181,6 @@ class TraceSamplesExecutor:
         self.sort = sort
         self.limit = limit
         self.max_spans_per_trace = max_spans_per_trace
-        self.breakdown_categories = breakdown_categories
-        self.min_breakdown_duration = min_breakdown_duration
         self.min_breakdown_percentage = min_breakdown_percentage
         self._all_projects: list[Project] | None = None
 
@@ -252,18 +241,6 @@ class TraceSamplesExecutor:
             traces_breakdown_projects_results = all_results[idx]
             idx += 1
 
-            if self.breakdown_categories:
-                traces_breakdown_categories_results = all_results[idx]
-                idx += 1
-            else:
-                traces_breakdown_categories_results = {
-                    "data": [],
-                    "meta": {
-                        "fields": {},
-                        "tips": {},
-                    },
-                }
-
             user_spans_results = all_results[idx]
             idx += 1
 
@@ -276,7 +253,6 @@ class TraceSamplesExecutor:
                 traces_errors_results=traces_errors_results,
                 traces_occurrences_results=traces_occurrences_results,
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
-                traces_breakdown_categories_results=traces_breakdown_categories_results,
                 user_spans_results=user_spans_results,
                 suggested_spans_results=suggested_spans_results,
             )
@@ -584,14 +560,6 @@ class TraceSamplesExecutor:
             traces_breakdown_projects_query,
         ]
 
-        if self.breakdown_categories:
-            traces_breakdown_categories_query = self.get_traces_breakdown_categories_query(
-                params,
-                snuba_params,
-                trace_ids,
-            )
-            queries.append(traces_breakdown_categories_query)
-
         return queries
 
     def get_all_span_samples_queries(
@@ -628,7 +596,6 @@ class TraceSamplesExecutor:
         traces_errors_results,
         traces_occurrences_results,
         traces_breakdown_projects_results,
-        traces_breakdown_categories_results,
         user_spans_results,
         suggested_spans_results,
     ) -> list[TraceResult]:
@@ -644,13 +611,7 @@ class TraceSamplesExecutor:
             for row in traces_metas_results["data"]
         }
 
-        spans = [
-            span
-            for span in itertools.chain(
-                traces_breakdown_projects_results["data"],
-                traces_breakdown_categories_results["data"],
-            )
-        ]
+        spans = [span for span in traces_breakdown_projects_results["data"]]
         spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
 
         try:
@@ -770,48 +731,6 @@ class TraceSamplesExecutor:
                 "span.op",
                 "parent_span",
                 "transaction",
-                "precise.start_ts",
-                "precise.finish_ts",
-            ],
-            orderby=["precise.start_ts", "-precise.finish_ts"],
-            # limit the number of segments we fetch per trace so a single
-            # large trace does not result in the rest being blank
-            limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
-            limit=MAX_SNUBA_RESULTS,
-            config=QueryBuilderConfig(
-                transform_alias_to_input_format=True,
-            ),
-        )
-
-    def get_traces_breakdown_categories_query(
-        self,
-        params: ParamsType,
-        snuba_params: SnubaParams,
-        trace_ids: list[str],
-    ) -> QueryBuilder:
-        conditions = []
-
-        span_categories_str = ",".join(self.breakdown_categories)
-        conditions.append(f"span.category:[{span_categories_str}]")
-
-        trace_ids_str = ",".join(trace_ids)
-        conditions.append(f"trace:[{trace_ids_str}]")
-
-        if self.min_breakdown_duration > 0:
-            conditions.append(f"span.duration:>={self.min_breakdown_duration}")
-
-        return SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            params,
-            snuba_params=snuba_params,
-            query=" ".join(conditions),
-            selected_columns=[
-                "trace",
-                "project",
-                "transaction",
-                "span.category",
-                "sdk.name",
-                "parent_span",
                 "precise.start_ts",
                 "precise.finish_ts",
             ],
@@ -1056,7 +975,6 @@ def new_trace_interval(row) -> TraceInterval:
         "kind": "project",
         "project": row["project"],
         "sdkName": row["sdk.name"],
-        "opCategory": row.get("span.category"),
         "start": row["quantized.start_ts"],
         "end": row["quantized.finish_ts"],
         "duration": 0,
@@ -1079,7 +997,6 @@ def process_breakdowns(data, traces_range):
             # only merge intervals that are part of the same service
             and interval_a["project"] == interval_b["project"]
             and interval_a["sdkName"] == interval_b["sdkName"]
-            and interval_a["opCategory"] == interval_b["opCategory"]
         )
 
     def breakdown_push(trace, interval):
@@ -1101,7 +1018,6 @@ def process_breakdowns(data, traces_range):
                     "kind": "missing",
                     "project": None,
                     "sdkName": None,
-                    "opCategory": None,
                     "start": last_interval["end"],
                     "end": interval["start"],
                     "duration": 0,
@@ -1241,7 +1157,6 @@ def process_breakdowns(data, traces_range):
             "kind": "other",
             "project": None,
             "sdkName": None,
-            "opCategory": None,
             "start": other_start,
             "end": other_end,
             "duration": 0,
