@@ -79,11 +79,21 @@ export default function MonitorProcessingErrors({
   });
 
   return (
-    <ScrollableAlert type="error" showIcon expand={accordionErrors}>
+    <ScrollableAlert
+      type="error"
+      showIcon
+      expand={<ErrorsList>{accordionErrors}</ErrorsList>}
+    >
       {children}
     </ScrollableAlert>
   );
 }
+
+const ErrorsList = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
 const ErrorGroup = styled('div')`
   display: Flex;
