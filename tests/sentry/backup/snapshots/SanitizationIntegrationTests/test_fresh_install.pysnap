@@ -1,5 +1,5 @@
 ---
-created: '2024-05-08T18:10:03.554472+00:00'
+created: '2024-05-28T16:45:51.971601+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -29,6 +29,11 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - email
+- model_name: sentry.email
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+  - email
 - model_name: sentry.organization
   ordinal: 1
   sanitized_fields:
@@ -46,6 +51,15 @@ source: tests/sentry/backup/test_sanitize.py
   - username
 - model_name: sentry.user
   ordinal: 2
+  sanitized_fields:
+  - date_joined
+  - email
+  - last_active
+  - last_password_change
+  - password
+  - username
+- model_name: sentry.user
+  ordinal: 3
   sanitized_fields:
   - date_joined
   - email
@@ -85,6 +99,12 @@ source: tests/sentry/backup/test_sanitize.py
   - date_hash_added
   - email
   - validation_hash
+- model_name: sentry.useremail
+  ordinal: 3
+  sanitized_fields:
+  - date_hash_added
+  - email
+  - validation_hash
 - model_name: sentry.userrole
   ordinal: 1
   sanitized_fields:
@@ -93,6 +113,11 @@ source: tests/sentry/backup/test_sanitize.py
   - name
 - model_name: sentry.userroleuser
   ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: sentry.userroleuser
+  ordinal: 2
   sanitized_fields:
   - date_added
   - date_updated
@@ -110,6 +135,11 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 2
   sanitized_fields:
   - date_added
+- model_name: sentry.organizationmember
+  ordinal: 3
+  sanitized_fields:
+  - date_added
+  - email
 - model_name: sentry.project
   ordinal: 1
   sanitized_fields:

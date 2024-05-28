@@ -2185,7 +2185,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             slug="test-org",
             owner=owner,
             member=member,
-            invites={
+            pending_invites={
                 admin: "invited-by-admin@test.com",
                 owner: "invited-by-owner@test.com",
             },
