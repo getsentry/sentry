@@ -13,7 +13,7 @@ export function DatasetSelector() {
 
   const options = [
     {value: 'errors', label: t('Errors')},
-    {value: 'transactions-like', label: t('Transactions')},
+    {value: 'transaction-like', label: t('Transactions')},
   ];
 
   return (
