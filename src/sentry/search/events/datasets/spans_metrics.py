@@ -20,6 +20,7 @@ from sentry.snuba.referrer import Referrer
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
+    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
 
     def __init__(self, builder: builder.SpansMetricsQueryBuilder):
         self.builder = builder
@@ -55,8 +56,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
         # If its still None its not a custom measurement
         if metric_id is None:
-            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-        self.builder.metric_ids.add(metric_id)
+            if constants.SPAN_METRICS_MAP.get(value, value) in self.nullable_metrics:
+                metric_id = 0
+            else:
+                raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
+        if metric_id != 0:
+            self.builder.metric_ids.add(metric_id)
         return metric_id
 
     @property
@@ -590,6 +595,27 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
+                fields.MetricsFunction(
+                    "trace_error_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_error_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -1041,12 +1067,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "countIf",
                     [
                         Function(
-                            condition,
+                            "and",
                             [
-                                Column("timestamp"),
-                                args["timestamp"],
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.duration"),
+                                    ],
+                                ),
+                                Function(
+                                    condition,
+                                    [
+                                        Column("timestamp"),
+                                        args["timestamp"],
+                                    ],
+                                ),
                             ],
-                        ),
+                        )
                     ],
                 ),
                 Function("divide", [interval, 60]),
@@ -1172,6 +1210,37 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             condition,
+            alias,
+        )
+
+    def _resolve_trace_error_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        success_statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "not",
+                [
+                    Function(
+                        "in",
+                        [
+                            self.builder.column("trace.status"),
+                            list(status for status in success_statuses if status is not None),
+                        ],
+                    )
+                ],
+            ),
             alias,
         )
 

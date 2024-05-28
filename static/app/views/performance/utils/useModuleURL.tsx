@@ -10,10 +10,10 @@ import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/performance/mobile/a
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/performance/mobile/ui/settings';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/performance/queues/settings';
-import {INSIGHTS_BASE_URL} from 'sentry/views/performance/settings';
+import {useInsightsURLBuilder} from 'sentry/views/performance/utils/useInsightsURL';
 import {ModuleName} from 'sentry/views/starfish/types';
 
-const MODULE_BASE_URLS: Record<ModuleName, string> = {
+export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_BASE_URL,
   [ModuleName.HTTP]: HTTP_BASE_URL,
   [ModuleName.CACHE]: CACHE_BASE_URL,
@@ -31,15 +31,44 @@ const MODULE_BASE_URLS: Record<ModuleName, string> = {
 type ModuleNameStrings = `${ModuleName}`;
 type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
-export const useModuleURL = (moduleName: RoutableModuleNames): string => {
-  const {slug} = useOrganization();
+export const useModuleURL = (
+  moduleName: RoutableModuleNames,
+  bare: boolean = false
+): string => {
+  const builder = useModuleURLBuilder(bare);
+  return builder(moduleName);
+};
 
-  if (moduleName === ModuleName.AI) {
-    // AI Doesn't live under "/performance"
-    return normalizeUrl(`/organizations/${slug}${AI_BASE_URL}`);
+type URLBuilder = (moduleName: RoutableModuleNames) => string;
+
+export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
+  const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
+
+  const insightsURLBuilder = useInsightsURLBuilder();
+
+  if (!organization) {
+    // If there isn't an organization, items that link to modules won't be visible, so this is a fallback just-in-case, and isn't trying too hard to be useful
+    return () => '';
   }
 
-  return normalizeUrl(
-    `/organizations/${slug}${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
-  );
-};
+  const {slug} = organization;
+
+  return function (moduleName: RoutableModuleNames) {
+    const insightsURL = insightsURLBuilder(moduleName);
+
+    if (moduleName === ModuleName.AI) {
+      // AI Doesn't live under "/performance", which means `insightsURL` might be an empty string, so we need to account for that
+      const moduleURLSegment = [insightsURL, AI_BASE_URL].filter(Boolean).join('/');
+
+      return bare
+        ? moduleURLSegment
+        : normalizeUrl(`/organizations/${slug}/${moduleURLSegment}`);
+    }
+
+    return bare
+      ? `${insightsURL}/${MODULE_BASE_URLS[moduleName]}`
+      : normalizeUrl(
+          `/organizations/${slug}/${insightsURL}/${MODULE_BASE_URLS[moduleName]}`
+        );
+  };
+}

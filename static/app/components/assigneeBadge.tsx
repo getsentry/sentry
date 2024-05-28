@@ -91,6 +91,7 @@ export function AssigneeBadge({
     <StyledTag icon={loadingIcon} />
   ) : assignedTo ? (
     <Tooltip
+      isHoverable
       title={
         <TooltipWrapper>
           {t('Assigned to ')}
@@ -105,6 +106,7 @@ export function AssigneeBadge({
     </Tooltip>
   ) : (
     <Tooltip
+      isHoverable
       title={
         <TooltipWrapper>
           <div>{t('Unassigned')}</div>
@@ -144,9 +146,9 @@ const StyledTag = styled(Tag)`
   & > div {
     height: 24px;
     padding: ${space(0.5)};
+    padding-right: ${space(0.25)};
   }
   color: ${p => p.theme.subText};
-  cursor: pointer;
 `;
 
 const TooltipSubtext = styled('div')`

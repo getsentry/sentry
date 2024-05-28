@@ -25,8 +25,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 
 import {
   CronsLandingPanel,
@@ -36,7 +39,7 @@ import {
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {OwnerFilter} from './components/ownerFilter';
-import type {Monitor} from './types';
+import type {CheckinProcessingError, Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
 const CronsListPageHeader = HookOrDefault({
@@ -45,11 +48,13 @@ const CronsListPageHeader = HookOrDefault({
 
 export default function Monitors() {
   const organization = useOrganization();
-  const router = useRouter();
-  const platform = decodeScalar(router.location.query?.platform) ?? null;
-  const guide = decodeScalar(router.location.query?.guide);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const platform = decodeScalar(location.query?.platform) ?? null;
+  const guide = decodeScalar(location.query?.guide);
+  const project = decodeList(location.query?.project);
 
-  const queryKey = makeMonitorListQueryKey(organization, router.location.query);
+  const queryKey = makeMonitorListQueryKey(organization, location.query);
 
   const {
     data: monitorList,
@@ -60,14 +65,22 @@ export default function Monitors() {
     staleTime: 0,
   });
 
+  const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
+  const {data: processingErrors} = useApiQuery<CheckinProcessingError[]>(
+    processingErrorQueryKey,
+    {
+      staleTime: 0,
+    }
+  );
+
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
 
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(router.location.query ?? {}), cursor: undefined};
-    router.push({
+    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
@@ -119,13 +132,16 @@ export default function Monitors() {
           <Layout.Main fullWidth>
             <Filters>
               <OwnerFilter
-                selectedOwners={decodeList(router.location.query.owner)}
-                onChangeFilter={owner =>
-                  router.replace({
-                    ...router.location,
-                    query: {...router.location.query, owner},
-                  })
-                }
+                selectedOwners={decodeList(location.query.owner)}
+                onChangeFilter={owner => {
+                  navigate(
+                    {
+                      ...location,
+                      query: {...location.query, owner},
+                    },
+                    {replace: true}
+                  );
+                }}
               />
               <PageFilterBar>
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
@@ -138,6 +154,13 @@ export default function Monitors() {
                 onSearch={handleSearch}
               />
             </Filters>
+            {processingErrors && (
+              <MonitorProcessingErrors checkinErrors={processingErrors}>
+                {t(
+                  'Errors were encountered while ingesting check-ins for the selected projects'
+                )}
+              </MonitorProcessingErrors>
+            )}
             {isLoading ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (

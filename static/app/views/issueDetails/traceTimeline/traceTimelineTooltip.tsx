@@ -181,3 +181,5 @@ const TraceItem = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;
+
+export {EventItem};

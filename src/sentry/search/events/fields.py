@@ -694,7 +694,7 @@ def get_json_meta_type(field_alias, snuba_type, builder=None):
         return alias_definition.result_type
 
     snuba_json = get_json_type(snuba_type)
-    if snuba_json != "string":
+    if snuba_json not in ["string", "null"]:
         if function is not None:
             result_type = function.instance.get_result_type(function.field, function.arguments)
             if result_type is not None:

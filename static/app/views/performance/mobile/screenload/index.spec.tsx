@@ -7,14 +7,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import PageloadModule from 'sentry/views/performance/mobile/screenload';
-import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
+import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -26,7 +24,6 @@ describe('PageloadModule', function () {
     features: ['spans-first-ui'],
     projects: [project],
   });
-  jest.mocked(useOrganization).mockReturnValue(organization);
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(useProjects).mockReturnValue({

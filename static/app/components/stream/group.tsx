@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,14 +6,18 @@ import type {LocationDescriptor} from 'history';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
+import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -146,8 +150,6 @@ function BaseGroupRow({
 
   const {selection} = usePageFilters();
 
-  const [assigneeLoading, setAssigneeLoading] = useState<boolean>(false);
-
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
@@ -161,6 +163,7 @@ function BaseGroupRow({
     isForReviewQuery(query);
 
   const {period, start, end} = selection.datetime || {};
+
   const summary =
     customStatsPeriod?.label.toLowerCase() ??
     (!!start && !!end
@@ -178,7 +181,7 @@ function BaseGroupRow({
     };
   }, [organization, group.id, group.owners, query]);
 
-  const {mutate: handleAssigneeChange} = useMutation<
+  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
     AssignableEntity | null
@@ -186,7 +189,6 @@ function BaseGroupRow({
     mutationFn: async (
       newAssignee: AssignableEntity | null
     ): Promise<AssignableEntity | null> => {
-      setAssigneeLoading(true);
       if (newAssignee) {
         await assignToActor({
           id: group.id,
@@ -209,11 +211,9 @@ function BaseGroupRow({
           assigned_type: newAssignee.type,
         });
       }
-      setAssigneeLoading(false);
     },
     onError: () => {
       addErrorMessage('Failed to update assignee');
-      setAssigneeLoading(false);
     },
   });
 
@@ -363,7 +363,7 @@ function BaseGroupRow({
   };
 
   const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" />
+    <Placeholder height="18px" width="40px" />
   ) : (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
@@ -404,7 +404,7 @@ function BaseGroupRow({
   );
 
   const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" />
+    <Placeholder height="18px" width="40px" />
   ) : (
     <Tooltip
       isHoverable
@@ -497,12 +497,24 @@ function BaseGroupRow({
 
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
-          <GroupChart
-            stats={groupStats}
-            secondaryStats={groupSecondaryStats}
-            showSecondaryPoints={showSecondaryPoints}
-            showMarkLine
-          />
+          {organization.features.includes('issue-stream-new-events-graph') ? (
+            <GroupStatusChart
+              hideZeros
+              loading={!defined(groupStats)}
+              stats={groupStats}
+              secondaryStats={groupSecondaryStats}
+              showSecondaryPoints={showSecondaryPoints}
+              groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+              showMarkLine
+            />
+          ) : (
+            <GroupChart
+              stats={groupStats}
+              secondaryStats={groupSecondaryStats}
+              showSecondaryPoints={showSecondaryPoints}
+              showMarkLine
+            />
+          )}
         </ChartWrapper>
       )}
       {displayReprocessingLayout ? (
@@ -510,7 +522,15 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper>{groupCount}</EventCountsWrapper>
+            <EventCountsWrapper
+              leftMargin={
+                organization.features.includes('issue-stream-new-events-graph')
+                  ? space(0)
+                  : space(2)
+              }
+            >
+              {groupCount}
+            </EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
@@ -533,6 +553,32 @@ function BaseGroupRow({
                   handleAssigneeChange(assignedActor)
                 }
                 onClear={() => handleAssigneeChange(null)}
+                trigger={
+                  organization.features.includes(
+                    'issue-stream-new-assignee-dropdown-trigger'
+                  )
+                    ? (props, isOpen) => (
+                        <StyledDropdownButton
+                          {...props}
+                          borderless
+                          aria-label={t('Modify issue assignee')}
+                          size="zero"
+                        >
+                          <AssigneeBadge
+                            assignedTo={group.assignedTo ?? undefined}
+                            assignmentReason={
+                              group.owners?.find(owner => {
+                                const [_ownershipType, ownerId] = owner.owner.split(':');
+                                return ownerId === group.assignedTo?.id;
+                              })?.type
+                            }
+                            loading={assigneeLoading}
+                            chevronDirection={isOpen ? 'up' : 'down'}
+                          />
+                        </StyledDropdownButton>
+                      )
+                    : undefined
+                }
               />
             </AssigneeWrapper>
           )}
@@ -546,6 +592,15 @@ function BaseGroupRow({
 const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
+
+const StyledDropdownButton = styled(Button)`
+  font-weight: normal;
+  border: none;
+  padding: 0;
+  height: unset;
+  border-radius: 10px;
+  box-shadow: none;
+`;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
@@ -665,12 +720,13 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   }
 `;
 
-const EventCountsWrapper = styled('div')`
+const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   display: flex;
   justify-content: flex-end;
   align-self: center;
   width: 60px;
   margin: 0 ${space(2)};
+  margin-left: ${p => p.leftMargin ?? space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;

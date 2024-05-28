@@ -114,6 +114,7 @@ describe('EventTagsTree', function () {
       expect(
         screen.getByLabelText('View other events with this tag value')
       ).toBeInTheDocument();
+      expect(screen.getByLabelText('Copy tag value to clipboard')).toBeInTheDocument();
     }
   }
 

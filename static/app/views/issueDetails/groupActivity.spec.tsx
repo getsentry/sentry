@@ -23,10 +23,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Group, Organization as TOrganization, Project} from 'sentry/types';
 import {GroupActivityType, PriorityLevel} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
-
-jest.mock('sentry/utils/useOrganization');
 
 describe('GroupActivity', function () {
   let project!: Project;
@@ -69,13 +66,12 @@ describe('GroupActivity', function () {
     const {organization, routerContext, routerProps} = initializeOrg({
       organization: additionalOrg,
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
     GroupStore.add([group]);
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
       <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
   }
 

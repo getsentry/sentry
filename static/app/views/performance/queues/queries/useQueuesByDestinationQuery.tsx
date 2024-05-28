@@ -2,17 +2,24 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {Referrer} from 'sentry/views/performance/queues/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Props = {
+  referrer: Referrer;
   destination?: string;
   enabled?: boolean;
   sort?: Sort;
 };
 
-export function useQueuesByDestinationQuery({enabled, destination, sort}: Props) {
+export function useQueuesByDestinationQuery({
+  enabled,
+  destination,
+  sort,
+  referrer,
+}: Props) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DESTINATIONS_CURSOR]);
 
@@ -41,7 +48,7 @@ export function useQueuesByDestinationQuery({enabled, destination, sort}: Props)
       limit: 10,
       cursor,
     },
-    'api.performance.queues.destination-summary'
+    referrer
   );
 
   return response;

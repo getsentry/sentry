@@ -3,19 +3,16 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
-import * as analytics from 'sentry/utils/analytics';
-
-HighlightsDataSection;
-
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
 import {
   TEST_EVENT_CONTEXTS,
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
+import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture({features: ['event-tags-tree-ui']});
@@ -89,7 +86,15 @@ describe('HighlightsDataSection', function () {
       // If highlight is present on the event...
       if (eventTagMap.hasOwnProperty(tagKey)) {
         expect(within(row).getByText(eventTagMap[tagKey])).toBeInTheDocument();
-        expect(within(row).getByLabelText('Tag Actions Menu')).toBeInTheDocument();
+        const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
+        expect(highlightTagDropdown).toBeInTheDocument();
+        await userEvent.click(highlightTagDropdown);
+        expect(
+          screen.getByLabelText('View issues with this tag value')
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByLabelText('Add to event highlights')
+        ).not.toBeInTheDocument();
       } else {
         expect(within(row).getByText(EMPTY_HIGHLIGHT_DEFAULT)).toBeInTheDocument();
         expect(within(row).queryByLabelText('Tag Actions Menu')).not.toBeInTheDocument();

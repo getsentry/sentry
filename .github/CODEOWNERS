@@ -104,7 +104,6 @@ Makefile                                                 @getsentry/owners-sentr
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
 /self-hosted                                             @getsentry/release-approvers
-setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
@@ -171,9 +170,11 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/snuba/models.py                               @getsentry/alerts-notifications
 /src/sentry/snuba/query_subscriptions/                    @getsentry/alerts-notifications
 /src/sentry/snuba/subscriptions.py                        @getsentry/alerts-notifications
+/src/sentry/snuba/tasks.py                                @getsentry/alerts-notifications
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
+/tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
 ## Endof Alerts & Notifications
 
 
@@ -377,7 +378,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
 /static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
 /static/app/views/organizationStats                                     @getsentry/enterprise
-/static/app/views/releases/thresholdsList/                              @getsentry/enterprise
 /static/app/views/settings/organizationAuth/                            @getsentry/enterprise
 /static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
@@ -515,7 +515,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/event_manager/                                @getsentry/issues
 /tests/sentry/grouping/                                     @getsentry/issues
 /tests/sentry/search/                                       @getsentry/issues
-/tests/sentry/snuba/test_tasks.py                           @getsentry/issues
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issues
 /tests/snuba/search/                                        @getsentry/issues
 ## End of Issues

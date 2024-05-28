@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -24,6 +25,7 @@ type DefaultProps = {
 type Props = {
   groupId: string;
   items: Array<SimilarItem>;
+  location: Location;
   onMerge: () => void;
   orgId: Organization['id'];
   pageLinks: string | null;
@@ -50,15 +52,16 @@ function List({
   filteredItems = [],
   pageLinks,
   onMerge,
+  location,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
 
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
-  const hasSimilarityEmbeddingsFeature = project.features.includes(
-    'similarity-embeddings'
-  );
+  const hasSimilarityEmbeddingsFeature =
+    project.features.includes('similarity-embeddings') ||
+    location.query.similarityEmbeddings === '1';
   const organization = useOrganization();
   const itemsWouldGroup = hasSimilarityEmbeddingsFeature
     ? itemsWithFiltered.map(item => ({
@@ -88,6 +91,7 @@ function List({
           project={project}
           organization={organization}
           itemsWouldGroup={itemsWouldGroup}
+          location={location}
         />
 
         <PanelBody>
@@ -97,6 +101,7 @@ function List({
               orgId={orgId}
               groupId={groupId}
               project={project}
+              location={location}
               {...item}
             />
           ))}

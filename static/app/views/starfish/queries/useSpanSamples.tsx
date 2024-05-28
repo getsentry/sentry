@@ -23,8 +23,8 @@ type Options = {
   groupId: string;
   transactionName: string;
   additionalFields?: string[];
-  query?: string[];
   release?: string;
+  spanSearch?: MutableSearch;
   transactionMethod?: string;
 };
 
@@ -50,16 +50,14 @@ export const useSpanSamples = (options: Options) => {
     transactionName,
     transactionMethod,
     release,
-    query: extraQuery = [],
+    spanSearch,
     additionalFields,
   } = options;
   const location = useLocation();
 
-  const query = new MutableSearch([
-    `${SPAN_GROUP}:${groupId}`,
-    `transaction:"${transactionName}"`,
-    ...extraQuery,
-  ]);
+  const query = spanSearch !== undefined ? spanSearch.copy() : new MutableSearch([]);
+  query.addFilterValue(SPAN_GROUP, groupId);
+  query.addFilterValue('transaction', transactionName);
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
