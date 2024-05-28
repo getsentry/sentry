@@ -457,8 +457,6 @@ module = [
     "sentry.tsdb.inmemory",
     "sentry.types.integrations",
     "sentry.utils.auth",
-    "sentry.utils.distutils.commands.base",
-    "sentry.utils.distutils.commands.build_assets",
     "sentry.utils.services",
     "sentry.utils.snowflake",
     "sentry.web.forms.accounts",
