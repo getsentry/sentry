@@ -100,8 +100,6 @@ class IssueOccurrence:
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
             raise ValueError("detection_time must be timezone aware")
-        if not self.fingerprint:
-            raise ValueError("fingerprint must be non-empty")
 
     def to_dict(
         self,

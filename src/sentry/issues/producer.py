@@ -65,7 +65,6 @@ def produce_occurrence_to_kafka(
         return
 
     fingerprint = payload_data["fingerprint"]
-    # IssueOccurrence and StatusChangeMessage should assert this is non-empty in __post_init__
     partition_key = fingerprint[0].encode()
     payload = KafkaPayload(partition_key, json.dumps(payload_data).encode("utf-8"), [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
