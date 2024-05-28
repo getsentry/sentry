@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth.models import AnonymousUser
 
 from flagpole.sentry_flagpole_context import (
     InvalidContextDataException,
@@ -33,7 +34,7 @@ class TestSentryOrganizationContextTransformer(TestCase):
 
     def test_with_invalid_organization(self):
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(dict(organization=1234))
+            organization_context_transformer(dict(organization=1234))  # type: ignore[type-var]
 
         with pytest.raises(InvalidContextDataException):
             organization_context_transformer(dict(organization=self.create_project()))
@@ -61,7 +62,7 @@ class TestProjectContextTransformer(TestCase):
 
     def test_with_invalid_project_passed(self):
         with pytest.raises(InvalidContextDataException):
-            project_context_transformer(dict(project=123))
+            project_context_transformer(dict(project=123))  # type: ignore[type-var]
 
         with pytest.raises(InvalidContextDataException):
             project_context_transformer(dict(project=self.create_organization()))
@@ -85,7 +86,7 @@ class TestUserContextTransformer(TestCase):
 
     def test_with_invalid_user_passed(self):
         with pytest.raises(InvalidContextDataException):
-            user_context_transformer(dict(actor=123))
+            user_context_transformer(dict(actor=123))  # type: ignore[type-var]
 
         with pytest.raises(InvalidContextDataException):
             user_context_transformer(dict(actor=self.create_organization()))
@@ -140,24 +141,7 @@ class TestUserContextTransformer(TestCase):
             "user_is-staff": True,
         }
 
-
-class TestTeamContextTransformer(TestCase):
-    pass
-    # def test_with_missing_team(self):
-    #     context_data = team_context_transformer(dict())
-    #     assert context_data == dict()
-    #
-    # def test_with_invalid_team(self):
-    #     with pytest.raises(InvalidContextDataException):
-    #         team_context_transformer(dict(team="invalid"))
-    #
-    #     with pytest.raises(InvalidContextDataException):
-    #         team_context_transformer(dict(team=self.create_organization()))
-    #
-    # def test_with_valid_team(self):
-    #     team = self.create_team(organization=self.create_organization())
-    #
-    #     context_data = team_context_transformer(dict(team=team))
-    #     assert context_data == {
-    #         "team_id": team.id
-    #     }
+    def test_with_anonymous_user(self):
+        user = AnonymousUser()
+        context_data = user_context_transformer(dict(actor=user))
+        assert context_data == {}

@@ -1,10 +1,13 @@
-from typing import Any
+from typing import TypeVar
+
+from django.contrib.auth.models import AnonymousUser
 
 from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -12,7 +15,20 @@ class InvalidContextDataException(Exception):
     pass
 
 
-def organization_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+T_SENTRY_CONTEXT = TypeVar(
+    "T_SENTRY_CONTEXT",
+    bound=RpcUser
+    | User
+    | AnonymousUser
+    | RpcOrganization
+    | Organization
+    | RpcProject
+    | Project
+    | None,
+)
+
+
+def organization_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
     org = data.get("organization", None)
     if org is None:
@@ -36,7 +52,7 @@ def organization_context_transformer(data: dict[str, Any]) -> EvaluationContextD
     return context_data
 
 
-def project_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+def project_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
 
     if (proj := data.get("project", None)) is not None:
@@ -50,10 +66,10 @@ def project_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
     return context_data
 
 
-def user_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+def user_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
     user = data.get("actor", None)
-    if user is None:
+    if user is None or isinstance(user, AnonymousUser):
         return context_data
 
     if not isinstance(user, User) and not isinstance(user, RpcUser):
