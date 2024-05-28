@@ -6,7 +6,6 @@
   },
   "exclude": [
     "../tests/js",
-    "../fixtures/js-stubs",
     "../static/app/**/*.spec.*",
     "../static/app/**/*.benchmark.ts"
   ]

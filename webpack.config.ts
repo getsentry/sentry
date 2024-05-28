@@ -516,8 +516,9 @@ const appConfig: Configuration = {
 if (IS_TEST) {
   appConfig.resolve!.alias!['sentry-fixture'] = path.join(
     __dirname,
-    'fixtures',
-    'js-stubs'
+    'tests',
+    'js',
+    'fixtures'
   );
 }
 

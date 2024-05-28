@@ -5,7 +5,6 @@ sentry_specific_workflow: &sentry_specific_workflow
 sentry_specific_test_files: &sentry_specific_test_files
   - added|modified: 'tests/js/**/*'
   - added|deleted|modified: 'fixtures/search-syntax/**/*'
-  - added|deleted|modified: 'fixtures/js-stubs/**/*'
 
 # Provides list of changed app files to lint against (stylelint)
 lintable_css_in_js_modified: &lintable_css_in_js_modified
