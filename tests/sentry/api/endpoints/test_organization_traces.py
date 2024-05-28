@@ -460,6 +460,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "numErrors": 1,
                     "numOccurrences": 0,
                     "numSpans": 4,
+                    "matchingSpans": 3,
                     "project": project_1.slug,
                     "name": "foo",
                     "duration": 60_100,
@@ -496,6 +497,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                     "numErrors": 0,
                     "numOccurrences": 0,
                     "numSpans": 6,
+                    "matchingSpans": 2,
                     "project": project_1.slug,
                     "name": "bar",
                     "duration": 90_123,
@@ -604,6 +606,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "numErrors": 0,
                 "numOccurrences": 0,
                 "numSpans": 2,
+                "matchingSpans": 2,
                 "project": project.slug,
                 "spans": [
                     {
@@ -676,6 +679,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "numErrors": 0,
                 "numOccurrences": 0,
                 "numSpans": 1,
+                "matchingSpans": 1,
                 "project": project.slug,
                 "spans": [
                     {
@@ -747,6 +751,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "numErrors": 1,
                         "numOccurrences": 0,
                         "numSpans": 4,
+                        "matchingSpans": 3,
                         "project": project_1.slug,
                         "name": "foo",
                         "duration": 60_100,
@@ -802,6 +807,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "numErrors": 0,
                         "numOccurrences": 0,
                         "numSpans": 6,
+                        "matchingSpans": 2,
                         "project": project_1.slug,
                         "name": "bar",
                         "duration": 90_123,
@@ -903,6 +909,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "numErrors": 0,
                         "numOccurrences": 0,
                         "numSpans": 2,
+                        "matchingSpans": 1 if user_query else 2,
                         "project": project_1.slug,
                         "name": "qux",
                         "duration": 40_000,
