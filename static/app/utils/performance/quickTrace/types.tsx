@@ -79,6 +79,7 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   children: TraceTree.Transaction[];
+  sdk_name: string;
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;
