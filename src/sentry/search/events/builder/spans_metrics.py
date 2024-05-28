@@ -14,6 +14,8 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     spans_metrics_builder = True
     has_transaction = False
 
+    column_remapping = {"message": "span.description"}
+
     @property
     def use_default_tags(self) -> bool:
         return False
