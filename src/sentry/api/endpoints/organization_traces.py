@@ -151,6 +151,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
 
 class TraceSamplesExecutor:
+    matching_count_alias = "matching_count"
+
     def __init__(
         self,
         *,
@@ -685,7 +687,7 @@ class TraceSamplesExecutor:
                 "trace": row["trace"],
                 "numErrors": traces_errors.get(row["trace"], 0),
                 "numOccurrences": traces_occurrences.get(row["trace"], 0),
-                "matchingSpans": row["matching_count"],
+                "matchingSpans": row[self.matching_count_alias],
                 "numSpans": row["count()"],
                 "project": get_trace_name(row["trace"])[0],
                 "name": get_trace_name(row["trace"])[1],
@@ -796,12 +798,12 @@ class TraceSamplesExecutor:
         # Join all the user queries together into a single one where at least 1 have
         # to be true.
         if not trace_conditions:
-            query.columns.append(Function("count", [], "matching_count"))
+            query.columns.append(Function("count", [], self.matching_count_alias))
         elif len(trace_conditions) == 1:
-            query.columns.append(Function("countIf", trace_conditions, "matching_count"))
+            query.columns.append(Function("countIf", trace_conditions, self.matching_count_alias))
         else:
             query.columns.append(
-                Function("countIf", [Function("or", trace_conditions)], "matching_count")
+                Function("countIf", [Function("or", trace_conditions)], self.matching_count_alias)
             )
 
         if options.get("performance.traces.trace-explorer-skip-floating-spans"):
