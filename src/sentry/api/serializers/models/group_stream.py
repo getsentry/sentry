@@ -407,10 +407,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
             for item in item_list:
                 latest_event = item.get_latest_event()
-                num_attachments = EventAttachment.objects.filter(
-                    project_id=latest_event.project_id, event_id=latest_event.event_id
-                ).count()
-                attrs[item].update({"latestEventHasAttachments": num_attachments > 0})
+                if latest_event is not None:
+                    num_attachments = EventAttachment.objects.filter(
+                        project_id=latest_event.project_id, event_id=latest_event.event_id
+                    ).count()
+                    attrs[item].update({"latestEventHasAttachments": num_attachments > 0})
 
         return attrs
 

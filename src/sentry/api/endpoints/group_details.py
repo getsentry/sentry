@@ -245,10 +245,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     return self.respond(status=404)
 
                 latest_event = group.get_latest_event()
-                num_attachments = EventAttachment.objects.filter(
-                    project_id=latest_event.project_id, event_id=latest_event.event_id
-                ).count()
-                data.update({"latestEventHasAttachments": num_attachments > 0})
+                if latest_event is not None:
+                    num_attachments = EventAttachment.objects.filter(
+                        project_id=latest_event.project_id, event_id=latest_event.event_id
+                    ).count()
+                    data.update({"latestEventHasAttachments": num_attachments > 0})
 
             data.update(
                 {
