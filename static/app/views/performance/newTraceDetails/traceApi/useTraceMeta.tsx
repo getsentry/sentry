@@ -98,7 +98,7 @@ export function useTraceMeta(traceSlugs: string[]): {
     staleTime: Infinity,
   });
 
-  const {data, isLoading, isRefetching, refetch} = useMemo(() => {
+  const mergedTraceMeta = useMemo(() => {
     const mergedResult: {
       data: TraceMeta;
       isLoading: boolean;
@@ -155,5 +155,5 @@ export function useTraceMeta(traceSlugs: string[]): {
     };
   }
 
-  return {data, isLoading, isRefetching, refetch};
+  return mergedTraceMeta;
 }

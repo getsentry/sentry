@@ -245,7 +245,7 @@ type TraceViewContentProps = {
   replayRecord?: ReplayRecord;
 };
 
-export function TraceViewContent({...props}: TraceViewContentProps) {
+export function TraceViewContent(props: TraceViewContentProps) {
   const api = useApi();
   const organization = props.organization;
   const {projects} = useProjects();
@@ -926,22 +926,10 @@ export function TraceViewContent({...props}: TraceViewContentProps) {
   );
 }
 
-type TraceViewWaterfallRefs = {
+type TraceViewWaterFallProps = {
+  forceRender: number;
   initializedRef: React.MutableRefObject<boolean>;
-  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
-  scrollQueueRef: React.MutableRefObject<
-    | {
-        eventId?: string;
-        path?: TraceTree.NodePath[];
-      }
-    | null
-    | undefined
-  >;
-  setTraceGridRef: (ref: HTMLElement | null) => void;
-  traceGridRef: HTMLElement | null;
-};
-
-type TraceViewWaterFallCallBacks = {
+  metaResults: TraceMetaQueryResults;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement, MouseEvent>,
@@ -959,29 +947,30 @@ type TraceViewWaterFallCallBacks = {
     activeNode: TraceTreeNode<TraceTree.NodeValue> | null,
     behavior: 'track result' | 'persist'
   ) => void;
-};
-
-type TraceViewWaterFallState = {
-  traceDispatch: Dispatch<TraceReducerAction>;
-  traceState: TraceReducerState;
-};
-
-type TraceViewWaterFallProps = {
-  forceRender: number;
-  metaResults: TraceMetaQueryResults;
   organization: Organization;
+  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  scrollQueueRef: React.MutableRefObject<
+    | {
+        eventId?: string;
+        path?: TraceTree.NodePath[];
+      }
+    | null
+    | undefined
+  >;
+  setTraceGridRef: (ref: HTMLElement | null) => void;
   shape: TraceType;
   source: TraceViewSources;
   trace: TraceSplitResults<TraceFullDetailed> | null;
+  traceDispatch: Dispatch<TraceReducerAction>;
   traceEventView: EventView;
+  traceGridRef: HTMLElement | null;
   traceSlug: string;
+  traceState: TraceReducerState;
   tree: TraceTree;
   viewManager: VirtualizedViewManager;
-} & TraceViewWaterfallRefs &
-  TraceViewWaterFallCallBacks &
-  TraceViewWaterFallState;
+};
 
 function TraceViewWaterFall(props: TraceViewWaterFallProps) {
   return (
@@ -1112,7 +1101,7 @@ const TraceToolbar = styled('div')`
 const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
-  box-shadow: 0 0 0 1px ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
   border-radius: ${p => p.theme.borderRadius};
