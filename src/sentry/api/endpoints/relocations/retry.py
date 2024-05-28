@@ -21,7 +21,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import relocation_retry_link_promo_code
 from sentry.tasks.relocation import uploading_complete
@@ -59,7 +58,7 @@ class RelocationRetryEndpoint(Endpoint):
 
         logger.info("relocations.retry.post.start", extra={"caller": request.user.id})
 
-        relocation: Relocation | None = Relocation.objects.filter(uuid=relocation_uuid).first()
+        relocation = Relocation.objects.filter(uuid=relocation_uuid).first()
         if relocation is None:
             raise ResourceDoesNotExist
         if relocation.status != Relocation.Status.FAILURE.value:
@@ -72,7 +71,7 @@ class RelocationRetryEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        relocation_file: RelocationFile | None = (
+        relocation_file = (
             RelocationFile.objects.filter(relocation=relocation).select_related("file").first()
         )
         if relocation_file is None:
@@ -83,7 +82,7 @@ class RelocationRetryEndpoint(Endpoint):
 
         # We can re-use the same `File` instance in the database, avoiding duplicating data.
         try:
-            file: File = File.objects.get(id=relocation_file.file_id)
+            file = File.objects.get(id=relocation_file.file_id)
             fileobj = file.getfile()
         except (File.DoesNotExist, FileNotFoundError):
             return Response(
@@ -91,7 +90,7 @@ class RelocationRetryEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        owner: RpcUser | None = user_service.get_user(user_id=relocation.owner_id)
+        owner = user_service.get_user(user_id=relocation.owner_id)
         if owner is None:
             return Response(
                 {"detail": ERR_OWNER_NO_LONGER_EXISTS},
@@ -107,7 +106,7 @@ class RelocationRetryEndpoint(Endpoint):
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
-            new_relocation: Relocation = Relocation.objects.create(
+            new_relocation = Relocation.objects.create(
                 creator_id=request.user.id,
                 owner_id=relocation.owner_id,
                 want_org_slugs=relocation.want_org_slugs,

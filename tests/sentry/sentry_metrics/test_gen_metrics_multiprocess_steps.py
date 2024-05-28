@@ -27,6 +27,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_deserialized = json.loads(actual_payload.value)
     expected_deserialized = json.loads(expected_payload.value)
     del actual_deserialized["mapping_meta"]
+
     assert actual_deserialized == expected_deserialized
 
 
@@ -241,7 +243,7 @@ counter_payloads: list[dict[str, Any]] = [
             "session.status": "init",
         },
         "timestamp": ts,
-        "type": b"c",
+        "type": "c",
         "value": 1.0,
         "org_id": 1,
         "project_id": 3,
@@ -258,7 +260,7 @@ distribution_payloads: list[dict[str, Any]] = [
             "session.status": "healthy",
         },
         "timestamp": ts,
-        "type": b"d",
+        "type": "d",
         "value": [4, 5, 6],
         "org_id": 1,
         "project_id": 3,
@@ -276,7 +278,7 @@ set_payloads: list[dict[str, Any]] = [
             "session.status": "errored",
         },
         "timestamp": ts,
-        "type": b"s",
+        "type": "s",
         "value": [3],
         "org_id": 1,
         "project_id": 3,
@@ -288,7 +290,8 @@ set_payloads: list[dict[str, Any]] = [
 
 
 def __translated_payload(
-    payload: dict[str, Any], indexer=None
+    payload: dict[str, Any],
+    indexer=None,
 ) -> dict[str, str | int | list[int] | MutableMapping[int, int]]:
     """
     Translates strings to ints using the MockIndexer
@@ -310,9 +313,14 @@ def __translated_payload(
     }
 
     agg_options = get_aggregation_options(payload["name"])
+
     if agg_options:
+        # Keep this assert for now to indicate that we only have maximum 1 aggregation
+        # option per metric bucket, regardless of the use case in the bucket
+        assert len(agg_options) == 1
+
         agg_option = agg_options.popitem()[0]
-        payload["aggregation_option"] = agg_option
+        payload["aggregation_option"] = agg_option.value
 
     payload["metric_id"] = indexer.resolve(
         use_case_id=use_case_id, org_id=org_id, string=payload["name"]
@@ -347,26 +355,36 @@ def test_process_messages() -> None:
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-    expected_new_batch = []
-    for i, m in enumerate(message_batch):
-        assert isinstance(m.value, BrokerValue)
-        expected_new_batch.append(
-            Message(
-                BrokerValue(
-                    KafkaPayload(
-                        None,
-                        json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                        [
-                            ("metric_type", message_payloads[i]["type"]),
-                        ],
-                    ),
-                    m.value.partition,
-                    m.value.offset,
-                    m.value.timestamp,
+    # Add a bunch of special aggregation options
+    # The expectation with this is that there should
+    # always be only 1 aggregation per bucket/payload
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": True,
+            "sentry-metrics.drop-percentiles.per-use-case": {"spans", "transactions"},
+        }
+    ):
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        expected_new_batch = []
+
+        for i, m in enumerate(message_batch):
+            assert isinstance(m.value, BrokerValue)
+            expected_new_batch.append(
+                Message(
+                    BrokerValue(
+                        KafkaPayload(
+                            None,
+                            json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                            [
+                                ("metric_type", message_payloads[i]["type"].encode()),
+                            ],
+                        ),
+                        m.value.partition,
+                        m.value.offset,
+                        m.value.timestamp,
+                    )
                 )
             )
-        )
 
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 

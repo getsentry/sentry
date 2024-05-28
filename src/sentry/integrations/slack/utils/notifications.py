@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 import sentry_sdk
 
 from sentry import features
-from sentry.constants import ObjectStatus
+from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -18,10 +19,10 @@ from sentry.integrations.repository.metric_alert import (
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
-from sentry.utils import json
 
 from . import logger
 
@@ -34,9 +35,11 @@ def send_incident_alert_notification(
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
-    integration, org_integration = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
+    integration = result.integration
+    org_integration = result.organization_integration
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         # Integration removed, but rule is still active.
         return False
@@ -63,7 +66,7 @@ def send_incident_alert_notification(
     payload = {
         "channel": channel,
         "text": text,
-        "attachments": json.dumps_experimental("integrations.slack.enable-orjson", [blocks]),
+        "attachments": orjson.dumps([blocks]).decode(),
         # Prevent duplicate unfurl
         # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
         "unfurl_links": False,
@@ -72,15 +75,22 @@ def send_incident_alert_notification(
 
     repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
     parent_notification_message = None
-    try:
-        parent_notification_message = repository.get_parent_notification_message(
-            alert_rule_id=incident.alert_rule_id,
-            incident_id=incident.id,
-            trigger_action_id=action.id,
-        )
-    except Exception:
-        # if there's an error trying to grab a parent notification, don't let that error block this flow
-        pass
+    # Only grab the parent notification message for thread use if the feature is on
+    # Otherwise, leave it empty, and it will not create a thread
+    if OrganizationOption.objects.get_value(
+        organization=organization,
+        key="sentry:metric_alerts_thread_flag",
+        default=METRIC_ALERTS_THREAD_DEFAULT,
+    ):
+        try:
+            parent_notification_message = repository.get_parent_notification_message(
+                alert_rule_id=incident.alert_rule_id,
+                incident_id=incident.id,
+                trigger_action_id=action.id,
+            )
+        except Exception:
+            # if there's an error trying to grab a parent notification, don't let that error block this flow
+            pass
 
     new_notification_message_object = NewMetricAlertNotificationMessage(
         incident_id=incident.id,

@@ -161,6 +161,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
                   key={item.key}
                   item={item}
                   listState={listState}
+                  hiddenOptions={hiddenOptions}
                   onToggle={onSectionToggle}
                   size={size}
                 />

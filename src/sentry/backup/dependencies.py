@@ -508,9 +508,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
     # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
     # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
-    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
-    # reference at least one `User` or `Team`, neither of which are dangling.
-    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    # out a more rigorous way to deduce this.
     model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
 
     # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this

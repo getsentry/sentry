@@ -1,4 +1,3 @@
-import copy
 from datetime import timedelta
 from typing import cast
 from unittest import mock
@@ -11,7 +10,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import MonitorCheckInFailure, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -36,7 +35,7 @@ from sentry.tasks.summaries.weekly_reports import (
     schedule_organizations,
 )
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.outbox import outbox_runner
@@ -257,10 +256,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         event1.group.substatus = GroupSubStatus.ONGOING
         event1.group.save()
@@ -270,10 +269,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "b" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         event2.group.substatus = GroupSubStatus.NEW
         event2.group.save()
@@ -301,20 +300,20 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": min_ago,
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
             event2 = self.store_event(
                 data={
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": min_ago,
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
             group2 = event2.group
             group2.status = GroupStatus.RESOLVED
@@ -338,10 +337,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
 
             event2 = self.store_event(
@@ -349,10 +348,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -381,7 +380,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
-        self.create_group(type=MonitorCheckInFailure.type_id)
+        self.create_group(type=MonitorIncidentType.type_id)
         prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
@@ -427,10 +426,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
 
             self.store_event(
@@ -438,10 +437,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -458,7 +457,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
-        self.create_group(type=MonitorCheckInFailure.type_id)
+        self.create_group(type=MonitorIncidentType.type_id)
         prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
@@ -503,11 +502,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                     "level": "info",
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
 
             self.store_event(
@@ -515,11 +514,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                     "level": "error",
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -562,10 +561,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "a" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
 
             event2 = self.store_event(
@@ -573,10 +572,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "event_id": "b" * 32,
                     "message": "message",
                     "timestamp": iso_format(self.three_days_ago),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
+                event_type=EventType.ERROR,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -659,10 +658,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": iso_format(self.three_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group1 = event1.group
         group1.substatus = GroupSubStatus.NEW
@@ -673,10 +672,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "b" * 32,
                 "message": "message",
                 "timestamp": iso_format(self.three_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group2 = event2.group
         group2.substatus = GroupSubStatus.ONGOING
@@ -724,10 +723,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": iso_format(self.three_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         group1 = event1.group
@@ -769,10 +768,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": iso_format(ten_days_ago),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)

@@ -14,7 +14,9 @@ function getCurrentScreenName(
     return '';
   }
 
-  return mostRecentFrame.data.to;
+  return 'data' in mostRecentFrame && 'to' in mostRecentFrame.data
+    ? mostRecentFrame.data.to
+    : '';
 }
 
 export default getCurrentScreenName;

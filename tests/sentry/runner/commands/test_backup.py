@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import orjson
 import pytest
 from click.testing import CliRunner
 from google_crc32c import value as crc32c
@@ -905,7 +906,7 @@ class BadImportExportCommandTests(TestCase):
                     str(gcp_kms_config_path),
                 ],
             )
-            assert isinstance(rv.exception, json.JSONDecodeError)
+            assert isinstance(rv.exception, orjson.JSONDecodeError)
             assert rv.exit_code == 1
 
     def test_import_invalid_gcp_kms_config(self):

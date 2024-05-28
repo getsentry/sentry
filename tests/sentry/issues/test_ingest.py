@@ -14,7 +14,7 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorCheckInFailure,
+    MonitorIncidentType,
     NoiseConfig,
 )
 from sentry.issues.ingest import (
@@ -119,7 +119,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_different_ids(self) -> None:
         create_default_projects()
-        event_data = load_data("generic-event-profiling").data
+        event_data = load_data("generic-event-profiling")
         project_id = event_data["event"].pop("project_id", self.project.id)
         event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
@@ -248,7 +248,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=["some-fingerprint"], type=MonitorCheckInFailure.type_id
+            fingerprint=["some-fingerprint"], type=MonitorIncidentType.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -444,7 +444,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         create_default_projects()
-        event_data = load_data("generic-event-profiling").data
+        event_data = load_data("generic-event-profiling")
         project_id = event_data["event"].pop("project_id")
         event_data["event"]["timestamp"] = timezone.now().isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)

@@ -16,7 +16,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 
@@ -69,12 +69,12 @@ def get_digest_as_context(digest: Digest) -> Mapping[str, Any]:
 
 
 def get_events_by_participant(
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]]
-) -> Mapping[RpcActor, set[Event]]:
+    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]]
+) -> Mapping[Actor, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)
     for event, participants_by_provider in participants_by_provider_by_event.items():
-        participants: set[RpcActor]
+        participants: set[Actor]
         for participants in participants_by_provider.values():
             for participant in participants:
                 output[participant].add(event)
@@ -83,8 +83,8 @@ def get_events_by_participant(
 
 def get_personalized_digests(
     digest: Digest,
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]],
-) -> Mapping[RpcActor, Digest]:
+    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
+) -> Mapping[Actor, Digest]:
     events_by_participant = get_events_by_participant(participants_by_provider_by_event)
 
     actor_to_digest = {}
@@ -108,7 +108,7 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
 
 
 def build_custom_digest(
-    original_digest: Digest, events: Iterable[Event], participant: RpcActor
+    original_digest: Digest, events: Iterable[Event], participant: Actor
 ) -> Digest:
     """Given a digest and a set of events, filter the digest to only records that include the events."""
     user_digest: Digest = {}
@@ -138,7 +138,7 @@ def get_participants_by_event(
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]]:
+) -> Mapping[Event, Mapping[ExternalProviders, set[Actor]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
     DB calls while we iterate over every event. It would be great if we could

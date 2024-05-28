@@ -1,8 +1,10 @@
 from django.core.files.base import ContentFile
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.files import File
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class BaseMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
@@ -47,6 +49,7 @@ class BaseMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
         )
         assert resp.data["detail"] == "Check-in has no attachment"
 
+    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_delete_cascade(self):
         file = self.create_file(name="log.txt", type="checkin.attachment")
         file.putfile(ContentFile(b"some data!"))
@@ -62,6 +65,8 @@ class BaseMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
             attachment_id=file.id,
         )
 
-        checkin.delete()
+        # checkin has a post_delete signal that removes files.
+        with in_test_hide_transaction_boundary():
+            checkin.delete()
 
         assert not File.objects.filter(type="checkin.attachment").exists()

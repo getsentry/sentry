@@ -16,7 +16,7 @@ import {CacheHitMissCell} from 'sentry/views/performance/cache/tables/cacheHitMi
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
 import type {IndexedResponse} from 'sentry/views/starfish/types';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
@@ -35,7 +35,9 @@ type ColumnKeys =
   | SpanIndexedField.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-type DataRow = Pick<IndexedResponse, DataRowKeys> & {'transaction.duration': number};
+export type DataRow = Pick<IndexedResponse, DataRowKeys> & {
+  'transaction.duration': number;
+};
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -47,12 +49,12 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
-    name: t('Key'),
+    name: t('Span Description'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'transaction.duration',
-    name: t('Txn Duration'),
+    name: t('Transaction Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -124,6 +126,7 @@ function renderBodyCell(
   if (column.key === SpanIndexedField.ID) {
     return (
       <SpanIdCell
+        moduleName={ModuleName.CACHE}
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
@@ -134,8 +137,9 @@ function renderBodyCell(
   }
 
   if (column.key === SpanIndexedField.SPAN_DESCRIPTION) {
-    const cacheKey = row[column.key].split(' ')[1]; // TODO - test with multiple keys
-    return <SpanDescriptionCell>{cacheKey}</SpanDescriptionCell>;
+    return (
+      <SpanDescriptionCell>{row[SpanIndexedField.SPAN_DESCRIPTION]}</SpanDescriptionCell>
+    );
   }
 
   if (column.key === SpanIndexedField.CACHE_HIT) {

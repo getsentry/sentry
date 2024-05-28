@@ -26,7 +26,7 @@ class _CaseInsensitiveSigner(Signer):
         super().__init__(*args, **kwargs)
 
     def signature(self, value: str | bytes, key: str | bytes | None = None) -> str:
-        return super().signature(value, key=key).lower()  # type: ignore[call-arg]  # fixed in django-stubs 5.0
+        return super().signature(value, key=key).lower()
 
     def unsign(self, signed_value: str) -> str:
         # This `unsign` is identical to subclass except for the lower-casing

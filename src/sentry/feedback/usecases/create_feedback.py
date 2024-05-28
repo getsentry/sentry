@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
@@ -20,6 +20,7 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -88,7 +89,7 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
     evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
     if is_message_spam is True:
-        evidence_data["is_spam"] = str(is_message_spam)
+        evidence_data["is_spam"] = is_message_spam
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
@@ -253,7 +254,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
     if is_message_spam:
-        auto_ignore_spam_feedbacks(project_id, issue_fingerprint)
+        auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={"referrer": source.value},
@@ -351,15 +352,15 @@ def shim_to_feedback(
         )
 
 
-def auto_ignore_spam_feedbacks(project_id, issue_fingerprint):
-    if options.get("feedback.spam-detection-actions"):
+def auto_ignore_spam_feedbacks(project, issue_fingerprint):
+    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
         metrics.incr("feedback.spam-detection-actions.set-ignored")
         produce_occurrence_to_kafka(
             payload_type=PayloadType.STATUS_CHANGE,
             status_change=StatusChangeMessage(
                 fingerprint=issue_fingerprint,
-                project_id=project_id,
-                new_status=GroupStatus.RESOLVED,
-                new_substatus=None,
+                project_id=project.id,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                new_substatus=GroupSubStatus.FOREVER,
             ),
         )

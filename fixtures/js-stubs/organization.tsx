@@ -59,6 +59,8 @@ export function OrganizationFixture(
     githubOpenPRBot: false,
     githubPRBot: false,
     githubNudgeInvite: false,
+    issueAlertsThreadFlag: false,
+    metricAlertsThreadFlag: false,
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,

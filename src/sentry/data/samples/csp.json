@@ -1,7 +1,7 @@
 {
   "culprit": "script-src 'self' 'unsafe-eval' 'unsafe-inline' www.example.com",
-  "message": "Blocked 'script' from 'example.org'",
-  "sentry.interfaces.Csp": {
+  "logentry": {"formatted": "Blocked 'script' from 'example.org'"},
+  "csp": {
     "line_number": 304,
     "blocked_uri": "https://example.com",
     "referrer": "https://www.google.com/",
@@ -13,7 +13,7 @@
     "column_number": 305,
     "effective_directive": "script-src"
   },
-  "sentry.interfaces.Http": {
+  "request": {
     "url": "https://example.com/welcome/",
     "headers": [
       ["Referer", "https://www.google.com/"],
@@ -23,7 +23,7 @@
       ]
     ]
   },
-  "sentry.interfaces.User": {
+  "user": {
     "ip_address": "127.0.0.1"
   }
 }

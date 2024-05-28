@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -11,9 +12,8 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
@@ -24,8 +24,10 @@ import RenderBlockingSelector from 'sentry/views/performance/browser/resources/s
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 const {
@@ -39,30 +41,33 @@ const {
 } = SpanMetricsField;
 
 function ResourceSummary() {
-  const organization = useOrganization();
+  const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
   const {
     query: {transaction},
   } = useLocation();
-  const {data} = useSpanMetrics({
-    search: MutableSearch.fromQueryObject({
-      'span.group': groupId,
-    }),
-    fields: [
-      `avg(${SPAN_SELF_TIME})`,
-      `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
-      `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
-      `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-      `sum(${SPAN_SELF_TIME})`,
-      'spm()',
-      SPAN_OP,
-      SPAN_DESCRIPTION,
-      'time_spent_percentage()',
-      'project.id',
-    ],
-  });
+  const {data} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        'span.group': groupId,
+      }),
+      fields: [
+        `avg(${SPAN_SELF_TIME})`,
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+        `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
+        `sum(${SPAN_SELF_TIME})`,
+        'spm()',
+        SPAN_OP,
+        SPAN_DESCRIPTION,
+        'time_spent_percentage()',
+        'project.id',
+      ],
+    },
+    Referrer.RESOURCE_SUMMARY_METRICS_RIBBON
+  );
   const spanMetrics = selectedSpanOp
     ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
     : data[0] ?? {};
@@ -75,28 +80,16 @@ function ResourceSummary() {
       spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
+
+  const crumbs = useModuleBreadcrumbs('resource');
+
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
-      baseURL="/performance/browser/resources"
-      features="spans-first-ui"
-    >
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Resources',
-                to: normalizeUrl(
-                  `/organizations/${organization.slug}/performance/browser/resources/`
-                ),
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: 'Resource Summary',
               },
@@ -143,21 +136,33 @@ function ResourceSummary() {
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
           <SampleList
-            transactionRoute="/performance/browser/pageloads/"
+            transactionRoute={webVitalsModuleURL}
             groupId={groupId}
+            moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
-            additionalFields={[HTTP_RESPONSE_CONTENT_LENGTH]}
           />
         </Layout.Main>
       </Layout.Body>
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders
+      moduleName="resource"
+      pageTitle={t('Resource Summary')}
+      features="spans-first-ui"
+    >
+      <ResourceSummary />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
 `;
-
-export default ResourceSummary;

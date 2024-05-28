@@ -1,15 +1,19 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {
@@ -20,6 +24,7 @@ import {
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -31,16 +36,18 @@ import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples'
 import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
 import {Referrer} from 'sentry/views/performance/http/referrers';
+import {BASE_FILTERS} from 'sentry/views/performance/http/settings';
 import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSeries';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
@@ -49,6 +56,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
+import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
@@ -64,12 +72,16 @@ export function HTTPSamplesPanel() {
       transactionMethod: decodeScalar,
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
+      spanSearchQuery: decodeScalar,
     },
   });
 
   const organization = useOrganization();
 
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
+
   const project = projects.find(p => query.project === p.id);
 
   const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
@@ -85,6 +97,12 @@ export function HTTPSamplesPanel() {
     : undefined;
 
   const handlePanelChange = newPanelName => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'panel',
+      new_state: newPanelName,
+      organization,
+      source: ModuleName.HTTP,
+    });
     router.replace({
       pathname: location.pathname,
       query: {
@@ -95,6 +113,12 @@ export function HTTPSamplesPanel() {
   };
 
   const handleResponseCodeClassChange = newResponseCodeClass => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'status_code',
+      new_state: newResponseCodeClass.value,
+      organization,
+      source: ModuleName.HTTP,
+    });
     router.replace({
       pathname: location.pathname,
       query: {
@@ -108,7 +132,7 @@ export function HTTPSamplesPanel() {
 
   // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
   const ribbonFilters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
@@ -116,7 +140,7 @@ export function HTTPSamplesPanel() {
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
@@ -138,31 +162,35 @@ export function HTTPSamplesPanel() {
   const {
     data: domainTransactionMetrics,
     isFetching: areDomainTransactionMetricsFetching,
-  } = useSpanMetrics({
-    search: MutableSearch.fromQueryObject(ribbonFilters),
-    fields: [
-      `${SpanFunction.SPM}()`,
-      `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-      `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-      'http_response_rate(3)',
-      'http_response_rate(4)',
-      'http_response_rate(5)',
-      `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-    ],
-    enabled: isPanelOpen,
-    referrer: Referrer.SAMPLES_PANEL_METRICS_RIBBON,
-  });
+  } = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(ribbonFilters),
+      fields: [
+        `${SpanFunction.SPM}()`,
+        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
+      ],
+      enabled: isPanelOpen,
+    },
+    Referrer.SAMPLES_PANEL_METRICS_RIBBON
+  );
 
   const {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries({
-    search,
-    yAxis: [`avg(span.self_time)`],
-    enabled: isPanelOpen && query.panel === 'duration',
-    referrer: Referrer.SAMPLES_PANEL_DURATION_CHART,
-  });
+  } = useSpanMetricsSeries(
+    {
+      search,
+      yAxis: [`avg(span.self_time)`],
+      enabled: isPanelOpen && query.panel === 'duration',
+    },
+    Referrer.SAMPLES_PANEL_DURATION_CHART
+  );
 
   const {
     isFetching: isResponseCodeDataLoading,
@@ -182,6 +210,9 @@ export function HTTPSamplesPanel() {
     ...filters,
     'span.domain': undefined,
   });
+
+  // filter by key-value filters specified in the search bar query
+  sampleSpansSearch.addStringMultiFilter(query.spanSearchQuery);
 
   if (query.domain === '') {
     sampleSpansSearch.addOp('(');
@@ -242,10 +273,14 @@ export function HTTPSamplesPanel() {
     highlightedSpanId
   );
 
-  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
-    return durationSamplesData.find(
-      s => s.timestamp === dataPoint.name && s['span.self_time'] === dataPoint.value
-    );
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
   };
 
   const handleClose = () => {
@@ -259,9 +294,18 @@ export function HTTPSamplesPanel() {
     });
   };
 
+  const handleOpen = useCallback(() => {
+    if (query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: ModuleName.HTTP,
+      });
+    }
+  }, [organization, query.transaction]);
+
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey} onClose={handleClose}>
+      <DetailPanel detailKey={detailKey} onClose={handleClose} onOpen={handleOpen}>
         <ModuleLayout.Layout>
           <ModuleLayout.Full>
             <HeaderContainer>
@@ -402,14 +446,53 @@ export function HTTPSamplesPanel() {
                       return;
                     }
 
-                    const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
+                    const sample = findSampleFromDataPoint<
+                      (typeof durationSamplesData)[0]
+                    >(
+                      firstHighlight.dataPoint,
+                      durationSamplesData,
+                      SpanIndexedField.SPAN_SELF_TIME
+                    );
+
                     setHighlightedSpanId(sample?.span_id);
                   }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
                 />
               </ModuleLayout.Full>
+            </Fragment>
+          )}
 
+          {query.panel === 'status' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <ResponseCodeCountChart
+                  series={Object.values(responseCodeData).filter(Boolean)}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
+
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
+              <SearchBar
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </ModuleLayout.Full>
+          </Feature>
+
+          {query.panel === 'duration' && (
+            <Fragment>
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={durationSamplesData}
@@ -429,7 +512,15 @@ export function HTTPSamplesPanel() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <Button onClick={() => refetchDurationSpanSamples()}>
+                <Button
+                  onClick={() => {
+                    trackAnalytics(
+                      'performance_views.sample_spans.try_different_samples_clicked',
+                      {organization, source: ModuleName.HTTP}
+                    );
+                    refetchDurationSpanSamples();
+                  }}
+                >
                   {t('Try Different Samples')}
                 </Button>
               </ModuleLayout.Full>
@@ -438,14 +529,6 @@ export function HTTPSamplesPanel() {
 
           {query.panel === 'status' && (
             <Fragment>
-              <ModuleLayout.Full>
-                <ResponseCodeCountChart
-                  series={Object.values(responseCodeData).filter(Boolean)}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
-                />
-              </ModuleLayout.Full>
-
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={responseCodeSamplesData ?? []}
@@ -462,7 +545,15 @@ export function HTTPSamplesPanel() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <Button onClick={() => refetchResponseCodeSpanSamples()}>
+                <Button
+                  onClick={() => {
+                    trackAnalytics(
+                      'performance_views.sample_spans.try_different_samples_clicked',
+                      {organization, source: ModuleName.HTTP}
+                    );
+                    refetchResponseCodeSpanSamples();
+                  }}
+                >
                   {t('Try Different Samples')}
                 </Button>
               </ModuleLayout.Full>

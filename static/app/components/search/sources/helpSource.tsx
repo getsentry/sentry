@@ -68,6 +68,7 @@ class HelpSource extends Component<Props, State> {
     const searchResults = await this.search.query(
       query,
       {
+        searchAllIndexes: true,
         platforms: platforms.map(platform => standardSDKSlug(platform)?.slug!),
       },
       {

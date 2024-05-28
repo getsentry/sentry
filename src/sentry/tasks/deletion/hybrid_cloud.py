@@ -405,6 +405,7 @@ def get_ids_cross_db_for_row_watermark(
     field: HybridCloudForeignKey,
     row_watermark_batch: WatermarkBatch,
 ) -> tuple[list[int], datetime.datetime]:
+
     oldest_seen = timezone.now()
     model_object_id_pairs = model.objects.filter(
         id__lte=row_watermark_batch.up, id__gt=row_watermark_batch.low

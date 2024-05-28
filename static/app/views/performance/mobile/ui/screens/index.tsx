@@ -53,8 +53,7 @@ export function UIScreens() {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  // TODO: Add transaction.op:ui.load when collecting begins
-  const query = new MutableSearch([]);
+  const query = new MutableSearch(['transaction.op:ui.load']);
 
   const searchQuery = decodeScalar(locationQuery.query, '');
   if (searchQuery) {
@@ -143,8 +142,7 @@ export function UIScreens() {
     );
   }
 
-  // TODO: Add transaction.op:ui.load when collecting begins
-  const tableSearchFilters = new MutableSearch([]);
+  const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
 
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 

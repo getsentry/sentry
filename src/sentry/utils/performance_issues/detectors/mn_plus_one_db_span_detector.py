@@ -223,7 +223,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 return span
         return None
 
-    def _find_common_parent_span(self, spans: Sequence[Span]):
+    def _find_common_parent_span(self, spans: Sequence[Span]) -> Span | None:
         parent_span_id = spans[0].get("parent_span_id")
         if not parent_span_id:
             return None
@@ -275,7 +275,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
-    def visit_span(self, span):
+    def visit_span(self, span: Span) -> None:
         self.state, performance_problem = self.state.next(span)
         if performance_problem:
             self.stored_problems[performance_problem.fingerprint] = performance_problem

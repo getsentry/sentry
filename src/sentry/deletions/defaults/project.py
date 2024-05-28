@@ -6,7 +6,7 @@ from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry.discover.models import DiscoverSavedQueryProject
-        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
         from sentry.incidents.models.incident import IncidentProject
         from sentry.models.activity import Activity
         from sentry.models.appconnectbuilds import AppConnectBuild
@@ -51,6 +51,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         # in bulk
         for m in (
             Activity,
+            AlertRuleProjects,
             AppConnectBuild,
             EnvironmentProject,
             GroupAssignee,

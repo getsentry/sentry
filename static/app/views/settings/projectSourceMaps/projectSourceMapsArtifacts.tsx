@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
 import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -86,7 +86,7 @@ function ArtifactsTableRow({
                 disabled={hasRole}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}

@@ -50,7 +50,11 @@ def configure_split_db() -> None:
     # silo database is the 'default' elsewhere in application logic.
     settings.DATABASES["default"]["NAME"] = "region"
 
-    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+    # Add a connection for the secondary db
+    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["secondary"]["NAME"] = "secondary"
+
+    settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:

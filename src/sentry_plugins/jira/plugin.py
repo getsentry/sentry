@@ -652,7 +652,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         ):
             return
 
-        interface = event.interfaces.get("sentry.interfaces.Exception")
+        interface = event.interfaces.get("exception")
 
         if interface:
             post_data["description"] += "\n{code}%s{code}" % interface.get_stacktrace(

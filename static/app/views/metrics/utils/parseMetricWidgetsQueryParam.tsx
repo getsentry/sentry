@@ -1,4 +1,5 @@
-import {getDefaultMetricOp} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types/metrics';
+import {getDefaultAggregate} from 'sentry/utils/metrics';
 import {
   DEFAULT_SORT_STATE,
   emptyMetricsQueryWidget,
@@ -140,7 +141,7 @@ function parseQueryWidget(
 
   return {
     mri,
-    op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
+    op: parseStringParam(widget, 'op') ?? getDefaultAggregate(mri),
     query: parseStringParam(widget, 'query') ?? '',
     groupBy: parseArrayParam(widget, 'groupBy', entry =>
       typeof entry === 'string' ? entry : undefined
@@ -191,7 +192,10 @@ function fillIds(
   return entries;
 }
 
-export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget[] {
+export function parseMetricWidgetsQueryParam(
+  queryParam?: string,
+  defaultMRI?: MRI
+): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
   try {
@@ -282,7 +286,13 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
   // Iterate over the widgets without an id and assign them a unique one
 
   if (queries.length === 0) {
-    queries.push(emptyMetricsQueryWidget);
+    const mri = defaultMRI || emptyMetricsQueryWidget.mri;
+
+    queries.push({
+      ...emptyMetricsQueryWidget,
+      mri,
+      op: getDefaultAggregate(mri),
+    });
   }
 
   // We can reset the id if there is only one widget

@@ -18,7 +18,7 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {OnboardingTaskKey} from 'sentry/types';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
@@ -243,7 +243,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
-      action: ({router}) => {
+      action: router => {
         // Use `features?.` because getsentry has a different `Organization` type/payload
         if (!organization.features?.includes('performance-onboarding-checklist')) {
           window.open(

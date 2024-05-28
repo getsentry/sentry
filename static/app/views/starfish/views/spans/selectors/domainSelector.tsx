@@ -170,8 +170,15 @@ const LIMIT = 100;
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
   db: t('Table'),
+  cache: t('Domain'),
+  vital: t('Domain'),
+  queue: t('Domain'),
+  screen_load: t('Domain'),
+  app_start: t('Domain'),
   resource: t('Resource'),
   other: t('Domain'),
+  ai: t('Domain'),
+  'mobile-ui': t('Domain'),
   '': t('Domain'),
 };
 

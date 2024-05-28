@@ -17,7 +17,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -189,7 +189,8 @@ export function getSpanAncestryAndGroupingItems({
         <CopyToClipboardButton borderless size="zero" iconSize="xs" text={span.span_id} />
       </Fragment>
     ),
-    subject: (
+    subject: 'Span ID',
+    subjectNode: (
       <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
         <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
           Span ID

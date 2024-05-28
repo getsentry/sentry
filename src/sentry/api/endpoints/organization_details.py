@@ -37,8 +37,10 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
+    METRIC_ALERTS_THREAD_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -176,6 +178,18 @@ ORG_OPTIONS = (
     ),
     ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
     ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
+    (
+        "issueAlertsThreadFlag",
+        "sentry:issue_alerts_thread_flag",
+        bool,
+        ISSUE_ALERTS_THREAD_DEFAULT,
+    ),
+    (
+        "metricAlertsThreadFlag",
+        "sentry:metric_alerts_thread_flag",
+        bool,
+        METRIC_ALERTS_THREAD_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -222,6 +236,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    issueAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricAlertsThreadFlag = serializers.BooleanField(required=False)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -555,7 +571,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Return details on an individual organization including various details
         such as membership access, features, and teams.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
@@ -581,7 +597,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Update various attributes and configurable settings for the given
         organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
@@ -714,7 +730,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         However once deletion has begun the state of an organization changes and
         will be hidden from most public views.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :auth: required, user-context-needed
         """

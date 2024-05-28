@@ -20,7 +20,6 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models.fields.uuid import UUIDField
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.utils.json import JSONData
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
@@ -138,7 +137,7 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
-    def get_relocation_ordinal_fields(self, _json_model: JSONData) -> list[str] | None:
+    def get_relocation_ordinal_fields(self, _json_model: Any) -> list[str] | None:
         """
         Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
         the `write_relocation_import()` method may return an `ImportKind` besides
@@ -196,7 +195,7 @@ class BaseModel(models.Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         """
         Takes the export JSON representation of this model, and "sanitizes" any data that might be

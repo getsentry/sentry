@@ -89,7 +89,10 @@ describe('HelpSearch', function () {
 
     expect(mockSentryGlobalSearch.query).toHaveBeenLastCalledWith(
       'dummy',
-      {platforms: []},
+      {
+        platforms: [],
+        searchAllIndexes: true,
+      },
       {analyticsTags: ['source:dashboard']}
     );
 

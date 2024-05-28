@@ -14,7 +14,7 @@ from sentry.integrations.msteams.card_builder.block import OpenUrlAction
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 from .block import (
@@ -35,7 +35,7 @@ from .block import (
 
 class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
-        self, notification: BaseNotification, context: Mapping[str, Any], recipient: RpcActor
+        self, notification: BaseNotification, context: Mapping[str, Any], recipient: Actor
     ):
         self.notification = notification
         self.context = context
@@ -124,7 +124,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         self,
         notification: GroupActivityNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ):
         super().__init__(notification, context, recipient)
         self.group = notification.group

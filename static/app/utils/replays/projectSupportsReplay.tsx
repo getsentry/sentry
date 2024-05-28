@@ -1,6 +1,6 @@
 import {backend, mobile, replayPlatforms} from 'sentry/data/platformCategories';
-import type {MinimalProject} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
+import type {MinimalProject} from 'sentry/types/project';
 
 /**
  * Are you able to send a Replay into the project?
@@ -16,9 +16,10 @@ function projectSupportsReplay(project: MinimalProject) {
  *
  * Basically: is this a backend or frontend project
  */
-export function projectCanLinkToReplay(project: undefined | MinimalProject) {
-  const organization = useOrganization();
-
+export function projectCanLinkToReplay(
+  organization: Organization,
+  project: undefined | MinimalProject
+) {
   if (!project || !project.platform) {
     return false;
   }

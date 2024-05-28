@@ -214,7 +214,9 @@ export enum TickAlignment {
 }
 
 export type TraceContextType = {
+  client_sample_rate?: number;
   count?: number;
+  data?: Record<string, any>;
   description?: string;
   exclusive_time?: number;
   frequency?: number;

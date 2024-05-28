@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 
+import orjson
 import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
@@ -23,7 +24,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, parse_search_query
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
 MAX_RULE_PERIOD_STRING = "6h"
@@ -248,7 +248,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     response_data = {
         "ruleId": rule.external_rule_id,
-        "condition": json.loads(rule.condition),
+        "condition": orjson.loads(rule.condition),
         "startDate": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
         "endDate": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
         "numSamples": rule.num_samples,

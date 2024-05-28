@@ -133,6 +133,9 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "user.id": "sentry_tags[user.id]",
+    "user.email": "sentry_tags[user.email]",
+    "user.username": "sentry_tags[user.username]",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
@@ -158,6 +161,7 @@ SPAN_COLUMN_MAP = {
     "sdk.name": "sentry_tags[sdk.name]",
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
 }
 
@@ -998,7 +1002,7 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data, skip_trace=True)
+            body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
                     log_snuba_info(
@@ -1019,7 +1023,10 @@ def _bulk_snuba_query(
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
-
+            metrics.incr(
+                "snuba.client.api.error",
+                tags={"status_code": response.status, "referrer": query_referrer},
+            )
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:
@@ -1444,6 +1451,7 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    "Nullable": "null",
 }
 
 

@@ -59,7 +59,7 @@ function getSentryIntegrations(routes?: Function) {
       routes: typeof routes === 'function' ? createRoutes(routes()) : [],
       match,
       _experiments: {
-        enableInteractions: true,
+        enableInteractions: false,
       },
     }),
     Sentry.browserProfilingIntegration(),
@@ -238,9 +238,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
-
-  // TODO: Remove once we've finished rolling out the new renderer
-  Sentry.setTag('isConcurrentRenderer', true);
 }
 
 export function isFilteredRequestErrorEvent(event: Event): boolean {

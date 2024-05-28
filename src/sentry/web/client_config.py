@@ -221,11 +221,8 @@ class _ClientConfig:
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
-        # TODO (Gabe): Remove selector option check once GetSentry side lands
-        if options.get("hybrid_cloud.multi-region-selector") or features.has(
-            "organizations:multi-region-selector", actor=self.user
-        ):
-            yield "organizations:multi-region-selector"
+
+        yield "organizations:multi-region-selector"
 
     @property
     def needs_upgrade(self) -> bool:

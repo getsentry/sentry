@@ -78,10 +78,10 @@ def user_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
     return context_data
 
 
-def get_sentry_flagpole_context_builder():
+def get_sentry_flagpole_context_builder() -> ContextBuilder:
     """
     Creates and returns a new sentry flagpole context builder with Organization,
-     User, Team, and Project transformers appended to it.
+     User, and Project transformers appended to it.
     :return:
     """
     return (

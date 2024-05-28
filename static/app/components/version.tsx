@@ -35,6 +35,10 @@ type Props = {
    */
   projectId?: string;
   /**
+   * Should the release text break and wrap onto the next line
+   */
+  shouldWrapText?: boolean;
+  /**
    * Should there be a tooltip with raw version on hover
    */
   tooltipRawVersion?: boolean;
@@ -57,6 +61,7 @@ function Version({
   withPackage,
   projectId,
   truncate,
+  shouldWrapText = false,
   className,
 }: Props) {
   const location = useLocation();
@@ -85,19 +90,27 @@ function Version({
       if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
-            <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+            <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
+              {versionToDisplay}
+            </VersionText>
           </GlobalSelectionLink>
         );
       }
       return (
         <Link {...props}>
-          <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+          <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
+            {versionToDisplay}
+          </VersionText>
         </Link>
       );
     }
 
     return (
-      <VersionText className={className} truncate={truncate}>
+      <VersionText
+        className={className}
+        truncate={truncate}
+        shouldWrapText={shouldWrapText}
+      >
         {versionToDisplay}
       </VersionText>
     );
@@ -149,15 +162,17 @@ function Version({
 //   display: inline-block;
 // `;
 
-const VersionText = styled('span')<{truncate?: boolean}>`
-  ${p =>
-    p.truncate &&
-    `max-width: 100%;
-    display: block;
+const truncateStyles = css`
+  max-width: 100%;
+  display: block;
   overflow: hidden;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
-  white-space: nowrap;`}
+`;
+
+const VersionText = styled('span')<{shouldWrapText?: boolean; truncate?: boolean}>`
+  ${p => p.truncate && truncateStyles}
+  white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;
 
 const TooltipContent = styled('span')`

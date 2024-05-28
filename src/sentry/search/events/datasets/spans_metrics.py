@@ -11,7 +11,7 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.fields import SnQLStringArg
+from sentry.search.events.fields import SnQLStringArg, get_function_alias
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
@@ -20,6 +20,7 @@ from sentry.snuba.referrer import Referrer
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
+    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
 
     def __init__(self, builder: builder.SpansMetricsQueryBuilder):
         self.builder = builder
@@ -55,8 +56,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
         # If its still None its not a custom measurement
         if metric_id is None:
-            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-        self.builder.metric_ids.add(metric_id)
+            if constants.SPAN_METRICS_MAP.get(value, value) in self.nullable_metrics:
+                metric_id = 0
+            else:
+                raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
+        if metric_id != 0:
+            self.builder.metric_ids.add(metric_id)
         return metric_id
 
     @property
@@ -307,7 +312,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     optional_args=[
                         fields.with_default(
                             "app", fields.SnQLStringArg("scope", allowed_strings=["app", "local"])
-                        )
+                        ),
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
                     ],
                     snql_distribution=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
@@ -560,6 +571,51 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",
                 ),
+                fields.MetricsFunction(
+                    "trace_status_rate",
+                    required_args=[
+                        SnQLStringArg("status"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_status_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "trace_error_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_error_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -655,7 +711,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_total_span_duration(self, alias: str, scope: str) -> SelectType:
+    def _resolve_total_span_duration(self, alias: str, scope: str, column: str) -> SelectType:
         """This calculates the total time, and based on the scope will return
         either the apps total time or whatever other local scope/filters are
         applied.
@@ -669,7 +725,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             params={},
             snuba_params=self.builder.params,
             query=self.builder.query if scope == "local" else None,
-            selected_columns=["sum(span.self_time)"],
+            selected_columns=[f"sum({column})"],
         )
         sentry_sdk.set_tag("query.resolved_total", scope)
 
@@ -681,16 +737,16 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if len(results["data"]) != 1:
             self.total_span_duration = 0
             return Function("toFloat64", [0], alias)
-        self.total_span_duration = results["data"][0]["sum_span_self_time"]
+        self.total_span_duration = results["data"][0][get_function_alias(f"sum({column})")]
         return Function("toFloat64", [self.total_span_duration], alias)
 
     def _resolve_time_spent_percentage(
         self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
     ) -> SelectType:
         total_time = self._resolve_total_span_duration(
-            constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"]
+            constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"], args["column"]
         )
-        metric_id = self.resolve_metric("span.self_time")
+        metric_id = self.resolve_metric(args["column"])
 
         return function_aliases.resolve_division(
             Function(
@@ -1011,12 +1067,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "countIf",
                     [
                         Function(
-                            condition,
+                            "and",
                             [
-                                Column("timestamp"),
-                                args["timestamp"],
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.duration"),
+                                    ],
+                                ),
+                                Function(
+                                    condition,
+                                    [
+                                        Column("timestamp"),
+                                        args["timestamp"],
+                                    ],
+                                ),
                             ],
-                        ),
+                        )
                     ],
                 ),
                 Function("divide", [interval, 60]),
@@ -1119,6 +1187,62 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_avg_compare(self, args, alias):
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
+
+    def _resolve_trace_status_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "equals",
+            [
+                self.builder.column("trace.status"),
+                args["status"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
+            alias,
+        )
+
+    def _resolve_trace_error_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        success_statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "not",
+                [
+                    Function(
+                        "in",
+                        [
+                            self.builder.column("trace.status"),
+                            list(status for status in success_statuses if status is not None),
+                        ],
+                    )
+                ],
+            ),
+            alias,
+        )
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:

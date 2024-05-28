@@ -241,7 +241,9 @@ describe('WidgetBuilder', function () {
       // Selector "sortDirection"
       expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
-      expect(screen.getAllByText('count()')).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(3);
+      });
     });
 
     it('sortBy defaults to the first field value when changing display type to table', async function () {

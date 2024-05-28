@@ -1,6 +1,7 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {IntegrationType, PriorityLevel} from 'sentry/types';
+import type {PriorityLevel} from 'sentry/types/group';
+import type {IntegrationType} from 'sentry/types/integrations';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -46,6 +47,14 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
+  'autofix.setup_modal_viewed': {
+    groupId: string;
+    projectId: string;
+    setup_codebase_index: boolean;
+    setup_gen_ai_consent: boolean;
+    setup_integration: boolean;
+    setup_write_integration: boolean;
+  };
   'device.classification.high.end.android.device': {
     processor_count: number;
     processor_frequency: number;
@@ -63,6 +72,16 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'highlights.edit_modal.add_context_key': {};
+  'highlights.edit_modal.add_tag': {};
+  'highlights.edit_modal.cancel_clicked': {};
+  'highlights.edit_modal.remove_context_key': {};
+  'highlights.edit_modal.remove_tag': {};
+  'highlights.edit_modal.save_clicked': {};
+  'highlights.edit_modal.use_default_clicked': {};
+  'highlights.issue_details.edit_clicked': {};
+  'highlights.issue_details.view_all_clicked': {};
+  'highlights.project_settings.updated_manually': {};
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
@@ -271,10 +290,23 @@ export type IssueEventParameters = {
 export type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
+  'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'event_cause.viewed': null,
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
+  'highlights.edit_modal.add_tag': 'Highlights: Add Tag in Edit Modal',
+  'highlights.edit_modal.cancel_clicked': 'Highlights: Cancel from Edit Modal',
+  'highlights.edit_modal.remove_context_key': 'Highlights: Remove Context in Edit Modal',
+  'highlights.edit_modal.remove_tag': 'Highlights: Remove Tag in Edit Modal',
+  'highlights.edit_modal.save_clicked': 'Highlights: Save from Edit Modal',
+  'highlights.edit_modal.use_default_clicked':
+    'Highlights: Defaults Applied from Edit Modal',
+  'highlights.issue_details.edit_clicked': 'Highlights: Open Edit Modal',
+  'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
+  'highlights.project_settings.updated_manually':
+    'Highlights: Updated Manually from Settings',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':

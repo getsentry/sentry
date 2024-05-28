@@ -4,13 +4,11 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanSummaryPage} from 'sentry/views/performance/database/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture();
@@ -35,14 +33,12 @@ describe('DatabaseSpanSummaryPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d', transactionsCursor: '0:20:0'},
+    query: {statsPeriod: '10d', transactionsCursor: '0:25:0'},
     hash: '',
     state: undefined,
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -95,6 +91,21 @@ describe('DatabaseSpanSummaryPage', function () {
       },
     });
 
+    const spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
+
     const transactionListMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -131,13 +142,12 @@ describe('DatabaseSpanSummaryPage', function () {
         {...RouteComponentPropsFixture({})}
         params={{
           groupId: '1756baf8fd19c116',
-          endpoint: '',
-          endpointMethod: '',
           transaction: '',
           transactionMethod: '',
-          spansSort: '',
+          transactionsSort: '',
         }}
-      />
+      />,
+      {organization}
     );
 
     // Metrics ribbon
@@ -241,6 +251,20 @@ describe('DatabaseSpanSummaryPage', function () {
       })
     );
 
+    // Supported span fields for panel search bar
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
+      })
+    );
+
     // Transactions table
     expect(transactionListMock).toHaveBeenNthCalledWith(
       1,
@@ -260,6 +284,7 @@ describe('DatabaseSpanSummaryPage', function () {
             'http_error_count()',
           ],
           per_page: 25,
+          cursor: '0:25:0',
           project: [],
           query: 'span.group:1756baf8fd19c116',
           sort: '-time_spent_percentage()',
@@ -272,6 +297,7 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(spanDescriptionRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsRequestMock).toHaveBeenCalledTimes(2);
+    expect(spanFieldTagsMock).toHaveBeenCalledTimes(1);
     expect(transactionListMock).toHaveBeenCalledTimes(1);
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -285,28 +311,7 @@ describe('DatabaseSpanSummaryPage', function () {
         query: {
           dataset: 'spansIndexed',
           environment: [],
-          field: [
-            'resource.render_blocking_status',
-            'http.response_content_length',
-            'span.duration',
-            'span.self_time',
-            'span.group',
-            'span.module',
-            'span.description',
-            'span.op',
-            'span_id',
-            'span.action',
-            'span.ai.pipeline.group',
-            'trace',
-            'transaction.id',
-            'transaction.method',
-            'transaction.op',
-            'span.domain',
-            'timestamp',
-            'raw_domain',
-            'project',
-            'project_id',
-          ],
+          field: ['transaction.id', 'project', 'span_id', 'span.self_time'],
           per_page: 1,
           project: [],
           query: 'span.group:1756baf8fd19c116',
@@ -329,7 +334,7 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/starfish/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
+      '/organizations/org-slug/performance/database/spans/span/1756baf8fd19c116?statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A25%3A0'
     );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '204.50ms'})).toBeInTheDocument();

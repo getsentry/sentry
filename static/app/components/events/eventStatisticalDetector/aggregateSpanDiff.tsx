@@ -11,7 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 import {EventRegressionTable} from './eventRegressionTable';
 
@@ -117,23 +117,25 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     data: spansData,
     isLoading: isSpansDataLoading,
     isError: isSpansDataError,
-  } = useSpanMetrics({
-    search,
-    fields: [
-      'span.op',
-      'any(span.description)',
-      'span.group',
-      `regression_score(span.self_time,${breakpoint})`,
-      `avg_by_timestamp(span.self_time,less,${breakpoint})`,
-      `avg_by_timestamp(span.self_time,greater,${breakpoint})`,
-      `epm_by_timestamp(less,${breakpoint})`,
-      `epm_by_timestamp(greater,${breakpoint})`,
-    ],
-    sorts: [{field: `regression_score(span.self_time,${breakpoint})`, kind: 'desc'}],
-    limit: 10,
-    enabled: isSpansOnly,
-    referrer: 'api.performance.transactions.statistical-detector-root-cause-analysis',
-  });
+  } = useSpanMetrics(
+    {
+      search,
+      fields: [
+        'span.op',
+        'any(span.description)',
+        'span.group',
+        `regression_score(span.self_time,${breakpoint})`,
+        `avg_by_timestamp(span.self_time,less,${breakpoint})`,
+        `avg_by_timestamp(span.self_time,greater,${breakpoint})`,
+        `epm_by_timestamp(less,${breakpoint})`,
+        `epm_by_timestamp(greater,${breakpoint})`,
+      ],
+      sorts: [{field: `regression_score(span.self_time,${breakpoint})`, kind: 'desc'}],
+      limit: 10,
+      enabled: isSpansOnly,
+    },
+    'api.performance.transactions.statistical-detector-root-cause-analysis'
+  );
 
   const tableData = useMemo(() => {
     if (isSpansOnly) {

@@ -414,7 +414,7 @@ def compare(
         else:
             input = src
 
-        # Now read the input string into memory as JSONData.
+        # Now read the input string into memory as json data.
         try:
             data = json.load(input)
         except json.JSONDecodeError:
@@ -591,7 +591,7 @@ def sanitize_(
     else:
         input = src
 
-    # Now read the input string into memory as JSONData.
+    # Now read the input string into memory as json data.
     try:
         unsanitized_json = json.load(input)
     except json.JSONDecodeError:

@@ -3,11 +3,11 @@ import logging
 import os
 import re
 
+import orjson
 from django.conf import settings
 from packaging.version import Version
 
 import sentry
-from sentry.utils import json
 
 logger = logging.getLogger("sentry")
 
@@ -22,7 +22,7 @@ def load_registry(path):
     fn = os.path.join(LOADER_FOLDER, path + ".json")
     try:
         with open(fn, "rb") as f:
-            return json.load(f)
+            return orjson.loads(f.read())
     except OSError:
         return None
 

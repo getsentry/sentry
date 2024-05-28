@@ -6,7 +6,7 @@ from typing import Any
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 
 from .base import SlackNotificationsMessageBuilder
 
@@ -16,7 +16,7 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         self,
         notification: ProjectNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ) -> None:
         super().__init__(notification, context, recipient)
         self.notification: ProjectNotification = notification
@@ -31,5 +31,4 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
             issue_details=True,
             notification=self.notification,
             recipient=self.recipient,
-            commits=self.context.get("commits", None),
         ).build()

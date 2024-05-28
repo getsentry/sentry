@@ -38,6 +38,9 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   };
   const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(type => {
     const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
+    if (Array.isArray(notificationFlag)) {
+      return notificationFlag.some(flag => checkFeatureFlag(flag));
+    }
     if (notificationFlag) {
       return checkFeatureFlag(notificationFlag);
     }
@@ -45,7 +48,12 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   });
 
   const renderOneSetting = (type: string) => {
+    // TODO(isabella): Once GA, remove this
     const field = NOTIFICATION_SETTING_FIELDS[type];
+    if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
+      field.label = t('Spend');
+      field.help = t('Notifications that help avoid surprise invoices.');
+    }
     return (
       <FieldWrapper key={type}>
         <div>
