@@ -247,9 +247,23 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, []);
 
   const initializedRef = useRef(false);
-  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
-    null
-  );
+  const scrollQueueRef = useRef<
+    {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
+  >(undefined);
+
+  if (scrollQueueRef.current === undefined) {
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
+
+    if (maybeQueue || queryParams.eventId) {
+      scrollQueueRef.current = {
+        eventId: queryParams.eventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    } else {
+      scrollQueueRef.current = null;
+    }
+  }
 
   const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
@@ -395,18 +409,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
     // We only want to update the tabs when the tree changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree]);
-
-  useLayoutEffect(() => {
-    const queryParams = qs.parse(location.search);
-    const maybeQueue = decodeScrollQueue(queryParams.node);
-
-    if (maybeQueue || queryParams.eventId) {
-      scrollQueueRef.current = {
-        eventId: queryParams.eventId as string,
-        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
-      };
-    }
   }, [tree]);
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
@@ -843,7 +845,6 @@ function TraceViewContent(props: TraceViewContentProps) {
       return undefined;
     }
 
-    initializedRef.current = true;
     viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
 
     // Whenever the timeline changes, update the trace space
