@@ -32,11 +32,9 @@ UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
 
 class FeedbackCreationSource(Enum):
     NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
-    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"  # TODO: delete this once feedback_ingest API deprecated
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
-    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
 
     @classmethod
     def new_feedback_category_values(cls) -> set[str]:
@@ -44,7 +42,6 @@ class FeedbackCreationSource(Enum):
             c.value
             for c in [
                 cls.NEW_FEEDBACK_ENVELOPE,
-                cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
             ]
         }
 
@@ -56,7 +53,6 @@ class FeedbackCreationSource(Enum):
                 cls.CRASH_REPORT_EMBED_FORM,
                 cls.USER_REPORT_ENVELOPE,
                 cls.USER_REPORT_DJANGO_ENDPOINT,
-                cls.UPDATE_USER_REPORTS_TASK,
             ]
         }
 
