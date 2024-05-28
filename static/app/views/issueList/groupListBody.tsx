@@ -11,9 +11,12 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {
+  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+  useSentFirstEvent,
+} from 'sentry/views/issueList/utils';
 
 import NoGroupsHandler from './noGroupsHandler';
-import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
 
 type GroupListBodyProps = {
   displayReprocessingLayout: boolean;
@@ -51,6 +54,7 @@ function GroupListBody({
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
+  const sentFirstEvent = useSentFirstEvent();
 
   if (loading) {
     return <LoadingIndicator hideMessage />;
@@ -60,7 +64,7 @@ function GroupListBody({
     return <LoadingError message={error} onRetry={refetchGroups} />;
   }
 
-  if (!groupIds.length) {
+  if (!groupIds.length || !sentFirstEvent) {
     return (
       <NoGroupsHandler
         api={api}

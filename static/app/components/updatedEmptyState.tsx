@@ -7,12 +7,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
 type GuidedStepInfo = {
   install: string;
@@ -140,6 +142,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     sourcemaps,
     sourcemapsCode,
   } = platformGuidedSteps;
+
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+
   return (
     <div>
       <HeaderWrapper>
@@ -147,11 +152,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <Description>
           {t('Your code sleuth eagerly awaits its first mission.')}
         </Description>
+        {isSelfHosted && (
+          <StyledCreateSampleEventButton
+            project={project}
+            source="issues_stream"
+            disabled={!project}
+          >
+            {t('View a sample event')}
+          </StyledCreateSampleEventButton>
+        )}
         <Image src={waitingForEventImg} />
       </HeaderWrapper>
       <Divider />
       <Body>
-        <Setup>
+        <Setup isSelfHosted={isSelfHosted}>
           <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
           <GuidedSteps>
             <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
@@ -254,16 +268,18 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             )}
           </GuidedSteps>
         </Setup>
-        <Preview>
-          <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-          <VideoWrapper>
-            <Video
-              src="https://s3.us-east-1.amazonaws.com/remotionlambda-production/renders/x87ndylphr/out.mp4?v=415e1797fdba69d917459d119dc6c5af"
-              loading="lazy"
-              allowFullScreen
-            />
-          </VideoWrapper>
-        </Preview>
+        {!isSelfHosted && (
+          <Preview>
+            <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
+            <ArcadeWrapper>
+              <Arcade
+                src="https://demo.arcade.software/LjEJ1sfLaVRdtOs3mri1?embed"
+                loading="lazy"
+                allowFullScreen
+              />
+            </ArcadeWrapper>
+          </Preview>
+        )}
       </Body>
     </div>
   );
@@ -278,7 +294,7 @@ const Description = styled('div')`
   max-width: 340px;
 `;
 
-const VideoWrapper = styled('div')`
+const ArcadeWrapper = styled('div')`
   margin-top: ${space(1)};
 `;
 
@@ -293,8 +309,9 @@ const BodyTitle = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Setup = styled('div')`
+const Setup = styled('div')<{isSelfHosted?: boolean}>`
   padding: ${space(4)};
+  max-width: ${p => (p.isSelfHosted ? '50%' : '100%')};
 
   &:after {
     content: '';
@@ -303,6 +320,7 @@ const Setup = styled('div')`
     top: 19%;
     height: 78%;
     border-right: 1px ${p => p.theme.border} solid;
+    display: ${p => (p.isSelfHosted ? 'none' : 'block')};
   }
 `;
 
@@ -343,10 +361,10 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const Video = styled('iframe')`
+const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  height: 500px;
+  height: 600px;
   border: 0;
 `;
 
@@ -363,4 +381,8 @@ const IndicatorWrapper = styled('div')`
 const StyledCodeSnippet = styled(CodeSnippet)`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+`;
+
+const StyledCreateSampleEventButton = styled(CreateSampleEventButton)`
+  margin-top: ${space(1)};
 `;

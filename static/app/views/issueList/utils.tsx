@@ -1,7 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
@@ -236,3 +239,34 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
+
+export function useSentFirstEvent(): boolean {
+  const {projects} = useProjects();
+  const pageFilters = usePageFilters();
+  if (projects.length === 0) {
+    return false;
+  }
+
+  // Current selection is 'my projects' or 'all projects'
+  if (
+    pageFilters.selection.projects.length === 0 ||
+    pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS
+  ) {
+    const filtered = projects.filter(p => p.firstEvent === null);
+    if (filtered.length === projects.length) {
+      return false;
+    }
+  }
+
+  // Any other subset of projects.
+  const filtered = projects.filter(
+    p =>
+      pageFilters.selection.projects.includes(parseInt(p.id, 10)) && p.firstEvent === null
+  );
+
+  if (filtered.length === pageFilters.selection.projects.length) {
+    return false;
+  }
+
+  return true;
+}
