@@ -178,7 +178,7 @@ const TagsContainer = styled('div')`
 `;
 
 const IntegrationName = styled(Link)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const IntegrationDetails = styled('div')`
@@ -214,7 +214,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(0.75)};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
 

@@ -225,7 +225,7 @@ const AlertDetails = styled('div')`
 `;
 
 const AlertTitle = styled('div')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

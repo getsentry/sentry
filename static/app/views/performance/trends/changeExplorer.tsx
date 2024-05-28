@@ -332,7 +332,7 @@ const InfoLabel = styled('strong')`
   color: ${p => p.theme.gray300};
 `;
 const InfoText = styled('h3')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 const GraphPanel = styled('div')`
   border: 1px solid ${p => p.theme.border};

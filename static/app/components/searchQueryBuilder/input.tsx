@@ -328,7 +328,7 @@ const DescriptionList = styled('dl')`
 
 const Term = styled('dt')`
   color: ${p => p.theme.subText};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Details = styled('dd')``;
