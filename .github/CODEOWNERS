@@ -285,6 +285,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of Profiling
 
 
+## Configurations
+/src/sentry/remote_config/              @getsentry/replay-backend
+/tests/sentry/remote_config/            @getsentry/replay-backend
+## End of Configurations
+
+
 ## Replays
 /static/app/components/replays/   @getsentry/replay-frontend
 /static/app/utils/replays/        @getsentry/replay-frontend
