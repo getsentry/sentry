@@ -154,7 +154,7 @@ export default function Monitors() {
                 onSearch={handleSearch}
               />
             </Filters>
-            {processingErrors && (
+            {!!processingErrors?.length && (
               <MonitorProcessingErrors checkinErrors={processingErrors}>
                 {t(
                   'Errors were encountered while ingesting check-ins for the selected projects'
