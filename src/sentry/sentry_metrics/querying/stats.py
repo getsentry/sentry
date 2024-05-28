@@ -113,8 +113,8 @@ def run_metric_stats_query(
     interval = parse_stats_period(query.get("interval", "1h"))
 
     category = query.get("category")
-    # TODO(metrics): remove metrics and metricsSeconds after FE is updated
-    if category == "metrics" or category == "metricSecond" or category == "metricsOutcomes":
+    # TODO(metrics): remove  metricsSeconds after FE is updated
+    if category == "metricSecond" or category == "metricOutcomes":
         return _run_metrics_outcomes_query(
             start=start,
             end=end,

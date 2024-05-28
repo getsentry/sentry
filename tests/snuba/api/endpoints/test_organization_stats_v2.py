@@ -989,7 +989,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         response = self.do_request(
             {
                 "project": [-1],
-                "category": ["metrics"],
+                "category": ["metricOutcomes"],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
@@ -1012,7 +1012,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         response = self.do_request(
             {
                 "project": [-1],
-                "category": ["metrics"],
+                "category": ["metricOutcomes"],
                 "groupBy": ["project"],
                 "statsPeriod": "1d",
                 "interval": "1d",
@@ -1045,7 +1045,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         response = self.do_request(
             {
                 "project": [-1],
-                "category": ["metrics"],
+                "category": ["metricOutcomes"],
                 "groupBy": ["project", "outcome"],
                 "statsPeriod": "1d",
                 "interval": "1d",
