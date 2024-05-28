@@ -295,6 +295,8 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
+    if event.group_id is None:
+        return []
 
     group_owners = GroupOwner.objects.filter(
         group_id=event.group_id,
@@ -341,46 +343,48 @@ def get_serialized_event_file_committers(
     # We should refactor to query GroupOwner rather than recalculate.
     # But we need to store the commitId and a way to differentiate
     # if the Suspect Commit came from ReleaseCommits or CommitContext.
-    else:
-        event_frames = get_frame_paths(event)
-        sdk_name = get_sdk_name(event.data)
-        committers = get_event_file_committers(
-            project,
-            event.group_id,
-            event_frames,
-            event.platform,
-            frame_limit=frame_limit,
-            sdk_name=sdk_name,
+    event_frames = get_frame_paths(event)
+    sdk_name = get_sdk_name(event.data)
+    if event.platform is None:
+        return []
+
+    committers = get_event_file_committers(
+        project,
+        event.group_id,
+        event_frames,
+        event.platform,
+        frame_limit=frame_limit,
+        sdk_name=sdk_name,
+    )
+    commits = [commit for committer in committers for commit in committer["commits"]]
+    serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
+        [c for (c, score) in commits],
+        serializer=CommitSerializer(
+            exclude=["author"],
+            type=SuspectCommitType.RELEASE_COMMIT.value,
+        ),
+    )
+
+    serialized_commits_by_id = {}
+
+    for (commit, score), serialized_commit in zip(commits, serialized_commits):
+        serialized_commit["score"] = score
+        serialized_commits_by_id[commit.id] = serialized_commit
+
+    serialized_committers: list[AuthorCommitsSerialized] = []
+    for committer in committers:
+        commit_ids = [commit.id for (commit, _) in committer["commits"]]
+        commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+        serialized_committers.append(
+            {"author": committer["author"], "commits": dedupe_commits(commits_result)}
         )
-        commits = [commit for committer in committers for commit in committer["commits"]]
-        serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
-            [c for (c, score) in commits],
-            serializer=CommitSerializer(
-                exclude=["author"],
-                type=SuspectCommitType.RELEASE_COMMIT.value,
-            ),
-        )
 
-        serialized_commits_by_id = {}
-
-        for (commit, score), serialized_commit in zip(commits, serialized_commits):
-            serialized_commit["score"] = score
-            serialized_commits_by_id[commit.id] = serialized_commit
-
-        serialized_committers: list[AuthorCommitsSerialized] = []
-        for committer in committers:
-            commit_ids = [commit.id for (commit, _) in committer["commits"]]
-            commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
-            serialized_committers.append(
-                {"author": committer["author"], "commits": dedupe_commits(commits_result)}
-            )
-
-        metrics.incr(
-            "feature.owners.has-committers",
-            instance="hit" if committers else "miss",
-            skip_internal=False,
-        )
-        return serialized_committers
+    metrics.incr(
+        "feature.owners.has-committers",
+        instance="hit" if committers else "miss",
+        skip_internal=False,
+    )
+    return serialized_committers
 
 
 def dedupe_commits(
