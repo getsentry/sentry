@@ -92,21 +92,16 @@ def get_metrics_meta(
 
 def generate_operations_config(organization: Organization) -> OperationsConfiguration:
     operations_config = OperationsConfiguration()
-    configuration_options: list[dict[str, str]] = [
-        {
-            "key": "sentry:metrics_activate_percentiles",
-            "default": METRICS_ACTIVATE_PERCENTILES_DEFAULT,
-        },
-        {
-            "key": "sentry:metrics_activate_last_for_gauges",
-            "default": METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-        },
-    ]
-    for option in configuration_options:
+    configuration_options: dict[str, bool] = {
+        "sentry:metrics_activate_percentiles": METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+        "sentry:metrics_activate_last_for_gauges": METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    }
+
+    for option_key, default_value in configuration_options.items():
         if not OrganizationOption.objects.get_value(
-            organization=organization, key=option["key"], default=option["default"]
+            organization=organization, key=option_key, default=default_value
         ):
-            operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option["key"]])
+            operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option_key])
 
     return operations_config
 
