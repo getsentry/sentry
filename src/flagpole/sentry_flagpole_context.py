@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from dataclasses import dataclass
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -15,7 +15,8 @@ class InvalidContextDataException(Exception):
     pass
 
 
-class SentryContextData(NamedTuple):
+@dataclass()
+class SentryContextData:
     actor: User | RpcUser | AnonymousUser | None = None
     organization: Organization | RpcOrganization | None = None
     project: Project | RpcProject | None = None

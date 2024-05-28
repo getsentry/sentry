@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Generic, NamedTuple, TypeVar
+from typing import Any, Generic, TypeVar
 
 ValidContextTypes = TypeVar(
     "ValidContextTypes",
@@ -48,7 +48,7 @@ class EvaluationContext:
         return int.from_bytes(hashed.digest(), byteorder="big")
 
 
-T_CONTEXT_DATA = TypeVar("T_CONTEXT_DATA", bound=NamedTuple)
+T_CONTEXT_DATA = TypeVar("T_CONTEXT_DATA")
 
 
 class ContextBuilder(Generic[T_CONTEXT_DATA]):
