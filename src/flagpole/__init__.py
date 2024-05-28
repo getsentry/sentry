@@ -101,6 +101,10 @@ class Feature(BaseModel):
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
         try:
+            # Disallow date_parsed from being set in the feature config
+            if "date_parsed" in config_dict:
+                config_dict.pop("date_parsed")
+
             feature = cls(name=name, **config_dict)
         except ValidationError as exc:
             raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
@@ -116,10 +120,6 @@ class Feature(BaseModel):
 
         if not isinstance(config_data_dict, dict):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
-
-        # JSON config shouldn't set date_parsed
-        if "date_parsed" in config_data_dict:
-            config_data_dict.pop("date_parsed")
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
 
