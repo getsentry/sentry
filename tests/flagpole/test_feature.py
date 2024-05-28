@@ -129,3 +129,30 @@ class TestParseFeatureConfig:
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
         assert not feature.match(context_builder.build())
+
+    def test_ignores_date_parsed(self):
+        set_parsed_date = datetime.fromisoformat("2024-01-01T12:25:02.000000").astimezone(
+            tz=timezone.utc
+        )
+        feature = Feature.from_feature_config_json(
+            "foo",
+            f"""
+            {{
+                "owner": "test-user",
+                "enabled": false,
+                "date_parsed": "{set_parsed_date.astimezone().isoformat()}",
+                "segments": [{{
+                    "name": "always_pass_segment",
+                    "rollout": 100,
+                    "conditions": [{{
+                        "name": "Always true",
+                        "property": "is_true",
+                        "operator": "equals",
+                        "value": true
+                    }}]
+                }}]
+            }}
+            """,
+        )
+
+        assert feature.date_parsed != set_parsed_date
