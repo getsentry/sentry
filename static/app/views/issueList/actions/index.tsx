@@ -28,10 +28,7 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {
-  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
-  useSentFirstEvent,
-} from 'sentry/views/issueList/utils';
+import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
@@ -203,12 +200,6 @@ function IssueListActions({
       isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
-
-  const sentFirstEvent = useSentFirstEvent();
-
-  if (!sentFirstEvent) {
-    return null;
-  }
 
   const numIssues = selectedIdsSet.size;
 

@@ -244,7 +244,7 @@ export function useSentFirstEvent(): boolean {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   if (projects.length === 0) {
-    return false;
+    return true;
   }
 
   // Current selection is 'my projects' or 'all projects'

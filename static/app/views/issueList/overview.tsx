@@ -26,6 +26,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -37,6 +38,7 @@ import type {
   Organization,
   PageFilters,
   PriorityLevel,
+  Project,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
@@ -61,6 +63,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import withProjects from 'sentry/utils/withProjects';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -98,6 +101,7 @@ type Props = {
   location: Location;
   organization: Organization;
   params: Params;
+  projects: Project[];
   savedSearch: SavedSearch;
   savedSearchLoading: boolean;
   savedSearches: SavedSearch[];
@@ -967,6 +971,36 @@ class IssueListOverview extends Component<Props, State> {
     return showReprocessingTab && query === Query.REPROCESSING;
   }
 
+  hasSentFirstEvent() {
+    const {projects, selection} = this.props;
+
+    if (projects.length === 0) {
+      return true;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (
+      selection.projects.length === 0 ||
+      selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      const filtered = projects.filter(p => p.firstEvent === null);
+      if (filtered.length === projects.length) {
+        return false;
+      }
+    }
+
+    // Any other subset of projects.
+    const filtered = projects.filter(
+      p => selection.projects.includes(parseInt(p.id, 10)) && p.firstEvent === null
+    );
+
+    if (filtered.length === selection.projects.length) {
+      return false;
+    }
+
+    return true;
+  }
+
   renderLoading(): React.ReactNode {
     return (
       <Layout.Page withPadding>
@@ -1223,6 +1257,8 @@ class IssueListOverview extends Component<Props, State> {
 
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
+    const sentFirstEvent = this.hasSentFirstEvent();
+
     return (
       <Layout.Page>
         <IssueListHeader
@@ -1243,7 +1279,7 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
-              {groupIds.length !== 0 && (
+              {groupIds.length !== 0 && sentFirstEvent && (
                 <IssueListActions
                   selection={selection}
                   query={query}
@@ -1322,7 +1358,9 @@ export default withRouteAnalytics(
   withApi(
     withPageFilters(
       withSavedSearches(
-        withOrganization(withIssueTags(Sentry.withProfiler(IssueListOverview)))
+        withOrganization(
+          withProjects(withIssueTags(Sentry.withProfiler(IssueListOverview)))
+        )
       )
     )
   )
