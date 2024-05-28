@@ -68,7 +68,7 @@ def save_issue_occurrence(
     return occurrence, group_info
 
 
-def process_occurrence_data(data: dict[str, Any]) -> None:
+def process_occurrence_data(data: IssueOccurrenceData | dict[str, Any]) -> None:
     if "fingerprint" not in data:
         return
 
