@@ -2,7 +2,7 @@ import dataclasses
 import itertools
 import math
 from collections import defaultdict
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
@@ -96,6 +96,17 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
+            all_projects = self.get_projects(
+                request,
+                organization,
+                project_ids={-1},
+                project_slugs=None,
+                include_all_accessible=True,
+            )
+            snuba_params = dataclasses.replace(snuba_params, projects=all_projects)
+            params["projects"] = snuba_params.projects
+            params["projects_objects"] = snuba_params.projects
+            params["projects_id"] = snuba_params.project_ids
         except NoProjects:
             return Response(status=404)
 
@@ -122,13 +133,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             breakdown_categories=serialized.get("breakdownCategory", []),
             min_breakdown_duration=serialized["minBreakdownDuration"],
             min_breakdown_percentage=serialized["minBreakdownPercentage"],
-            get_all_projects=lambda: self.get_projects(
-                request,
-                organization,
-                project_ids={-1},
-                project_slugs=None,
-                include_all_accessible=True,
-            ),
         )
 
         return self.paginate(
@@ -166,7 +170,6 @@ class TraceSamplesExecutor:
         breakdown_categories: list[str],
         min_breakdown_duration: int,
         min_breakdown_percentage: float,
-        get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
         self.snuba_params = snuba_params
@@ -184,14 +187,7 @@ class TraceSamplesExecutor:
         self.breakdown_categories = breakdown_categories
         self.min_breakdown_duration = min_breakdown_duration
         self.min_breakdown_percentage = min_breakdown_percentage
-        self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
-
-    @property
-    def all_projects(self) -> list[Project]:
-        if self._all_projects is None:
-            self._all_projects = self.get_all_projects()
-        return self._all_projects
 
     def execute(self, offset: int, limit: int):
         return self._execute()
@@ -213,8 +209,6 @@ class TraceSamplesExecutor:
 
         self.refine_params(min_timestamp, max_timestamp)
 
-        all_projects_params, all_projects_snuba_params = self.params_with_all_projects()
-
         if not trace_ids:
             return {"data": [], "meta": {"fields": {}}}
 
@@ -222,8 +216,6 @@ class TraceSamplesExecutor:
             all_queries = self.get_all_queries(
                 self.params,
                 self.snuba_params,
-                all_projects_params,
-                all_projects_snuba_params,
                 trace_ids,
                 span_keys,
             )
@@ -299,18 +291,6 @@ class TraceSamplesExecutor:
         self.params["end"] = max_timestamp + buffer
         self.snuba_params.start = min_timestamp - buffer
         self.snuba_params.end = max_timestamp + buffer
-
-    def params_with_all_projects(self) -> tuple[ParamsType, SnubaParams]:
-        all_projects_snuba_params = dataclasses.replace(
-            self.snuba_params, projects=self.all_projects
-        )
-
-        all_projects_params = dict(self.params)
-        all_projects_params["projects"] = all_projects_snuba_params.projects
-        all_projects_params["projects_objects"] = all_projects_snuba_params.projects
-        all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
-
-        return cast(ParamsType, all_projects_params), all_projects_snuba_params
 
     def get_traces_matching_conditions(
         self,
@@ -543,14 +523,12 @@ class TraceSamplesExecutor:
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
-        all_projects_params: ParamsType,
-        all_projects_snuba_params: SnubaParams,
         trace_ids: list[str],
         span_keys: list[SpanKey] | None,
     ) -> list[QueryBuilder]:
         meta_data_queries = self.get_all_meta_data_queries(
-            all_projects_params,
-            all_projects_snuba_params,
+            params,
+            snuba_params,
             trace_ids,
         )
 
