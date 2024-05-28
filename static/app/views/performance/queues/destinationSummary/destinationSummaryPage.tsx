@@ -16,7 +16,6 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -27,41 +26,33 @@ import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughput
 import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
-import {
-  BASE_URL,
-  DESTINATION_TITLE,
-  MODULE_TITLE,
-  RELEASE_LEVEL,
-} from 'sentry/views/performance/queues/settings';
-import {useQueueModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {DESTINATION_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/settings';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
-  const moduleURL = useQueueModuleURL();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data, isLoading} = useQueuesMetricsQuery({destination});
+  const {data, isLoading} = useQueuesMetricsQuery({
+    destination,
+    referrer: Referrer.QUEUES_SUMMARY,
+  });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
+
+  const crumbs = useModuleBreadcrumbs('queue');
+
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
             crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-                to: moduleURL,
-                preservePageFilters: true,
-              },
+              ...crumbs,
               {
                 label: DESTINATION_TITLE,
               },
@@ -144,11 +135,17 @@ function DestinationSummaryPage() {
             {!onboardingProject && (
               <Fragment>
                 <ModuleLayout.Half>
-                  <LatencyChart destination={destination} />
+                  <LatencyChart
+                    destination={destination}
+                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                  />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <ThroughputChart destination={destination} />
+                  <ThroughputChart
+                    destination={destination}
+                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                  />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>
@@ -169,8 +166,8 @@ function DestinationSummaryPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
+      moduleName="queue"
+      pageTitle={t('Destination Summary')}
       features="performance-queues-view"
     >
       <DestinationSummaryPage />

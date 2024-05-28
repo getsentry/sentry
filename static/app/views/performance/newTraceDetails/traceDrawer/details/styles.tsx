@@ -1,37 +1,27 @@
-import {
-  Children,
-  Fragment,
-  type PropsWithChildren,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, type PropsWithChildren, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
-import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import NewTagsUI from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
+import * as KeyValueData from 'sentry/components/keyValueData/card';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {StructuredData} from 'sentry/components/structuredEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
+import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined, formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -514,7 +504,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>
-        <NewTagsUI event={event} projectSlug={projectSlug} />
+        <Tags event={event} projectSlug={projectSlug} />
       </TagsWrapper>
     </LazyRender>
   );
@@ -526,128 +516,34 @@ const TagsWrapper = styled('div')`
   }
 `;
 
-interface SectionCardContentConfig {
-  disableErrors?: boolean;
-  includeAliasInSubject?: boolean;
-}
-
-type SectionCardKeyValue = Omit<KeyValueListDataItem, 'subject'> & {
-  subject: React.ReactNode;
-};
-
-export type SectionCardKeyValueList = SectionCardKeyValue[];
-
-interface SectionCardContentProps {
-  item: SectionCardKeyValue;
-  meta: Record<string, any>;
-  alias?: string;
-  config?: SectionCardContentConfig;
-}
-
-function SectionCardContent({
-  item,
-  alias,
-  meta,
-  config,
-  ...props
-}: SectionCardContentProps) {
-  const {key, subject, value, action = {}} = item;
-  if (key === 'type') {
-    return null;
-  }
-
-  const dataComponent = (
-    <StructuredData
-      value={value}
-      depth={0}
-      maxDefaultDepth={0}
-      meta={meta?.[key]}
-      withAnnotatedText
-      withOnlyFormattedText
-    />
-  );
-
-  const contextSubject = subject
-    ? config?.includeAliasInSubject && alias
-      ? `${startCase(alias)}: ${subject}`
-      : subject
-    : null;
-
-  return (
-    <ContentContainer {...props}>
-      {contextSubject ? <CardContentSubject>{contextSubject}</CardContentSubject> : null}
-      <CardContentValueWrapper hasSubject={!!contextSubject} className="ctx-row-value">
-        {defined(action?.link) ? (
-          <Link to={action.link}>{dataComponent}</Link>
-        ) : (
-          dataComponent
-        )}
-      </CardContentValueWrapper>
-    </ContentContainer>
-  );
-}
+export type SectionCardKeyValueList = KeyValueListData;
 
 function SectionCard({
   items,
   title,
   disableTruncate,
+  sortAlphabetically = false,
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
+  sortAlphabetically?: boolean;
 }) {
-  const [showingAll, setShowingAll] = useState(false);
-  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
-
-  if (items.length === 0) {
-    return null;
-  }
+  const contentItems = items.map(item => ({item}));
 
   return (
-    <Card>
-      <CardContentTitle>{title}</CardContentTitle>
-      {items.slice(0, showingAll || disableTruncate ? items.length : 5).map(item => (
-        <SectionCardContent key={`context-card-${item.key}`} meta={{}} item={item} />
-      ))}
-      {items.length > 5 && !disableTruncate ? (
-        <TruncateActionWrapper>
-          <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
-        </TruncateActionWrapper>
-      ) : null}
-    </Card>
+    <KeyValueData.Card
+      title={title}
+      contentItems={contentItems}
+      sortAlphabetically={sortAlphabetically}
+      truncateLength={disableTruncate ? Infinity : 5}
+    />
   );
 }
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
-
-  const columns: React.ReactNode[] = [];
-  const cards = Children.toArray(children);
-
-  // Evenly distributing the cards into columns.
-  const columnSize = Math.ceil(cards.length / columnCount);
-  for (let i = 0; i < cards.length; i += columnSize) {
-    columns.push(<CardsColumn key={i}>{cards.slice(i, i + columnSize)}</CardsColumn>);
-  }
-
-  return (
-    <CardsWrapper columnCount={columnCount} ref={containerRef}>
-      {columns}
-    </CardsWrapper>
-  );
+  return <KeyValueData.Group>{children}</KeyValueData.Group>;
 }
-
-const CardsWrapper = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  gap: 10px;
-`;
-
-const CardsColumn = styled('div')`
-  grid-column: span 1;
-`;
 
 function CopyableCardValueWithLink({
   value,
@@ -676,6 +572,25 @@ function CopyableCardValueWithLink({
   );
 }
 
+function TraceDataSection({event}: {event: EventTransaction}) {
+  const traceData = event.contexts.trace?.data;
+
+  if (!traceData) {
+    return null;
+  }
+
+  return (
+    <SectionCard
+      items={Object.entries(traceData).map(([key, value]) => ({
+        key,
+        subject: key,
+        value,
+      }))}
+      title={t('Trace Data')}
+    />
+  );
+}
+
 const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
   transform: translateY(2px);
 `;
@@ -690,50 +605,10 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-const Card = styled(Panel)`
-  margin-bottom: 10px;
-  padding: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const CardContentTitle = styled('p')`
-  grid-column: 1 / -1;
-  padding: ${space(0.25)} ${space(0.75)};
-  margin: 0;
-  color: ${p => p.theme.headingColor};
-  font-weight: bold;
-`;
-
-const ContentContainer = styled('div')`
-  display: grid;
-  column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, 150px) 1fr 30px;
-  padding: ${space(0.25)} ${space(0.75)};
-  border-radius: 4px;
-  color: ${p => p.theme.subText};
-  border: 1px solid 'transparent';
-  background-color: ${p => p.theme.background};
-  &:nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
 export const CardContentSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-wrap: break-word;
-`;
-
-const CardContentValueWrapper = styled(CardContentSubject)<{hasSubject: boolean}>`
-  color: ${p => p.theme.textColor};
-  grid-column: ${p => (p.hasSubject ? 'span 2' : '1 / -1')};
-`;
-
-const TruncateActionWrapper = styled('div')`
-  grid-column: 1 / -1;
-  margin: ${space(0.5)} 0;
-  display: flex;
-  justify-content: center;
 `;
 
 const TraceDrawerComponents = {
@@ -758,6 +633,7 @@ const TraceDrawerComponents = {
   SectionCard,
   CopyableCardValueWithLink,
   EventTags,
+  TraceDataSection,
   SectionCardGroup,
 };
 

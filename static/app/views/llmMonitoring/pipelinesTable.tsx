@@ -25,7 +25,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useAIModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
@@ -91,7 +91,7 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 
 export function PipelinesTable() {
   const location = useLocation();
-  const moduleURL = useAIModuleURL();
+  const moduleURL = useModuleURL('ai');
 
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);

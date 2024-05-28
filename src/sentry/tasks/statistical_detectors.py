@@ -35,7 +35,7 @@ from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.types import ParamsType
-from sentry.seer.utils import BreakpointData
+from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions

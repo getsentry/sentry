@@ -106,6 +106,10 @@ from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRule
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.incidents.endpoints.team_alerts_triggered import (
+    TeamAlertsTriggeredIndexEndpoint,
+    TeamAlertsTriggeredTotalsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
@@ -159,6 +163,7 @@ from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsE
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
 )
+from sentry.remote_config.endpoints import ProjectKeyConfigurationEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -416,16 +421,10 @@ from .endpoints.organization_member.team_details import OrganizationMemberTeamDe
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
-from .endpoints.organization_metrics import (
-    OrganizationMetricDetailsEndpoint,
-    OrganizationMetricsCodeLocationsEndpoint,
-    OrganizationMetricsDataEndpoint,
-    OrganizationMetricsDetailsEndpoint,
-    OrganizationMetricsQueryEndpoint,
-    OrganizationMetricsSamplesEndpoint,
-    OrganizationMetricsTagDetailsEndpoint,
-    OrganizationMetricsTagsEndpoint,
-)
+from .endpoints.organization_metric_details import OrganizationMetricDetailsEndpoint
+from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
+from .endpoints.organization_metrics_data import OrganizationMetricsDataEndpoint
+from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_estimation_stats import (
     OrganizationMetricsEstimationStatsEndpoint,
 )
@@ -433,6 +432,10 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
+from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
+from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
+from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
+from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
@@ -604,10 +607,6 @@ from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.team_alerts_triggered import (
-    TeamAlertsTriggeredIndexEndpoint,
-    TeamAlertsTriggeredTotalsEndpoint,
-)
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_old import TeamGroupsOldEndpoint
@@ -2363,6 +2362,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/stats/$",
         ProjectKeyStatsEndpoint.as_view(),
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/configuration/$",
+        ProjectKeyConfigurationEndpoint.as_view(),
+        name="sentry-api-0-project-key-configuration",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/members/$",

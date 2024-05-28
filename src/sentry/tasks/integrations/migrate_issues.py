@@ -21,9 +21,11 @@ from sentry.tasks.integrations import logger
 def migrate_issues(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.jira.plugin import JiraPlugin
 
-    integration, organization_integration = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=organization_id, integration_id=integration_id
     )
+    integration = result.integration
+    organization_integration = result.organization_integration
     if not integration:
         raise Integration.DoesNotExist
 

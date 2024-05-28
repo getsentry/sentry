@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -11,10 +11,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanSamplesContainer} from 'sentry/views/performance/mobile/components/spanSamplesPanelContainer';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import type {ModuleName} from 'sentry/views/starfish/types';
@@ -30,6 +30,9 @@ type Props = {
   transactionMethod?: string;
   transactionRoute?: string;
 };
+
+const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
+const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
 
 export function SpanSamplesPanel({
   groupId,
@@ -54,12 +57,7 @@ export function SpanSamplesPanel({
 
   const organization = useOrganization();
   const {query} = useLocation();
-  const {projects} = useProjects();
-
-  const project = useMemo(
-    () => projects.find(p => p.id === String(query.project)),
-    [projects, query.project]
-  );
+  const {project} = useCrossPlatformProject();
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {
@@ -125,7 +123,7 @@ export function SpanSamplesPanel({
               transactionMethod={transactionMethod}
               release={primaryRelease}
               sectionTitle={t('Release 1')}
-              project={project}
+              searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
@@ -138,7 +136,7 @@ export function SpanSamplesPanel({
               transactionMethod={transactionMethod}
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
-              project={project}
+              searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />

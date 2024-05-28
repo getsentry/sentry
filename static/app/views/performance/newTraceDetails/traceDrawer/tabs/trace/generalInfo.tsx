@@ -4,8 +4,8 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
@@ -100,7 +100,8 @@ export function GeneralInfo(props: GeneralInfoProps) {
         items={[
           {
             key: 'trace_general_loading',
-            subject: null,
+            subject: t('Loading...'),
+            subjectNode: null,
             value: <LoadingIndicator size={30} />,
           },
         ]}

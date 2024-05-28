@@ -70,6 +70,6 @@ const VerticalSpacing = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;

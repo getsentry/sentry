@@ -15,8 +15,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.helpers.repos import get_repos_from_project_code_mappings
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -40,9 +40,9 @@ class GroupAutofixEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(limit=10, window=60),
+            RateLimitCategory.USER: RateLimit(limit=10, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
         }
     }
 
@@ -169,7 +169,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
             return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
-        repos = get_repos_from_project_code_mappings(group.project)
+        repos = get_autofix_repos_from_project_code_mappings(group.project)
 
         if not repos:
             return self._respond_with_error(
@@ -197,7 +197,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             )
 
             return self._respond_with_error(
-                "Failed to send autofix to seer.",
+                "Autofix failed to start.",
                 500,
             )
 

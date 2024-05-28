@@ -3,14 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import PageWithProviders from 'sentry/views/performance/queues/destinationSummary/destinationSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjects');
 
 describe('destinationSummaryPage', () => {
@@ -43,8 +41,6 @@ describe('destinationSummaryPage', () => {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
   jest.mocked(useProjects).mockReturnValue({
     projects: [],
     onSearch: jest.fn(),
@@ -55,7 +51,7 @@ describe('destinationSummaryPage', () => {
     initiallyLoaded: false,
   });
 
-  let eventsMock, eventsStatsMock;
+  let eventsMock, eventsStatsMock, spanFieldTagsMock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
@@ -69,15 +65,41 @@ describe('destinationSummaryPage', () => {
       method: 'GET',
       body: {data: []},
     });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
   });
 
   it('renders', async () => {
-    render(<PageWithProviders />);
+    render(<PageWithProviders />, {organization});
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Avg Latency');
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();
+    expect(spanFieldTagsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
+      })
+    );
   });
 });

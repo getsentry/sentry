@@ -23,7 +23,7 @@ import type {
   Organization,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getDefaultMetricOp, getMetricsUrl} from 'sentry/utils/metrics';
+import {getDefaultAggregate, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
@@ -84,6 +84,7 @@ export function CustomMetricsEventData({
 }) {
   const hasNewTagsUI = useHasNewTagsUI();
   const organization = useOrganization();
+
   const start = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS).toISOString();
   const end = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS).toISOString();
 
@@ -97,7 +98,7 @@ export function CustomMetricsEventData({
       metricsSummaryEntries.map((entry, index) => ({
         mri: entry.mri,
         name: index.toString(),
-        op: getDefaultMetricOp(entry.mri),
+        op: getDefaultAggregate(entry.mri),
         query: Object.entries(entry.item.tags ?? {})
           .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
           .join(' '),
@@ -215,7 +216,7 @@ export function CustomMetricsEventData({
                 {
                   mri: mri,
                   displayType: MetricDisplayType.LINE,
-                  op: getDefaultMetricOp(mri),
+                  op: getDefaultAggregate(mri),
                   query: Object.entries(summaryItem.tags ?? {})
                     .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
                     .join(' '),
@@ -228,7 +229,11 @@ export function CustomMetricsEventData({
     });
 
     return (
-      <TraceDrawerComponents.SectionCard title={t('Emitted Metrics')} items={items} />
+      <TraceDrawerComponents.SectionCard
+        title={t('Emitted Metrics')}
+        items={items}
+        sortAlphabetically
+      />
     );
   }
 
@@ -288,7 +293,7 @@ function MetricRenderer({
             {
               mri: mri,
               displayType: MetricDisplayType.LINE,
-              op: getDefaultMetricOp(mri),
+              op: getDefaultAggregate(mri),
               query: Object.entries(summaryItem.tags ?? {})
                 .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
                 .join(' '),

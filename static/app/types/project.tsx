@@ -46,6 +46,7 @@ export type Project = {
   plugins: Plugin[];
 
   processingIssues: number;
+  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
@@ -225,8 +226,11 @@ export type PlatformKey =
   | 'node-azurefunctions'
   | 'node-connect'
   | 'node-express'
+  | 'node-fastify'
   | 'node-gcpfunctions'
+  | 'node-hapi'
   | 'node-koa'
+  | 'node-nestjs'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
   | 'objc'

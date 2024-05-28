@@ -3,18 +3,24 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -26,6 +32,7 @@ import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSample
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -48,12 +55,17 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
   const router = useRouter();
+  const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
 
   const query = useLocationQuery({
     fields: {
       project: decodeScalar,
       transaction: decodeScalar,
+      statusClass: decodeScalar,
+      spanSearchQuery: decodeScalar,
     },
   });
 
@@ -62,6 +74,22 @@ export function CacheSamplePanel() {
     [],
     10
   );
+
+  const handleStatusClassChange = newStatusClass => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'status',
+      new_state: newStatusClass.value,
+      organization,
+      source: ModuleName.CACHE,
+    });
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        statusClass: newStatusClass.value,
+      },
+    });
+  };
 
   // `detailKey` controls whether the panel is open. If all required properties are ailable, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey = query.transaction
@@ -118,51 +146,53 @@ export function CacheSamplePanel() {
     project_id: query.project,
   };
 
+  const useIndexedCacheSpans = (isCacheHit, limit) =>
+    useIndexedSpans({
+      search: MutableSearch.fromQueryObject({
+        ...sampleFilters,
+        ...new MutableSearch(query.spanSearchQuery).filters,
+        'cache.hit': isCacheHit,
+      }),
+      fields: [
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.CACHE_HIT,
+        SpanIndexedField.SPAN_OP,
+        SpanIndexedField.CACHE_ITEM_SIZE,
+      ],
+      sorts: [SPAN_SAMPLES_SORT],
+      limit: limit,
+      enabled: isPanelOpen,
+      referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
+    });
+
+  // display half hits and half misses by default
+  let cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
+  let cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
+
+  if (query.statusClass === 'hit') {
+    cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT;
+    cacheMissSamplesLimit = -1;
+  } else if (query.statusClass === 'miss') {
+    cacheHitSamplesLimit = -1;
+    cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT;
+  }
+
   const {
     data: cacheHitSamples,
     isFetching: isCacheHitsFetching,
     refetch: refetchCacheHits,
-  } = useIndexedSpans({
-    search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': 'true'}),
-    fields: [
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.ID,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.CACHE_HIT,
-      SpanIndexedField.SPAN_OP,
-      SpanIndexedField.CACHE_ITEM_SIZE,
-    ],
-    sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT / 2,
-    enabled: isPanelOpen,
-    referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
-  });
+  } = useIndexedCacheSpans('true', cacheHitSamplesLimit);
 
   const {
     data: cacheMissSamples,
     isFetching: isCacheMissesFetching,
     refetch: refetchCacheMisses,
-  } = useIndexedSpans({
-    search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': 'false'}),
-    fields: [
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.ID,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.CACHE_HIT,
-      SpanIndexedField.SPAN_OP,
-      SpanIndexedField.CACHE_ITEM_SIZE,
-    ],
-    sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT / 2,
-    enabled: isPanelOpen,
-    referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
-  });
+  } = useIndexedCacheSpans('false', cacheMissSamplesLimit);
 
   const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
 
@@ -186,6 +216,16 @@ export function CacheSamplePanel() {
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
 
   const handleClose = () => {
     router.replace({
@@ -281,7 +321,7 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 align="left"
-                title={DataTitles.cacheMissRate}
+                title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
                 }
@@ -300,6 +340,16 @@ export function CacheSamplePanel() {
                 isLoading={areCacheTransactionMetricsFetching}
               />
             </MetricsRibbon>
+          </ModuleLayout.Full>
+          <ModuleLayout.Full>
+            <CompactSelect
+              value={query.statusClass}
+              options={CACHE_STATUS_OPTIONS}
+              onChange={handleStatusClassChange}
+              triggerProps={{
+                prefix: t('Status'),
+              }}
+            />
           </ModuleLayout.Full>
           <ModuleLayout.Half>
             <CacheHitMissChart
@@ -333,6 +383,23 @@ export function CacheSamplePanel() {
               }}
             />
           </ModuleLayout.Half>
+
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
+              <SearchBar
+                searchSource={`${ModuleName.CACHE}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </ModuleLayout.Full>
+          </Feature>
+
           <Fragment>
             <ModuleLayout.Full>
               <SpanSamplesTable
@@ -382,6 +449,21 @@ const SPAN_SAMPLES_SORT = {
   field: 'span_id',
   kind: 'desc' as const,
 };
+
+const CACHE_STATUS_OPTIONS = [
+  {
+    value: '',
+    label: t('All'),
+  },
+  {
+    value: 'hit',
+    label: t('Hit'),
+  },
+  {
+    value: 'miss',
+    label: t('Miss'),
+  },
+];
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};

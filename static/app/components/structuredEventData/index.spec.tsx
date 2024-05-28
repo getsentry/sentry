@@ -1,15 +1,53 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
 
 describe('ContextData', function () {
   describe('strings', function () {
-    it('should render urls w/ an additional <a> link', function () {
+    it('should render urls w/ an additional <a> link', async function () {
       const URL = 'https://example.org/foo/bar/';
+      renderGlobalModal();
       render(<StructuredEventData data={URL} />);
 
       expect(screen.getByText(URL)).toBeInTheDocument();
-      expect(screen.getByRole('link')).toHaveAttribute('href', URL);
+      const linkHint = screen.getByRole('link');
+      await userEvent.click(linkHint);
+      expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
+    });
+
+    it('should not render urls if meta is present', function () {
+      const URL = 'https://example.org/foo/bar/super/long...';
+      renderGlobalModal();
+      const meta = {
+        '': {
+          err: [
+            [
+              'invalid_data',
+              {
+                reason: 'value too long',
+              },
+            ],
+          ],
+        },
+      };
+      render(<StructuredEventData data={URL} meta={meta} />);
+      expect(screen.getByText(URL)).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
+    it('should render multiline strings correctly', function () {
+      const data = 'foo\nbar\nbaz';
+      render(<StructuredEventData data={data} />);
+
+      expect(screen.getByTestId('value-multiline-string')).toHaveTextContent(
+        'foo bar baz'
+      );
     });
   });
 

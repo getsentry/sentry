@@ -7,7 +7,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -114,7 +114,8 @@ export function SpanDescription({
       items={[
         {
           key: 'description',
-          subject: null,
+          subject: t('Description'),
+          subjectNode: null,
           value,
         },
       ]}

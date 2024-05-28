@@ -1242,22 +1242,23 @@
   resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-1.7.3.tgz#41b65a940a360abb4a3205949370153ffe30c7de"
   integrity sha512-ZmByhbrnmz/UUFYB622CECwhKIPjJLLPr5zr3edhu04LzbfcOrz16VYeNq5dpO1ADG70FORhAJkaIGdaVBG00w==
 
-"@codecov/bundler-plugin-core@^0.0.1-beta.6":
-  version "0.0.1-beta.6"
-  resolved "https://registry.yarnpkg.com/@codecov/bundler-plugin-core/-/bundler-plugin-core-0.0.1-beta.6.tgz#50ada40c16251ce7ffa0c66292401c8f45383e3f"
-  integrity sha512-dGk/s90fZm7D1O00gRtuE2gqM/CW9nglaPzcIT0v10VOV2tj+aHRrdB+yjas+RW8QP8Qf/sMqSmjkufP1iqggw==
+"@codecov/bundler-plugin-core@^0.0.1-beta.8":
+  version "0.0.1-beta.8"
+  resolved "https://registry.yarnpkg.com/@codecov/bundler-plugin-core/-/bundler-plugin-core-0.0.1-beta.8.tgz#4a9fe40c1976bde62cb29e4f060daa08640ca1db"
+  integrity sha512-3yxNa4N+pZxqU60XQxJ10sDKUWcDf/YaQSvODrgxLfKG/peZhSdbd92uRc7PYi73szu7lr1CVZIvVerod9C4Uw==
   dependencies:
     chalk "4.1.2"
     semver "^7.5.4"
-    unplugin "^1.6.0"
+    unplugin "^1.10.1"
     zod "^3.22.4"
 
-"@codecov/webpack-plugin@^0.0.1-beta.6":
-  version "0.0.1-beta.6"
-  resolved "https://registry.yarnpkg.com/@codecov/webpack-plugin/-/webpack-plugin-0.0.1-beta.6.tgz#9a82c7810c2463f4a6ee579e6d0d05fc58ac536a"
-  integrity sha512-3dyq8XmSxD4/92XFWkkukbSugb6kBsRZ3VpgR6ykKZ003fTLqOIzMEs15IQw3eHku/7b2awM9MvofvstaQdijA==
+"@codecov/webpack-plugin@^0.0.1-beta.8":
+  version "0.0.1-beta.8"
+  resolved "https://registry.yarnpkg.com/@codecov/webpack-plugin/-/webpack-plugin-0.0.1-beta.8.tgz#afd2c84fbf6b151d3316fc30592bd5974107e1bc"
+  integrity sha512-2fVEmEXn7Om8VnC1e0ntBpNYcQaP+Aw9fh/tjLjzH8q2sgGfYOU5oRCuBlzZqsElpsYVm5jbr7xM/3He0Tkj5w==
   dependencies:
-    "@codecov/bundler-plugin-core" "^0.0.1-beta.6"
+    "@codecov/bundler-plugin-core" "^0.0.1-beta.8"
+    unplugin "^1.10.1"
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
@@ -3204,10 +3205,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.1.tgz#0ab8be23fd494d80dd0e4ec8ae5f3d13f805b13d"
   integrity sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==
 
-"@sentry/status-page-list@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.1.0.tgz#49e8683091de0531aba96fc95f19891970929701"
-  integrity sha512-wXWu3IihxFO0l5WQkr6V138ZJKHpL8G7fw/9l0Dl6Nl1ggWcJZOaBN/o5sXasS1e0Atvy2dL9DiPsKmBq8D4MA==
+"@sentry/status-page-list@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.2.0.tgz#f82dec256ccf412cc97d71245bd87300ec56deca"
+  integrity sha512-Ulu7dhQrkB8zDA1f6nDPGOB4nIQj7QBI3Mk3fHn9W9KMVYeY7wi+0u01aV2aO7JnCkXHihzRnuLyTgulVJuQWg==
 
 "@sentry/types@8.0.0", "@sentry/types@^8.0.0":
   version "8.0.0"
@@ -9779,10 +9780,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.10.6:
-  version "5.10.6"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.10.6.tgz#47682f162cfbeb81b5128934b080669333e961b9"
-  integrity sha512-rYdL+yQ5FImYO9XWmx/fh6R2O4QjAouqpr71OGl8OesAj+xEDnex0lOcunOJKhx2Qb6wZfBVLAeYPZb/CDtMCQ==
+platformicons@^5.10.9:
+  version "5.10.9"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.10.9.tgz#ca0ceb6309321f11e8ee0317c4193b77448948f3"
+  integrity sha512-QzDUFxOIK8VPpj+uHXbps7q+VgQmI3uAt+hlMZl5fSVWR0guOEJTaNXQFwCsgrOCz82udIUX8F4jRNDrsZPHzg==
   dependencies:
     "@types/node" "*"
     "@types/react" "*"
@@ -11796,7 +11797,17 @@ unpipe@1.0.0, unpipe@~1.0.0:
   resolved "https://registry.yarnpkg.com/unpipe/-/unpipe-1.0.0.tgz#b2bf4ee8514aae6165b4817829d21b2ef49904ec"
   integrity sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw=
 
-unplugin@^1.4.0, unplugin@^1.6.0:
+unplugin@^1.10.1:
+  version "1.10.1"
+  resolved "https://registry.yarnpkg.com/unplugin/-/unplugin-1.10.1.tgz#8ceda065dc71bc67d923dea0920f05c67f2cd68c"
+  integrity sha512-d6Mhq8RJeGA8UfKCu54Um4lFA0eSaRa3XxdAJg8tIdxbu1ubW0hBCZUL7yI2uGyYCRndvbK8FLHzqy2XKfeMsg==
+  dependencies:
+    acorn "^8.11.3"
+    chokidar "^3.6.0"
+    webpack-sources "^3.2.3"
+    webpack-virtual-modules "^0.6.1"
+
+unplugin@^1.4.0:
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/unplugin/-/unplugin-1.9.0.tgz#d1805188dc54b9b693f97b9c17e3714b38b2b47f"
   integrity sha512-14PslvMY3gNbXnQtNIRB566Q057L5Fe7f5LDEamxVi0QQVxoz5hrveBwwZLcKyHtZ09ysmipxRRj5Lv+BGz2Iw==

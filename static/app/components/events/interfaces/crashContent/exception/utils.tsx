@@ -21,10 +21,10 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
 
   return (
     // If all filenames are anonymous, we do not want to show this alert
+    // If all absolute paths do not have a file extension, we do not want to show this alert
     (frame.filename === '<anonymous>' && frame.inApp) ||
     // If all function names are on the blocklist, we do not want to show this alert
     fileNameBlocklist.includes(frame.function ?? '') ||
-    // If all absolute paths do not have a file extension, we do not want to show this alert
     (!!frame.absPath && !getFileExtension(filename))
   );
 }

@@ -9,13 +9,13 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDatabaseModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
@@ -93,7 +93,7 @@ export function QueryTransactionsTable({
   sort,
   span,
 }: Props) {
-  const moduleURL = useDatabaseModuleURL();
+  const moduleURL = useModuleURL('db');
   const location = useLocation();
   const organization = useOrganization();
 

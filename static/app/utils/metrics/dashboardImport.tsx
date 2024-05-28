@@ -1,5 +1,5 @@
 import {Client} from 'sentry/api';
-import type {MetricMeta, MRI} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';

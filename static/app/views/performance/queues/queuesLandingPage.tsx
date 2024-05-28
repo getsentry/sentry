@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,8 +19,6 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
@@ -27,13 +26,16 @@ import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingC
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
-  BASE_URL,
   DEFAULT_QUERY_FILTER,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
   RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const DEFAULT_SORT = {
@@ -42,7 +44,6 @@ const DEFAULT_SORT = {
 };
 
 function QueuesLandingPage() {
-  const organization = useOrganization();
   const location = useLocation();
 
   const query = useLocationQuery({
@@ -74,25 +75,20 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
+  const crumbs = useModuleBreadcrumbs('queue');
+
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
             {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
             <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
@@ -119,11 +115,11 @@ function QueuesLandingPage() {
               referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
-                <LatencyChart />
+                <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Half>
-                <ThroughputChart />
+                <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>
@@ -146,11 +142,7 @@ function QueuesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
-      features="performance-queues-view"
-    >
+    <ModulePageProviders moduleName="queue" features="performance-queues-view">
       <QueuesLandingPage />
     </ModulePageProviders>
   );

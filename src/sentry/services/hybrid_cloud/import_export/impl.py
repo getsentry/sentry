@@ -195,7 +195,10 @@ class UniversalImportExportService(ImportExportService):
             # themselves, and the remote versions will be synced a few minutes later, well before
             # any users are likely ot need to get ahold of them to view actual data in the UI.
             using = router.db_for_write(model)
-            with outbox_context(transaction.atomic(using=using), flush=False):
+            # HACK(azaslavsky): Need to figure out why `OrganizationMemberTeam` in particular is failing, but we can just use async outboxes for it for now.
+            with outbox_context(
+                transaction.atomic(using=using), flush=model_name != "sentry.organizationmemberteam"
+            ):
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0

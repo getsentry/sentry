@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -8,16 +8,17 @@ import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconLightning, IconReleases, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
+  getDefaultAggregate,
   isAllowedOp,
   isCustomMetric,
+  isSpanDuration,
   isSpanMeasurement,
-  isSpanSelfTime,
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
@@ -46,16 +47,12 @@ const isVisibleTransactionMetric = (metric: MetricMeta) =>
   isTransactionDuration(metric) || isTransactionMeasurement(metric);
 
 const isVisibleSpanMetric = (metric: MetricMeta) =>
-  isSpanSelfTime(metric) || isSpanMeasurement(metric);
+  isSpanDuration(metric) || isSpanMeasurement(metric);
 
 const isShownByDefault = (metric: MetricMeta) =>
   isCustomMetric(metric) ||
   isVisibleTransactionMetric(metric) ||
   isVisibleSpanMetric(metric);
-
-function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
-  return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
-}
 
 function useMriMode() {
   const [mriMode, setMriMode] = useState(false);
@@ -153,24 +150,34 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const handleMRIChange = useCallback(
     ({value}) => {
-      const availableOps = getOpsForMRI(value, meta);
-      const selectedOp = availableOps.includes(
-        (metricsQuery.op ?? '') as MetricsOperation
-      )
-        ? metricsQuery.op
-        : availableOps?.[0];
+      const currentMRI = parseMRI(metricsQuery.mri);
+      const newMRI = parseMRI(value);
 
-      const queryChanges = {
-        mri: value,
-        op: selectedOp,
-        groupBy: undefined,
-      };
+      if (!currentMRI || !newMRI) {
+        return;
+      }
+
+      let queryChanges = {};
+
+      // If the type is the same, we can keep the current aggregate
+      if (currentMRI.type === newMRI.type) {
+        queryChanges = {
+          mri: value,
+          groupBy: undefined,
+        };
+      } else {
+        queryChanges = {
+          mri: value,
+          op: getDefaultAggregate(value),
+          groupBy: undefined,
+        };
+      }
 
       trackAnalytics('ddm.widget.metric', {organization});
       incrementQueryMetric('ddm.widget.metric', queryChanges);
       onChange(queryChanges);
     },
-    [incrementQueryMetric, meta, metricsQuery.op, onChange, organization]
+    [incrementQueryMetric, metricsQuery.mri, onChange, organization]
   );
 
   const handleOpChange = useCallback(
@@ -220,29 +227,44 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const mriOptions = useMemo(
     () =>
-      displayedMetrics.map<ComboBoxOption<MRI>>(metric => ({
-        label: mriMode
-          ? metric.mri
-          : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
-        // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-        textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
-        value: metric.mri,
-        details:
-          metric.projectIds.length > 0 ? (
-            <MetricListItemDetails
-              metric={metric}
-              selectedProjects={selectedProjects}
-              onTagClick={(mri, tag) => {
-                onChange({mri, groupBy: [tag]});
-              }}
-            />
-          ) : null,
-        showDetailsInOverlay: true,
-        trailingItems:
-          mriMode || parseMRI(metric.mri)?.useCase !== 'custom' ? undefined : (
-            <CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>
-          ),
-      })),
+      displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
+        const isDuplicateWithDifferentUnit = displayedMetrics.some(
+          displayedMetric =>
+            metric.mri !== displayedMetric.mri &&
+            parseMRI(metric.mri)?.name === parseMRI(displayedMetric.mri)?.name
+        );
+        const trailingItems: React.ReactNode[] = [];
+        if (isDuplicateWithDifferentUnit) {
+          trailingItems.push(<IconWarning size="xs" color="yellow400" />);
+        }
+        if (parseMRI(metric.mri)?.useCase === 'custom' && !mriMode) {
+          trailingItems.push(<CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>);
+        }
+        return {
+          label: mriMode
+            ? metric.mri
+            : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+          textValue: mriMode
+            ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+              `${metric.mri}${getReadableMetricType(metric.type)}`
+            : // enable search in the full formatted string
+              formatMRI(metric.mri),
+          value: metric.mri,
+          details:
+            metric.projectIds.length > 0 ? (
+              <MetricListItemDetails
+                metric={metric}
+                selectedProjects={selectedProjects}
+                onTagClick={(mri, tag) => {
+                  onChange({mri, groupBy: [tag]});
+                }}
+                isDuplicateWithDifferentUnit={isDuplicateWithDifferentUnit}
+              />
+            ) : null,
+          showDetailsInOverlay: true,
+          trailingItems,
+        };
+      }),
     [displayedMetrics, mriMode, onChange, selectedProjects]
   );
 
@@ -297,12 +319,6 @@ export const QueryBuilder = memo(function QueryBuilder({
               options={groupByOptions.map(tag => ({
                 label: tag.key,
                 value: tag.key,
-                trailingItems: tag.trailingItems ?? (
-                  <Fragment>
-                    {tag.key === 'release' && <IconReleases size="xs" />}
-                    {tag.key === 'transaction' && <IconLightning size="xs" />}
-                  </Fragment>
-                ),
               }))}
               disabled={!metricsQuery.mri || tagsIsLoading}
               value={metricsQuery.groupBy}
