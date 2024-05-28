@@ -516,7 +516,6 @@ module = [
     "tests.sentry.ingest.test_slicing",
     "tests.sentry.integrations.github.test_client",
     "tests.sentry.issues.test_utils",
-    "tests.sentry.tasks.test_post_process",
 ]
 disable_error_code = [
     "arg-type",
