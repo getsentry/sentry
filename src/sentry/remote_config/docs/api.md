@@ -70,6 +70,8 @@ Retrieve the DSN's configuration.
 
 Set the DSN's configuration. A hash value of `null` is provided if the object does not exist. If the API finds an existing configuration object an error is returned. If the hash value is provided then it will be compared against the hash of the remote value. A new hash is always returned on successful write. If the hashes do not match an error is returned.
 
+The client will never generate a HASH. It forwards the hash the server has provided it.
+
 - Request
 
   ```json
