@@ -44,7 +44,7 @@ function makeTransaction(
 ): TraceTree.Transaction {
   return {
     children: [],
-    sdk: '',
+    sdk_name: '',
     start_timestamp: 0,
     timestamp: 1,
     transaction: 'transaction',
@@ -999,8 +999,8 @@ describe('TraceTree', () => {
     const tree = TraceTree.FromTrace(
       makeTrace({
         transactions: [
-          makeTransaction({sdk: 'javascript', parent_span_id: null}),
-          makeTransaction({sdk: 'javascript', parent_span_id: null}),
+          makeTransaction({sdk_name: 'javascript', parent_span_id: null}),
+          makeTransaction({sdk_name: 'javascript', parent_span_id: null}),
         ],
         orphan_errors: [],
       })
