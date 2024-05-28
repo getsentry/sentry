@@ -116,7 +116,7 @@ describe('constructSelector', () => {
       selector: 'TestHello#ID2[aria="hello"]',
     },
   ])(
-    'should construct the correct trimmed selector and full selector, for each element in the list',
+    'should construct the correct trimmed selector and full selector, for each element in the list "$selector"',
     ({element, fullSelector, selector}) => {
       expect(constructSelector(element)).toStrictEqual({
         fullSelector,

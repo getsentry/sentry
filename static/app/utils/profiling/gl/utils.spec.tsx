@@ -53,7 +53,7 @@ describe('upperBound', () => {
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
-  ])(`inserts`, (args, target, insert) => {
+  ])(`inserts %p`, (args, target, insert) => {
     expect(
       upperBound(
         target,
@@ -79,7 +79,7 @@ describe('lowerBound', () => {
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
-  ])(`inserts`, (args, target, insert) => {
+  ])(`inserts %p`, (args, target, insert) => {
     expect(
       lowerBound(
         target,

@@ -7,7 +7,7 @@ describe('isValidDate', () => {
     {label: 'date from NaN', expected: false, value: new Date(1 / 0)},
     {label: 'duck type', expected: false, value: {getTime: () => 1}},
     {label: 'object', expected: false, value: {foo: 'bar'}},
-  ])('should return {expected} for {label}', ({expected, value}) => {
+  ])('should return $expected for $label', ({expected, value}) => {
     expect(isValidDate(value)).toBe(expected);
   });
 });
