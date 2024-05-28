@@ -136,6 +136,7 @@ function makeTraceFromTransaction(
     transaction: event.title,
     'transaction.duration': (event.endTimestamp - event.startTimestamp) * 1000,
     errors: [],
+    sdk_name: event.sdk?.name ?? '',
     children: [],
     start_timestamp: event.startTimestamp,
     'transaction.op': traceContext?.op ?? '',
