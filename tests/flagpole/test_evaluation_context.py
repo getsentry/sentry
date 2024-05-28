@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, NamedTuple
 
 import pytest
 
@@ -9,29 +9,41 @@ class TestEvaluationContext:
     pass
 
 
+class ContextTuple(NamedTuple):
+    foo: str | None = None
+    baz: int | None = None
+    buzz: dict | set | None = None
+
+
 class TestContextBuilder:
     def test_empty_context_builder(self):
-        context_builder = ContextBuilder()
+        context_builder = ContextBuilder[ContextTuple]()
         context = context_builder.build()
 
         assert context.size() == 0
 
     def test_static_transformer(self):
-        def static_transformer(_data: dict[str, Any]) -> dict[str, Any]:
+        def static_transformer(_data: ContextTuple) -> dict[str, Any]:
             return dict(foo="bar", baz=1)
 
-        eval_context = ContextBuilder().add_context_transformer(static_transformer).build()
+        eval_context = (
+            ContextBuilder[ContextTuple]()
+            .add_context_transformer(static_transformer)
+            .build(ContextTuple())
+        )
 
         assert eval_context.size() == 2
         assert eval_context.get("foo") == "bar"
         assert eval_context.get("baz") == 1
 
     def test_transformer_with_data(self):
-        def transformer_with_data(data: dict[str, Any]) -> dict[str, Any]:
-            return dict(foo="bar", baz=data.get("baz"))
+        def transformer_with_data(data: ContextTuple) -> dict[str, Any]:
+            return dict(foo="bar", baz=getattr(data, "baz", None))
 
         eval_context = (
-            ContextBuilder().add_context_transformer(transformer_with_data).build({"baz": 2})
+            ContextBuilder[ContextTuple]()
+            .add_context_transformer(transformer_with_data)
+            .build(ContextTuple(baz=2))
         )
 
         assert eval_context.size() == 2
@@ -39,17 +51,17 @@ class TestContextBuilder:
         assert eval_context.get("baz") == 2
 
     def test_multiple_context_transformers(self):
-        def transformer_one(data: dict[str, Any]) -> dict[str, Any]:
-            return dict(foo="overwrite_me", baz=2, buzz=data.get("buzz"))
+        def transformer_one(data: ContextTuple) -> dict[str, Any]:
+            return dict(foo="overwrite_me", baz=2, buzz=getattr(data, "buzz"))
 
-        def transformer_two(_data: dict[str, Any]) -> dict[str, Any]:
+        def transformer_two(_data: ContextTuple) -> dict[str, Any]:
             return dict(foo="bar")
 
         eval_context = (
-            ContextBuilder()
+            ContextBuilder[ContextTuple]()
             .add_context_transformer(transformer_one)
             .add_context_transformer(transformer_two)
-            .build({"foo": "bar", "buzz": {1, 2, 3}})
+            .build(ContextTuple(foo="bar", buzz={1, 2, 3}))
         )
 
         assert eval_context.size() == 3
@@ -60,19 +72,19 @@ class TestContextBuilder:
     def test_with_exception_handler(self):
         exc_message = "oh noooooo"
 
-        def broken_transformer(_data: dict[str, Any]) -> EvaluationContextDict:
+        def broken_transformer(_data: ContextTuple) -> EvaluationContextDict:
             raise Exception(exc_message)
 
-        context_builder = ContextBuilder().add_context_transformer(broken_transformer)
+        context_builder = ContextBuilder[ContextTuple]().add_context_transformer(broken_transformer)
 
         with pytest.raises(Exception) as exc:
-            context_builder.build(dict())
+            context_builder.build(ContextTuple())
 
         assert exc.match(exc_message)
 
         # Ensure builder doesn't raise an exception
         context_builder.add_exception_handler(lambda _exc: None)
-        context_builder.build(dict())
+        context_builder.build(ContextTuple())
 
         with pytest.raises(Exception):
             context_builder.add_exception_handler(lambda _exc: None)

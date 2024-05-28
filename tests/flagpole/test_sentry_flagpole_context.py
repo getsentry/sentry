@@ -3,6 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from flagpole.sentry_flagpole_context import (
     InvalidContextDataException,
+    SentryContextData,
     get_sentry_flagpole_context_builder,
     organization_context_transformer,
     project_context_transformer,
@@ -20,7 +21,7 @@ class TestSentryFlagpoleContext(TestCase):
         sentry_flagpole_builder = get_sentry_flagpole_context_builder()
 
         sentry_context = sentry_flagpole_builder.build(
-            dict(organization=org, project=project, actor=None)
+            SentryContextData(organization=org, project=project)
         )
 
         assert sentry_context.get("organization_slug") == org.slug
@@ -31,19 +32,15 @@ class TestSentryFlagpoleContext(TestCase):
 
 class TestSentryOrganizationContextTransformer(TestCase):
     def test_without_organization_passed(self):
-        context_data = organization_context_transformer(
-            dict()  # type:ignore[typeddict-item]
-        )
-        assert context_data == dict()
+        context_data = organization_context_transformer(SentryContextData())
+        assert context_data == {}
 
     def test_with_invalid_organization(self):
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(dict(organization=1234, project=None, actor=None))  # type: ignore[typeddict-item]
+            organization_context_transformer(SentryContextData(organization=1234))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(
-                dict(organization=self.create_project(), actor=None, project=None)
-            )
+            organization_context_transformer(SentryContextData(organization=self.create_project()))
 
     def test_with_valid_organization(self):
         org = self.create_organization(slug="foobar", name="Foo Bar")
@@ -51,9 +48,7 @@ class TestSentryOrganizationContextTransformer(TestCase):
         org.save()
         assert bool(org.flags.early_adopter) is True
 
-        context_data = organization_context_transformer(
-            dict(organization=org, project=None, actor=None)
-        )
+        context_data = organization_context_transformer(SentryContextData(organization=org))
 
         assert context_data == {
             "organization_slug": "foobar",
@@ -65,24 +60,20 @@ class TestSentryOrganizationContextTransformer(TestCase):
 
 class TestProjectContextTransformer(TestCase):
     def test_without_project_passed(self):
-        context_data = project_context_transformer(dict())  # type:ignore[typeddict-item]
-        assert context_data == dict()
+        context_data = project_context_transformer(SentryContextData())
+        assert context_data == {}
 
     def test_with_invalid_project_passed(self):
         with pytest.raises(InvalidContextDataException):
-            project_context_transformer(dict(project=123, organization=None, actor=None))  # type: ignore[typeddict-item]
+            project_context_transformer(SentryContextData(project=123))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            project_context_transformer(
-                dict(project=self.create_organization(), organization=None, actor=None)
-            )
+            project_context_transformer(SentryContextData(project=self.create_organization()))
 
     def test_with_valid_project(self):
         project = self.create_project(slug="foobar", name="Foo Bar")
 
-        context_data = project_context_transformer(
-            dict(project=project, organization=None, actor=None)
-        )
+        context_data = project_context_transformer(SentryContextData(project=project))
         assert context_data == {
             "project_slug": "foobar",
             "project_name": "Foo Bar",
@@ -93,26 +84,22 @@ class TestProjectContextTransformer(TestCase):
 @control_silo_test
 class TestUserContextTransformer(TestCase):
     def test_without_user_passed(self):
-        context_data = project_context_transformer(
-            dict(actor=None, organization=None, project=None)
-        )
-        assert context_data == dict()
+        context_data = project_context_transformer(SentryContextData())
+        assert context_data == {}
 
     def test_with_invalid_user_passed(self):
         with pytest.raises(InvalidContextDataException):
-            user_context_transformer(dict(actor=123, organization=None, project=None))  # type: ignore[typeddict-item]
+            user_context_transformer(SentryContextData(actor=123))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            user_context_transformer(
-                dict(actor=self.create_organization(), project=None, organization=None)
-            )
+            user_context_transformer(SentryContextData(actor=self.create_organization()))
 
     def test_with_valid_user(self):
         user = self.create_user(email="foobar@example.com")
         # Create a new, unverified email to ensure we don't list it
         self.create_useremail(user=user, email="unverified_email@example.com")
 
-        context_data = user_context_transformer(dict(actor=user, organization=None, project=None))
+        context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {
             "user_email": "foobar@example.com",
             "user_domain": "example.com",
@@ -127,7 +114,7 @@ class TestUserContextTransformer(TestCase):
         user_email.is_verified = False
         user_email.save()
 
-        context_data = user_context_transformer(dict(actor=user, organization=None, project=None))
+        context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {
             "user_id": user.id,
             "user_is-superuser": False,
@@ -136,7 +123,7 @@ class TestUserContextTransformer(TestCase):
 
     def test_with_super_user_and_staff(self):
         user = self.create_user(email="super_user_admin_person@sentry.io", is_superuser=True)
-        context_data = user_context_transformer(dict(actor=user, organization=None, project=None))
+        context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {
             "user_email": "super_user_admin_person@sentry.io",
             "user_domain": "sentry.io",
@@ -148,7 +135,7 @@ class TestUserContextTransformer(TestCase):
         user.is_staff = True
         user.is_superuser = False
         user.save()
-        context_data = user_context_transformer(dict(actor=user, organization=None, project=None))
+        context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {
             "user_email": "super_user_admin_person@sentry.io",
             "user_domain": "sentry.io",
@@ -159,5 +146,5 @@ class TestUserContextTransformer(TestCase):
 
     def test_with_anonymous_user(self):
         user = AnonymousUser()
-        context_data = user_context_transformer(dict(actor=user, organization=None, project=None))
+        context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {}
