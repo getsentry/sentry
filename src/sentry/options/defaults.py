@@ -2537,3 +2537,18 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
+register(
+    "billing.am2.metric_seconds.release_data",
+    type=String,
+    default="5/29/2024",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "billing.am3.profile_duration.release_data",
+    type=String,
+    default="8/30/2024",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
