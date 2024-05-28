@@ -32,3 +32,7 @@ class StatusChangeMessage:
             "new_substatus": self.new_substatus,
             "id": self.id,
         }
+
+    def __post_init__(self):
+        if not self.fingerprint:
+            raise ValueError("fingerprint must be non-empty")
