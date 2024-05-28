@@ -50,8 +50,9 @@ class EvaluationContext:
         return int.from_bytes(hashed.digest(), byteorder="big")
 
 
+T_TYPED_DICT = TypeVar("T_TYPED_DICT", bound=dict[str, Any])
 # A function that generates a new slice of evaluation context data as a dictionary.
-EvaluationContextTransformer = Callable[[dict[str, Any]], EvaluationContextDict]
+EvaluationContextTransformer = Callable[[T_TYPED_DICT], EvaluationContextDict]
 
 
 class ContextBuilder(BaseModel):

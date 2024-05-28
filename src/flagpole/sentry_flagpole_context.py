@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -15,20 +15,13 @@ class InvalidContextDataException(Exception):
     pass
 
 
-T_SENTRY_CONTEXT = TypeVar(
-    "T_SENTRY_CONTEXT",
-    bound=RpcUser
-    | User
-    | AnonymousUser
-    | RpcOrganization
-    | Organization
-    | RpcProject
-    | Project
-    | None,
-)
+class SentryContextData(TypedDict):
+    actor: User | RpcUser | AnonymousUser | None
+    organization: Organization | RpcOrganization | None
+    project: Project | RpcProject | None
 
 
-def organization_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> EvaluationContextDict:
+def organization_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
     org = data.get("organization", None)
     if org is None:
@@ -52,7 +45,7 @@ def organization_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> Evalu
     return context_data
 
 
-def project_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> EvaluationContextDict:
+def project_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
 
     if (proj := data.get("project", None)) is not None:
@@ -66,7 +59,7 @@ def project_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> Evaluation
     return context_data
 
 
-def user_context_transformer(data: dict[str, T_SENTRY_CONTEXT]) -> EvaluationContextDict:
+def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
     user = data.get("actor", None)
     if user is None or isinstance(user, AnonymousUser):
