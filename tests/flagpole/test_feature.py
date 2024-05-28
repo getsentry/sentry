@@ -1,9 +1,14 @@
 from datetime import datetime, timezone
+from typing import NamedTuple
 
 import pytest
 
 from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
 from flagpole.conditions import ConditionOperatorKind
+
+
+class ContextData(NamedTuple):
+    pass
 
 
 class TestParseFeatureConfig:
@@ -104,7 +109,7 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
-        assert feature.match(context_builder.build())
+        assert feature.match(context_builder.build(ContextData()))
 
     def test_disabled_feature(self):
         feature = Feature.from_feature_config_json(
@@ -128,4 +133,4 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
-        assert not feature.match(context_builder.build())
+        assert not feature.match(context_builder.build(ContextData()))
