@@ -227,32 +227,44 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const mriOptions = useMemo(
     () =>
-      displayedMetrics.map<ComboBoxOption<MRI>>(metric => ({
-        label: mriMode
-          ? metric.mri
-          : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
-        textValue: mriMode
-          ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-            `${metric.mri}${getReadableMetricType(metric.type)}`
-          : // enable search in the full formatted string
-            formatMRI(metric.mri),
-        value: metric.mri,
-        details:
-          metric.projectIds.length > 0 ? (
-            <MetricListItemDetails
-              metric={metric}
-              selectedProjects={selectedProjects}
-              onTagClick={(mri, tag) => {
-                onChange({mri, groupBy: [tag]});
-              }}
-            />
-          ) : null,
-        showDetailsInOverlay: true,
-        trailingItems:
-          mriMode || parseMRI(metric.mri)?.useCase !== 'custom' ? undefined : (
-            <CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>
-          ),
-      })),
+      displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
+        const isDuplicateWithDifferentUnit = displayedMetrics.some(
+          displayedMetric =>
+            metric.mri !== displayedMetric.mri &&
+            parseMRI(metric.mri)?.name === parseMRI(displayedMetric.mri)?.name
+        );
+        const trailingItems: React.ReactNode[] = [];
+        if (isDuplicateWithDifferentUnit) {
+          trailingItems.push(<IconWarning size="xs" color="yellow400" />);
+        }
+        if (parseMRI(metric.mri)?.useCase === 'custom' && !mriMode) {
+          trailingItems.push(<CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>);
+        }
+        return {
+          label: mriMode
+            ? metric.mri
+            : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+          textValue: mriMode
+            ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+              `${metric.mri}${getReadableMetricType(metric.type)}`
+            : // enable search in the full formatted string
+              formatMRI(metric.mri),
+          value: metric.mri,
+          details:
+            metric.projectIds.length > 0 ? (
+              <MetricListItemDetails
+                metric={metric}
+                selectedProjects={selectedProjects}
+                onTagClick={(mri, tag) => {
+                  onChange({mri, groupBy: [tag]});
+                }}
+                isDuplicateWithDifferentUnit={isDuplicateWithDifferentUnit}
+              />
+            ) : null,
+          showDetailsInOverlay: true,
+          trailingItems,
+        };
+      }),
     [displayedMetrics, mriMode, onChange, selectedProjects]
   );
 
