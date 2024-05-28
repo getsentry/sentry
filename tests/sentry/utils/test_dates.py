@@ -1,6 +1,5 @@
 import datetime
 
-from sentry.testutils.helpers import override_options
 from sentry.utils.dates import date_to_utc_datetime, parse_stats_period, parse_timestamp
 
 
@@ -21,19 +20,7 @@ def test_date_to_utc_datetime():
     assert dt == datetime.datetime(2024, 7, 5, tzinfo=datetime.UTC)
 
 
-@override_options({"system.use-date-util-timestamps": False})
 def test_parse_timestamp():
-    assert parse_timestamp("2024-05-20T17:29:00+00:00") == datetime.datetime(
-        2024, 5, 20, 17, 29, tzinfo=datetime.UTC
-    )
-    assert parse_timestamp("2024-05-20T17:29:00") == datetime.datetime(
-        2024, 5, 20, 17, 29, tzinfo=datetime.UTC
-    )
-    assert parse_timestamp("2024-05-20T17:29:00gu") is None
-
-
-@override_options({"system.use-date-util-timestamps": True})
-def test_parse_timestamp_with_date_util():
     assert parse_timestamp("2024-05-20T17:29:00+00:00") == datetime.datetime(
         2024, 5, 20, 17, 29, tzinfo=datetime.UTC
     )

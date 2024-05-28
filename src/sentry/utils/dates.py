@@ -9,9 +9,8 @@ from dateutil.parser import ParserError, parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
-from sentry import options, quotas
+from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
-from sentry.utils import metrics
 
 epoch = datetime(1970, 1, 1, tzinfo=UTC)
 
@@ -80,29 +79,6 @@ def parse_date(datestr: str, timestr: str) -> datetime | None:
             return None
 
 
-def _parse_timestamp_old(value: Any) -> datetime | None:
-    value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
-    if not value:
-        return None
-    try:
-        # Attempt to decode without timezone
-        rv = datetime.strptime(value[0].decode("ascii"), "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
-        # Fallback to decoding with timezone as a ISO8610 string
-        try:
-            rv = datetime.fromisoformat(value[0].decode("ascii"))
-        except Exception:
-            return None
-    except Exception:
-        return None
-    if len(value) == 2:
-        try:
-            rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
-        except ValueError:
-            return None
-    return rv.replace(tzinfo=UTC)
-
-
 def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if not value:
@@ -112,26 +88,13 @@ def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datet
     elif isinstance(value, (int, float)):
         return datetime.fromtimestamp(value, UTC)
 
-    expected_value = _parse_timestamp_old(value)
-
-    # TODO(@anonrig): Remove this once we make sure both results return the same.
-    if options.get("system.use-date-util-timestamps"):
-        try:
-            if isinstance(value, bytes):
-                value = value.decode()
-            new_value = parse(value, ignoretz=True).replace(tzinfo=UTC)
-        except (ParserError, ValueError):
-            logger.exception("parse_timestamp")
-            new_value = None
-
-        result = "not-equal" if expected_value != new_value else "equal"
-        metrics.incr("parse_timestamp", tags={"result": result})
-        if expected_value != new_value:
-            logger.info(
-                "parse_timestamp dateutil not-equal",
-                extra={"expected_value": expected_value, "new_value": new_value},
-            )
-    return expected_value
+    try:
+        if isinstance(value, bytes):
+            value = value.decode()
+        return parse(value, ignoretz=True).replace(tzinfo=UTC)
+    except (ParserError, ValueError):
+        logger.exception("parse_timestamp")
+        return None
 
 
 def parse_stats_period(period: str) -> timedelta | None:
