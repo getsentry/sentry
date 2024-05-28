@@ -103,6 +103,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable kill switch metrics
+register(
+    "system.emit-kill-switch-metrics",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Redis
 register(
     "redis.clusters",

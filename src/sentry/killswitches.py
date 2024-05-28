@@ -279,7 +279,7 @@ def killswitch_matches_context(killswitch_name: str, context: Context, emit_metr
     option_value = options.get(killswitch_name)
     rv = _value_matches(killswitch_name, option_value, context)
 
-    if emit_metrics:
+    if emit_metrics and options.get("system.emit-kill-switch-metrics"):
         # metrics can have a meaningful performance impact, so allow caller to opt out
         # TODO: re-evaluate after we make metric collection aysnc.
         metrics.incr(
