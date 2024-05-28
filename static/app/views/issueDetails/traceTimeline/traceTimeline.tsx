@@ -10,7 +10,6 @@ import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
 
 import {TraceIssueEvent} from './traceIssue';
 import {TraceTimelineEvents} from './traceTimelineEvents';
@@ -58,17 +57,11 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     // display empty placeholder to reduce layout shift
     return null;
   }
-  const isRelatedIssuesEnabled = organization.features.includes(
-    'related-issues-issue-details-page'
-  );
 
   return (
     <ErrorBoundary mini>
       {timelineStatus === 'shown' ? (
         <Fragment>
-          {isRelatedIssuesEnabled && oneOtherIssueEvent === undefined && (
-            <TraceLink event={event} />
-          )}
           <TimelineWrapper>
             <div ref={timelineRef}>
               <TimelineEventsContainer>
@@ -90,26 +83,12 @@ export function TraceTimeline({event}: TraceTimelineProps) {
         </Fragment>
       ) : (
         <Feature features="related-issues-issue-details-page">
-          {oneOtherIssueEvent && (
-            <div>
-              <TraceIssueEventText>
-                One other issue appears in the same trace.
-                <TraceLink event={event} />
-              </TraceIssueEventText>
-              <TraceIssueEvent event={oneOtherIssueEvent} />
-            </div>
-          )}
+          {oneOtherIssueEvent && <TraceIssueEvent event={oneOtherIssueEvent} />}
         </Feature>
       )}
     </ErrorBoundary>
   );
 }
-
-const TraceIssueEventText = styled('div')`
-  display: flex;
-  white-space: nowrap;
-  overflow: hidden;
-`;
 
 const TimelineWrapper = styled('div')`
   display: grid;

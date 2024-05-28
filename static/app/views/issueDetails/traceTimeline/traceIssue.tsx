@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
@@ -20,11 +20,7 @@ interface TraceIssueEventProps {
 
 export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const organization = useOrganization();
-  const {projects} = useProjects({
-    slugs: [event.project],
-    orgId: organization.slug,
-  });
-  const project = projects.find(p => p.slug === event.project);
+  const project = useProjectFromSlug({organization, projectSlug: event['project.name']});
   const issueId = event['issue.id'];
   // We are view issue X and loading data for issue Y. This means that this call will not be cached,
   // thus, it is a little bit slow to render the component.
@@ -40,6 +36,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
       retry: false,
     }
   );
+  const avatarSize = parseInt(space(4), 10);
 
   // If any of data fails to load, we don't want to render the component
   // Only "One other issue appears in the same trace. View Full Trace (X issues)" would show up
@@ -49,6 +46,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         <LoadingIndicator mini />
       ) : (
         groupData && (
+          // XXX: Determine plan for analytics
           <TraceIssueLinkContainer
             to={{
               pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
@@ -56,20 +54,19 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
                 referrer: 'issues_trace_issue',
               },
             }}
-            onClick={() => {
-              trackAnalytics('issue_details.issue_tab.trace_issue_clicked', {
-                organization,
-                event_id: event.id,
-                group_id: issueId,
-              });
-            }}
           >
-            {project && (
+            {project ? (
               <ProjectBadge
                 project={project}
-                avatarSize={parseInt(space(4), 10)}
+                avatarSize={avatarSize}
                 hideName
                 disableLink
+              />
+            ) : (
+              <Placeholder
+                shape="rect"
+                width={`${avatarSize}px`}
+                height={`${avatarSize}px`}
               />
             )}
             <TraceIssueDetailsContainer>

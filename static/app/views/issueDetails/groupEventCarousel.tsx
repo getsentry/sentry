@@ -21,7 +21,9 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group, Organization} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
