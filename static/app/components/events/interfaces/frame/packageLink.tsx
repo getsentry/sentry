@@ -63,7 +63,7 @@ function PackageLink({
 
 export const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding: 0 0 0 ${space(0.5)};
   color: ${p => p.theme.textColor};
   :hover {

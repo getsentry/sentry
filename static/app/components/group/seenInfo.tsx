@@ -153,7 +153,7 @@ const StyledTimeSince = styled(TimeSince)`
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {

@@ -338,7 +338,7 @@ const PositiveLabel = styled(({className}: {className?: string}) => (
   color: ${p => p.theme.green400};
   align-items: center;
   display: flex;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   gap: ${space(0.5)};
 `;
 
@@ -351,7 +351,7 @@ const NegativeLabel = styled(({className}: {className?: string}) => (
   color: ${p => p.theme.red400};
   align-items: center;
   display: flex;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   gap: ${space(0.5)};
 `;
 

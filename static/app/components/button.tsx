@@ -527,7 +527,7 @@ const StyledButton = styled(
   display: inline-block;
   border-radius: ${p => p.theme.borderRadius};
   text-transform: none;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${getColors};
   ${getSizeStyles};
   ${getBoxShadow};

@@ -280,7 +280,7 @@ const StyledImageVisualization = styled(ImageVisualization)`
 
 const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 export const modalCss = css`

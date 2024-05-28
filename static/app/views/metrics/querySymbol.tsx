@@ -25,7 +25,7 @@ export const Symbol = styled('span')<{isHidden?: boolean}>`
   align-items: center;
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
-  font-weight: 500;
+  ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.white};
   font-size: 14px;
   background: ${p => p.theme.purple300};

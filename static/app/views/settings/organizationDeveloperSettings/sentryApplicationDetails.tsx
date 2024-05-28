@@ -580,7 +580,7 @@ const AvatarPreviewTitle = styled('span')`
   display: block;
   grid-area: 1 / 2 / 2 / 3;
   padding-left: ${space(2)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const AvatarPreviewText = styled('span')`

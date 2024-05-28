@@ -101,7 +101,7 @@ const SpanLetter = styled('div')`
   min-width: 220px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
-  font-weight: 800;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

@@ -192,7 +192,7 @@ const Header = styled('span')`
 const Value = styled('h2')`
   display: flex;
   align-items: center;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 
@@ -237,6 +237,6 @@ const StatusText = styled('span')`
 `;
 
 const StatusScore = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
 `;

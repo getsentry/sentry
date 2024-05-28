@@ -39,7 +39,7 @@ const Information = styled('div')`
 
 const Heading = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 500;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: 0;
   color: ${p => p.theme.gray500};
 `;

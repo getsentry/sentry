@@ -44,7 +44,7 @@ const Labels = styled('div')<{compact: boolean}>`
 
 const IntegrationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 // Not using the overflowEllipsis style import here

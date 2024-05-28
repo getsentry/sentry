@@ -98,7 +98,7 @@ const prismStyles = (theme: Theme) => css`
     }
     .token.important,
     .token.bold {
-      font-weight: bold;
+      font-weight: ${theme.fontWeightBold};
     }
     .token.italic {
       font-style: italic;

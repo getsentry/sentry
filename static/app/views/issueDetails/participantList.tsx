@@ -135,7 +135,7 @@ const ListTitle = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

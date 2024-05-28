@@ -237,7 +237,7 @@ function ContextDetail(props: ContextDetailProps) {
 const UppercaseTitle = styled('span')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 

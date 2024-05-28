@@ -206,7 +206,7 @@ const UpdateHeading = styled('div')<{status: UpdateStatus}>`
 
 const StatusTitle = styled('div')`
   color: ${p => p.theme.headingColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const StatusDate = styled('div')`

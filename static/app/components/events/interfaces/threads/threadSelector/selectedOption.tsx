@@ -47,5 +47,5 @@ const ThreadId = styled(TextOverflow)`
 `;
 
 const Label = styled(ThreadId)`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

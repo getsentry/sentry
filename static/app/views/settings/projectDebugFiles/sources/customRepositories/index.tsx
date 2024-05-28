@@ -303,7 +303,7 @@ export default CustomRepositories;
 const DropDownLabel = styled(MenuItem)`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
   span {
     padding: 0;

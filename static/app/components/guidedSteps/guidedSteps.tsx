@@ -244,7 +244,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -260,7 +260,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
 const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 `;

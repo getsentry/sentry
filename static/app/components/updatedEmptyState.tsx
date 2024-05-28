@@ -271,7 +271,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Description = styled('div')`
@@ -289,7 +289,7 @@ const HeaderWrapper = styled('div')`
 
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
 `;
 

@@ -203,7 +203,7 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   user-select: none;
   cursor: pointer;
   gap: ${space(1)};

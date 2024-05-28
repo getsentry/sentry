@@ -671,7 +671,7 @@ const SuggestedAssigneeReason = styled(AssigneeLabel)`
 const GroupHeader = styled('div')`
   font-size: 75%;
   line-height: 1.5;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};

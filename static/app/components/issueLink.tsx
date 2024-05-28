@@ -107,12 +107,12 @@ const Title = styled('div')`
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
 
   em {
     font-style: normal;
-    font-weight: 400;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeSmall};
   }
 `;

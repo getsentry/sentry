@@ -546,7 +546,7 @@ const SymbolicatorIcon = styled('div')`
 const ShowHideButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
     color: ${p => p.theme.subText};

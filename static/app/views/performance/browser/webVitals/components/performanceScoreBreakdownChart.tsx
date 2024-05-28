@@ -275,7 +275,7 @@ const PerformanceScoreLabel = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`

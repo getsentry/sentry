@@ -195,7 +195,7 @@ const Content = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(0.5)};
 `;
 

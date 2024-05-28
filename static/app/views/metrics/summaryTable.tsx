@@ -489,7 +489,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   gap: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   line-height: ${p => p.theme.text.lineHeightBody};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.subText};
   user-select: none;

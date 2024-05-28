@@ -216,7 +216,7 @@ const Title = styled('div')`
 
 const TitleType = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis};
 `;
 
@@ -232,7 +232,7 @@ const Label = styled('div')`
 `;
 
 const Percent = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-variant-numeric: tabular-nums;
   padding-left: ${space(0.5)};
   color: ${p => p.theme.textColor};

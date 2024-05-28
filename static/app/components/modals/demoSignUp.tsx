@@ -106,7 +106,7 @@ export const modalCss = css`
 const Subheader = styled('h4')`
   margin-bottom: ${space(2)};
   text-transform: uppercase;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

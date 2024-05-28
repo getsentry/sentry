@@ -253,7 +253,7 @@ const FormValue = styled('span')`
   margin: 0 ${space(0.5)};
 `;
 const FieldName = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 ${space(0.5)};
 `;
 const MessageContainer = styled('div')`

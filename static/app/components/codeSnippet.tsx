@@ -204,7 +204,7 @@ const Header = styled('div')<{isSolid: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
   color: var(--prism-base);
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   z-index: 2;
 
   ${p =>

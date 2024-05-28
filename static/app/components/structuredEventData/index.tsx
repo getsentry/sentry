@@ -338,12 +338,12 @@ const StyledIconOpen = styled(IconOpen)`
 `;
 
 const ValueNull = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: var(--prism-property);
 `;
 
 const ValueBoolean = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: var(--prism-property);
 `;
 
@@ -359,7 +359,7 @@ const ValueMultiLineString = styled('span')`
 `;
 
 const ValueStrippedString = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: var(--prism-keyword);
 `;
 

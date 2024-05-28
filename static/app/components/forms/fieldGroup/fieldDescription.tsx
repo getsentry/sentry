@@ -19,7 +19,7 @@ const inlineStyle = (p: FieldDescriptionProps) =>
       `;
 
 const FieldDescription = styled('label')<FieldDescriptionProps>`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: 0;
 
   ${inlineStyle};

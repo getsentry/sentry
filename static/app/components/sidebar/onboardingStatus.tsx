@@ -30,7 +30,7 @@ type Props = CommonSidebarProps & {
 
 const progressTextCss = () => css`
   font-size: ${theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${theme.fontWeightBold};
 `;
 
 export default function OnboardingStatus({

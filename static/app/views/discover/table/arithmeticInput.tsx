@@ -437,7 +437,7 @@ const DropdownTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
@@ -462,7 +462,7 @@ const DropdownListItem = styled(ListItem)`
 
 const DropdownItemTitleWrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};

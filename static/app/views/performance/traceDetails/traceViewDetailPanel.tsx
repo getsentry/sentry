@@ -598,7 +598,7 @@ const Title = styled(FlexBox)`
 
 const TransactionOp = styled('div')`
   font-size: 25px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;

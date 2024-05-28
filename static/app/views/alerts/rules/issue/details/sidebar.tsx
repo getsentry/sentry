@@ -222,7 +222,7 @@ const StepContent = styled('div')`
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ChevronContainer = styled('div')`
@@ -240,7 +240,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.5;
 `;
 
@@ -253,7 +253,7 @@ const ConditionsBadge = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: ${space(1)};
   width: fit-content;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`

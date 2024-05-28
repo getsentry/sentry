@@ -220,7 +220,7 @@ const AuthenticatorDates = styled('div')`
 `;
 
 const DateLabel = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PhoneWrapper = styled('div')`
@@ -228,6 +228,6 @@ const PhoneWrapper = styled('div')`
 `;
 
 const Phone = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-left: ${space(1)};
 `;

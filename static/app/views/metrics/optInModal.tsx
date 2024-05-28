@@ -125,14 +125,14 @@ const Content = styled('div')`
 const Subheader = styled('h2')`
   color: ${p => p.theme.purple300};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(3)};
   text-transform: uppercase;
 `;
 
 const Header = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(1.5)} 0;
 `;
 

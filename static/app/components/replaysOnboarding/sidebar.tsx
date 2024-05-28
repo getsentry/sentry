@@ -463,7 +463,7 @@ const TaskStepNumber = styled('div')`
   margin-right: ${space(1.5)};
   background-color: ${p => p.theme.yellow300};
   border-radius: 50%;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   height: ${space(4)};
   width: ${space(4)};
   justify-content: center;
@@ -496,7 +496,7 @@ const Heading = styled('div')`
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

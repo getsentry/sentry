@@ -63,7 +63,7 @@ const IntegrationButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: #889ab0;
   letter-spacing: 0.1px;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   border: 1px solid #eee;
   background: inherit;

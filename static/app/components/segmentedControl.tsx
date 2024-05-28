@@ -239,7 +239,7 @@ const SegmentWrap = styled('label')<{
   min-width: 0;
 
   ${p => p.theme.buttonPadding[p.size]}
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   ${p =>
     !p.isDisabled &&

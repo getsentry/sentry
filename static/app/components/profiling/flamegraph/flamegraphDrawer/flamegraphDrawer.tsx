@@ -301,7 +301,7 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   gap: ${space(0.5)};
 `;
 
@@ -372,7 +372,7 @@ export const ProfilingDetailsListItem = styled('li')<{
     &::after {
       display: block;
       content: attr(data-title);
-      font-weight: bold;
+      font-weight: ${p => p.theme.fontWeightBold};
       height: 1px;
       color: transparent;
       overflow: hidden;
@@ -386,7 +386,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 
   &.active button {
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
     border-bottom: 2px solid ${prop => prop.theme.active};
   }
 `;

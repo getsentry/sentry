@@ -198,5 +198,5 @@ const MenuWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

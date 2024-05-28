@@ -99,7 +99,7 @@ const StyledNavItem = styled(RouterLink)`
 `;
 
 const StyledBadge = styled(Badge)`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   height: auto;
   line-height: 1;
   font-size: ${p => p.theme.fontSizeExtraSmall};

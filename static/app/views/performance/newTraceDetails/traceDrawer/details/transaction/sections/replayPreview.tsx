@@ -73,7 +73,7 @@ const ReplaySectionContainer = styled('div')`
 
 const ReplaySectionTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(2)};
 `;
 
