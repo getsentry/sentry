@@ -171,6 +171,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
                 if (
                     request.GET.get("category") == "metrics"
                     or request.GET.get("category") == "metricSecond"
+                    or request.GET.get("category") == "metricHour"
                 ):
                     # TODO(metrics): align project resolution
                     result = run_metrics_outcomes_query(
