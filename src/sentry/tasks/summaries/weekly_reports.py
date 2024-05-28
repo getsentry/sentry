@@ -76,6 +76,9 @@ def schedule_organizations(
         organizations, step=10000, result_value_getter=lambda item: item.id
     ):
         # Create a celery task per organization
+        logger.info(
+            "weekly_reports.schedule_organizations", extra={"organization": organization.id}
+        )
         prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
@@ -214,6 +217,7 @@ def prepare_organization_report(
 
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+        logger.info("weekly_reports.deliver_reports", extra={"organization": organization_id})
         deliver_reports(
             ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
         )
@@ -686,6 +690,12 @@ def send_email(
             organization_id=ctx.organization.id,
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
+        )
+
+        # TODO see if we can use the UUID to track if the email was sent or not
+        logger.info(
+            "weekly_report.send_email",
+            extra={"organization": ctx.organization.id, uuid: template_ctx["notification_uuid"]},
         )
         message.add_users((user_id,))
         message.send_async()
