@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
@@ -60,6 +62,7 @@ export async function openEmailVerification({
 
 type OpenDiffModalOptions = {
   baseIssueId: Group['id'];
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   targetIssueId: string;

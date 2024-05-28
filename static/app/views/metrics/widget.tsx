@@ -29,7 +29,6 @@ import {
   getFormattedMQL,
   getMetricsSeriesId,
   getMetricsSeriesName,
-  isCumulativeOp,
   isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
@@ -441,8 +440,6 @@ const MetricWidgetBody = memo(
       [queries, onQueryChange, widgetIndex]
     );
 
-    const isCumulativeSamplesOp =
-      queries[0] && !isMetricFormula(queries[0]) && isCumulativeOp(queries[0].op);
     const firstScalingFactor = chartSeries.find(s => !s.hidden)?.scalingFactor || 1;
 
     const focusArea = useFocusArea({
@@ -451,8 +448,9 @@ const MetricWidgetBody = memo(
       chartRef,
       opts: {
         widgetIndex,
-        isDisabled: !focusAreaProps.onAdd,
-        useFullYAxis: isCumulativeSamplesOp,
+        // The focus area relies on the chart samples to calculate its position
+        isDisabled: chartSamples === undefined || !focusAreaProps.onAdd,
+        useFullYAxis: true,
       },
       onZoom: handleZoom,
     });

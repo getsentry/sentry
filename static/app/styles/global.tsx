@@ -98,7 +98,7 @@ const prismStyles = (theme: Theme) => css`
     }
     .token.important,
     .token.bold {
-      font-weight: bold;
+      font-weight: ${theme.fontWeightBold};
     }
     .token.italic {
       font-style: italic;
@@ -191,6 +191,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
       transition-duration: 0s !important;
       transition-delay: 0s !important;
     }
+  }
+
+  .ReactVirtualized__Grid:focus-visible,
+  .ReactVirtualized__List:focus-visible {
+    outline: ${theme.focusBorder} auto 1px;
   }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */

@@ -2,7 +2,7 @@ import dataclasses
 import itertools
 import math
 from collections import defaultdict
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
@@ -32,6 +32,12 @@ from sentry.utils.numbers import clip
 from sentry.utils.snuba import bulk_snuba_queries
 
 MAX_SNUBA_RESULTS = 10_000
+
+CANDIDATE_SPAN_OPS = {"pageload", "navigation"}
+
+
+def is_trace_name_candidate(span):
+    return span["span.op"] in CANDIDATE_SPAN_OPS
 
 
 class TraceInterval(TypedDict):
@@ -96,6 +102,17 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
         try:
             snuba_params, params = self.get_snuba_dataclass(request, organization)
+            all_projects = self.get_projects(
+                request,
+                organization,
+                project_ids={-1},
+                project_slugs=None,
+                include_all_accessible=True,
+            )
+            snuba_params = dataclasses.replace(snuba_params, projects=all_projects)
+            params["projects"] = snuba_params.projects
+            params["projects_objects"] = snuba_params.projects
+            params["projects_id"] = snuba_params.project_ids
         except NoProjects:
             return Response(status=404)
 
@@ -122,13 +139,6 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             breakdown_categories=serialized.get("breakdownCategory", []),
             min_breakdown_duration=serialized["minBreakdownDuration"],
             min_breakdown_percentage=serialized["minBreakdownPercentage"],
-            get_all_projects=lambda: self.get_projects(
-                request,
-                organization,
-                project_ids={-1},
-                project_slugs=None,
-                include_all_accessible=True,
-            ),
         )
 
         return self.paginate(
@@ -166,7 +176,6 @@ class TraceSamplesExecutor:
         breakdown_categories: list[str],
         min_breakdown_duration: int,
         min_breakdown_percentage: float,
-        get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
         self.snuba_params = snuba_params
@@ -184,14 +193,7 @@ class TraceSamplesExecutor:
         self.breakdown_categories = breakdown_categories
         self.min_breakdown_duration = min_breakdown_duration
         self.min_breakdown_percentage = min_breakdown_percentage
-        self.get_all_projects = get_all_projects
         self._all_projects: list[Project] | None = None
-
-    @property
-    def all_projects(self) -> list[Project]:
-        if self._all_projects is None:
-            self._all_projects = self.get_all_projects()
-        return self._all_projects
 
     def execute(self, offset: int, limit: int):
         return self._execute()
@@ -213,15 +215,13 @@ class TraceSamplesExecutor:
 
         self.refine_params(min_timestamp, max_timestamp)
 
-        all_projects_params, all_projects_snuba_params = self.params_with_all_projects()
-
         if not trace_ids:
             return {"data": [], "meta": {"fields": {}}}
 
         with handle_query_errors():
             all_queries = self.get_all_queries(
-                all_projects_params,
-                all_projects_snuba_params,
+                self.params,
+                self.snuba_params,
                 trace_ids,
                 span_keys,
             )
@@ -297,18 +297,6 @@ class TraceSamplesExecutor:
         self.params["end"] = max_timestamp + buffer
         self.snuba_params.start = min_timestamp - buffer
         self.snuba_params.end = max_timestamp + buffer
-
-    def params_with_all_projects(self) -> tuple[ParamsType, SnubaParams]:
-        all_projects_snuba_params = dataclasses.replace(
-            self.snuba_params, projects=self.all_projects
-        )
-
-        all_projects_params = dict(self.params)
-        all_projects_params["projects"] = all_projects_snuba_params.projects
-        all_projects_params["projects_objects"] = all_projects_snuba_params.projects
-        all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
-
-        return cast(ParamsType, all_projects_params), all_projects_snuba_params
 
     def get_traces_matching_conditions(
         self,
@@ -673,15 +661,34 @@ class TraceSamplesExecutor:
             context = {"traces": list(sorted(traces_range.keys()))}
             sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
 
-        # mapping of trace id to a tuple of project slug + transaction name
-        traces_names: MutableMapping[str, tuple[str, str]] = {}
+        # Normally, the name given to a trace is the name of the first root transaction
+        # found within the trace.
+        #
+        # But there are some cases where traces do not have any root transactions. For
+        # these traces, we try to pick out a name from the first span that is a good
+        # candidate for the trace name.
+        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
+        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
         for row in traces_breakdown_projects_results["data"]:
-            if row["trace"] in traces_names:
+            if row["trace"] in traces_primary_names:
                 continue
-            # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
-            # So make sure to handle both in case something changes.
-            if not row["parent_span"] or int(row["parent_span"], 16) == 0:
-                traces_names[row["trace"]] = (row["project"], row["transaction"])
+            else:
+                # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+                # So make sure to handle both in case something changes.
+                if not row["parent_span"] or int(row["parent_span"], 16) == 0:
+                    traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
+
+            if row["trace"] not in traces_fallback_names and is_trace_name_candidate(row):
+                traces_fallback_names[row["trace"]] = (row["project"], row["transaction"])
+
+        def get_trace_name(trace):
+            if trace in traces_primary_names:
+                return traces_primary_names[trace]
+
+            if trace in traces_fallback_names:
+                return traces_fallback_names[trace]
+
+            return (None, None)
 
         traces_errors: Mapping[str, int] = {
             row["trace"]: row["count()"] for row in traces_errors_results["data"]
@@ -717,8 +724,8 @@ class TraceSamplesExecutor:
                 "numErrors": traces_errors.get(row["trace"], 0),
                 "numOccurrences": traces_occurrences.get(row["trace"], 0),
                 "numSpans": row["count()"],
-                "project": traces_names.get(row["trace"], (None, None))[0],
-                "name": traces_names.get(row["trace"], (None, None))[1],
+                "project": get_trace_name(row["trace"])[0],
+                "name": get_trace_name(row["trace"])[1],
                 "duration": row["last_seen()"] - row["first_seen()"],
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
@@ -760,6 +767,7 @@ class TraceSamplesExecutor:
                 "trace",
                 "project",
                 "sdk.name",
+                "span.op",
                 "parent_span",
                 "transaction",
                 "precise.start_ts",

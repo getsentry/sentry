@@ -234,7 +234,7 @@ function SidebarItem({
               isNested={isNested}
             >
               <LabelHook id={id}>
-                <TextOverflow>{label}</TextOverflow>
+                <TruncatedLabel>{label}</TruncatedLabel>
                 {badges}
               </LabelHook>
             </SidebarItemLabel>
@@ -441,8 +441,11 @@ const SidebarItemLabel = styled('span')<{
   flex: 1;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   overflow: hidden;
+`;
+
+const TruncatedLabel = styled(TextOverflow)`
+  margin-right: auto;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {

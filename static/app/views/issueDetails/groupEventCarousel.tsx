@@ -241,7 +241,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(group.project);
+    projectCanLinkToReplay(organization, group.project);
 
   const downloadJson = () => {
     const host = organization.links.regionUrl;
@@ -532,7 +532,7 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
   &:hover {
     > span {

@@ -1,20 +1,16 @@
 import logging
 from dataclasses import asdict
 
-from sentry import features
-from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
-from sentry.constants import PLACEHOLDER_EVENT_TITLES
+from sentry import features, options
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.seer.utils import (
-    SeerSimilarIssuesMetadata,
-    SimilarIssuesEmbeddingsRequest,
-    get_similarity_data_from_seer,
-)
-from sentry.utils.safe import get_path
+from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
+from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.utils import event_content_is_seer_eligible, get_stacktrace_string
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -27,18 +23,41 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     # TODO: Implement rate limits, kill switches, other flags, etc
     # TODO: Return False if the event has a custom fingerprint (check for both client- and server-side fingerprints)
 
-    # If an event has no stacktrace, and only one of our placeholder titles ("<untitled>",
-    # "<unknown>", etc.), there's no data for Seer to analyze, so no point in making the API call.
-    if (
-        event.title in PLACEHOLDER_EVENT_TITLES
-        and not get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
-        and not get_path(event.data, "threads", "values", -1, "stacktrace", "frames")
-    ):
+    if _killswitch_enabled(event, project):
+        return False
+
+    if not event_content_is_seer_eligible(event):
         return False
 
     return features.has("projects:similarity-embeddings-metadata", project) or features.has(
         "projects:similarity-embeddings-grouping", project
     )
+
+
+def _killswitch_enabled(event: Event, project: Project) -> bool:
+    """
+    Check both the global and similarity-specific Seer killswitches.
+    """
+
+    logger_extra = {"event_id": event.event_id, "project_id": project.id}
+
+    if options.get("seer.global-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
+        return True
+
+    if options.get("seer.similarity-killswitch.enabled"):
+        logger.warning(
+            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            extra=logger_extra,
+        )
+        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
+        return True
+
+    return False
 
 
 def get_seer_similar_issues(

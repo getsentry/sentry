@@ -46,7 +46,7 @@ const Wrapper = styled('div')`
   margin-top: ${space(0.5)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
 
   grid-column: 2/-1;
 
@@ -59,7 +59,7 @@ const Wrapper = styled('div')`
 `;
 
 const Value = styled('div')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   white-space: pre-wrap;
   word-break: break-all;
   padding: ${space(1)} ${space(1.5)};

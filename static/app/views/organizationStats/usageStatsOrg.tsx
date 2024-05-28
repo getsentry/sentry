@@ -656,7 +656,7 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: 400;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;

@@ -27,9 +27,8 @@ filterwarnings = [
   # Consider all warnings to be errors other than the ignored ones.
   "error",
 
-  # a bunch of google packages use legacy namespace packages
+  # phabricator uses `pkg_resources` apis
   "ignore:pkg_resources is deprecated as an API",
-  "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
 
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
@@ -165,6 +164,7 @@ module = [
     "sentry.api.endpoints.organization_member_unreleased_commits",
     "sentry.api.endpoints.organization_metrics",
     "sentry.api.endpoints.organization_metrics_meta",
+    "sentry.api.endpoints.organization_metrics_samples",
     "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
     "sentry.api.endpoints.organization_projects_experiment",
@@ -453,7 +453,6 @@ module = [
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.notifications",
     "sentry.testutils.helpers.slack",
-    "sentry.testutils.helpers.task_runner",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.types.integrations",
@@ -549,6 +548,7 @@ module = [
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
+    "sentry.grouping.parameterization",
     "sentry.hybridcloud",
     "sentry.hybridcloud.migrations.*",
     "sentry.hybridcloud.options",
@@ -628,6 +628,7 @@ module = [
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.store",
+    "sentry.testutils.helpers.task_runner",
     "sentry.types.actor",
     "sentry.types.region",
     "sentry.utils.arroyo",

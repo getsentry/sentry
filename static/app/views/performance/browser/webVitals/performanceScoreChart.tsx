@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import type {
   ProjectScore,
   WebVitals,
@@ -83,7 +84,7 @@ export function PerformanceScoreChart({
               <span>
                 {t('The overall performance rating of this page.')}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -140,7 +141,7 @@ const PerformanceScoreLabel = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`

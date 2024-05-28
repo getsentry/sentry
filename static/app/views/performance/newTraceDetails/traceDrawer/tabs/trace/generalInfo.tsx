@@ -102,7 +102,8 @@ export function GeneralInfo(props: GeneralInfoProps) {
         items={[
           {
             key: 'trace_general_loading',
-            subject: null,
+            subject: t('Loading...'),
+            subjectNode: null,
             value: <LoadingIndicator size={30} />,
           },
         ]}

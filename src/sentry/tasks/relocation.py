@@ -681,7 +681,10 @@ def _update_relocation_validation_attempt(
                 relocation_validation_attempt.status = status.value
                 relocation_validation_attempt.save()
 
+                # Go back to `validating_start`; since this is a new attempt at that task, we reset
+                # the `latest_task_attempts` counter to 0.
                 relocation.latest_task = OrderedTask.VALIDATING_START.name
+                relocation.latest_task_attempts = 0
                 relocation.save()
 
                 logger.info(

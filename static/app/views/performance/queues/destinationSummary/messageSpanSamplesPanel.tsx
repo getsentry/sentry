@@ -2,18 +2,24 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -25,12 +31,17 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
+import decodeRetryCount from 'sentry/views/performance/queues/queryParameterDecoders/retryCount';
+import decodeTraceStatus from 'sentry/views/performance/queues/queryParameterDecoders/traceStatus';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {
   CONSUMER_QUERY_FILTER,
   MessageActorType,
   PRODUCER_QUERY_FILTER,
+  RETRY_COUNT_OPTIONS,
+  TRACE_STATUS_OPTIONS,
 } from 'sentry/views/performance/queues/settings';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -44,15 +55,22 @@ import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummar
 
 export function MessageSpanSamplesPanel() {
   const router = useRouter();
+  const location = useLocation();
   const query = useLocationQuery({
     fields: {
       project: decodeScalar,
       destination: decodeScalar,
       transaction: decodeScalar,
+      retryCount: decodeRetryCount,
+      traceStatus: decodeTraceStatus,
+      spanSearchQuery: decodeScalar,
       'span.op': decodeScalar,
     },
   });
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
+
   const project = projects.find(p => query.project === p.id);
 
   const organization = useOrganization();
@@ -68,6 +86,38 @@ export function MessageSpanSamplesPanel() {
     ? [query.destination, query.transaction].filter(Boolean).join(':')
     : undefined;
 
+  const handleTraceStatusChange = (newTraceStatus: SelectOption<string>) => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'trace_status',
+      new_state: newTraceStatus.value,
+      organization,
+      source: ModuleName.QUEUE,
+    });
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        traceStatus: newTraceStatus.value,
+      },
+    });
+  };
+
+  const handleRetryCountChange = (newRetryCount: SelectOption<string>) => {
+    trackAnalytics('performance_views.sample_spans.filter_updated', {
+      filter: 'retry_count',
+      new_state: newRetryCount.value,
+      organization,
+      source: ModuleName.QUEUE,
+    });
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        retryCount: newRetryCount.value,
+      },
+    });
+  };
+
   const isPanelOpen = Boolean(detailKey);
 
   const messageActorType =
@@ -79,9 +129,34 @@ export function MessageSpanSamplesPanel() {
       ? PRODUCER_QUERY_FILTER
       : CONSUMER_QUERY_FILTER;
 
-  const search = new MutableSearch(queryFilter);
-  search.addFilterValue('transaction', query.transaction);
-  search.addFilterValue('messaging.destination.name', query.destination);
+  const timeseriesFilters = new MutableSearch(queryFilter);
+  timeseriesFilters.addFilterValue('transaction', query.transaction);
+  timeseriesFilters.addFilterValue('messaging.destination.name', query.destination);
+
+  const sampleFilters = new MutableSearch(queryFilter);
+  sampleFilters.addFilterValue('transaction', query.transaction);
+  sampleFilters.addFilterValue('messaging.destination.name', query.destination);
+
+  // filter by key-value filters specified in the search bar query
+  sampleFilters.addStringMultiFilter(query.spanSearchQuery);
+
+  if (query.traceStatus.length > 0) {
+    sampleFilters.addFilterValue('trace.status', query.traceStatus);
+  }
+
+  // Note: only consumer panels should allow filtering by retry count
+  if (messageActorType === MessageActorType.CONSUMER) {
+    if (query.retryCount === '0') {
+      sampleFilters.addFilterValue('measurements.messaging.message.retry.count', '0');
+    } else if (query.retryCount === '1-3') {
+      sampleFilters.addFilterValues('measurements.messaging.message.retry.count', [
+        '>=1',
+        '<=3',
+      ]);
+    } else if (query.retryCount === '4+') {
+      sampleFilters.addFilterValue('measurements.messaging.message.retry.count', '>=4');
+    }
+  }
 
   const {data: transactionMetrics, isFetching: aretransactionMetricsFetching} =
     useQueuesMetricsQuery({
@@ -99,7 +174,7 @@ export function MessageSpanSamplesPanel() {
     error: durationError,
   } = useSpanMetricsSeries(
     {
-      search,
+      search: timeseriesFilters,
       yAxis: [`avg(span.duration)`],
       enabled: isPanelOpen,
     },
@@ -114,7 +189,7 @@ export function MessageSpanSamplesPanel() {
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
-    search,
+    search: sampleFilters,
     min: 0,
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
@@ -142,6 +217,16 @@ export function MessageSpanSamplesPanel() {
     return durationSamplesData.find(
       s => s.timestamp === dataPoint.name && s['span.duration'] === dataPoint.value
     );
+  };
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
   };
 
   const handleClose = () => {
@@ -220,6 +305,31 @@ export function MessageSpanSamplesPanel() {
               )}
             </MetricsRibbonContainer>
           </ModuleLayout.Full>
+
+          <ModuleLayout.Full>
+            <PanelControls>
+              <CompactSelect
+                searchable
+                value={query.traceStatus}
+                options={TRACE_STATUS_SELECT_OPTIONS}
+                onChange={handleTraceStatusChange}
+                triggerProps={{
+                  prefix: t('Status'),
+                }}
+              />
+              {messageActorType === MessageActorType.CONSUMER && (
+                <CompactSelect
+                  value={query.retryCount}
+                  options={RETRY_COUNT_SELECT_OPTIONS}
+                  onChange={handleRetryCountChange}
+                  triggerProps={{
+                    prefix: t('Retries'),
+                  }}
+                />
+              )}
+            </PanelControls>
+          </ModuleLayout.Full>
+
           <ModuleLayout.Full>
             <DurationChart
               series={[
@@ -244,6 +354,22 @@ export function MessageSpanSamplesPanel() {
               error={durationError}
             />
           </ModuleLayout.Full>
+
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
+              <SearchBar
+                searchSource={`${ModuleName.QUEUE}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </ModuleLayout.Full>
+          </Feature>
 
           <ModuleLayout.Full>
             <MessageSpanSamplesTable
@@ -358,6 +484,32 @@ function ConsumerMetricsRibbon({
 
 const SAMPLE_HOVER_DEBOUNCE = 10;
 
+const TRACE_STATUS_SELECT_OPTIONS = [
+  {
+    value: '',
+    label: t('All'),
+  },
+  ...TRACE_STATUS_OPTIONS.map(status => {
+    return {
+      value: status,
+      label: status,
+    };
+  }),
+];
+
+const RETRY_COUNT_SELECT_OPTIONS = [
+  {
+    value: '',
+    label: t('Any'),
+  },
+  ...RETRY_COUNT_OPTIONS.map(status => {
+    return {
+      value: status,
+      label: status,
+    };
+  }),
+];
+
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
@@ -388,4 +540,9 @@ const MetricsRibbonContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(4)};
+`;
+
+const PanelControls = styled('div')`
+  display: flex;
+  gap: ${space(2)};
 `;

@@ -4,13 +4,11 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanSummaryPage} from 'sentry/views/performance/database/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture();
@@ -41,8 +39,6 @@ describe('DatabaseSpanSummaryPage', function () {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -95,6 +91,21 @@ describe('DatabaseSpanSummaryPage', function () {
       },
     });
 
+    const spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
+
     const transactionListMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -135,7 +146,8 @@ describe('DatabaseSpanSummaryPage', function () {
           transactionMethod: '',
           transactionsSort: '',
         }}
-      />
+      />,
+      {organization}
     );
 
     // Metrics ribbon
@@ -239,6 +251,20 @@ describe('DatabaseSpanSummaryPage', function () {
       })
     );
 
+    // Supported span fields for panel search bar
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
+      })
+    );
+
     // Transactions table
     expect(transactionListMock).toHaveBeenNthCalledWith(
       1,
@@ -271,6 +297,7 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(spanDescriptionRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsRequestMock).toHaveBeenCalledTimes(2);
+    expect(spanFieldTagsMock).toHaveBeenCalledTimes(1);
     expect(transactionListMock).toHaveBeenCalledTimes(1);
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));

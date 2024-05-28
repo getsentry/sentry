@@ -163,7 +163,7 @@ def test_region_processing(task_runner):
     with BurstTaskRunner() as burst:
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    burst()
+        burst()
 
     assert not results1.exists()
     assert results2.exists()
@@ -193,7 +193,7 @@ def test_control_processing(task_runner):
         with BurstTaskRunner() as burst:
             schedule_hybrid_cloud_foreign_key_jobs_control()
 
-        burst()
+            burst()
 
         # Do not process
         assert results.exists()
@@ -240,7 +240,7 @@ def test_cascade_deletion_behavior(task_runner):
     with BurstTaskRunner() as burst:
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    burst()
+        burst()
 
     # Deletion cascaded
     assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
@@ -263,7 +263,7 @@ def test_do_nothing_deletion_behavior(task_runner):
     with BurstTaskRunner() as burst:
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    burst()
+        burst()
 
     # Deletion did nothing
     model = DoNothingIntegrationModel.objects.get(id=model.id)
@@ -286,7 +286,7 @@ def test_set_null_deletion_behavior(task_runner):
     with BurstTaskRunner() as burst:
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    burst()
+        burst()
 
     # Deletion set field to null
     saved_query = DiscoverSavedQuery.objects.get(id=saved_query.id)
@@ -353,7 +353,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
             with BurstTaskRunner() as burst:
                 schedule_hybrid_cloud_foreign_key_jobs()
 
-            burst()
+                burst()
 
     def test_raises_when_option_disabled(self):
         data = setup_cross_db_deletion_data()
@@ -369,7 +369,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
             with BurstTaskRunner() as burst:
                 schedule_hybrid_cloud_foreign_key_jobs()
 
-            burst()
+                burst()
 
         assert exc.match("Cannot process tombstones due to model living in separate database.")
         assert Monitor.objects.filter(id=monitor.id).exists()

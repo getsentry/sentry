@@ -5,16 +5,45 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.grouping.result import CalculatedHashes
-from sentry.seer.utils import SeerSimilarIssueData
+from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.types import NonNone
 
 
 class ShouldCallSeerTest(TestCase):
     # TODO: Add tests for rate limits, killswitches, etc once those are in place
+    def setUp(self):
+        event_data = {
+            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "Charlie didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dogpark.py",
+                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+
+        self.event = Event(
+            project_id=self.project.id,
+            event_id="11212012123120120415201309082013",
+            data=event_data,
+        )
 
     def test_obeys_seer_similarity_flags(self):
         for metadata_flag, grouping_flag, expected_result in [
@@ -30,30 +59,29 @@ class ShouldCallSeerTest(TestCase):
                 }
             ):
                 assert (
-                    should_call_seer_for_grouping(
-                        Event(
-                            project_id=self.project.id,
-                            event_id="11212012123120120415201309082013",
-                            data={"title": "Dogs are great!"},
-                        ),
-                        self.project,
-                    )
-                    is expected_result
+                    should_call_seer_for_grouping(self.event, self.project) is expected_result
                 ), f"Case ({metadata_flag}, {grouping_flag}) failed."
 
     @with_feature("projects:similarity-embeddings-grouping")
-    def test_says_no_for_garbage_event(self):
-        assert (
-            should_call_seer_for_grouping(
-                Event(
-                    project_id=self.project.id,
-                    event_id="11212012123120120415201309082013",
-                    data={"title": "<untitled>"},
-                ),
-                self.project,
-            )
-            is False
-        )
+    def test_obeys_content_filter(self):
+        for content_eligibility, expected_result in [(True, True), (False, False)]:
+            with patch(
+                "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
+                return_value=content_eligibility,
+            ):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_global_seer_killswitch(self):
+        for killswitch_enabled, expected_result in [(True, False), (False, True)]:
+            with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_similarity_service_killswitch(self):
+        for killswitch_enabled, expected_result in [(True, False), (False, True)]:
+            with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
 
 
 class GetSeerSimilarIssuesTest(TestCase):

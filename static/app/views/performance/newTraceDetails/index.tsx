@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -251,7 +252,11 @@ export function TraceViewContent(props: TraceViewContentProps) {
   const {projects} = useProjects();
   const rootEvent = useTraceRootEvent(props.trace);
   const loadingTraceRef = useRef<TraceTree | null>(null);
-  const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
+  const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+
+  const forceRerender = useCallback(() => {
+    flushSync(rerender);
+  }, []);
 
   const initializedRef = useRef(false);
   const scrollQueueRef = useRef<
@@ -426,18 +431,6 @@ export function TraceViewContent(props: TraceViewContentProps) {
     });
     // We only want to update the tabs when the tree changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree]);
-
-  useLayoutEffect(() => {
-    const queryParams = qs.parse(location.search);
-    const maybeQueue = decodeScrollQueue(queryParams.node);
-
-    if (maybeQueue || queryParams.eventId) {
-      scrollQueueRef.current = {
-        eventId: queryParams.eventId as string,
-        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
-      };
-    }
   }, [tree]);
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
@@ -639,7 +632,7 @@ export function TraceViewContent(props: TraceViewContentProps) {
 
       // We call expandToNode because we want to ensure that the node is
       // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(tree, node.path, rerender, {
+      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
         organization,
       }).then(maybeNode => {
@@ -674,14 +667,22 @@ export function TraceViewContent(props: TraceViewContentProps) {
         }
       });
     },
-    [api, organization, setRowAsFocused, scrollRowIntoView, tree, traceDispatch]
+    [
+      api,
+      organization,
+      setRowAsFocused,
+      scrollRowIntoView,
+      tree,
+      traceDispatch,
+      forceRerender,
+    ]
   );
 
   // Unlike onTabScrollToNode, this function does not set the node as the current
   // focused node, but rather scrolls the node into view and sets the roving index to the node.
   const onScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(tree, node.path, rerender, {
+      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
         organization,
       }).then(maybeNode => {
@@ -709,7 +710,7 @@ export function TraceViewContent(props: TraceViewContentProps) {
         }
       });
     },
-    [api, organization, scrollRowIntoView, tree, traceDispatch]
+    [api, organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,

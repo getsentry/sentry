@@ -107,7 +107,7 @@ function ProjectMetrics({project, location}: Props) {
 
       <PermissionAlert project={project} />
 
-      <CardinalityLimit project={project} isLoading={isLoading} />
+      <CardinalityLimit project={project} />
 
       <SearchWrapper>
         <h6>{t('Emitted Metrics')}</h6>
