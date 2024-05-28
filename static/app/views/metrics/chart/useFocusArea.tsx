@@ -61,7 +61,7 @@ export function useFocusArea({
   onRemove,
   onZoom,
 }: UseFocusAreaProps) {
-  const hasFocusArea = selection && selection.widgetIndex === widgetIndex;
+  const hasFocusArea = !isDisabled && selection && selection.widgetIndex === widgetIndex;
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartElement = chartRef.current?.ele;
   const isDrawingRef = useRef(false);
@@ -199,8 +199,8 @@ export function useFocusArea({
     [onBrushEnd, theme.gray500]
   );
 
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    return {
       applyChartProps,
       overlay: hasFocusArea ? (
         <FocusAreaOverlay
@@ -211,9 +211,15 @@ export function useFocusArea({
           useFullYAxis={!!useFullYAxis}
         />
       ) : null,
-    }),
-    [applyChartProps, handleRemove, handleZoomIn, hasFocusArea, selection, useFullYAxis]
-  );
+    };
+  }, [
+    applyChartProps,
+    handleRemove,
+    handleZoomIn,
+    hasFocusArea,
+    selection,
+    useFullYAxis,
+  ]);
 }
 
 export type UseFocusAreaResult = ReturnType<typeof useFocusArea>;
