@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from django.http import QueryDict
 
@@ -35,8 +36,14 @@ def _get_mql_string(aggregate: str, group_by: Sequence[str]) -> str:
 
 
 def _run_metrics_outcomes_query(
-    start, end, group_by, interval, organization, projects, environments
-) -> dict[str, list]:
+    start: datetime,
+    end: datetime,
+    group_by: Sequence[str],
+    interval,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+):
 
     mql_string = _get_mql_string(METRIC_OUTCOME_AGGREGATE, group_by)
 
@@ -55,8 +62,13 @@ def _run_metrics_outcomes_query(
 
 
 def _run_estimated_metrics_hours_query(
-    start, end, group_by, organization, projects, environments
-) -> dict[str, list]:
+    start: datetime,
+    end: datetime,
+    group_by: Sequence[str],
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+):
     mql_string = _get_mql_string(METRIC_HOURS_AGGREGATE, group_by)
 
     rows = run_queries(
@@ -75,7 +87,13 @@ def _run_estimated_metrics_hours_query(
 
 
 def _run_metrics_cardinality_query(
-    start, end, group_by, interval, organization, projects, environments
+    start: datetime,
+    end: datetime,
+    group_by: Sequence[str],
+    interval,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
 ):
 
     if not interval:
