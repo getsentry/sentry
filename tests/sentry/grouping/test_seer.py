@@ -83,6 +83,30 @@ class ShouldCallSeerTest(TestCase):
             with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
                 assert should_call_seer_for_grouping(self.event, self.project) is expected_result
 
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_global_ratelimit(self):
+        for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
+            with patch(
+                "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
+                wraps=lambda key, is_enabled=ratelimit_enabled, **_kwargs: (
+                    is_enabled if key == "seer:similarity:global-limit" else False
+                ),
+            ):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_project_ratelimit(self):
+        for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
+            with patch(
+                "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
+                wraps=lambda key, is_enabled=ratelimit_enabled, **_kwargs: (
+                    is_enabled
+                    if key == f"seer:similarity:project-{self.project.id}-limit"
+                    else False
+                ),
+            ):
+                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+
 
 class GetSeerSimilarIssuesTest(TestCase):
     def setUp(self):

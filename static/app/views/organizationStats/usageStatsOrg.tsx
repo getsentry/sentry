@@ -127,7 +127,7 @@ class UsageStatsOrganization<
 
   // Metric stats are not reported when grouping by category, so we make a separate request
   // and combine the results
-  get metricsEndpoint(): [string, string, {query: Record<string, any>}][] {
+  get metricsEndpoint(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     if (hasCustomMetrics(this.props.organization)) {
       return [
         [
