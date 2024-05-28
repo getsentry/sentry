@@ -7,7 +7,6 @@ This is similar to existing featureflagging systems we have, but with less
 features and more performant.
 """
 
-import copy
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -326,19 +325,3 @@ def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchCon
         + ")"
         for condition in option_value
     )
-
-
-def add_condition(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, condition: Condition
-) -> KillswitchConfig:
-    option_value = copy.deepcopy(normalize_value(killswitch_name, raw_option_value))
-    option_value.append(condition)
-    return normalize_value(killswitch_name, option_value)
-
-
-def remove_condition(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, condition: Condition
-) -> KillswitchConfig:
-    option_value = copy.deepcopy(normalize_value(killswitch_name, raw_option_value))
-    option_value = [m for m in option_value if m != condition]
-    return normalize_value(killswitch_name, option_value)
