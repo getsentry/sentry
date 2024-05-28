@@ -23,13 +23,12 @@ import {StatusToggleButton} from '../statusToggleButton';
 import {CheckInPlaceholder} from '../timeline/checkInPlaceholder';
 import type {CheckInTimelineProps} from '../timeline/checkInTimeline';
 import {CheckInTimeline} from '../timeline/checkInTimeline';
-import type {MonitorBucket} from '../timeline/types';
+import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
 
 import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
-  bucketedData?: MonitorBucket[];
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
@@ -44,7 +43,7 @@ const MAX_SHOWN_ENVIRONMENTS = 4;
 
 export function OverviewRow({
   monitor,
-  bucketedData,
+  timeWindowConfig,
   singleMonitorView,
   onDeleteEnvironment,
   onToggleMuteEnvironment,
@@ -52,6 +51,13 @@ export function OverviewRow({
   ...timelineProps
 }: Props) {
   const organization = useOrganization();
+
+  const {data: monitorStats, isLoading} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
+  });
+
+  const bucketedData = monitorStats?.[monitor.id] ?? [];
 
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
@@ -195,12 +201,13 @@ export function OverviewRow({
         {environments.map(({name}) => {
           return (
             <TimelineEnvOuterContainer key={name}>
-              {!bucketedData ? (
+              {!isLoading ? (
                 <CheckInPlaceholder />
               ) : (
                 <TimelineEnvContainer>
                   <CheckInTimeline
                     {...timelineProps}
+                    timeWindowConfig={timeWindowConfig}
                     bucketedData={bucketedData}
                     environment={name}
                   />
