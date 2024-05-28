@@ -143,6 +143,21 @@ def test_sdk_crash_is_reported_with_flutter_paths(
 
 
 @decorators
+def test_ignore_get_sentry_exception(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(sdk_function="SentryExceptionFactory.getSentryException")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
 def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="8.2.1-beta.0")
