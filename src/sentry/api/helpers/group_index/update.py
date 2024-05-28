@@ -266,7 +266,7 @@ def update_groups(
             actor=acting_user,
             project_lookup=project_lookup,
         )
-    if status in ("resolved", "resolvedInNextRelease", "resolvedInUpcomingRelease"):
+    if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
