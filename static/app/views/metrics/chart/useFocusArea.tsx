@@ -199,8 +199,8 @@ export function useFocusArea({
     [onBrushEnd, theme.gray500]
   );
 
-  return useMemo(() => {
-    return {
+  return useMemo(
+    () => ({
       applyChartProps,
       overlay: hasFocusArea ? (
         <FocusAreaOverlay
@@ -211,15 +211,9 @@ export function useFocusArea({
           useFullYAxis={!!useFullYAxis}
         />
       ) : null,
-    };
-  }, [
-    applyChartProps,
-    handleRemove,
-    handleZoomIn,
-    hasFocusArea,
-    selection,
-    useFullYAxis,
-  ]);
+    }),
+    [applyChartProps, handleRemove, handleZoomIn, hasFocusArea, selection, useFullYAxis]
+  );
 }
 
 export type UseFocusAreaResult = ReturnType<typeof useFocusArea>;
