@@ -663,6 +663,8 @@ class MetricsQueryBuilder(QueryBuilder):
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
+        # some tag keys needs to be remapped to a different column name
+        # prior to resolving it via the indexer
         value = self.column_remapping.get(value, value)
 
         if self.use_default_tags:

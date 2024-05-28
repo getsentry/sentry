@@ -14,7 +14,12 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     spans_metrics_builder = True
     has_transaction = False
 
-    column_remapping = {"message": "span.description"}
+    column_remapping = {
+        # We want to remap `message` to `span.description` for the free
+        # text search use case so that it searches the `span.description`
+        # when the user performs a free text search
+        "message": "span.description",
+    }
 
     @property
     def use_default_tags(self) -> bool:
