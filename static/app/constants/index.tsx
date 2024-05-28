@@ -339,7 +339,7 @@ export const DATA_CATEGORY_INFO = {
    */
   [DataCategoryExact.METRICS]: {
     name: DataCategoryExact.METRICS,
-    apiName: 'metrics',
+    apiName: 'metricOutcomes',
     plural: 'metrics',
     displayName: 'metrics',
     titleName: t('Metrics'),
