@@ -14,12 +14,26 @@ Retrieve the DSN's configuration.
 
 **Attributes**
 
-| Column             | Type   | Description                     |
-| ------------------ | ------ | ------------------------------- |
-| id                 | string | Client key.                     |
-| sample_rate        | number | A number value between 0 and 1. |
-| traces_sample_rate | number | A number value between 0 and 1. |
-| user_config        | any    | Arbitrary user supplied JSON.   |
+| Column   | Type           | Description                                                                  |
+| -------- | -------------- | ---------------------------------------------------------------------------- |
+| id       | string         | Client key.                                                                  |
+| hash     | option[string] | A hash of the contents of the value. Sent on write to ensure atomic updates. |
+| features | array[Feature] | Custom, user-defined configuration container.                                |
+| options  | Option         | Sentry SDK options container.                                                |
+
+**Feature Object**
+
+| Field | Type   | Description                        |
+| ----- | ------ | ---------------------------------- |
+| key   | string | The name used to lookup a feature. |
+| value | any    | A JSON value.                      |
+
+**Option Object**
+
+| Field              | Type  | Description                                         |
+| ------------------ | ----- | --------------------------------------------------- |
+| sample_rate        | float | Error sample rate. A numeric value between 0 and 1. |
+| traces_sample_rate | float | Trace sample rate. A numeric value between 0 and 1. |
 
 **If an existing configuration exists**
 
@@ -29,10 +43,20 @@ Retrieve the DSN's configuration.
   {
     "data": {
       "id": "99aabf0dad1c48ad8e47e2a43969f312",
-      "sample_rate": 1.0,
-      "traces_sample_rate": 0.5,
-      "user_config": {
-        "hello": "world"
+      "hash": "4e0bc3b37ede0701dc388c360a8ba5849700739c",
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
       }
     }
   }
@@ -44,16 +68,28 @@ Retrieve the DSN's configuration.
 
 ### Set Configuration [POST]
 
-Set the DSN's configuration.
+Set the DSN's configuration. A hash value of `null` is provided if the object does not exist. If the API finds an existing configuration object an error is returned. If the hash value is provided then it will be compared against the hash of the remote value. A new hash is always returned on successful write. If the hashes do not match an error is returned.
 
 - Request
 
   ```json
   {
     "data": {
-      "sample_rate": 0.2,
-      "traces_sample_rate": 0.5,
-      "user_config": ["hello", "world"]
+      "hash": null,
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
+      }
     }
   }
   ```
@@ -64,9 +100,21 @@ Set the DSN's configuration.
   {
     "data": {
       "id": "99aabf0dad1c48ad8e47e2a43969f312",
-      "sample_rate": 0.2,
-      "traces_sample_rate": 0.5,
-      "user_config": ["hello", "world"]
+      "hash": "4e0bc3b37ede0701dc388c360a8ba5849700739c",
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
+      }
     }
   }
   ```
