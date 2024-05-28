@@ -448,7 +448,8 @@ const MetricWidgetBody = memo(
       chartRef,
       opts: {
         widgetIndex,
-        isDisabled: !focusAreaProps.onAdd,
+        // The focus area relies on the chart samples to calculate its position
+        isDisabled: chartSamples === undefined || !focusAreaProps.onAdd,
         useFullYAxis: true,
       },
       onZoom: handleZoom,
