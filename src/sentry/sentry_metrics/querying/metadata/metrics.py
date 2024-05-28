@@ -92,7 +92,7 @@ def get_metrics_meta(
 
 def generate_operations_config(organization: Organization) -> OperationsConfiguration:
     operations_config = OperationsConfiguration()
-    configuration_options = [
+    configuration_options: list[dict[str, str]] = [
         {
             "key": "sentry:metrics_activate_percentiles",
             "default": METRICS_ACTIVATE_PERCENTILES_DEFAULT,
