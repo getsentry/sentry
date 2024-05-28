@@ -479,6 +479,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         Return details on an individual project.
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
+
         data = serialize(project, request.user, DetailedProjectSerializer())
 
         # TODO: should switch to expand and move logic into the serializer
@@ -528,6 +532,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`.
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (
