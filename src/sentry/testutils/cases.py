@@ -3321,6 +3321,7 @@ class TraceTestCase(SpanTestCase):
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         data["contexts"]["profile"] = {"profile_id": uuid4().hex}
+        data["sdk"] = {"name": "sentry.test.sdk", "version": "1.0"}
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
         if measurements:
