@@ -55,6 +55,7 @@ class TraceResult(TypedDict):
     numErrors: int
     numOccurrences: int
     numSpans: int
+    matchingSpans: int
     project: str | None
     name: str | None
     duration: int
@@ -150,6 +151,8 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
 
 class TraceSamplesExecutor:
+    matching_count_alias = "matching_count"
+
     def __init__(
         self,
         *,
@@ -684,6 +687,7 @@ class TraceSamplesExecutor:
                 "trace": row["trace"],
                 "numErrors": traces_errors.get(row["trace"], 0),
                 "numOccurrences": traces_occurrences.get(row["trace"], 0),
+                "matchingSpans": row[self.matching_count_alias],
                 "numSpans": row["count()"],
                 "project": get_trace_name(row["trace"])[0],
                 "name": get_trace_name(row["trace"])[1],
@@ -760,7 +764,6 @@ class TraceSamplesExecutor:
             selected_columns=[
                 "trace",
                 "count()",
-                # TODO: count if of matching spans
                 "first_seen()",
                 "last_seen()",
             ],
@@ -770,6 +773,38 @@ class TraceSamplesExecutor:
                 transform_alias_to_input_format=True,
             ),
         )
+
+        """
+        We want to get a count of the number of matching spans. To do this, we have to
+        translate the user queries into conditions, and get a count of spans that match
+        any one of the user queries.
+        """
+
+        # Translate each user query into a condition to match one
+        trace_conditions = []
+        for user_query in self.user_queries:
+            # We want to ignore all the aggregate conditions here because we're strictly
+            # searching on span attributes, not aggregates
+            where, _ = query.resolve_conditions(user_query)
+
+            trace_condition = format_as_trace_conditions(where)
+            if not trace_condition:
+                continue
+            elif len(trace_condition) == 1:
+                trace_conditions.append(trace_condition[0])
+            else:
+                trace_conditions.append(Function("and", trace_condition))
+
+        # Join all the user queries together into a single one where at least 1 have
+        # to be true.
+        if not trace_conditions:
+            query.columns.append(Function("count", [], self.matching_count_alias))
+        elif len(trace_conditions) == 1:
+            query.columns.append(Function("countIf", trace_conditions, self.matching_count_alias))
+        else:
+            query.columns.append(
+                Function("countIf", [Function("or", trace_conditions)], self.matching_count_alias)
+            )
 
         if options.get("performance.traces.trace-explorer-skip-floating-spans"):
             query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
