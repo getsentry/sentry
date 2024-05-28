@@ -112,7 +112,9 @@ import {TraceType} from '../traceType';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
-  type Transaction = TraceFullDetailed;
+  interface Transaction extends TraceFullDetailed {
+    sdk: string;
+  }
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
@@ -446,7 +448,7 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceFullDetailed | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -578,20 +580,27 @@ export class TraceTree {
     }
 
     const {transactions, orphan_errors} = trace.value;
-    const {roots, orphans} = (transactions ?? []).reduce(
-      (counts, transaction) => {
+    const traceStats = transactions?.reduce<{
+      javascriptRootTransactions: TraceTree.Transaction[];
+      orphans: number;
+      roots: number;
+    }>(
+      (stats, transaction) => {
         if (isRootTransaction(transaction)) {
-          counts.roots++;
+          stats.roots++;
+          if (transaction.sdk === 'javascript') {
+            stats.javascriptRootTransactions.push(transaction);
+          }
         } else {
-          counts.orphans++;
+          stats.orphans++;
         }
-        return counts;
+        return stats;
       },
-      {roots: 0, orphans: 0}
-    );
+      {roots: 0, orphans: 0, javascriptRootTransactions: []}
+    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
 
-    if (roots === 0) {
-      if (orphans > 0) {
+    if (traceStats.roots === 0) {
+      if (traceStats.orphans > 0) {
         return TraceType.NO_ROOT;
       }
 
@@ -602,15 +611,19 @@ export class TraceTree {
       return TraceType.EMPTY_TRACE;
     }
 
-    if (roots === 1) {
-      if (orphans > 0) {
+    if (traceStats.roots === 1) {
+      if (traceStats.orphans > 0) {
         return TraceType.BROKEN_SUBTRACES;
       }
 
       return TraceType.ONE_ROOT;
     }
 
-    if (roots > 1) {
+    if (traceStats.roots > 1) {
+      if (traceStats.javascriptRootTransactions.length > 0) {
+        return TraceType.BROWSER_MULTIPLE_ROOTS;
+      }
+
       return TraceType.MULTIPLE_ROOTS;
     }
 
@@ -2400,6 +2413,7 @@ function partialTransaction(
     span_id: '',
     parent_event_id: '',
     project_id: 0,
+    sdk: '',
     'transaction.duration': 0,
     'transaction.op': 'loading-transaction',
     'transaction.status': 'loading-status',
