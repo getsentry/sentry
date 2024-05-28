@@ -18,8 +18,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListData} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
+import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase10} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -91,7 +91,7 @@ const Type = styled('div')`
 
 const TitleOp = styled('div')`
   font-size: 15px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -318,7 +318,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-right: ${space(1)};
 `;
 
@@ -572,6 +572,25 @@ function CopyableCardValueWithLink({
   );
 }
 
+function TraceDataSection({event}: {event: EventTransaction}) {
+  const traceData = event.contexts.trace?.data;
+
+  if (!traceData) {
+    return null;
+  }
+
+  return (
+    <SectionCard
+      items={Object.entries(traceData).map(([key, value]) => ({
+        key,
+        subject: key,
+        value,
+      }))}
+      title={t('Trace Data')}
+    />
+  );
+}
+
 const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
   transform: translateY(2px);
 `;
@@ -614,6 +633,7 @@ const TraceDrawerComponents = {
   SectionCard,
   CopyableCardValueWithLink,
   EventTags,
+  TraceDataSection,
   SectionCardGroup,
 };
 

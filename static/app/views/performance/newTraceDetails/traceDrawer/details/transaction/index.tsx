@@ -11,7 +11,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -149,15 +151,14 @@ export function TransactionNodeDetails({
         />
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
-        {cacheMetrics.length && <CacheMetrics cacheMetrics={cacheMetrics} />}
+        {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
         <Sdk event={event} />
-        {event._metrics_summary ? (
-          <CustomMetricsEventData
-            metricsSummary={event._metrics_summary}
-            startTimestamp={event.startTimestamp}
-            projectId={event.projectID}
-          />
-        ) : null}
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+          projectId={event.projectID}
+        />
+        <TraceDrawerComponents.TraceDataSection event={event} />
       </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />

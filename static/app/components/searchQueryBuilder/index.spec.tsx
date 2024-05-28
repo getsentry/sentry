@@ -7,7 +7,12 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
 const MOCK_SUPPORTED_KEYS: TagCollection = {
-  [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
+  [FieldKey.AGE]: {
+    key: FieldKey.AGE,
+    name: 'Age',
+    kind: FieldKind.FIELD,
+    predefined: true,
+  },
   [FieldKey.ASSIGNED]: {
     key: FieldKey.ASSIGNED,
     name: 'Assigned To',
@@ -95,7 +100,39 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('can modify the value by clicking into it', async function () {
+    it('can modify the value by clicking into it (single-select)', async function () {
+      // `age` is a duration filter which only accepts single values
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-1d" />);
+
+      // Should display as "-1d" to start
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        ).getByText('-1d')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: age'})
+      );
+      // Should have placeholder text of previous value
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
+        'placeholder',
+        '-1d'
+      );
+      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+      // Clicking the "+14d" option should update the value
+      await userEvent.click(screen.getByRole('option', {name: '+14d'}));
+      expect(screen.getByRole('row', {name: 'age:+14d'})).toBeInTheDocument();
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        ).getByText('+14d')
+      ).toBeInTheDocument();
+    });
+
+    it('can modify the value by clicking into it (multi-select)', async function () {
+      // `browser.name` is a string filter which accepts multiple values
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
@@ -110,40 +147,41 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
       );
-      // Should have placeholder text of previous value
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
-        'placeholder',
-        'firefox'
-      );
+      // Previous value should be rendered before the input
+      expect(
+        within(screen.getByRole('row', {name: 'browser.name:firefox'})).getByText(
+          'firefox,'
+        )
+      ).toBeInTheDocument();
       await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
-      // Clicking the "Chrome option should update the value"
+      // Clicking the "Chrome option should add it to the list and commit changes
       await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
-      expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+      ).toBeInTheDocument();
       expect(
         within(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        ).getByText('Chrome')
+        ).getByText('[firefox,Chrome]')
       ).toBeInTheDocument();
     });
 
     it('escapes values with spaces and reserved characters', async function () {
-      render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'assigned:some" value{enter}'
       );
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-      );
-      await userEvent.keyboard('some" value{enter}');
       // Value should be surrounded by quotes and escaped
       expect(
-        screen.getByRole('row', {name: 'browser.name:"some\\" value"'})
+        screen.getByRole('row', {name: 'assigned:"some\\" value"'})
       ).toBeInTheDocument();
       // Display text should be display the original value
       expect(
         within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         ).getByText('some" value')
       ).toBeInTheDocument();
     });

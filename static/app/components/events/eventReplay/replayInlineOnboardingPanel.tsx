@@ -109,7 +109,7 @@ export default function ReplayInlineOnboardingPanel({
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerWrapper = styled('div')`
@@ -129,7 +129,7 @@ const BannerWrapper = styled('div')`
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerDescription = styled('div')`

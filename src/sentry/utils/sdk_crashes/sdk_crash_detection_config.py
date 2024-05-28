@@ -293,7 +293,9 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),
-            sdk_crash_ignore_functions_matchers=set(),
+            # SentryExceptionFactory.getSentryException is always part of the stacktrace when
+            # users capture exceptions and would cause false positives. Therefore, we ignore it.
+            sdk_crash_ignore_functions_matchers={"SentryExceptionFactory.getSentryException"},
         )
         configs.append(dart_config)
 

@@ -3,8 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 
 
 def get_frames(
-    sdk_frame_abs_path: str,
-    system_frame_abs_path: str,
+    sdk_frame_abs_path: str, system_frame_abs_path: str, sdk_function: str
 ) -> Sequence[MutableMapping[str, str]]:
     frames = [
         {
@@ -26,7 +25,7 @@ def get_frames(
             "abs_path": "package:sentry_flutter_example/main.dart",
         },
         {
-            "function": "SentryTracer.setTag",
+            "function": sdk_function,
             "filename": "sentry_tracer.dart",
             "abs_path": sdk_frame_abs_path,
         },
@@ -42,10 +41,11 @@ def get_frames(
 def get_crash_event(
     sdk_frame_abs_path="package:sentry/src/sentry_tracer.dart",
     system_frame_abs_path="dart:core-patch/growable_array.dart",
+    sdk_function="SentryTracer.setTag",
     **kwargs,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
-        get_frames(sdk_frame_abs_path, system_frame_abs_path),
+        get_frames(sdk_frame_abs_path, system_frame_abs_path, sdk_function=sdk_function),
         **kwargs,
     )
 
