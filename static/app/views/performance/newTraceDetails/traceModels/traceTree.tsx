@@ -113,7 +113,7 @@ type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
   interface Transaction extends TraceFullDetailed {
-    sdk: string;
+    sdk_name: string;
   }
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
@@ -205,7 +205,7 @@ function fetchTransactionSpans(
 
 function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
   return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
-    transaction.sdk
+    transaction.sdk_name
   );
 }
 
@@ -2420,7 +2420,7 @@ function partialTransaction(
     span_id: '',
     parent_event_id: '',
     project_id: 0,
-    sdk: '',
+    sdk_name: '',
     'transaction.duration': 0,
     'transaction.op': 'loading-transaction',
     'transaction.status': 'loading-status',
