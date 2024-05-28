@@ -134,7 +134,7 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
-function mutliSelectTokenValue(
+function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
 ) {
@@ -199,7 +199,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
             query: replaceQueryToken(state.query, action.token, action.value),
           };
         case 'TOGGLE_FILTER_VALUE':
-          return mutliSelectTokenValue(state, action);
+          return multiSelectTokenValue(state, action);
         case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
           return deleteLastMultiSelectTokenValue(state, action);
         default:
