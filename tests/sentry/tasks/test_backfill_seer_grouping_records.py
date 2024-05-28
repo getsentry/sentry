@@ -12,7 +12,7 @@ from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
@@ -935,3 +935,52 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         groups = Group.objects.filter(project_id=self.project.id, id__in=group_ids)
         for group in groups:
             assert group.data["metadata"] == default_metadata
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_exclude_deleted_groups(
+        self, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that groups that are pending deletion/in the process of being deleted are not included.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Create groups pending deletion and in the process of being deleted
+        deleted_group_ids = []
+        data = {
+            "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.status = GroupStatus.PENDING_DELETION
+        event.group.save()
+        deleted_group_ids.append(event.group.id)
+
+        data = {
+            "exception": self.create_exception_values("function name?", "type?", "value?"),
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.status = GroupStatus.DELETION_IN_PROGRESS
+        event.group.save()
+        deleted_group_ids.append(event.group.id)
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id).exclude(id__in=deleted_group_ids)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
+        assert last_processed_index == len(groups)
+
+        # Assert metadata was not set for groups that will be deleted
+        for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
+            assert group.data["metadata"].get("seer_similarity") is None
