@@ -84,6 +84,7 @@ class Feature(BaseModel):
     """Defines whether or not the feature is enabled."""
     created_at: datetime = Field(default_factory=datetime.now)
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
+    date_parsed: datetime = Field(default_factory=datetime.now)
 
     def match(self, context: EvaluationContext) -> bool:
         if self.enabled:
@@ -107,9 +108,7 @@ class Feature(BaseModel):
         return feature
 
     @classmethod
-    def from_feature_config_json(
-        cls, name: str, config_json: str, context_builder: ContextBuilder | None = None
-    ) -> Feature:
+    def from_feature_config_json(cls, name: str, config_json: str) -> Feature:
         try:
             config_data_dict = orjson.loads(config_json)
         except orjson.JSONDecodeError as decode_error:
@@ -117,6 +116,10 @@ class Feature(BaseModel):
 
         if not isinstance(config_data_dict, dict):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
+
+        # JSON config shouldn't set date_parsed
+        if "date_parsed" in config_data_dict:
+            config_data_dict.pop("date_parsed")
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
 
