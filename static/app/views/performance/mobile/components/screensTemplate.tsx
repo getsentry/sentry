@@ -18,10 +18,6 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-} from 'sentry/views/performance/mobile/appStarts/settings';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -29,6 +25,8 @@ import type {ModuleName} from 'sentry/views/starfish/types';
 
 type ScreensTemplateProps = {
   content: ReactNode;
+  moduleDescription: string;
+  moduleDocLink: string;
   moduleName: ModuleName.MOBILE_UI | ModuleName.APP_START;
   title: string;
   additionalSelectors?: ReactNode;
@@ -36,6 +34,8 @@ type ScreensTemplateProps = {
 
 export default function ScreensTemplate({
   moduleName,
+  moduleDocLink,
+  moduleDescription,
   title,
   additionalSelectors,
   content,
@@ -64,8 +64,8 @@ export default function ScreensTemplate({
             <Layout.Title>
               {title}
               <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
+                docsUrl={moduleDocLink}
+                title={moduleDescription}
               />
             </Layout.Title>
           </Layout.HeaderContent>
