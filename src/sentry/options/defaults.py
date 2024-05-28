@@ -2621,7 +2621,14 @@ register(
 register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
     type=Int,
-    default=20000000,
+    default=2000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.save-event-attachments.project-per-sec-limit",
+    type=Int,
+    default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
