@@ -242,7 +242,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         source
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
         ]
         and not project.flags.has_new_feedbacks
     ):
