@@ -689,9 +689,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
-        # This param will be used to determine if we should include feature flags in the response
-        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
-        (include_feature_flags)
 
         if not request.user.is_authenticated:
             return self.respond({"detail": ERR_NO_USER}, status=401)
