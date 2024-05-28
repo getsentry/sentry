@@ -646,6 +646,7 @@ GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 METRICS_ACTIVATE_PERCENTILES_DEFAULT = False
+METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
