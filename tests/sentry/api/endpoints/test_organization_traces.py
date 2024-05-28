@@ -534,6 +534,169 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             exception, contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}}
         )
 
+    def test_use_root_span_for_name(self):
+        project = self.create_project()
+        trace_id = uuid4().hex
+        span_id_1 = "1" + uuid4().hex[:15]
+        span_id_2 = "1" + uuid4().hex[:15]
+        ts = before_now(days=0, minutes=10).replace(microsecond=0)
+
+        self.double_write_segment(
+            project_id=project.id,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id_1,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.remix",
+        )
+
+        self.double_write_segment(
+            project_id=project.id,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id_2,
+            parent_span_id=span_id_1,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_000,
+            exclusive_time=60_000,
+            sdk_name="sentry.javascript.node",
+            op="pageload",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [project.id],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+            "sort": ["-span.duration"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60100,
+                        "end": timestamp + 60100,
+                        "isRoot": False,
+                        "kind": "project",
+                        "opCategory": None,
+                        "project": project.slug,
+                        "sdkName": "sentry.javascript.remix",
+                        "start": timestamp,
+                    },
+                    {
+                        "duration": 60000,
+                        "end": timestamp + 60000,
+                        "isRoot": False,
+                        "kind": "project",
+                        "opCategory": None,
+                        "project": project.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "start": timestamp,
+                    },
+                ],
+                "duration": 60100,
+                "end": timestamp + 60100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 2,
+                "project": project.slug,
+                "spans": [
+                    {
+                        "id": span_id_1,
+                        "parent_span": "00",
+                        "span.duration": 60100.0,
+                    },
+                    {
+                        "id": span_id_2,
+                        "parent_span": span_id_1,
+                        "span.duration": 60000.0,
+                    },
+                ],
+                "start": timestamp,
+                "suggestedSpans": [],
+                "trace": trace_id,
+            },
+        ]
+
+    def test_use_pageload_for_name(self):
+        project = self.create_project()
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        parent_span_id = "1" + uuid4().hex[:15]
+        ts = before_now(days=0, minutes=10).replace(microsecond=0)
+
+        self.double_write_segment(
+            project_id=project.id,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            parent_span_id=parent_span_id,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            op="pageload",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [project.id],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+            "sort": ["-span.duration"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60100,
+                        "end": timestamp + 60100,
+                        "isRoot": False,
+                        "kind": "project",
+                        "opCategory": None,
+                        "project": project.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "start": timestamp,
+                    },
+                ],
+                "duration": 60100,
+                "end": timestamp + 60100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "project": project.slug,
+                "spans": [
+                    {
+                        "id": span_id,
+                        "parent_span": parent_span_id,
+                        "span.duration": 60100.0,
+                    },
+                ],
+                "start": timestamp,
+                "suggestedSpans": [],
+                "trace": trace_id,
+            },
+        ]
+
     def test_matching_tag(self):
         (
             project_1,

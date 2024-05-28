@@ -33,6 +33,12 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 MAX_SNUBA_RESULTS = 10_000
 
+CANDIDATE_SPAN_OPS = {"pageload", "navigation"}
+
+
+def is_trace_name_candidate(span):
+    return span["span.op"] in CANDIDATE_SPAN_OPS
+
 
 class TraceInterval(TypedDict):
     project: str | None
@@ -677,15 +683,34 @@ class TraceSamplesExecutor:
             context = {"traces": list(sorted(traces_range.keys()))}
             sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
 
-        # mapping of trace id to a tuple of project slug + transaction name
-        traces_names: MutableMapping[str, tuple[str, str]] = {}
+        # Normally, the name given to a trace is the name of the first root transaction
+        # found within the trace.
+        #
+        # But there are some cases where traces do not have any root transactions. For
+        # these traces, we try to pick out a name from the first span that is a good
+        # candidate for the trace name.
+        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
+        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
         for row in traces_breakdown_projects_results["data"]:
-            if row["trace"] in traces_names:
+            if row["trace"] in traces_primary_names:
                 continue
-            # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
-            # So make sure to handle both in case something changes.
-            if not row["parent_span"] or int(row["parent_span"], 16) == 0:
-                traces_names[row["trace"]] = (row["project"], row["transaction"])
+            else:
+                # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+                # So make sure to handle both in case something changes.
+                if not row["parent_span"] or int(row["parent_span"], 16) == 0:
+                    traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
+
+            if row["trace"] not in traces_fallback_names and is_trace_name_candidate(row):
+                traces_fallback_names[row["trace"]] = (row["project"], row["transaction"])
+
+        def get_trace_name(trace):
+            if trace in traces_primary_names:
+                return traces_primary_names[trace]
+
+            if trace in traces_fallback_names:
+                return traces_fallback_names[trace]
+
+            return (None, None)
 
         traces_errors: Mapping[str, int] = {
             row["trace"]: row["count()"] for row in traces_errors_results["data"]
@@ -721,8 +746,8 @@ class TraceSamplesExecutor:
                 "numErrors": traces_errors.get(row["trace"], 0),
                 "numOccurrences": traces_occurrences.get(row["trace"], 0),
                 "numSpans": row["count()"],
-                "project": traces_names.get(row["trace"], (None, None))[0],
-                "name": traces_names.get(row["trace"], (None, None))[1],
+                "project": get_trace_name(row["trace"])[0],
+                "name": get_trace_name(row["trace"])[1],
                 "duration": row["last_seen()"] - row["first_seen()"],
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
@@ -764,6 +789,7 @@ class TraceSamplesExecutor:
                 "trace",
                 "project",
                 "sdk.name",
+                "span.op",
                 "parent_span",
                 "transaction",
                 "precise.start_ts",
