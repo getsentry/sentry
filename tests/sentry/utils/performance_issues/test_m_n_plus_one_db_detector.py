@@ -200,5 +200,5 @@ class MNPlusOneDBDetectorTest(TestCase):
 
     # The mocked event has span duration that doesn't make up at least 10% of the total offender spans duration.
     def test_db_spans_duration_subceeds_pct(self):
-        event = get_event("m-n-plus-one-db/m-n-plus-one-no-db-spans")
+        event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         assert self.find_problems(event) == []
