@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import reduce
 
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -335,3 +335,36 @@ def span_status_filter_converter(
         Op(search_filter.operator),
         internal_value,
     )
+
+
+def message_filter_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    value = search_filter.value.value
+    if search_filter.value.is_wildcard():
+        # XXX: We don't want the '^$' values at the beginning and end of
+        # the regex since we want to find the pattern anywhere in the
+        # message. Strip off here
+        value = search_filter.value.value[1:-1]
+        return Condition(
+            Function("match", [builder.column("message"), f"(?i){value}"]),
+            Op(search_filter.operator),
+            1,
+        )
+    elif value == "":
+        operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
+        return Condition(Function("equals", [builder.column("message"), value]), operator, 1)
+    else:
+        if search_filter.is_in_filter:
+            return Condition(
+                builder.column("message"),
+                Op(search_filter.operator),
+                value,
+            )
+
+        # make message search case insensitive
+        return Condition(
+            Function("positionCaseInsensitive", [builder.column("message"), value]),
+            Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+            0,
+        )

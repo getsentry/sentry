@@ -31,6 +31,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
+            "message": self._message_filter_converter,
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
             constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
         }
@@ -624,6 +625,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _span_domain_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value

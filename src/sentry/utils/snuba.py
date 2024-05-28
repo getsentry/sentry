@@ -119,6 +119,9 @@ SPAN_COLUMN_MAP = {
     "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "description",
     "span.domain": "domain",
     # DO NOT directly expose span.duration, we should always use the alias
     # "span.duration": "duration",
