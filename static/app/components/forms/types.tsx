@@ -46,7 +46,7 @@ interface BaseField {
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
-  disabledReason?: React.ReactNode;
+  disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);
   extraHelp?: string;
   flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;

@@ -30,7 +30,7 @@ export interface FieldGroupProps {
   /**
    * Produces a question tooltip on the field, explaining why it is disabled
    */
-  disabledReason?: React.ReactNode;
+  disabledReason?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
   /**
    * Display the  error indicator
    */
