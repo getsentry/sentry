@@ -762,7 +762,6 @@ class TraceSamplesExecutor:
             selected_columns=[
                 "trace",
                 "count()",
-                # TODO: count if of matching spans
                 "first_seen()",
                 "last_seen()",
             ],
