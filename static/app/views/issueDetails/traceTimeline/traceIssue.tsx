@@ -38,36 +38,38 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
     }
   );
 
+  // If any of data fails to load, we don't want to render the component
+  // Only "One other issue appears in the same trace. View Full Trace (X issues)" would show up
   return (
-    <TraceIssueEventRoot
-      to={{
-        pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
-        query: {
-          referrer: 'issues_trace_issue',
-        },
-      }}
-      onClick={() => {
-        trackAnalytics('issue_details.issue_tab.trace_issue_clicked', {
-          organization,
-          event_id: event.id,
-          group_id: issueId,
-        });
-      }}
-    >
-      {project && (
-        <ProjectBadge
-          project={project}
-          avatarSize={parseInt(space(4), 10)}
-          hideName
-          disableLink
-        />
-      )}
-      <IssueDetails>
-        {isLoadingGroupData ? (
-          <LoadingIndicator mini />
-        ) : (
-          groupData && (
-            <Fragment>
+    <Fragment>
+      {isLoadingGroupData ? (
+        <LoadingIndicator mini />
+      ) : (
+        groupData && (
+          <TraceIssueLinkContainer
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
+              query: {
+                referrer: 'issues_trace_issue',
+              },
+            }}
+            onClick={() => {
+              trackAnalytics('issue_details.issue_tab.trace_issue_clicked', {
+                organization,
+                event_id: event.id,
+                group_id: issueId,
+              });
+            }}
+          >
+            {project && (
+              <ProjectBadge
+                project={project}
+                avatarSize={parseInt(space(4), 10)}
+                hideName
+                disableLink
+              />
+            )}
+            <TraceIssueDetailsContainer>
               <NoOverflowDiv>
                 <TraceIssueEventTitle>
                   {groupData.metadata.title || groupData.metadata.type}
@@ -77,18 +79,19 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
                 </TraceIssueEventTransaction>
               </NoOverflowDiv>
               <NoOverflowDiv>{groupData.metadata.value}</NoOverflowDiv>
-            </Fragment>
-          )
-        )}
-      </IssueDetails>
-    </TraceIssueEventRoot>
+            </TraceIssueDetailsContainer>
+          </TraceIssueLinkContainer>
+        )
+      )}
+    </Fragment>
   );
 }
 
-const TraceIssueEventRoot = styled(Link)`
+const TraceIssueLinkContainer = styled(Link)`
   display: flex;
+  gap: ${space(2)};
   color: ${p => p.theme.textColor};
-  padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(2)} ${space(1)} ${space(2)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -99,21 +102,23 @@ const TraceIssueEventRoot = styled(Link)`
   }
 `;
 
-const IssueDetails = styled('div')`
-  max-width: 100%;
-  padding: ${space(0)} ${space(1)} ${space(0)} ${space(1)};
-`;
-
-const TraceIssueEventTitle = styled('span')`
-  font-weight: 600;
-`;
-
-const TraceIssueEventTransaction = styled('span')`
-  color: ${p => p.theme.subText};
+// The padding-right prevents overflowing the container
+// This can be changed with more CSS expertise
+const TraceIssueDetailsContainer = styled('div')`
+  padding-right: ${space(4)};
 `;
 
 const NoOverflowDiv = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const TraceIssueEventTitle = styled('span')`
+  font-weight: 600;
+  margin-right: ${space(1)};
+`;
+
+const TraceIssueEventTransaction = styled('span')`
+  color: ${p => p.theme.subText};
 `;
