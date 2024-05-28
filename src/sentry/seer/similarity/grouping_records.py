@@ -4,7 +4,11 @@ from typing import NotRequired, TypedDict
 from django.conf import settings
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry.conf.server import SEER_GROUPING_RECORDS_DELETE_URL, SEER_GROUPING_RECORDS_URL
+from sentry.conf.server import (
+    SEER_GROUPING_RECORDS_URL,
+    SEER_HASH_GROUPING_RECORDS_DELETE_URL,
+    SEER_PROJECT_GROUPING_RECORDS_DELETE_URL,
+)
 from sentry.net.http import connection_from_url
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json
@@ -75,31 +79,61 @@ def post_bulk_grouping_records(
         return {"success": False}
 
 
-def delete_grouping_records(
+def delete_project_grouping_records(
     project_id: int,
 ) -> bool:
     try:
         response = seer_grouping_connection_pool.urlopen(
             "GET",
-            f"{SEER_GROUPING_RECORDS_DELETE_URL}/{project_id}",
+            f"{SEER_PROJECT_GROUPING_RECORDS_DELETE_URL}/{project_id}",
             headers={"Content-Type": "application/json;charset=utf-8"},
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:
         logger.exception(
-            "seer.delete_grouping_records.timeout",
+            "seer.delete_grouping_records.project.timeout",
             extra={"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT},
         )
         return False
 
     if response.status >= 200 and response.status < 300:
         logger.info(
-            "seer.delete_grouping_records.success",
+            "seer.delete_grouping_records.project.success",
             extra={"project_id": project_id},
         )
         return True
     else:
         logger.error(
-            "seer.delete_grouping_records.failure",
+            "seer.delete_grouping_records.project.failure",
         )
+        return False
+
+
+def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
+    extra = {"project_id": project_id, "hashes": json.dumps(hashes)}
+    try:
+        body = {"project_id": project_id, "hash_list": hashes}
+        response = seer_grouping_connection_pool.urlopen(
+            "POST",
+            SEER_HASH_GROUPING_RECORDS_DELETE_URL,
+            body=json.dumps(body),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+        )
+    except ReadTimeoutError:
+        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
+        logger.exception(
+            "seer.delete_grouping_records.hashes.timeout",
+            extra=extra,
+        )
+        return False
+
+    if response.status >= 200 and response.status < 300:
+        logger.info(
+            "seer.delete_grouping_records.hashes.success",
+            extra=extra,
+        )
+        return True
+    else:
+        logger.error("seer.delete_grouping_records.hashes.failure", extra=extra)
         return False

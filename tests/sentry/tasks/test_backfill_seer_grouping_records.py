@@ -14,7 +14,7 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.seer.similarity.backfill import CreateGroupingRecordData
+from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.tasks.backfill_seer_grouping_records import (
@@ -663,15 +663,15 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    @patch("sentry.tasks.backfill_seer_grouping_records.delete_grouping_records")
+    @patch("sentry.tasks.backfill_seer_grouping_records.delete_project_grouping_records")
     def test_backfill_seer_grouping_records_dry_run(
-        self, mock_delete_grouping_records, mock_post_bulk_grouping_records
+        self, mock_delete_project_grouping_records, mock_post_bulk_grouping_records
     ):
         """
         Test that the metadata is set for all groups showing that the record has been created.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": []}
-        mock_delete_grouping_records.return_value = True
+        mock_delete_project_grouping_records.return_value = True
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, 0, dry_run=True)
 
@@ -899,8 +899,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert last_processed_index == len(groups)
 
     @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.backfill_seer_grouping_records.delete_grouping_records")
-    def test_backfill_seer_grouping_records_only_delete(self, mock_delete_grouping_records):
+    @patch("sentry.tasks.backfill_seer_grouping_records.delete_project_grouping_records")
+    def test_backfill_seer_grouping_records_only_delete(self, mock_project_delete_grouping_records):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
         if it exists
@@ -928,7 +928,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             event.group.save()
             group_ids.append(event.group.id)
 
-        mock_delete_grouping_records.return_value = True
+        mock_project_delete_grouping_records.return_value = True
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None, only_delete=True)
 

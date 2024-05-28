@@ -31,6 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -1523,3 +1524,41 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert Group.objects.filter(id=group.id).exists()
             assert GroupHash.objects.filter(group_id=group.id).exists()
+
+    @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records_by_hash.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_bulk_delete_call_delete_seer_grouping_records_by_hash(
+        self, mock_delete_seer_grouping_records_by_hash_apply_async
+    ):
+        groups = []
+        for _ in range(41, 81):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    status=GroupStatus.RESOLVED,
+                )
+            )
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        self.login_as(user=self.user)
+
+        url = self.path + "?query="
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+
+        assert response.status_code == 204
+
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
+            "args": [group.project.id, hashes, 0]
+        }
