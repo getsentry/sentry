@@ -112,6 +112,7 @@ const projectBadgeSize = 36;
 const TraceIssueProjectBadge = styled('div')`
   height: ${projectBadgeSize}px;
   width: ${projectBadgeSize}px;
+  min-width: ${projectBadgeSize}px;
   display: flex;
   align-self: center;
   justify-content: center;
