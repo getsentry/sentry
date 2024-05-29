@@ -655,10 +655,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def resolve_tag_value(self, value: str) -> int | str | None:
-        if self.is_performance or self.use_metrics_layer:
-            return value
-        return self.resolve_metric_index(value)
+    def resolve_tag_value(self, value: str) -> str:
+        return value
 
     def resolve_tag_key(self, value: str) -> int | str | None:
         if self.use_default_tags:
