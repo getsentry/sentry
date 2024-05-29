@@ -21,6 +21,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -113,7 +114,7 @@ export const getAlertWizardCategories = (org: Organization) => {
   });
   if (org.features.includes('ai-analytics')) {
     result.push({
-      categoryHeading: t('LLM Monitoring'),
+      categoryHeading: LLM_MONITORING_MODULE_TITLE,
       options: ['llm_tokens', 'llm_cost'],
     });
   }
