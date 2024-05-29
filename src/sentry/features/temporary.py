@@ -97,6 +97,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-stream-new-assignee-dropdown-trigger", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:issue-stream-new-events-graph", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
