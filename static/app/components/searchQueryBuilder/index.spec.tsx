@@ -87,16 +87,22 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Switch to plain text'}));
 
       // No longer displays tokens, has an input instead
-      expect(
-        screen.queryByRole('row', {name: 'browser.name:firefox'})
-      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
       expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
 
       // Switching back should restore the tokens
       await userEvent.click(
         screen.getByRole('button', {name: 'Switch to tokenized search'})
       );
-      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
     });
   });
 
@@ -306,6 +312,15 @@ describe('SearchQueryBuilder', function () {
         ).getByText('some" value')
       ).toBeInTheDocument();
     });
+
+    it('can remove parens by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete ('}));
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
   });
 
   describe('new search tokens', function () {
@@ -391,6 +406,15 @@ describe('SearchQueryBuilder', function () {
 
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+    });
+
+    it('can add parens by typing', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('(');
+
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
     });
   });
 
@@ -507,6 +531,17 @@ describe('SearchQueryBuilder', function () {
       // Shift-tabbing should exit the component
       await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
       expect(document.body).toHaveFocus();
+    });
+
+    it('can remove parens with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
   });
 });

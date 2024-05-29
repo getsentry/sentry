@@ -8,6 +8,7 @@ import type {CollectionChildren} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
+import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
@@ -47,6 +48,16 @@ function Grid(props: GridProps) {
           case Token.SPACES:
             return (
               <SearchQueryBuilderInput
+                key={item.key}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
+          case Token.L_PAREN:
+          case Token.R_PAREN:
+            return (
+              <SearchQueryBuilderParen
                 key={item.key}
                 token={token}
                 item={item}
