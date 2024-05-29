@@ -272,7 +272,7 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
   align-self: center;

@@ -41,6 +41,8 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -190,6 +192,18 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
+    (
+        "metricsActivatePercentiles",
+        "sentry:metrics_activate_percentiles",
+        bool,
+        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+    ),
+    (
+        "metricsActivateLastForGauges",
+        "sentry:metrics_activate_last_for_gauges",
+        bool,
+        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -238,6 +252,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricsActivatePercentiles = serializers.BooleanField(required=False)
+    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -576,6 +592,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
+
         serializer = org_serializers.OrganizationSerializer
 
         if request.access.has_scope("org:read") or is_active_staff(request):
@@ -605,6 +625,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         from sentry import features
+
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):

@@ -19,7 +19,7 @@ const Badge = styled(({children, text, ...props}: Props) => (
   padding: 0 5px;
   margin-left: ${space(0.5)};
   font-size: 75%;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
   color: ${p => p.theme.badge[p.type ?? 'default'].color};
   background: ${p => p.theme.badge[p.type ?? 'default'].background};

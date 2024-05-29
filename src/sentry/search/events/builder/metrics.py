@@ -81,6 +81,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     organization_column: str = "organization_id"
 
+    column_remapping = {}
+
     def __init__(
         self,
         *args: Any,
@@ -662,6 +664,10 @@ class MetricsQueryBuilder(QueryBuilder):
         return value
 
     def resolve_tag_key(self, value: str) -> int | str | None:
+        # some tag keys needs to be remapped to a different column name
+        # prior to resolving it via the indexer
+        value = self.column_remapping.get(value, value)
+
         if self.use_default_tags:
             if value in constants.DEFAULT_METRIC_TAGS:
                 return self.resolve_metric_index(value)

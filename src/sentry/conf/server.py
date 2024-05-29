@@ -848,6 +848,9 @@ CELERY_QUEUES_REGION = [
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
     Queue("delayed_rules", routing_key="delayed_rules"),
+    Queue(
+        "delete_seer_grouping_records_by_hash", routing_key="delete_seer_grouping_records_by_hash"
+    ),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
@@ -1699,6 +1702,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable Discover Saved Query dataset selector
+    "organizations:performance-discover-dataset-selector": False,
     # Enable UI sending a discover split for widget
     "organizations:performance-discover-widget-split-ui": False,
     # Enable backend overriding and always making a fresh split decision
@@ -1821,6 +1826,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
+    # Enable core remote-config backend APIs
+    "organizations:remote-config": False,
     # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
     # Enable the Replay Details > Accessibility tab

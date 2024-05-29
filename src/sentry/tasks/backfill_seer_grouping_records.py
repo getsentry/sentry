@@ -18,7 +18,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.backfill import (
@@ -104,6 +104,10 @@ def backfill_seer_grouping_records(
 
     if only_delete:
         delete_seer_grouping_records(project.id, redis_client)
+        logger.info(
+            "backfill_seer_grouping_records.deleted_all_records",
+            extra={"project_id": project.id},
+        )
         return
 
     if last_processed_index == 0:
@@ -124,6 +128,7 @@ def backfill_seer_grouping_records(
 
     group_id_message_data = (
         Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
+        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
         .order_by("times_seen")
         .order_by("id")
@@ -210,6 +215,10 @@ def backfill_seer_grouping_records(
 
         # If nodestore is down, we should stop
         if data["data"] == [] and data["stacktrace_list"] == []:
+            logger.info(
+                "backfill_seer_grouping_records.no_data",
+                extra={"project_id": project.id},
+            )
             return
 
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
