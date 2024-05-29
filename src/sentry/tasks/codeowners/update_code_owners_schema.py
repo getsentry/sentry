@@ -31,9 +31,9 @@ def update_code_owners_schema(
     )
     from sentry.models.projectcodeowners import ProjectCodeOwners
 
-    org: Organization = load_model_from_db(Organization, organization)
+    organization = load_model_from_db(Organization, organization)
 
-    if not features.has("organizations:integrations-codeowners", org):
+    if not features.has("organizations:integrations-codeowners", organization):
         return
     try:
         code_owners = []
@@ -45,7 +45,7 @@ def update_code_owners_schema(
         integration_id = _unpack_integration_id(integration)
         if integration_id is not None:
             code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
-                organization_id=org.id,
+                organization_id=organization.id,
                 integration_id=integration_id,
             ).values_list("id", flat=True)
 
@@ -54,7 +54,7 @@ def update_code_owners_schema(
             )
 
         for code_owner in code_owners:
-            code_owner.update_schema(organization=org)
+            code_owner.update_schema(organization=organization)
 
     # TODO(nisanthan): May need to add logging  for the cases where we might want to have more information if something fails
     except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):
