@@ -16,7 +16,7 @@ export function getRepositories(api: Client, params: ParamsGet) {
   // the back of the event loop, allowing another getRepo for the same
   // repo to be fired before the loading state is updated in store.
   // This hack short-circuits that and update the state immediately.
-  RepositoryStore.state.repositoriesLoading = true;
+  RepositoryStore.state = {...RepositoryStore.state, repositoriesLoading: true};
   RepositoryStore.loadRepositories(orgSlug);
 
   return api
