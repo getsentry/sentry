@@ -552,3 +552,13 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
 /src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/ecosystem
 ## End of Ecosystem
+
+## Frontend
+/static/app/bootstrap/                                                  @getsentry/app-frontend
+/static/app/main.tsx                                                    @getsentry/app-frontend
+/static/app/api.tsx                                                     @getsentry/app-frontend
+/static/app/index.tsx                                                   @getsentry/app-frontend
+/static/app/locale.tsx                                                  @getsentry/app-frontend
+/static/app/utils/queryClient.tsx                                       @getsentry/app-frontend
+/static/app/components/deprecatedAsyncComponent.tsx                     @getsentry/app-frontend
+## End of Frontend
