@@ -13,14 +13,15 @@ describe('IssueListCacheStore', () => {
       GroupFixture({id: '2', title: 'Issue 2'}),
     ];
     const query = {query: 'is:unresolved'};
-    IssueListCacheStore.save(query, {
+    const cache = {
       groups: issueList,
       queryCount: 2,
       queryMaxCount: 100,
       pageLinks: '',
-    });
+    };
+    IssueListCacheStore.save(query, cache);
 
-    expect(IssueListCacheStore.getFromCache(query)).toEqual(issueList);
+    expect(IssueListCacheStore.getFromCache(query)).toEqual(cache);
   });
 
   it('returns a stable reference with getState', () => {
