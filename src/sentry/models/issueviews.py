@@ -9,7 +9,7 @@ from sentry.models.savedsearch import SortOptions
 
 
 @region_silo_model
-class IssueUserViews(DefaultFieldsModel):
+class IssueViews(DefaultFieldsModel):
     """
     A model for a user's view of the issue stream
     """
@@ -25,13 +25,13 @@ class IssueUserViews(DefaultFieldsModel):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_issueuserviews"
+        db_table = "sentry_issueviews"
         unique_together = ()
         # Two views cannot occupy the same position in a member's view order
         constraints = [
             UniqueConstraint(
                 fields=["org_member_id", "position"],
-                name="sentry_issueuserviews_unique_view_position_per_member",
+                name="sentry_issueviews_unique_view_position_per_member",
             )
         ]
 

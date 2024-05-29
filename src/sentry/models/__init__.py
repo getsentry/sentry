@@ -61,7 +61,7 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
-from .issueuserviews import *  # NOQA
+from .issueviews import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
