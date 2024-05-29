@@ -205,6 +205,23 @@ def backfill_seer_grouping_records(
 
     if result and result[0].get("data"):
         rows: list[GroupEventRow] = result[0]["data"]
+
+        # Log if any group does not have any events in snuba and skip it
+        if len(rows) != len(group_id_batch):
+            row_group_ids = {row["group_id"] for row in rows}
+            for group_id in group_id_batch:
+                if group_id not in row_group_ids:
+                    logger.info(
+                        "tasks.backfill_seer_grouping_records.no_snuba_event",
+                        extra={
+                            "organization_id": project.organization.id,
+                            "project_id": project_id,
+                            "group_id": group_id,
+                        },
+                    )
+                    group_id_batch.remove(group_id)
+                    del group_id_message_batch_filtered[group_id]
+
         group_hashes = GroupHash.objects.filter(
             project_id=project.id, group_id__in=group_id_batch
         ).distinct("group_id")
