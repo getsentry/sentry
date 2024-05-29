@@ -8,16 +8,13 @@ import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
+import {CronServiceIncidents} from './serviceIncidents';
 import {useTimelineCursor} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;
-  /**
-   * The size of the timeline
-   */
-  width: number;
   /**
    * Enable zoom selection
    */
@@ -27,6 +24,10 @@ interface Props {
    * Enable the timeline cursor
    */
   showCursor?: boolean;
+  /**
+   * Render sentry service incidents as an overlay
+   */
+  showIncidents?: boolean;
   /**
    * Enabling causes the cursor tooltip to stick to the top of the viewport.
    */
@@ -64,13 +65,13 @@ function alignDateToBoundary(date: moment.Moment, minuteInterval: number) {
   return date.startOf('day');
 }
 
-function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
-  const {start, end, elapsedMinutes, intervals, dateTimeProps} = config;
+function getTimeMarkersFromConfig(config: TimeWindowConfig) {
+  const {start, end, elapsedMinutes, intervals, dateTimeProps, timelineWidth} = config;
 
   const {referenceMarkerInterval, minimumMarkerInterval, normalMarkerInterval} =
     intervals;
 
-  const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
+  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
 
   // The first marker will always be the starting time. This always renders the
   // full date and time
@@ -103,8 +104,8 @@ function getTimeMarkersFromConfig(config: TimeWindowConfig, width: number) {
   return markers;
 }
 
-export function GridLineLabels({width, timeWindowConfig, className}: Props) {
-  const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
+export function GridLineLabels({timeWindowConfig, className}: Props) {
+  const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   return (
     <LabelsContainer aria-hidden className={className}>
@@ -118,17 +119,17 @@ export function GridLineLabels({width, timeWindowConfig, className}: Props) {
 }
 
 export function GridLineOverlay({
-  width,
   timeWindowConfig,
   showCursor,
+  showIncidents,
   stickyCursor,
   allowZoom,
   className,
 }: Props) {
   const router = useRouter();
-  const {start, dateLabelFormat} = timeWindowConfig;
+  const {start, timelineWidth, dateLabelFormat} = timeWindowConfig;
 
-  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / width;
+  const msPerPixel = (timeWindowConfig.elapsedMinutes * 60 * 1000) / timelineWidth;
 
   const dateFromPosition = useCallback(
     (position: number) => moment(start.getTime() + msPerPixel * position),
@@ -165,7 +166,7 @@ export function GridLineOverlay({
   });
 
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
-  const markers = getTimeMarkersFromConfig(timeWindowConfig, width);
+  const markers = getTimeMarkersFromConfig(timeWindowConfig);
 
   // Skip first gridline, this will be represented as a border on the
   // LabelsContainer
@@ -175,6 +176,7 @@ export function GridLineOverlay({
     <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
+      {showIncidents && <CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
       <GridLineContainer>
         {markers.map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
@@ -188,13 +190,13 @@ const Overlay = styled('div')`
   height: 100%;
   width: 100%;
   position: absolute;
-  pointer-events: none;
 `;
 
 const GridLineContainer = styled('div')`
   position: relative;
   height: 100%;
   z-index: 1;
+  pointer-events: none;
 `;
 
 const LabelsContainer = styled('div')`

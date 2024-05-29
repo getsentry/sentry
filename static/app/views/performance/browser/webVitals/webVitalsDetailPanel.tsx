@@ -19,6 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
@@ -143,7 +144,7 @@ export function WebVitalsDetailPanel({
                 {webVital: webVital?.toUpperCase() ?? ''}
               )}
               <br />
-              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+              <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
                 {t('How is this calculated?')}
               </ExternalLink>
             </span>

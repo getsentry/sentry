@@ -1,6 +1,7 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {IntegrationType, PriorityLevel} from 'sentry/types';
+import type {PriorityLevel} from 'sentry/types/group';
+import type {IntegrationType} from 'sentry/types/integrations';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -46,6 +47,14 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
+  'autofix.setup_modal_viewed': {
+    groupId: string;
+    projectId: string;
+    setup_codebase_index: boolean;
+    setup_gen_ai_consent: boolean;
+    setup_integration: boolean;
+    setup_write_integration: boolean;
+  };
   'device.classification.high.end.android.device': {
     processor_count: number;
     processor_frequency: number;
@@ -281,6 +290,7 @@ export type IssueEventParameters = {
 export type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
+  'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'event_cause.viewed': null,
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',

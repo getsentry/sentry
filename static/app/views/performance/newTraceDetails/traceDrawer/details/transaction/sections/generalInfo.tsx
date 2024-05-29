@@ -133,7 +133,7 @@ function GeneralInfo({
     key: 'description',
     subject: t('Description'),
     value: (
-      <TraceDrawerComponents.CardValueWithCopy
+      <TraceDrawerComponents.CopyableCardValueWithLink
         value={node.value.transaction}
         linkTarget={transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
@@ -151,7 +151,8 @@ function GeneralInfo({
   if (breakdown.length > 0) {
     items.push({
       key: 'ops_breakdown',
-      subject: (
+      subject: t('Ops Breakdown'),
+      subjectNode: (
         <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
           {t('Ops Breakdown')}
           <QuestionTooltip

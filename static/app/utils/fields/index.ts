@@ -1237,9 +1237,9 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
-  SEEN_BY_ID = 'seen_by_id',
+  SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
-  VIEWED_BY_ID = 'viewed_by_id',
+  VIEWED_BY_ME = 'viewed_by_me',
 }
 
 export enum ReplayClickFieldKey {
@@ -1280,7 +1280,6 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1290,14 +1289,14 @@ export const REPLAY_FIELDS = [
   FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
-  ReplayFieldKey.SEEN_BY_ID,
+  ReplayFieldKey.SEEN_BY_ME,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
-  ReplayFieldKey.VIEWED_BY_ID,
+  ReplayFieldKey.VIEWED_BY_ME,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1361,20 +1360,20 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.SEEN_BY_ID]: {
-    desc: t('Sentry user ID(s) who have seen this replay'),
+  [ReplayFieldKey.SEEN_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.BOOLEAN,
   },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.VIEWED_BY_ID]: {
-    desc: t('Sentry user ID(s) who have seen this replay'),
+  [ReplayFieldKey.VIEWED_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 

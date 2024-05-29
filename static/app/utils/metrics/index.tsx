@@ -23,8 +23,8 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   MetricMeta,
+  MetricsAggregate,
   MetricsDataIntervalLadder,
-  MetricsOperation,
   MetricsQueryApiResponse,
   MetricsQueryApiResponseLastMeta,
   MRI,
@@ -33,6 +33,7 @@ import type {
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement} from 'sentry/utils/discover/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   MetricsQuery,
@@ -149,18 +150,16 @@ export function getDateTimeParams({start, end, period}: PageFilters['datetime'])
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
 }
 
-export function getDefaultMetricOp(mri: MRI): MetricsOperation {
+export function getDefaultAggregate(mri: MRI): MetricsAggregate {
   const parsedMRI = parseMRI(mri);
-  switch (parsedMRI?.type) {
-    case 'd':
-    case 'g':
-      return 'avg';
-    case 's':
-      return 'count_unique';
-    case 'c':
-    default:
-      return 'sum';
+
+  const fallbackAggregate = 'sum';
+
+  if (!parsedMRI) {
+    return fallbackAggregate;
   }
+
+  return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
 }
 
 export function isAllowedOp(op: string) {
@@ -333,11 +332,8 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isSpanSelfTime({mri}: {mri: MRI}) {
-  return (
-    mri === 'd:spans/exclusive_time@millisecond' ||
-    mri === 'g:spans/self_time@millisecond'
-  );
+export function isSpanDuration({mri}: {mri: MRI}) {
+  return mri === 'd:spans/duration@millisecond';
 }
 
 export function isGaugeMetric({mri}: {mri: MRI}) {

@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -37,10 +38,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={{path: 'new-public/'}}
+          route={{}}
           params={{}}
         />,
         {context: RouterContextFixture([{organization: org}])}
@@ -148,10 +149,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-internal/'})}
           routes={router.routes}
           routeParams={{}}
-          route={{path: 'new-internal/'}}
+          route={{}}
           params={{}}
         />,
         {context: RouterContextFixture([{organization: org}])}
@@ -183,10 +184,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
         />,
         {
@@ -247,10 +248,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
         />,
         {
@@ -316,10 +317,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
         />,
         {
@@ -365,10 +366,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
         />,
         {
@@ -453,10 +454,10 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
         />,
         {
@@ -547,10 +548,10 @@ describe('Sentry Application Details', function () {
       render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
         />,
         {
@@ -616,9 +617,9 @@ describe('Sentry Application Details', function () {
       render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
-          route={router.routes[0]}
+          route={{}}
           routeParams={{}}
           params={{appSlug: sentryApp.slug}}
         />

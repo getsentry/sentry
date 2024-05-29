@@ -119,6 +119,9 @@ SPAN_COLUMN_MAP = {
     "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "description",
     "span.domain": "domain",
     # DO NOT directly expose span.duration, we should always use the alias
     # "span.duration": "duration",
@@ -133,6 +136,9 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "user.id": "sentry_tags[user.id]",
+    "user.email": "sentry_tags[user.email]",
+    "user.username": "sentry_tags[user.username]",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
@@ -1448,6 +1454,7 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    "Nullable": "null",
 }
 
 

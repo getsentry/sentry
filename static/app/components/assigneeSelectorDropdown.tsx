@@ -6,12 +6,12 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/compactSelect';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -91,6 +91,10 @@ export interface AssigneeSelectorDropdownProps {
    * Optional list of suggested owners of the group
    */
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
+  /**
+   * Maximum number of teams/users to display in the dropdown
+   */
+  sizeLimit?: number;
   /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
@@ -204,6 +208,7 @@ export default function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  sizeLimit = 150,
   trigger,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
@@ -454,6 +459,22 @@ export default function AssigneeSelectorDropdown({
       }
     }
 
+    const suggestedUsers = suggestedAssignees?.filter(
+      assignee => assignee.type === 'user'
+    );
+    const suggestedTeams = suggestedAssignees?.filter(
+      assignee => assignee.type === 'team'
+    );
+
+    // Remove suggested assignees from the member list and team list to avoid duplicates
+    memList = memList.filter(
+      user => !suggestedUsers.find(suggested => suggested.id === user.id)
+    );
+    assignableTeamList = assignableTeamList.filter(
+      assignableTeam =>
+        !suggestedTeams.find(suggested => suggested.id === assignableTeam.team.id)
+    );
+
     const memberOptions = {
       value: '_members',
       label: t('Members'),
@@ -465,13 +486,6 @@ export default function AssigneeSelectorDropdown({
       label: t('Teams'),
       options: assignableTeamList?.map(makeTeamOption) ?? [],
     };
-
-    const suggestedUsers = suggestedAssignees?.filter(
-      assignee => assignee.type === 'user'
-    );
-    const suggestedTeams = suggestedAssignees?.filter(
-      assignee => assignee.type === 'team'
-    );
 
     const suggestedOptions = {
       value: '_suggested_assignees',
@@ -503,10 +517,15 @@ export default function AssigneeSelectorDropdown({
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
         {!loading && !noDropdown && (
-          <DropdownButton data-test-id="assignee-selector" {...props}>
+          <AssigneeDropdownButton
+            borderless
+            size="sm"
+            isOpen={isOpen}
+            data-test-id="assignee-selector"
+            {...props}
+          >
             {avatarElement}
-            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
-          </DropdownButton>
+          </AssigneeDropdownButton>
         )}
         {!loading && noDropdown && avatarElement}
       </Fragment>
@@ -535,6 +554,7 @@ export default function AssigneeSelectorDropdown({
         clearable
         className={className}
         menuWidth={275}
+        position="bottom-end"
         disallowEmptySelection={false}
         onClick={e => e.stopPropagation()}
         value={
@@ -550,7 +570,7 @@ export default function AssigneeSelectorDropdown({
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
         menuFooter={footerInviteButton}
-        sizeLimit={150}
+        sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
       />
     </AssigneeWrapper>
@@ -562,14 +582,9 @@ const AssigneeWrapper = styled('div')`
   justify-content: flex-end;
 `;
 
-const DropdownButton = styled('button')`
-  appearance: none;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  font-size: 20px;
-  gap: ${space(0.5)};
+const AssigneeDropdownButton = styled(DropdownButton)`
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
 `;
 
 const StyledIconUser = styled(IconUser)`

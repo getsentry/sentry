@@ -51,12 +51,15 @@ import {
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
-const AIMonitoringSection = lazy(
-  () => import('sentry/components/events/interfaces/ai-monitoring/aiMonitoringSection')
+const LLMMonitoringSection = lazy(
+  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
 );
 
 type GroupEventDetailsContentProps = {
@@ -97,6 +100,7 @@ function DefaultGroupEventDetailsContent({
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
+  const location = useLocation();
   const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
@@ -154,7 +158,7 @@ function DefaultGroupEventDetailsContent({
           );
         }) ? (
         <LazyLoad
-          LazyComponent={AIMonitoringSection}
+          LazyComponent={LLMMonitoringSection}
           event={event}
           organization={organization}
         />
@@ -188,7 +192,21 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
       {hasAnrImprovementsFeature && isANR && (
-        <AnrRootCause event={event} organization={organization} />
+        <QuickTraceQuery
+          event={event}
+          location={location}
+          orgSlug={organization.slug}
+          type={'spans'}
+          skipLight
+        >
+          {results => {
+            return (
+              <QuickTraceContext.Provider value={results}>
+                <AnrRootCause event={event} organization={organization} />
+              </QuickTraceContext.Provider>
+            );
+          }}
+        </QuickTraceQuery>
       )}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
         <SpanEvidenceSection

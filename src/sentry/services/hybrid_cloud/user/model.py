@@ -123,6 +123,11 @@ class RpcUser(RpcUserProfile):
         return len(self.authenticators) > 0
 
 
+class UserCreateResult(RpcModel):
+    user: RpcUser
+    created: bool
+
+
 class UserSerializeType(IntEnum):  # annoying
     SIMPLE = 0
     DETAILED = 1

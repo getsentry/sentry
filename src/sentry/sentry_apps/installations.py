@@ -19,6 +19,7 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
+from sentry.utils import metrics
 
 
 @dataclasses.dataclass
@@ -100,6 +101,7 @@ class SentryAppInstallationCreator:
     notify: bool = True
 
     def run(self, *, user: User, request: HttpRequest | None) -> SentryAppInstallation:
+        metrics.incr("sentry_apps.installation.attempt")
         with transaction.atomic(router.db_for_write(ApiGrant)):
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
@@ -162,6 +164,7 @@ class SentryAppInstallationCreator:
             organization_id=self.organization_id,
             sentry_app=self.slug,
         )
+        metrics.incr("sentry_apps.installation.success")
 
     @cached_property
     def api_application(self) -> ApiApplication:

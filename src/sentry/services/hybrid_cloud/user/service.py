@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.user.model import (
     RpcAvatar,
     RpcUserProfile,
     RpcVerifyUserEmail,
+    UserCreateResult,
     UserIdEmailArgs,
 )
 from sentry.silo.base import SiloMode
@@ -221,13 +222,13 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_or_create_user_by_email(
+    def get_or_create_by_email(
         self,
         *,
         email: str,
         ident: str | None = None,
         referrer: str | None = None,
-    ) -> tuple[RpcUser, bool]:
+    ) -> UserCreateResult:
         """
         Get or create a user with a matching email address or AuthIdentity
 

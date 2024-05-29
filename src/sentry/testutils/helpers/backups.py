@@ -75,6 +75,7 @@ from sentry.models.integrations.project_integration import ProjectIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
@@ -83,6 +84,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
@@ -363,7 +365,9 @@ class BackupTestCase(TransactionTestCase):
         owner: User,
         member: User,
         other_members: list[User] | None = None,
-        invites: dict[User, str] | None = None,
+        pending_invites: dict[User, str] | None = None,
+        # A dictionary of a user to the other users they invited
+        accepted_invites: dict[User, list[User]] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
         owner_id: BoundedBigAutoField = owner.id
@@ -371,8 +375,8 @@ class BackupTestCase(TransactionTestCase):
         if other_members:
             for user in other_members:
                 self.create_member(organization=org, user=user, role="member")
-        if invites:
-            for inviter, email in invites.items():
+        if pending_invites:
+            for inviter, email in pending_invites.items():
                 OrganizationMember.objects.create(
                     organization_id=org.id,
                     role="member",
@@ -380,6 +384,12 @@ class BackupTestCase(TransactionTestCase):
                     inviter_id=inviter.id,
                     invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 )
+        if accepted_invites:
+            for inviter, users in accepted_invites.items():
+                for user in users:
+                    self.create_member(
+                        organization=org, user=user, role="member", inviter_id=inviter.id
+                    )
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -391,6 +401,12 @@ class BackupTestCase(TransactionTestCase):
         OrganizationAccessRequest.objects.create(member=invited, team=team)
 
         # Project*
+        project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
+        ProjectTemplateOption.objects.create(
+            project_template=project_template, key="mail:subject_prefix", value=f"[{slug}]"
+        )
+
+        # TODO (@saponifi3d): Add project template to project
         project = self.create_project(name=f"project-{slug}", teams=[team])
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
@@ -636,15 +652,9 @@ class BackupTestCase(TransactionTestCase):
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_global_configs(self, owner: User):
+        self.create_exhaustive_api_keys_for_user(owner)
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
-        ApiAuthorization.objects.create(user=owner)
-        ApiToken.objects.create(
-            user=owner,
-            expires_at=None,
-            name="create_exhaustive_global_configs",
-            token_type=AuthTokenType.USER,
-        )
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_global_configs_regional(self):
@@ -661,13 +671,38 @@ class BackupTestCase(TransactionTestCase):
         extensions, and all global flags set.
         """
 
-        owner = self.create_exhaustive_user(
-            "owner", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
+        superadmin = self.create_exhaustive_user(
+            "superadmin", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
         )
+        owner = self.create_exhaustive_user("owner")
         member = self.create_exhaustive_user("member")
-        org = self.create_exhaustive_organization("test-org", owner, member)
+        org = self.create_exhaustive_organization(
+            "test-org",
+            owner,
+            member,
+            pending_invites={
+                superadmin: "invited-by-superadmin-not-in-org@example.com",
+                owner: "invited-by-org-owner@example.com",
+                member: "invited-by-org-member@example.com",
+            },
+            accepted_invites={
+                superadmin: [self.create_exhaustive_user("added-by-superadmin-not-in-org")],
+                owner: [self.create_exhaustive_user("added-by-org-owner")],
+                member: [self.create_exhaustive_user("added-by-org-member")],
+            },
+        )
         self.create_exhaustive_sentry_app("test app", owner, org)
         self.create_exhaustive_global_configs(owner)
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_exhaustive_api_keys_for_user(self, user: User):
+        ApiAuthorization.objects.create(user=user)
+        ApiToken.objects.create(
+            user=user,
+            expires_at=None,
+            name=f"create_exhaustive_global_configs_for_{user.name}",
+            token_type=AuthTokenType.USER,
+        )
 
     def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)

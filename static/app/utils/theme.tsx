@@ -5,11 +5,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {Outcome} from 'sentry/types';
 
-/**
- * Exporting for use in Storybook only. Do not import this
- * anywhere else! Instead, use the theme prop or import useTheme.
- */
-export const lightColors = {
+const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -75,11 +71,7 @@ export const lightColors = {
   pink100: 'rgba(249, 26, 138, 0.09)',
 };
 
-/**
- * Exporting for use in Storybook only. Do not import this
- * anywhere else! Instead, use the theme prop or import useTheme.
- */
-export const darkColors = {
+const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -774,6 +766,9 @@ const commonTheme = {
   codeFontSize: '13px' as const,
   headerFontSize: '22px' as const,
 
+  fontWeightNormal: 400 as const,
+  fontWeightBold: 600 as const,
+
   settings: {
     // Max-width for settings breadcrumbs
     // i.e. organization, project, or team
@@ -1008,6 +1003,3 @@ declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface Theme extends SentryTheme {}
 }
-
-// This should never be used directly (except in storybook)
-export {lightAliases as aliases};

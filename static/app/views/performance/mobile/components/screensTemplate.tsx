@@ -11,24 +11,31 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+} from 'sentry/views/performance/mobile/appStarts/settings';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
+import type {ModuleName} from 'sentry/views/starfish/types';
 
 type ScreensTemplateProps = {
   content: ReactNode;
+  moduleName: ModuleName.MOBILE_UI | ModuleName.APP_START;
   title: string;
   additionalSelectors?: ReactNode;
 };
 
 export default function ScreensTemplate({
+  moduleName,
   title,
   additionalSelectors,
   content,
@@ -46,24 +53,21 @@ export default function ScreensTemplate({
     });
   }, [location]);
 
+  const crumbs = useModuleBreadcrumbs(moduleName);
+
   return (
     <Layout.Page>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Performance'),
-                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                  preservePageFilters: true,
-                },
-                {
-                  label: title,
-                },
-              ]}
-            />
-            <Layout.Title>{title}</Layout.Title>
+            <Breadcrumbs crumbs={crumbs} />
+            <Layout.Title>
+              {title}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>

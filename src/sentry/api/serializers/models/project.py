@@ -70,8 +70,6 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
-    "span-metrics-extraction-resource",
-    "span-metrics-extraction-all-modules",
     "race-free-group-creation",
     "first-event-severity-new-escalation",
     "first-event-severity-calculation",
@@ -1013,7 +1011,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = "[]"
         else:
             redacted_sources = redact_source_secrets(sources)
-            serialized_sources = orjson.dumps(redacted_sources).decode()
+            serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         data.update(
             {

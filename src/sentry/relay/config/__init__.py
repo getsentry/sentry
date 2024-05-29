@@ -70,11 +70,9 @@ EXPOSABLE_FEATURES = [
     "projects:discard-transaction",
     "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-resource",
     "projects:span-metrics-extraction",
-    "projects:span-metrics-double-write-distributions-as-gauges",
+    "projects:span-metrics-extraction-addons",
+    "organizations:indexed-spans-extraction",
     "projects:relay-otel-endpoint",
 ]
 
@@ -261,66 +259,63 @@ class CardinalityLimitOption(TypedDict):
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
-    if features.has("organizations:relay-cardinality-limiter", project.organization):
-        passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-            str(project.organization.id), []
-        )
+    passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+        str(project.organization.id), []
+    )
 
-        existing_ids: set[str] = set()
-        cardinality_limits: list[CardinalityLimit] = []
-        for namespace in CARDINALITY_LIMIT_USE_CASES:
-            timeout.check()
-            option = options.get(
-                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
-            )
-            if not option or not len(option) == 1:
-                # Multiple quotas are not supported
+    existing_ids: set[str] = set()
+    cardinality_limits: list[CardinalityLimit] = []
+    for namespace in CARDINALITY_LIMIT_USE_CASES:
+        timeout.check()
+        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
+        if not option or not len(option) == 1:
+            # Multiple quotas are not supported
+            continue
+
+        quota = option[0]
+        id = namespace.value
+
+        limit: CardinalityLimit = {
+            "id": id,
+            "window": {
+                "windowSeconds": quota["window_seconds"],
+                "granularitySeconds": quota["granularity_seconds"],
+            },
+            "limit": quota["limit"],
+            "scope": "organization",
+            "namespace": namespace.value,
+        }
+        if id in passive_limits:
+            limit["passive"] = True
+        cardinality_limits.append(limit)
+        existing_ids.add(id)
+
+    project_limit_options: list[CardinalityLimitOption] = project.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    option_limit_options: list[CardinalityLimitOption] = options.get(
+        "relay.cardinality-limiter.limits", []
+    )
+
+    for clo in project_limit_options + organization_limit_options + option_limit_options:
+        rollout_rate = clo.get("rollout_rate", 1.0)
+        if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        try:
+            limit = clo["limit"]
+            if clo["limit"]["id"] in existing_ids:
+                # skip if a limit with the same id already exists
                 continue
-
-            quota = option[0]
-            id = namespace.value
-
-            limit: CardinalityLimit = {
-                "id": id,
-                "window": {
-                    "windowSeconds": quota["window_seconds"],
-                    "granularitySeconds": quota["granularity_seconds"],
-                },
-                "limit": quota["limit"],
-                "scope": "organization",
-                "namespace": namespace.value,
-            }
-            if id in passive_limits:
-                limit["passive"] = True
             cardinality_limits.append(limit)
-            existing_ids.add(id)
+            existing_ids.add(clo["limit"]["id"])
+        except KeyError:
+            pass
 
-        project_limit_options: list[CardinalityLimitOption] = project.get_option(
-            "relay.cardinality-limiter.limits", []
-        )
-        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
-            "relay.cardinality-limiter.limits", []
-        )
-        option_limit_options: list[CardinalityLimitOption] = options.get(
-            "relay.cardinality-limiter.limits", []
-        )
-
-        for clo in project_limit_options + organization_limit_options + option_limit_options:
-            rollout_rate = clo.get("rollout_rate", 1.0)
-            if (project.organization.id % 100000) / 100000 >= rollout_rate:
-                continue
-
-            try:
-                limit = clo["limit"]
-                if clo["limit"]["id"] in existing_ids:
-                    # skip if a limit with the same id already exists
-                    continue
-                cardinality_limits.append(limit)
-                existing_ids.add(clo["limit"]["id"])
-            except KeyError:
-                pass
-
-        metrics_config["cardinalityLimits"] = cardinality_limits
+    metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
@@ -1014,7 +1009,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 5
+TRANSACTION_METRICS_EXTRACTION_VERSION = 6
 
 
 class CustomMeasurementSettings(TypedDict):

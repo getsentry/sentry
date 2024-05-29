@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import Alert from 'sentry/components/alert';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -37,6 +37,7 @@ import {
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
+import {MetricsFeatureBadge} from 'sentry/views/metrics/metricFeatureBadge';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
@@ -56,6 +57,8 @@ export const MetricsLayout = memo(() => {
   const theme = useTheme();
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const [isBannerDismissed] = useLocalStorageState('metrics-banner-dismissed', false);
+
+  const showOnboardingPanel = !isEmptyStateDismissed && !hasCustomMetrics;
 
   const addCustomMetric = useCallback(
     (referrer: 'header' | 'onboarding_panel' | 'banner') => {
@@ -102,16 +105,18 @@ export const MetricsLayout = memo(() => {
                 'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
               )}
             />
-            <FeatureBadge type="beta" />
+            <MetricsFeatureBadge />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <PageHeaderActions
-            showCustomMetricButton={
-              hasCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
-            }
-            addCustomMetric={() => addCustomMetric('header')}
-          />
+          {!showOnboardingPanel ? (
+            <PageHeaderActions
+              showCustomMetricButton={
+                hasCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
+              }
+              addCustomMetric={() => addCustomMetric('header')}
+            />
+          ) : null}
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -146,8 +151,9 @@ export const MetricsLayout = memo(() => {
           </FilterContainer>
           {isHasMetricsLoading ? (
             <LoadingIndicator />
-          ) : hasCustomMetrics || isEmptyStateDismissed ? (
+          ) : !showOnboardingPanel ? (
             <Fragment>
+              <GuideAnchor target="metrics_onboarding" />
               <Queries />
               <MetricScratchpad />
               <WidgetDetails />
@@ -220,4 +226,6 @@ const EmptyStateImage = styled('img')`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  grid-auto-flow: row;
+  gap: ${space(1)};
 `;

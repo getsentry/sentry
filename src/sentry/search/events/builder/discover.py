@@ -93,7 +93,6 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    free_text_key = "message"
     uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
@@ -211,7 +210,6 @@ class BaseQueryBuilder:
             self.builder_config = config
         if self.builder_config.parser_config_overrides is None:
             self.builder_config.parser_config_overrides = {}
-        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
 
         self.dataset = dataset
 

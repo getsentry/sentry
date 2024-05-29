@@ -1,6 +1,31 @@
 from sentry.snuba.metrics import get_mri
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 
+METRICS_API_HIDDEN_OPERATIONS = {
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs": [
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99",
+    ],
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs": ["last"],
+}
+
+
+class OperationsConfiguration:
+    def __init__(self):
+        self.hidden_operations = set()
+
+    def hide_operation(self, operation: str) -> None:
+        self.hidden_operations.add(operation)
+
+    def hide_operations(self, operations: list[str]) -> None:
+        self.hidden_operations.update(operations)
+
+    def get_hidden_operations(self):
+        return list(self.hidden_operations)
+
 
 def convert_metric_names_to_mris(metric_names: list[str]) -> list[str]:
     mris: list[str] = []

@@ -2,7 +2,8 @@ import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
+
+import type {TraceType} from './traceType';
 
 const trackTraceShape = (shape: TraceType, organization: Organization) => {
   Sentry.metrics.increment(`trace.trace_shape.${shape}`);

@@ -14,10 +14,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
-import type {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 
 import {isTraceNode} from '../../../guards';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import type {TraceType} from '../../../traceType';
 import {IssueList} from '../../details/issues/issues';
 import {TraceDrawerComponents} from '../../details/styles';
 
@@ -54,8 +54,6 @@ export function TraceDetails(props: TraceDetailsProps) {
     throw new Error('Expected a trace node');
   }
 
-  const {data: rootEvent} = props.rootEventResults;
-
   return (
     <Fragment>
       {props.tree.type === 'trace' ? <TraceWarnings type={props.traceType} /> : null}
@@ -69,15 +67,13 @@ export function TraceDetails(props: TraceDetailsProps) {
           rootEventResults={props.rootEventResults}
           metaResults={props.metaResults}
         />
-        {rootEvent ? (
-          <TagsSummary
-            tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}
-            organization={organization}
-            location={location}
-            eventView={props.traceEventView}
-            totalValues={props.tree.eventsCount}
-          />
-        ) : null}
+        <TagsSummary
+          tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}
+          organization={organization}
+          location={location}
+          eventView={props.traceEventView}
+          totalValues={props.tree.eventsCount}
+        />
       </TraceDrawerComponents.SectionCardGroup>
     </Fragment>
   );

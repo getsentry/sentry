@@ -254,12 +254,15 @@ class DatabaseBackedControlOrganizationProvisioningService(
         return primary_slug
 
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
+        self,
+        *,
+        region_name: str,
+        slug_mapping: dict[int, str],
     ) -> None:
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
-            for org_id, slug in organization_ids_and_slugs:
+            for org_id, slug in slug_mapping.items():
                 slug_reservation = OrganizationSlugReservation(
                     slug=self._generate_org_slug(slug=slug, region_name=region_name),
                     organization_id=org_id,

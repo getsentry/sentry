@@ -37,7 +37,6 @@ export const REPLAY_CLIP_OFFSETS = {
 };
 
 const ReplayOnboardingPanel = lazy(() => import('./replayInlineOnboardingPanel'));
-const ReplayPreview = lazy(() => import('./replayPreview'));
 const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 
 function EventReplayContent({
@@ -49,10 +48,6 @@ function EventReplayContent({
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
   const router = useRouter();
   const {getReplayCountForIssue} = useReplayCountForIssues();
-
-  const hasReplayClipFeature = organization.features.includes(
-    'issue-details-inline-replay-viewer'
-  );
 
   if (fetching) {
     return null;
@@ -142,16 +137,12 @@ function EventReplayContent({
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReactLazyLoad debounce={50} height={448} offset={0} once>
-            {hasReplayClipFeature ? (
-              <LazyLoad
-                {...commonProps}
-                LazyComponent={ReplayClipPreview}
-                clipOffsets={REPLAY_CLIP_OFFSETS}
-                overlayContent={overlayContent}
-              />
-            ) : (
-              <LazyLoad {...commonProps} LazyComponent={ReplayPreview} />
-            )}
+            <LazyLoad
+              {...commonProps}
+              LazyComponent={ReplayClipPreview}
+              clipOffsets={REPLAY_CLIP_OFFSETS}
+              overlayContent={overlayContent}
+            />
           </ReactLazyLoad>
         </ReplayGroupContextProvider>
       </ErrorBoundary>

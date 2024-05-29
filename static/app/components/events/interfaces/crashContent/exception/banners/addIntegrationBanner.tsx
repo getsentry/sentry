@@ -66,7 +66,7 @@ export const StacktraceIntegrationBannerWrapper = styled('div')`
 export const IntegationBannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export const IntegationBannerDescription = styled('div')`

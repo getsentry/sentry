@@ -4,7 +4,6 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
-import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -52,18 +51,6 @@ import {
   isTransactionNode,
 } from './guards';
 import {TraceIcons} from './icons';
-
-function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
-  if (Array.isArray(maybePath)) {
-    return maybePath;
-  }
-
-  if (typeof maybePath === 'string') {
-    return [maybePath as TraceTree.NodePath];
-  }
-
-  return null;
-}
 
 const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
 const NO_ERRORS = new Set<TraceError>();
@@ -144,6 +131,7 @@ function maybeFocusRow(
 
 interface TraceProps {
   forceRerender: number;
+  initializedRef: React.MutableRefObject<boolean>;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -162,10 +150,14 @@ interface TraceProps {
   ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
-  scrollQueueRef: React.MutableRefObject<{
-    eventId?: string;
-    path?: TraceTree.NodePath[];
-  } | null>;
+  scrollQueueRef: React.MutableRefObject<
+    | {
+        eventId?: string;
+        path?: TraceTree.NodePath[];
+      }
+    | null
+    | undefined
+  >;
   trace: TraceTree;
   trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_id: string;
@@ -183,6 +175,7 @@ export function Trace({
   onTraceLoad,
   rerender,
   trace_state,
+  initializedRef,
   trace_dispatch,
   forceRerender,
 }: TraceProps) {
@@ -207,33 +200,15 @@ export function Trace({
   const traceStateRef = useRef<TraceReducerState>(trace_state);
   traceStateRef.current = trace_state;
 
-  if (
-    trace.root.space &&
-    (trace.root.space[0] !== manager.to_origin ||
-      trace.root.space[1] !== manager.trace_space.width)
-  ) {
-    manager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
-    const queryParams = qs.parse(location.search);
-    const maybeQueue = decodeScrollQueue(queryParams.node);
-
-    if (maybeQueue || queryParams.eventId) {
-      scrollQueueRef.current = {
-        eventId: queryParams.eventId as string,
-        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
-      };
-    }
-  }
-
-  const loadedRef = useRef(false);
   useLayoutEffect(() => {
-    if (loadedRef.current) {
+    if (initializedRef.current) {
       return;
     }
     if (trace.type !== 'trace' || !manager) {
       return;
     }
 
-    loadedRef.current = true;
+    initializedRef.current = true;
 
     if (!scrollQueueRef.current) {
       onTraceLoad(trace, null, null);
@@ -282,6 +257,7 @@ export function Trace({
     onTraceLoad,
     trace_dispatch,
     scrollQueueRef,
+    initializedRef,
     organization,
   ]);
 
@@ -1794,7 +1770,7 @@ const TraceStylingWrapper = styled('div')`
       text-align: center;
       position: absolute;
       font-size: 10px;
-      font-weight: bold;
+      font-weight: ${p => p.theme.fontWeightBold};
       color: ${p => p.theme.textColor};
       background-color: ${p => p.theme.background};
       border-radius: ${p => p.theme.borderRadius};
@@ -1843,7 +1819,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabel {
-        font-weight: normal;
+        font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
         top: 8px;
         width: auto;
@@ -2147,7 +2123,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       .TraceDescription {
-        font-weight: bold;
+        font-weight: ${p => p.theme.fontWeightBold};
       }
 
       .TraceChildrenCountWrapper {
@@ -2436,7 +2412,7 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   .TraceEmDash {
