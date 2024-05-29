@@ -590,6 +590,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string detailed: Specify '0' to retrieve details without projects and teams.
+         :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
         # This param will be used to determine if we should include feature flags in the response
