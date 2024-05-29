@@ -660,7 +660,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> int | str | None:
-        if self.is_performance or self.use_metrics_layer:
+        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
             return value
         return self.resolve_metric_index(value)
 

@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import datetime
 
-from snuba_sdk import Column, Condition, Function, Op, OrderBy
+from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
+from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
@@ -28,8 +28,6 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
-            "fingerprint": self._fingerprint_filter_converter,
-            # "message": self._message_filter_converter, ## not necessary ??????
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
@@ -41,42 +39,12 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         return {
-            "fingerprint": self._resolve_fingerprint_alias,
             PROJECT_ALIAS: self._resolve_project_slug_alias,
             PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
         }
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
-
-    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        try:
-            # return Condition(
-            #     self.builder.resolve_column("fingerprint"),
-            #     Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
-            #     int(search_filter.value.value),
-            # )
-            return Condition(
-                Function(
-                    "has", [self.builder.column("fingerprint"), int(search_filter.value.value)]
-                ),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
-        except ValueError:
-            raise InvalidSearchQuery(
-                "Invalid value for fingerprint condition. Accepted values are numeric."
-            )
-
-    def _resolve_fingerprint_alias(self, alias: str) -> SelectType:
-        # HACK: temporarily truncate the fingerprint to 32 bits
-        # as snuba cannot handle 64 bit unsigned fingerprints
-        # once we migrate to a 32 bit unsigned fingerprint
-        # we can remove this field alias and directly use the column
-        #
-        # When removing this, make sure to update the test helper to
-        # generate 32 bit function fingerprints as well.
-        return Function("toUInt32", [self.builder.column("_fingerprint")], alias)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)

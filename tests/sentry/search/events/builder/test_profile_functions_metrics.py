@@ -50,7 +50,6 @@ def params(now, today):
     [
         pytest.param(
             'package:""',
-            # Condition(Column("package"), Op("="), ""),
             Condition(
                 Function("has", parameters=[Column("tags.key"), 9223372036854776075]), Op("!="), 1
             ),
@@ -58,7 +57,6 @@ def params(now, today):
         ),
         pytest.param(
             '!package:""',
-            # Condition(Column("package"), Op("!="), ""),
             Condition(
                 Function("has", parameters=[Column("tags.key"), 9223372036854776075]), Op("="), 1
             ),
@@ -66,7 +64,6 @@ def params(now, today):
         ),
         pytest.param(
             'function:""',
-            # Condition(Column("name"), Op("="), ""),
             Condition(
                 Function("has", parameters=[Column("tags.key"), 9223372036854776074]), Op("!="), 1
             ),
@@ -74,7 +71,6 @@ def params(now, today):
         ),
         pytest.param(
             '!function:""',
-            # Condition(Column("name"), Op("!="), ""),
             Condition(
                 Function("has", parameters=[Column("tags.key"), 9223372036854776074]), Op("="), 1
             ),
@@ -82,17 +78,12 @@ def params(now, today):
         ),
         pytest.param(
             "fingerprint:123",
-            # Condition(Function("toUInt32", [Column("fingerprint")], "fingerprint"), Op("="), 123),
-            Condition(
-                Function("has", parameters=[Column("tags[9223372036854776076]"), 123]), Op("!="), 0
-            ),
+            Condition(Column("tags[9223372036854776076]"), Op("="), "123"),
             id="fingerprint",
         ),
         pytest.param(
             "!fingerprint:123",
-            Condition(
-                Function("has", parameters=[Column("tags[9223372036854776076]"), 123]), Op("="), 0
-            ),
+            Condition(Column("tags[9223372036854776076]"), Op("!="), "123"),
             id="not fingerprint",
         ),
     ],

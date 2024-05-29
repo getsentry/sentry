@@ -12,6 +12,13 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     profile_functions_metrics_builder = True
 
+    column_remapping = {
+        # We want to remap `message` to `name` for the free
+        # text search use case so that it searches the `name`
+        # (function name) when the user performs a free text search
+        "message": "name",
+    }
+
     @property
     def use_default_tags(self) -> bool:
         return False
