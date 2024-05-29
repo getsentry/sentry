@@ -3,11 +3,16 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {generateIconName} from 'sentry/components/events/contextSummary/utils';
+import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
 import type {
+  AvatarUser,
   Event,
   KeyValueListData,
   KeyValueListDataItem,
@@ -301,6 +306,41 @@ export function getContextMeta(event: Event, contextType: string): Record<string
     default:
       return defaultMeta;
   }
+}
+
+export function getContextIcon({
+  type,
+  value = {},
+}: {
+  type: string;
+  value?: Record<string, any>;
+}): React.ReactNode {
+  let iconName = '';
+  switch (type) {
+    case 'device':
+      iconName = generateIconName(value?.model);
+      break;
+    case 'client_os':
+    case 'os':
+      iconName = generateIconName(value?.name);
+      break;
+    case 'runtime':
+    case 'browser':
+      iconName = generateIconName(value?.name, value?.version);
+      break;
+    case 'user':
+      const user = removeFilterMaskedEntries(value);
+      return <UserAvatar user={user as AvatarUser} size={18} gravatar={false} />;
+    case 'gpu':
+      iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
+      break;
+    default:
+      break;
+  }
+  if (iconName.length === 0) {
+    return null;
+  }
+  return <ContextIcon name={iconName} size="md" />;
 }
 
 export function getFormattedContextData({
