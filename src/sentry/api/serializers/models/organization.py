@@ -36,6 +36,8 @@ from sentry.constants import (
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -433,6 +435,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDynamicallySampled: bool
     issueAlertsThreadFlag: bool
     metricAlertsThreadFlag: bool
+    metricsActivatePercentiles: bool
+    metricsActivateLastForGauges: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -556,6 +560,17 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "metricAlertsThreadFlag": bool(
                     obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
+                ),
+                "metricsActivatePercentiles": bool(
+                    obj.get_option(
+                        "sentry:metrics_activate_percentiles", METRICS_ACTIVATE_PERCENTILES_DEFAULT
+                    )
+                ),
+                "metricsActivateLastForGauges": bool(
+                    obj.get_option(
+                        "sentry:metrics_activate_last_for_gauges",
+                        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+                    )
                 ),
             }
         )

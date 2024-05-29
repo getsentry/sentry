@@ -9,7 +9,6 @@ from sentry.sentry_metrics.use_case_id_registry import (
 )
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -241,46 +240,69 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "sum",
         ]
 
-        with override_options(
-            {
-                "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs": [
-                    self.organization.id
-                ]
-            },
-        ):
-            response = self.get_success_response(
-                self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-            )
-            data = sorted(response.data, key=lambda d: d["mri"])
-            assert sorted(data[1]["operations"]) == [
-                "avg",
-                "count",
-                "histogram",
-                "max",
-                "max_timestamp",
-                "min",
-                "min_timestamp",
-                "p50",
-                "p75",
-                "p90",
-                "p95",
-                "p99",
-                "sum",
-            ]
+        # test default deactivated percentiles
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "sum",
+        ]
 
-            with override_options(
-                {"sentry-metrics.metrics-api.enable-gauge-last-for-orgs": [self.organization.id]},
-            ):
-                response = self.get_success_response(
-                    self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-                )
-                data = sorted(response.data, key=lambda d: d["mri"])
+        # test activated percentiles
+        self.organization.update_option("sentry:metrics_activate_percentiles", True)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
+            "sum",
+        ]
 
-                assert sorted(data[2]["operations"]) == [
-                    "avg",
-                    "count",
-                    "last",
-                    "max",
-                    "min",
-                    "sum",
-                ]
+        # test default deactivated gauges
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "max",
+            "min",
+            "sum",
+        ]
+
+        # test activated gauges
+        self.organization.update_option("sentry:metrics_activate_last_for_gauges", True)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "last",
+            "max",
+            "min",
+            "sum",
+        ]

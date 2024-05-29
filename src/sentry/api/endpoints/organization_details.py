@@ -41,6 +41,8 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -190,6 +192,18 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
+    (
+        "metricsActivatePercentiles",
+        "sentry:metrics_activate_percentiles",
+        bool,
+        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+    ),
+    (
+        "metricsActivateLastForGauges",
+        "sentry:metrics_activate_last_for_gauges",
+        bool,
+        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -238,6 +252,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricsActivatePercentiles = serializers.BooleanField(required=False)
+    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
