@@ -1764,7 +1764,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             wrong_org_token_str = generate_token(org2.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org2.id,
-                name="token 1",
+                name="org2 token 1",
                 token_hashed=hash_token(wrong_org_token_str),
                 token_last_characters="ABCD",
                 scope_list=["org:ci"],
@@ -1782,7 +1782,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             good_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
-                name="token 1",
+                name="token 2",
                 token_hashed=hash_token(good_token_str),
                 token_last_characters="ABCD",
                 scope_list=["org:ci"],
