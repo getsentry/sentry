@@ -160,11 +160,12 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getByRole('row', {name: 'browser.name:[firefox,Chrome]'})
       ).toBeInTheDocument();
-      expect(
-        within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        ).getByText('[firefox,Chrome]')
-      ).toBeInTheDocument();
+      const valueButton = screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      expect(within(valueButton).getByText('firefox')).toBeInTheDocument();
+      expect(within(valueButton).getByText('or')).toBeInTheDocument();
+      expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
     });
 
     it('escapes values with spaces and reserved characters', async function () {
@@ -188,6 +189,17 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('new search tokens', function () {
+    it('can add an unsupported filter key and value', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'a:b{enter}'
+      );
+
+      expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
+    });
+
     it('breaks keys into sections', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));

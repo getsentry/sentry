@@ -583,6 +583,7 @@ const AssigneeWrapper = styled('div')`
 `;
 
 const AssigneeDropdownButton = styled(DropdownButton)`
+  z-index: 0;
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};
 `;
