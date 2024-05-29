@@ -3,7 +3,6 @@ import type {Location} from 'history';
 
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
@@ -119,12 +118,11 @@ function SpanSummaryContent(props: ContentProps) {
         'sum(span.self_time)',
         'count()',
       ],
-      enabled: Boolean(groupId),
     },
     SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA
   );
 
-  const description = spanHeaderData[0]?.['span.description'] ?? t('unknown');
+  const description = spanHeaderData[0]?.['span.description'];
   const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
   const avgDuration = spanHeaderData[0]?.['avg(span.self_time)'];
   const spanCount = spanHeaderData[0]?.['count()'];

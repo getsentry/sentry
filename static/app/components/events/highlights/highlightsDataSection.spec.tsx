@@ -15,7 +15,7 @@ import {
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
-  const organization = OrganizationFixture({features: ['event-tags-tree-ui']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const event = EventFixture({
     contexts: TEST_EVENT_CONTEXTS,
