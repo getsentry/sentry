@@ -268,10 +268,12 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     </div>
   );
 }
+
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
+
 const Description = styled('div')`
   max-width: 340px;
 `;
@@ -284,11 +286,13 @@ const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(4)};
 `;
+
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
 `;
+
 const Setup = styled('div')`
   padding: ${space(4)};
   &:after {
@@ -300,9 +304,11 @@ const Setup = styled('div')`
     border-right: 1px ${p => p.theme.border} solid;
   }
 `;
+
 const Preview = styled('div')`
   padding: ${space(4)};
 `;
+
 const Body = styled('div')`
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
@@ -311,6 +317,7 @@ const Body = styled('div')`
     margin-bottom: 0;
   }
 `;
+
 const Image = styled('img')`
   position: absolute;
   display: block;
@@ -323,6 +330,7 @@ const Image = styled('img')`
     display: none;
   }
 `;
+
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
@@ -342,11 +350,13 @@ const Arcade = styled('iframe')`
 const StyledButtonBar = styled(ButtonBar)`
   display: flex;
 `;
+
 const IndicatorWrapper = styled('div')`
   width: 300px;
   max-width: 100%;
   margin-bottom: ${space(1)};
 `;
+
 const StyledCodeSnippet = styled(CodeSnippet)`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
