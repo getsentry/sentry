@@ -1,6 +1,12 @@
 import type {ComponentProps} from 'react';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {TagCollection} from 'sentry/types/group';
@@ -41,6 +47,28 @@ describe('SearchQueryBuilder', function () {
     supportedKeys: MOCK_SUPPORTED_KEYS,
     label: 'Query Builder',
   };
+
+  describe('actions', function () {
+    it('can clear the query', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+      userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('');
+      });
+
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+  });
 
   describe('mouse interactions', function () {
     it('can remove a token by clicking the delete button', async function () {

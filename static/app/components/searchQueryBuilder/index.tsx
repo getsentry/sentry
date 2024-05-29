@@ -1,12 +1,16 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {Button} from 'sentry/components/button';
 import {inputStyles} from 'sentry/components/input';
-import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilerContext,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
@@ -20,11 +24,12 @@ import {
   parseSearch,
   Token,
 } from 'sentry/components/searchSyntax/parser';
-import {IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
@@ -45,7 +50,7 @@ function Grid(props: GridProps) {
   const {gridProps} = useQueryBuilderGrid(props, state, ref);
 
   return (
-    <Wrapper {...gridProps} ref={ref}>
+    <SearchQueryGridWrapper {...gridProps} ref={ref}>
       <PositionedSearchIcon size="sm" />
       {[...state.collection].map(item => {
         const token = item.value;
@@ -75,7 +80,23 @@ function Grid(props: GridProps) {
             return null;
         }
       })}
-    </Wrapper>
+    </SearchQueryGridWrapper>
+  );
+}
+
+function ActionButtons() {
+  const {dispatch} = useSearchQueryBuilder();
+
+  return (
+    <ButtonsWrapper>
+      <ActionButton
+        aria-label={t('Clear search query')}
+        size="zero"
+        icon={<IconClose />}
+        borderless
+        onClick={() => dispatch({type: 'CLEAR'})}
+      />
+    </ButtonsWrapper>
   );
 }
 
@@ -93,7 +114,7 @@ export function SearchQueryBuilder({
     [state.query]
   );
 
-  useEffect(() => {
+  useEffectAfterFirstRender(() => {
     onChange?.(state.query);
   }, [onChange, state.query]);
 
@@ -114,19 +135,27 @@ export function SearchQueryBuilder({
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
-        <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
-          {item => (
-            <Item key={makeTokenKey(item, parsedQuery)}>
-              {item.text.trim() ? item.text : t('Space')}
-            </Item>
-          )}
-        </Grid>
+        <Wrapper>
+          <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
+            {item => (
+              <Item key={makeTokenKey(item, parsedQuery)}>
+                {item.text.trim() ? item.text : t('Space')}
+              </Item>
+            )}
+          </Grid>
+          <ActionButtons />
+        </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>
   );
 }
 
 const Wrapper = styled('div')`
+  width: 100%;
+  position: relative;
+`;
+
+const SearchQueryGridWrapper = styled('div')`
   ${inputStyles}
   height: auto;
   position: relative;
@@ -136,13 +165,25 @@ const Wrapper = styled('div')`
   row-gap: ${space(0.5)};
   flex-wrap: wrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} 36px;
+  padding: ${space(0.75)} 36px ${space(0.75)} 36px;
   cursor: text;
 
   :focus-within {
     border: 1px solid ${p => p.theme.focusBorder};
     box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
   }
+`;
+
+const ButtonsWrapper = styled('div')`
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  display: flex;
+  align-items: center;
+`;
+
+const ActionButton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;
 
 const PositionedSearchIcon = styled(IconSearch)`
