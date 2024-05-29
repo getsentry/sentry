@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
-from collections.abc import Callable, Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping
 from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 import pydantic
@@ -39,6 +39,13 @@ _OptionalR = Union[_R, None]
 
 
 class SiloCacheBackedCallable(Generic[_R]):
+    """
+    Get a single record from cache or wrapped function.
+
+    When cache read returns no data, the wrapped function will be
+    invoked. The result of the wrapped function is then stored in cache.
+    """
+
     silo_mode: SiloMode
     base_key: str
     cb: Callable[[int], _R | None]
@@ -59,16 +66,16 @@ class SiloCacheBackedCallable(Generic[_R]):
         self.type_ = t
         self.timeout = timeout
 
-    def __call__(self, args: int) -> _OptionalR:
+    def __call__(self, object_id: int) -> _OptionalR:
         if (
             SiloMode.get_current_mode() != self.silo_mode
             and SiloMode.get_current_mode() != SiloMode.MONOLITH
         ):
-            return self.cb(args)
-        return self.get_many([args])[0]
+            return self.cb(object_id)
+        return self.get_one(object_id)
 
-    def key_from(self, args: int) -> str:
-        return f"{self.base_key}:{args}"
+    def key_from(self, object_id: int) -> str:
+        return f"{self.base_key}:{object_id}"
 
     def resolve_from(
         self, i: int, values: Mapping[str, int | str]
@@ -91,12 +98,12 @@ class SiloCacheBackedCallable(Generic[_R]):
             _consume_generator(_set_cache(key, r.json(), version, self.timeout))
         return r
 
-    def get_many(self, ids: Sequence[int]) -> list[_OptionalR]:
+    def get_one(self, object_id: int) -> _OptionalR:
         from .impl import _consume_generator, _get_cache
 
-        keys = [self.key_from(i) for i in ids]
-        values = _consume_generator(_get_cache(keys, self.silo_mode))
-        return [_consume_generator(self.resolve_from(i, values)) for i in ids]
+        key = self.key_from(object_id)
+        values = _consume_generator(_get_cache([key], self.silo_mode))
+        return _consume_generator(self.resolve_from(object_id, values))
 
 
 def back_with_silo_cache(

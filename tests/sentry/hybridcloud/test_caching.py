@@ -50,7 +50,8 @@ def test_caching_function() -> None:
             region_name=get_local_region().name, key=get_user.key_from(u.id)
         )
 
-    for u, cached in zip(users, get_user.get_many([u.id for u in users])):
+    cached_users = [get_user.get_one(u.id) for u in users]
+    for u, cached in zip(users, cached_users):
         assert cached
         assert cached.username == u.username
 
@@ -87,7 +88,8 @@ def test_caching_function_control() -> None:
 
         control_caching_service.clear_key(key=get_org.key_from(org.id))
 
-    for o, cached in zip(orgs, get_org.get_many([o.id for o in orgs])):
+    cached_orgs = [get_org.get_one(o.id) for o in orgs]
+    for o, cached in zip(orgs, cached_orgs):
         assert cached
         assert cached.name == o.name
 
