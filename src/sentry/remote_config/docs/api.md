@@ -6,7 +6,7 @@ Host: https://sentry.io/api/0
 
 @cmanallen
 
-## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/keys/<key_id>/configuration/]
+## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/]
 
 ### Get Configuration [GET]
 
@@ -16,7 +16,6 @@ Retrieve the DSN's configuration.
 
 | Column   | Type           | Description                                   |
 | -------- | -------------- | --------------------------------------------- |
-| id       | string         | Client key.                                   |
 | features | array[Feature] | Custom, user-defined configuration container. |
 | options  | Option         | Sentry SDK options container.                 |
 
@@ -41,7 +40,6 @@ Retrieve the DSN's configuration.
   ```json
   {
     "data": {
-      "id": "99aabf0dad1c48ad8e47e2a43969f312",
       "features": [
         {
           "key": "hello",
@@ -96,7 +94,6 @@ Set the DSN's configuration.
   ```json
   {
     "data": {
-      "id": "99aabf0dad1c48ad8e47e2a43969f312",
       "features": [
         {
           "key": "hello",
