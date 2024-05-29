@@ -428,6 +428,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
+            "metricsActivatePercentiles": True,
+            "metricsActivateLastForGauges": True,
         }
 
         # needed to set require2FA
@@ -461,6 +463,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:metrics_activate_percentiles") is True
+        assert options.get("sentry:metrics_activate_last_for_gauges") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -493,6 +497,14 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
+        assert (
+            "to {}".format(data["metricsActivatePercentiles"])
+            in log.data["metricsActivatePercentiles"]
+        )
+        assert (
+            "to {}".format(data["metricsActivateLastForGauges"])
+            in log.data["metricsActivateLastForGauges"]
+        )
 
     @responses.activate
     @patch(

@@ -18,7 +18,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.backfill import (
@@ -124,6 +124,7 @@ def backfill_seer_grouping_records(
 
     group_id_message_data = (
         Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
+        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
         .order_by("times_seen")
         .order_by("id")

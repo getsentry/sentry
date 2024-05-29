@@ -7,7 +7,6 @@
     ".eslintrc.js",
     "static/app",
     "tests/js",
-    "fixtures/js-stubs",
     "config",
     "scripts"
   ]
