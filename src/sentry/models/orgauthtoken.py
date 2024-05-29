@@ -152,13 +152,13 @@ def get_org_auth_token_id_from_auth(auth: object) -> int | None:
 def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
     org_auth_token_id = get_org_auth_token_id_from_auth(auth)
     organization_id = getattr(auth, "organization_id", None)
-    if not org_auth_token_id and not organization_id:
+    if org_auth_token_id is None or organization_id is None:
         return
 
     # Debounce updates, as we often get bursts of requests when customer
     # run CI or deploys and we don't need second level precision here.
     # We vary on the project ids so that unique requests still make updates
-    project_segment = ",".join([str(i) for i in project_ids])
+    project_segment = ",".join(str(i) for i in project_ids)
     recent_key = f"orgauthtoken:{org_auth_token_id}:last_update:{project_segment}"
     if cache.get(recent_key):
         return
