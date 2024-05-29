@@ -37,11 +37,11 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
       {isRelatedIssuesEnabled && readyToShow && oneOtherIssueEvent === undefined && (
         <TraceLink event={event} />
       )}
-      {isRelatedIssuesEnabled && readyToShow && oneOtherIssueEvent && (
-        <div>
+      {isRelatedIssuesEnabled && oneOtherIssueEvent && (
+        <StyledTraceLink>
           One other issue appears in the same trace.
-          <TraceLink event={event} />
-        </div>
+          {readyToShow && <TraceLink event={event} />}
+        </StyledTraceLink>
       )}
       {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
       <StyledGlobalAppStoreConnectUpdateAlert
@@ -62,6 +62,11 @@ const StyledDataSection = styled(DataSection)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(1.5)} ${space(4)} 0;
   }
+`;
+
+const StyledTraceLink = styled('div')`
+  display: flex;
+  gap: ${space(0.25)};
 `;
 
 export default GroupEventHeader;
