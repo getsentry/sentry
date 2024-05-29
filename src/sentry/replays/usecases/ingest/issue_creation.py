@@ -14,7 +14,7 @@ logger = logging.getLogger()
 HYDRATION_ERROR_TITLE = "Hydration Error"
 HYDRATION_ERROR_SUBTITLE = "A hydration error occurred."
 HYDRATION_ERROR_LEVEL = "error"
-HYDRATION_ERROR_FINGERPRINT = "1"  # all hydration errors will be grouped together
+HYDRATION_ERROR_FINGERPRINT = "1"  # all hydration errors in a project will be grouped together
 RAGE_CLICK_TITLE = "Rage Click"
 RAGE_CLICK_LEVEL = "error"
 
