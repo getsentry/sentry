@@ -389,3 +389,82 @@ class TeamExamples:
             response_only=True,
         )
     ]
+
+    RETRIEVE_TEAM_DETAILS = [
+        OpenApiExample(
+            "Retrieve a Team",
+            value={
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "dateCreated": "2018-11-06T21:19:55.114Z",
+                "hasAccess": True,
+                "id": "2",
+                "isMember": True,
+                "isPending": False,
+                "memberCount": 1,
+                "name": "Powerful Abolitionist",
+                "organization": {
+                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "dateCreated": "2018-11-06T21:19:55.101Z",
+                    "id": "2",
+                    "isEarlyAdopter": False,
+                    "name": "The Interstellar Jurisdiction",
+                    "require2FA": False,
+                    "slug": "the-interstellar-jurisdiction",
+                    "status": {"id": "active", "name": "active"},
+                    "requireEmailVerification": False,
+                    "features": ["session-replay-videos"],
+                    "hasAuthProvider": True,
+                    "links": {
+                        "organizationUrl": "https://philosophers.sentry.io",
+                        "regionUrl": "https://us.sentry.io",
+                    },
+                },
+                "slug": "powerful-abolitionist",
+                "access": [
+                    "event:read",
+                    "event:write",
+                    "team:read",
+                    "org:read",
+                    "project:read",
+                    "member:read",
+                    "project:releases",
+                    "alerts:read",
+                ],
+                "flags": {"idp:provisioned": False},
+                "teamRole": "contributor",
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    UPDATE_TEAM = [
+        OpenApiExample(
+            "Update a Team",
+            value={
+                "avatar": {"avatarType": "letter_avatar"},
+                "dateCreated": "2018-11-06T21:20:08.115Z",
+                "hasAccess": True,
+                "id": "3",
+                "isMember": False,
+                "isPending": False,
+                "memberCount": 1,
+                "name": "The Inflated Philosophers",
+                "slug": "the-inflated-philosophers",
+                "access": [
+                    "event:read",
+                    "event:write",
+                    "team:read",
+                    "org:read",
+                    "project:read",
+                    "member:read",
+                    "project:releases",
+                    "alerts:read",
+                ],
+                "flags": {"idp:provisioned": False},
+                "teamRole": "contributor",
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
