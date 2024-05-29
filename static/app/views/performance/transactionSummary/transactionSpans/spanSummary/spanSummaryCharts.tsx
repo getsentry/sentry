@@ -49,7 +49,6 @@ function SpanSummaryCharts() {
     {
       search: MutableSearch.fromQueryObject(filters),
       yAxis: ['spm()'],
-      enabled: Boolean(groupId),
     },
     SpanSummaryReferrer.SPAN_SUMMARY_THROUGHPUT_CHART
   );
@@ -63,7 +62,6 @@ function SpanSummaryCharts() {
       search: MutableSearch.fromQueryObject(filters),
       // TODO: Switch this to SPAN_DURATION before release
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-      enabled: Boolean(groupId),
     },
     SpanSummaryReferrer.SPAN_SUMMARY_DURATION_CHART
   );
