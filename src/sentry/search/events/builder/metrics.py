@@ -81,6 +81,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     organization_column: str = "organization_id"
 
+    column_remapping = {}
+
     def __init__(
         self,
         *args: Any,
@@ -649,6 +651,10 @@ class MetricsQueryBuilder(QueryBuilder):
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
+        # some tag keys needs to be remapped to a different column name
+        # prior to resolving it via the indexer
+        value = self.column_remapping.get(value, value)
+
         # Attempt to resolve tag keys, for the metrics preformance datasets we use an allowlist so ondemand keys don't
         # overlap. If you don't want this functionality for your dataset set valid_tags to an empty sequence
         if len(self.valid_tags) > 0 and value in self.valid_tags:

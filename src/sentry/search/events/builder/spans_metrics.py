@@ -18,6 +18,13 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     valid_tags = {}
     free_text_key = "span.description"
 
+    column_remapping = {
+        # We want to remap `message` to `span.description` for the free
+        # text search use case so that it searches the `span.description`
+        # when the user performs a free text search
+        "message": "span.description",
+    }
+
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]

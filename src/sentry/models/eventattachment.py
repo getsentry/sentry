@@ -120,7 +120,9 @@ class EventAttachment(Model):
             cache.delete(get_crashreport_key(self.group_id))
 
         if self.blob_path:
-            if self.blob_path.startswith("eventattachments/v1/"):
+            if self.blob_path.startswith(":"):
+                return rv
+            elif self.blob_path.startswith("eventattachments/v1/"):
                 storage = get_storage()
             else:
                 raise NotImplementedError()
