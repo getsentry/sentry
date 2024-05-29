@@ -380,7 +380,7 @@ export function getContextIcon({
       break;
     case 'user':
       const user = removeFilterMaskedEntries(value);
-      return <UserAvatar user={user as AvatarUser} size={18} gravatar={false} />;
+      return <UserAvatar user={user as AvatarUser} size={14} gravatar={false} />;
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
@@ -390,7 +390,7 @@ export function getContextIcon({
   if (iconName.length === 0) {
     return null;
   }
-  return <ContextIcon name={iconName} size="md" />;
+  return <ContextIcon name={iconName} size="sm" />;
 }
 
 export function getFormattedContextData({
