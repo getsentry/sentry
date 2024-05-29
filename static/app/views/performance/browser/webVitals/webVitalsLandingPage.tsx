@@ -30,6 +30,7 @@ import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_TITLE,
 } from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
@@ -81,7 +82,7 @@ export function WebVitalsLandingPage() {
           <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
-            {t('Web Vitals')}
+            {MODULE_TITLE}
             <PageHeadingQuestionTooltip
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
