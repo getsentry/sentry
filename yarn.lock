@@ -3121,13 +3121,21 @@
     "@sentry/types" "8.0.0"
     "@sentry/utils" "8.0.0"
 
-"@sentry/core@8.0.0", "@sentry/core@^8.0.0":
+"@sentry/core@8.0.0":
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.0.0.tgz#fd5f94c9ef72ce386ae37de852f156106ea807d5"
   integrity sha512-PgOqQPdlIbiLFOo0F6IBzMbvusiEQ86+yXd76pIsuqQ2tj+iFL5gdYOckF/FKVpAwhfzIx64GKin2C+535c1qQ==
   dependencies:
     "@sentry/types" "8.0.0"
     "@sentry/utils" "8.0.0"
+
+"@sentry/core@^8.7.0":
+  version "8.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.7.0.tgz#c98bc47020cd48d899806baaebc7a4b6fe10b9ab"
+  integrity sha512-Sq/46B+5nWmgnCD6dEMZ6HTkKbV/KAdgaSvT8oXDb9OWoPy1jJ/gbLrhLs62KbjuDQk4/vWnOgHiKQbcslSzMw==
+  dependencies:
+    "@sentry/types" "8.7.0"
+    "@sentry/utils" "8.7.0"
 
 "@sentry/jest-environment@6.0.0":
   version "6.0.0"
@@ -3210,17 +3218,29 @@
   resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.2.0.tgz#f82dec256ccf412cc97d71245bd87300ec56deca"
   integrity sha512-Ulu7dhQrkB8zDA1f6nDPGOB4nIQj7QBI3Mk3fHn9W9KMVYeY7wi+0u01aV2aO7JnCkXHihzRnuLyTgulVJuQWg==
 
-"@sentry/types@8.0.0", "@sentry/types@^8.0.0":
+"@sentry/types@8.0.0":
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.0.0.tgz#5047dcbcff6a38699e4490acd941baffafb72f45"
   integrity sha512-Dtd8dtFEq1XtdAntkguYHaL4tokzm4Aq5t0HP6Vl1P+MPImokDE1UcpKglkh0Z5aym/vF6e0qW9/CM7lAI5R/A==
 
-"@sentry/utils@8.0.0", "@sentry/utils@^8.0.0":
+"@sentry/types@8.7.0", "@sentry/types@^8.0.0":
+  version "8.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.7.0.tgz#92731af32318d6abb8759216cf6c3c5035894e6e"
+  integrity sha512-11KLOKumP6akugVGLvSoEig+JlP0ZEzW3nN9P+ppgdIx9HAxMIh6UvumbieG4/DWjAh2kh6NPNfUw3gk2Gfq1A==
+
+"@sentry/utils@8.0.0":
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.0.0.tgz#24b2f3f24cf521c0180e4335da63a4c6e51fa7dd"
   integrity sha512-oZex/dRKfkWHoK99W7QDQtr26IZrAD9EDd2+pwLmkFclApxVDGLLKNkmcbfj4LX1zMROxKWww/GTE7eo08tEKg==
   dependencies:
     "@sentry/types" "8.0.0"
+
+"@sentry/utils@8.7.0", "@sentry/utils@^8.0.0":
+  version "8.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.7.0.tgz#26893acc5bca9bfd4998d2eafe724491e3ca78a2"
+  integrity sha512-aWmcbSoOmrbzll/FkNQFJcCtLAuJLvTYbRKiCSkV3FScA7UaA742HkTZAPFiioALFIESWk/fcGZqtN0s4I281Q==
+  dependencies:
+    "@sentry/types" "8.7.0"
 
 "@sinclair/typebox@^0.27.8":
   version "0.27.8"
