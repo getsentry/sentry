@@ -1,10 +1,13 @@
-from typing import Any
+from dataclasses import dataclass
+
+from django.contrib.auth.models import AnonymousUser
 
 from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -12,9 +15,16 @@ class InvalidContextDataException(Exception):
     pass
 
 
-def organization_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+@dataclass()
+class SentryContextData:
+    actor: User | RpcUser | AnonymousUser | None = None
+    organization: Organization | RpcOrganization | None = None
+    project: Project | RpcProject | None = None
+
+
+def organization_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
-    org = data.get("organization", None)
+    org = data.organization
     if org is None:
         return context_data
 
@@ -36,10 +46,10 @@ def organization_context_transformer(data: dict[str, Any]) -> EvaluationContextD
     return context_data
 
 
-def project_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+def project_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
 
-    if (proj := data.get("project", None)) is not None:
+    if (proj := data.project) is not None:
         if not isinstance(proj, Project):
             raise InvalidContextDataException("Invalid project object provided")
 
@@ -50,10 +60,10 @@ def project_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
     return context_data
 
 
-def user_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
+def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     context_data: EvaluationContextDict = dict()
-    user = data.get("actor", None)
-    if user is None:
+    user = data.actor
+    if user is None or isinstance(user, AnonymousUser):
         return context_data
 
     if not isinstance(user, User) and not isinstance(user, RpcUser):
@@ -78,14 +88,14 @@ def user_context_transformer(data: dict[str, Any]) -> EvaluationContextDict:
     return context_data
 
 
-def get_sentry_flagpole_context_builder() -> ContextBuilder:
+def get_sentry_flagpole_context_builder() -> ContextBuilder[SentryContextData]:
     """
     Creates and returns a new sentry flagpole context builder with Organization,
      User, and Project transformers appended to it.
     :return:
     """
     return (
-        ContextBuilder()
+        ContextBuilder[SentryContextData]()
         .add_context_transformer(organization_context_transformer)
         .add_context_transformer(project_context_transformer)
         .add_context_transformer(user_context_transformer)
