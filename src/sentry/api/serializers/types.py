@@ -42,6 +42,8 @@ class ReleaseSerializerResponseOptional(TypedDict, total=False):
     ref: str | None
     url: str | None
     dateReleased: datetime | None
+    dateCreated: datetime | None
+    dateStarted: datetime | None
     owner: dict[str, Any] | None
     lastCommit: dict[str, Any] | None
     lastDeploy: LastDeploy | None
@@ -59,7 +61,6 @@ class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     status: str
     shortVersion: str
     versionInfo: VersionInfo
-    dateCreated: datetime
     data: dict[str, Any]
     commitCount: int
     deployCount: int

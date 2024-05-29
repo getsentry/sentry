@@ -40,9 +40,9 @@ class VersionInfoOptional(TypedDict, total=False):
 
 
 class VersionInfo(VersionInfoOptional):
-    package: str
+    package: str | None
     version: dict[str, str]
-    buildHash: str
+    buildHash: str | None
 
 
 class LastDeployOptional(TypedDict, total=False):
@@ -103,7 +103,10 @@ class HealthData(HealthDataOptional):
 
 
 class ProjectOptional(TypedDict, total=False):
-    health_data: HealthData | None
+    healthData: HealthData | None
+    dateReleased: datetime | None
+    dateCreated: datetime | None
+    dateStarted: datetime | None
 
 
 class Project(ProjectOptional):
@@ -111,7 +114,6 @@ class Project(ProjectOptional):
     slug: str
     name: str
     newGroups: int
-    platform: str
-    platforms: list[str]
+    platform: str | None
+    platforms: list[str] | None
     hasHealthData: bool
-    healthData: HealthData
