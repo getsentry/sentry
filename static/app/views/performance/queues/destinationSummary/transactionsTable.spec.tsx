@@ -3,16 +3,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useLocation');
 
 describe('transactionsTable', () => {
   const organization = OrganizationFixture();
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   let eventsMock;
 
@@ -70,7 +67,7 @@ describe('transactionsTable', () => {
     });
   });
   it('renders', async () => {
-    render(<TransactionsTable />);
+    render(<TransactionsTable />, {organization});
     expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Transactions'})).toBeInTheDocument();
@@ -133,7 +130,7 @@ describe('transactionsTable', () => {
       key: '',
     });
 
-    render(<TransactionsTable />);
+    render(<TransactionsTable />, {organization});
 
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',

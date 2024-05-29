@@ -9,19 +9,17 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
 } from 'sentry/views/performance/browser/resources/resourceView';
 import {
-  BASE_URL,
-  MODULE_TITLE,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
 } from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -29,6 +27,9 @@ import {
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
+import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
@@ -36,28 +37,25 @@ const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
-  const organization = useOrganization();
   const filters = useResourceModuleFilters();
+  const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
+
+  const crumbs = useModuleBreadcrumbs('resource');
 
   return (
     <React.Fragment>
       <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Performance',
-                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                  preservePageFilters: true,
-                },
-                {
-                  label: 'Resources',
-                },
-              ]}
-            />
+            <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>{MODULE_TITLE}</Layout.Title>
+            <Layout.Title>
+              {moduleTitle}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -93,11 +91,7 @@ function ResourcesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="resource" features="spans-first-ui">
       <ResourcesLandingPage />
     </ModulePageProviders>
   );

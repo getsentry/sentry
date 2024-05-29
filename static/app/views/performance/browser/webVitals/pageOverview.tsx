@@ -28,7 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
 import {
   FID_DEPRECATION_DATE,
@@ -37,7 +36,6 @@ import {
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
-import {BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -48,6 +46,8 @@ import {
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -76,6 +76,7 @@ function getCurrentTabSelection(selectedTab) {
 }
 
 export function PageOverview() {
+  const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -105,6 +106,8 @@ export function PageOverview() {
     key: `${organization.slug}-${user.id}:fid-deprecation-message-dismissed`,
   });
 
+  const crumbs = useModuleBreadcrumbs('vital');
+
   const query = decodeScalar(location.query.query);
 
   const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
@@ -113,9 +116,7 @@ export function PageOverview() {
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
-    window.location.href = normalizeUrl(
-      `/organizations/${organization.slug}/performance/browser/pageloads/`
-    );
+    window.location.href = moduleURL;
     return null;
   }
 
@@ -155,21 +156,7 @@ export function PageOverview() {
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
-              crumbs={[
-                {
-                  label: 'Performance',
-                  to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                  preservePageFilters: true,
-                },
-                {
-                  label: 'Web Vitals',
-                  to: normalizeUrl(
-                    `/organizations/${organization.slug}/performance/browser/pageloads/`
-                  ),
-                  preservePageFilters: true,
-                },
-                ...(transaction ? [{label: 'Page Overview'}] : []),
-              ]}
+              crumbs={[...crumbs, ...(transaction ? [{label: 'Page Overview'}] : [])]}
             />
             <Layout.Title>
               {transaction && project && <ProjectAvatar project={project} size={24} />}
@@ -306,11 +293,7 @@ export function PageOverview() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="vital" features="spans-first-ui">
       <PageOverview />
     </ModulePageProviders>
   );

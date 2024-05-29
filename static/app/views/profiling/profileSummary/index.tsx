@@ -33,7 +33,9 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -831,7 +833,7 @@ const ProfileDigestHeader = styled('div')`
 const ProfileDigestLabel = styled('span')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
 `;
 

@@ -16,9 +16,11 @@ export enum ModuleName {
   CACHE = 'cache',
   VITAL = 'vital',
   QUEUE = 'queue',
-  SCREEN = 'screen',
-  STARTUP = 'startup',
+  SCREEN_LOAD = 'screen_load',
+  APP_START = 'app_start',
   RESOURCE = 'resource',
+  AI = 'ai',
+  MOBILE_UI = 'mobile-ui',
   ALL = '',
   OTHER = 'other',
 }
@@ -172,6 +174,7 @@ export enum SpanIndexedField {
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
   SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
+  SPAN_STATUS = 'span.status',
   SPAN_OP = 'span.op',
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
@@ -193,6 +196,9 @@ export enum SpanIndexedField {
   REPLAY_ID = 'replay.id',
   BROWSER_NAME = 'browser.name',
   USER = 'user',
+  USER_ID = 'user.id',
+  USER_EMAIL = 'user.email',
+  USER_USERNAME = 'user.username',
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
@@ -220,6 +226,24 @@ export type IndexedResponse = {
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
+  [SpanIndexedField.SPAN_STATUS]:
+    | 'ok'
+    | 'cancelled'
+    | 'unknown'
+    | 'invalid_argument'
+    | 'deadline_exceeded'
+    | 'not_found'
+    | 'already_exists'
+    | 'permission_denied'
+    | 'resource_exhausted'
+    | 'failed_precondition'
+    | 'aborted'
+    | 'out_of_range'
+    | 'unimplemented'
+    | 'internal_error'
+    | 'unavailable'
+    | 'data_loss'
+    | 'unauthenticated';
   [SpanIndexedField.ID]: string;
   [SpanIndexedField.SPAN_ACTION]: string;
   [SpanIndexedField.TRACE]: string;
@@ -239,6 +263,9 @@ export type IndexedResponse = {
   [SpanIndexedField.REPLAY_ID]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
+  [SpanIndexedField.USER_ID]: string;
+  [SpanIndexedField.USER_EMAIL]: string;
+  [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;

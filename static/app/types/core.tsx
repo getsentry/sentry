@@ -67,12 +67,11 @@ export type Choice = [
 export type Choices = Choice[];
 
 /**
- * This legacy type used plurals which will cause compatibility issues when categories
- * become more complex, e.g. processed transactions, session replays. Instead, access these values
- * with `DATA_CATEGORY_INFO[category].plural`, where category is the `DataCategoryExact` enum value.
+ * These are very similar to the plural types of DATA_CATEGORY_INFO.
+ * DATA_CATEGORY_INFO and DataCategoryExact have additional categories
+ * that are used in stats but not other places like billing.
  */
 export enum DataCategory {
-  DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',

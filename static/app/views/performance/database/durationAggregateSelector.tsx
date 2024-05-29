@@ -44,7 +44,7 @@ const DURATION_AGGREGATE_LABELS = {
 // TODO: Talk to UI folks about making this a built-in dropdown size, we use this in a few places
 const StyledCompactSelect = styled(CompactSelect)`
   text-align: left;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 

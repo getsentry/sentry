@@ -3,11 +3,16 @@ import type {ComponentProps} from 'react';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
 const MOCK_SUPPORTED_KEYS: TagCollection = {
-  [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
+  [FieldKey.AGE]: {
+    key: FieldKey.AGE,
+    name: 'Age',
+    kind: FieldKind.FIELD,
+    predefined: true,
+  },
   [FieldKey.ASSIGNED]: {
     key: FieldKey.ASSIGNED,
     name: 'Assigned To',
@@ -95,7 +100,39 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('can modify the value by clicking into it', async function () {
+    it('can modify the value by clicking into it (single-select)', async function () {
+      // `age` is a duration filter which only accepts single values
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-1d" />);
+
+      // Should display as "-1d" to start
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        ).getByText('-1d')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: age'})
+      );
+      // Should have placeholder text of previous value
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
+        'placeholder',
+        '-1d'
+      );
+      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+      // Clicking the "+14d" option should update the value
+      await userEvent.click(screen.getByRole('option', {name: '+14d'}));
+      expect(screen.getByRole('row', {name: 'age:+14d'})).toBeInTheDocument();
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        ).getByText('+14d')
+      ).toBeInTheDocument();
+    });
+
+    it('can modify the value by clicking into it (multi-select)', async function () {
+      // `browser.name` is a string filter which accepts multiple values
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
@@ -110,51 +147,75 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
       );
-      // Should have placeholder text of previous value
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
-        'placeholder',
-        'firefox'
-      );
+      // Previous value should be rendered before the input
+      expect(
+        within(screen.getByRole('row', {name: 'browser.name:firefox'})).getByText(
+          'firefox,'
+        )
+      ).toBeInTheDocument();
       await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
-      // Clicking the "Chrome option should update the value"
+      // Clicking the "Chrome option should add it to the list and commit changes
       await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
-      expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+      ).toBeInTheDocument();
       expect(
         within(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        ).getByText('Chrome')
+        ).getByText('[firefox,Chrome]')
       ).toBeInTheDocument();
     });
 
     it('escapes values with spaces and reserved characters', async function () {
-      render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'assigned:some" value{enter}'
       );
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-      );
-      await userEvent.keyboard('some" value{enter}');
       // Value should be surrounded by quotes and escaped
       expect(
-        screen.getByRole('row', {name: 'browser.name:"some\\" value"'})
+        screen.getByRole('row', {name: 'assigned:"some\\" value"'})
       ).toBeInTheDocument();
       // Display text should be display the original value
       expect(
         within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         ).getByText('some" value')
       ).toBeInTheDocument();
     });
   });
 
   describe('new search tokens', function () {
+    it('breaks keys into sections', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+
+      const menu = screen.getByRole('listbox');
+      const groups = within(menu).getAllByRole('group');
+      expect(groups).toHaveLength(2);
+
+      // First group (Field) should have age, assigned, browser.name
+      const group1 = groups[0];
+      expect(within(group1).getByRole('option', {name: 'age'})).toBeInTheDocument();
+      expect(within(group1).getByRole('option', {name: 'assigned'})).toBeInTheDocument();
+      expect(
+        within(group1).getByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+
+      // Second group (Tag) should have custom_tag_name
+      const group2 = groups[1];
+      expect(
+        within(group2).getByRole('option', {name: 'custom_tag_name'})
+      ).toBeInTheDocument();
+    });
+
     it('can add a new token by clicking a key suggestion', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+      await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key
       expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
@@ -187,7 +248,7 @@ describe('SearchQueryBuilder', function () {
       // function which causes an act warning despite using userEvent.click.
       // Cannot find a way to avoid this warning.
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      await userEvent.click(screen.getByRole('option', {name: 'Browser Name'}));
+      await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
       // Should have a free text token "some free text"

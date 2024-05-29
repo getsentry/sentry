@@ -1161,6 +1161,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               organization={organization}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               isErrorMigration={showErrorMigrationWarning}
+              isForSpanMetric={aggregate.includes(':spans/')}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
@@ -1232,7 +1233,7 @@ const AlertName = styled(HeaderTitleLegend)`
 const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
 `;
 

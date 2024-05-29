@@ -113,7 +113,7 @@ const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
 // Locale file extraction build step
@@ -463,8 +463,12 @@ const appConfig: Configuration = {
       'process/browser': require.resolve('process/browser'),
     },
 
+    // Might be an issue if changing file extensions during development
+    cache: true,
+    // Prefers local modules over node_modules
+    preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
     symlinks: false,
   },
   output: {
@@ -512,8 +516,9 @@ const appConfig: Configuration = {
 if (IS_TEST) {
   appConfig.resolve!.alias!['sentry-fixture'] = path.join(
     __dirname,
-    'fixtures',
-    'js-stubs'
+    'tests',
+    'js',
+    'fixtures'
   );
 }
 
@@ -787,6 +792,9 @@ if (IS_PRODUCTION) {
 
 if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+  // defaulting to an empty string which in turn will fallback to env var or
+  // determine merge commit sha from git
+  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
 
   appConfig.plugins?.push(
     codecovWebpackPlugin({
@@ -794,6 +802,9 @@ if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
       bundleName: 'app-webpack-bundle',
       uploadToken: CODECOV_TOKEN,
       debug: true,
+      uploadOverrides: {
+        sha: GH_COMMIT_SHA,
+      },
     })
   );
 }

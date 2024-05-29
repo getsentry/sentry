@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -26,6 +27,7 @@ type Params = DocsParams;
 const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
+// All other imports below
 ${getSentryImportSnippet('node')}
 const Koa = require("koa");
 
@@ -75,14 +77,21 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)].",
-            {code1: <code />, code2: <code />}
+            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            {
+              code1: <code />,
+              code2: <code />,
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+              ),
+            }
           ),
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
+              filename: 'index.(js|mjs)',
               code: getSdkSetupSnippet(),
             },
           ],

@@ -1,4 +1,4 @@
-import type {Location} from 'history';
+import * as qs from 'query-string';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
@@ -7,19 +7,14 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import useUrlParams from './useUrlParams';
 
 jest.mock('react-router');
-jest.mock('sentry/utils/useLocation');
-
-type Query = {array: string[]; limit: string; page: string};
 
 describe('useUrlParams', () => {
   beforeEach(() => {
-    jest.mocked(browserHistory.getCurrentLocation).mockReturnValue({
-      query: {
-        page: '3',
-        limit: '50',
-        array: ['first', 'second'],
-      },
-    } as Location<Query>);
+    window.location.search = qs.stringify({
+      page: '3',
+      limit: '50',
+      array: ['first', 'second'],
+    });
   });
 
   it('should read query values from the url', () => {
@@ -56,6 +51,7 @@ describe('useUrlParams', () => {
     result.current.setParamValue('page', '4');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/',
       query: {
         array: ['first', 'second'],
         page: '4',
@@ -72,6 +68,7 @@ describe('useUrlParams', () => {
     result.current.setParamValue('4');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/',
       query: {
         array: ['first', 'second'],
         page: '4',

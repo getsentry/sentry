@@ -3,18 +3,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPDomainSummaryPage} from 'sentry/views/performance/http/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture();
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock;
+  let domainChartsRequestMock, domainTransactionsListRequestMock, spanFieldTagsMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -43,8 +41,6 @@ describe('HTTPSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
   beforeEach(function () {
     jest.clearAllMocks();
 
@@ -68,6 +64,21 @@ describe('HTTPSummaryPage', function () {
         },
       },
     });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
   });
 
   afterAll(function () {
@@ -75,7 +86,7 @@ describe('HTTPSummaryPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<HTTPDomainSummaryPage />);
+    render(<HTTPDomainSummaryPage />, {organization});
 
     expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -213,6 +224,19 @@ describe('HTTPSummaryPage', function () {
       })
     );
 
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
+      })
+    );
+
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
@@ -253,7 +277,7 @@ describe('HTTPSummaryPage', function () {
       },
     });
 
-    render(<HTTPDomainSummaryPage />);
+    render(<HTTPDomainSummaryPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

@@ -4,6 +4,10 @@ import sentry.options
 from sentry.relay.config import GenericFiltersConfig
 from sentry.relay.config.ai_model_costs import AIModelCosts, ai_model_costs_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
+from sentry.relay.config.metric_extraction import (
+    MetricExtractionGroups,
+    global_metric_extraction_groups,
+)
 from sentry.utils import metrics
 
 # List of options to include in the global config.
@@ -23,12 +27,14 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-extraction.sample-rate",
     "relay.force_full_normalization",
     "relay.disable_normalization.processing",
+    "relay.inline-attachments.rollout-rate",
 ]
 
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
     aiModelCosts: AIModelCosts
+    metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
     options: dict[str, Any]
 
@@ -47,6 +53,7 @@ def get_global_config():
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
         "aiModelCosts": ai_model_costs_config(),
+        "metricExtraction": global_metric_extraction_groups(),
     }
 
     filters = get_global_generic_filters()

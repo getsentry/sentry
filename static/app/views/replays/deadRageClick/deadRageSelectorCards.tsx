@@ -2,12 +2,12 @@ import type {ComponentProps, ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import Accordion from 'sentry/components/replays/accordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -133,7 +133,6 @@ function AccordionWidget({
       ) : (
         <LeftAlignedContentContainer>
           <Accordion
-            buttonOnLeft
             collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
@@ -142,7 +141,7 @@ function AccordionWidget({
                 d.dom_element.fullSelector
               )}"`;
               return {
-                header: () => (
+                header: (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element.selector}
@@ -151,7 +150,7 @@ function AccordionWidget({
                     id={d.project_id}
                   />
                 ),
-                content: () => (
+                content: (
                   <ExampleReplaysList
                     location={location}
                     clickType={clickType}

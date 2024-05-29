@@ -7,7 +7,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 @all_silo_test
 class TombstoneTest(TransactionTestCase):
-    def test_writing_control_models(self):
+    def test_writing_control_models(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             assert RegionTombstone.objects.count() == 0
 
@@ -23,7 +23,7 @@ class TombstoneTest(TransactionTestCase):
                 table_name="auth_user", object_identifier=user_id
             ).exists()
 
-    def test_writing_region_models(self):
+    def test_writing_region_models(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ControlTombstone.objects.count() == 0
         org_id = self.organization.id

@@ -32,7 +32,6 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DEVICE_CLASS_ALIAS,
-    EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_ALIASES,
@@ -1891,36 +1890,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return None
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        value = search_filter.value.value
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return Condition(
-                Function("match", [self.builder.column("message"), f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
-        elif value == "":
-            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
-            return Condition(
-                Function("equals", [self.builder.column("message"), value]), operator, 1
-            )
-        else:
-            if search_filter.is_in_filter:
-                return Condition(
-                    self.builder.column("message"),
-                    Op(search_filter.operator),
-                    value,
-                )
-
-            # make message search case insensitive
-            return Condition(
-                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _trace_parent_span_converter(self, search_filter: SearchFilter) -> WhereType | None:
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":

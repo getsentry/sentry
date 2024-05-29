@@ -14,6 +14,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -22,12 +23,15 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {FID_DEPRECATION_DATE} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -36,6 +40,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function WebVitalsLandingPage() {
   const organization = useOrganization();
@@ -68,24 +73,21 @@ export function WebVitalsLandingPage() {
   const fidDeprecationTimestampString =
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
+  const crumbs = useModuleBreadcrumbs('vital');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Web Vitals',
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>{t('Web Vitals')}</Layout.Title>
+          <Layout.Title>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -181,11 +183,7 @@ export function WebVitalsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Web Vitals')].join(' — ')}
-      baseURL={`/performance/${BASE_URL}`}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="vital" features="spans-first-ui">
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );

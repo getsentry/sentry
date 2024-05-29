@@ -10,7 +10,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
@@ -154,7 +154,54 @@ describe('SentryAppExternalInstallation', () => {
         );
       });
 
-      (window.location.assign as jest.Mock).mockClear();
+      jest.mocked(window.location.assign).mockClear();
+    });
+
+    it('installs and redirects with state', async () => {
+      const installUrl = `/organizations/${org1.slug}/sentry-app-installations/`;
+      const install = {
+        uuid: 'fake-id',
+        code: 'some-code',
+      };
+      const installMock = MockApiClient.addMockResponse({
+        url: installUrl,
+        method: 'POST',
+        body: install,
+      });
+
+      const state = 'some-state';
+      const location = {
+        ...RouteComponentPropsFixture(),
+        location: {
+          ...RouteComponentPropsFixture().location,
+          query: {state},
+        },
+      };
+
+      render(
+        <SentryAppExternalInstallation
+          {...location}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
+      await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
+
+      await userEvent.click(await screen.findByTestId('install')); // failing currently
+
+      expect(installMock).toHaveBeenCalledWith(
+        installUrl,
+        expect.objectContaining({
+          data: {slug: sentryApp.slug},
+        })
+      );
+
+      await waitFor(() => {
+        expect(window.location.assign).toHaveBeenCalledWith(
+          `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}&state=${state}`
+        );
+      });
+
+      jest.mocked(window.location.assign).mockClear();
     });
   });
 

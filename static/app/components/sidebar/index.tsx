@@ -27,6 +27,7 @@ import {
   IconProfiling,
   IconProject,
   IconReleases,
+  IconSearch,
   IconSettings,
   IconSiren,
   IconStats,
@@ -47,7 +48,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {hasMetricsSidebarItem} from 'sentry/utils/metrics/features';
+import {canSeeMetricsPage, hasRolledOutMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -55,18 +56,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
+import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/performance/cache/settings';
+import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/performance/queues/settings';
 import {
-  BASE_URL as RESOURCES_BASE_URL,
-  MODULE_TITLE,
-} from 'sentry/views/performance/browser/resources/settings';
-import {
-  MODULE_TITLE as CACHE_MODULE_TITLE,
-  releaseLevelAsBadgeProps as CacheModuleBadgeProps,
-} from 'sentry/views/performance/cache/settings';
-import {
-  MODULE_TITLE as HTTP_MODULE_TITLE,
-  releaseLevelAsBadgeProps as HTTPModuleBadgeProps,
-} from 'sentry/views/performance/http/settings';
+  MODULE_TITLES,
+  useModuleTitle,
+} from 'sentry/views/performance/utils/useModuleTitle';
+import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -131,6 +128,7 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
+  const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -198,6 +196,10 @@ function Sidebar() {
     organization,
   };
 
+  // New hierarchy organizes current links into two accordions: "Explore" and "Insights". This means setting up different sidebar groupings, and changing some link icons to small dots, since they now live under an accordion
+  const hasNewSidebarHierarchy =
+    hasOrganization && organization.features.includes('performance-insights');
+
   const sidebarAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
@@ -236,10 +238,162 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconTelescope />}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconTelescope />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
+      />
+    </Feature>
+  );
+
+  const moduleURLBuilder = useModuleURLBuilder(true);
+
+  const queries = hasOrganization && (
+    <Feature key="db" features="spans-first-ui" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-database">{MODULE_TITLES.db}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('db')}/`}
+        id="performance-database"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const requests = hasOrganization && (
+    <Feature key="http" features="spans-first-ui" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
+        id="performance-http"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const caches = hasOrganization && (
+    <Feature key="cache" features="performance-cache-view" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-cache">{MODULE_TITLES.cache}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
+        id="performance-cache"
+        icon={<SubitemDot collapsed />}
+        {...CacheModuleBadgeProps}
+      />
+    </Feature>
+  );
+
+  const webVitals = hasOrganization && (
+    <Feature key="vital" features="spans-first-ui" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-webvitals">{MODULE_TITLES.vital}</GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('vital')}/`}
+        id="performance-webvitals"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const queues = hasOrganization && (
+    <Feature key="queue" features="performance-queues-view" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={
+          <GuideAnchor target="performance-queues">{MODULE_TITLES.queue}</GuideAnchor>
+        }
+        {...QueuesModuleBadgeProps}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
+        id="performance-queues"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const screenLoads = hasOrganization && (
+    <Feature key="screen_load" features="spans-first-ui" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES.screen_load}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('screen_load')}/`}
+        id="performance-mobile-screens"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const appStarts = hasOrganization && (
+    <Feature key="app_start" features="spans-first-ui" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES.app_start}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('app_start')}/`}
+        id="performance-mobile-app-startup"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const mobileUI = hasOrganization && (
+    <Feature
+      key="mobile-ui"
+      features={['spans-first-ui', 'starfish-mobile-ui-module']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        label={MODULE_TITLES['mobile-ui']}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('mobile-ui')}/`}
+        id="performance-mobile-ui"
+        icon={<SubitemDot collapsed />}
+        isAlpha
+      />
+    </Feature>
+  );
+
+  const resources = hasOrganization && (
+    <Feature key="assets" features="spans-first-ui">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
+        id="performance-browser-resources"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const traces = hasOrganization && (
+    <Feature features="performance-trace-explorer">
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/performance/traces/`}
+        id="performance-trace-explorer"
+        icon={<SubitemDot collapsed />}
+        isAlpha
+      />
+    </Feature>
+  );
+
+  const llmMonitoring = hasOrganization && (
+    <Feature features="ai-analytics" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconRobot />}
+        label={MODULE_TITLES.ai}
+        isAlpha
+        variant="short"
+        to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
+        id="llm-monitoring"
       />
     </Feature>
   );
@@ -251,11 +405,13 @@ function Sidebar() {
       organization={organization}
     >
       {(() => {
-        // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
+        // If the client has the old sidebar hierarchy _and_ something to show inside the Performance dropdown, render an accordion.
         if (
-          organization.features.includes('spans-first-ui') ||
-          organization.features.includes('performance-cache-view') ||
-          organization.features.includes('performance-queues-view')
+          !hasNewSidebarHierarchy &&
+          (organization.features.includes('spans-first-ui') ||
+            organization.features.includes('performance-cache-view') ||
+            organization.features.includes('performance-queues-view') ||
+            organization.features.includes('performance-trace-explorer'))
         ) {
           return (
             <SidebarAccordion
@@ -266,124 +422,16 @@ function Sidebar() {
               id="performance"
               exact={!shouldAccordionFloat}
             >
-              <Feature features="spans-first-ui" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={
-                    <GuideAnchor target="performance-database">
-                      {t('Queries')}
-                    </GuideAnchor>
-                  }
-                  to={`/organizations/${organization.slug}/performance/database/`}
-                  id="performance-database"
-                  // collapsed controls whether the dot is visible or not.
-                  // We always want it visible for these sidebar items so force it to true.
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="spans-first-ui" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={
-                    <GuideAnchor target="performance-http">
-                      {HTTP_MODULE_TITLE}
-                    </GuideAnchor>
-                  }
-                  to={`/organizations/${organization.slug}/performance/http/`}
-                  id="performance-http"
-                  icon={<SubitemDot collapsed />}
-                  {...HTTPModuleBadgeProps}
-                />
-              </Feature>
-              <Feature features="performance-cache-view" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={
-                    <GuideAnchor target="performance-cache">
-                      {CACHE_MODULE_TITLE}
-                    </GuideAnchor>
-                  }
-                  to={`/organizations/${organization.slug}/performance/cache/`}
-                  id="performance-cache"
-                  icon={<SubitemDot collapsed />}
-                  {...CacheModuleBadgeProps}
-                />
-              </Feature>
-              <Feature features="spans-first-ui" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={
-                    <GuideAnchor target="performance-webvitals">
-                      {t('Web Vitals')}
-                    </GuideAnchor>
-                  }
-                  to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-                  id="performance-webvitals"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="performance-queues-view" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={
-                    <GuideAnchor target="performance-queues">{t('Queues')}</GuideAnchor>
-                  }
-                  isAlpha
-                  to={`/organizations/${organization.slug}/performance/queues/`}
-                  id="performance-queues"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="spans-first-ui" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={t('Screen Loads')}
-                  to={`/organizations/${organization.slug}/performance/mobile/screens/`}
-                  id="performance-mobile-screens"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="spans-first-ui" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/performance/mobile/app-startup/`}
-                  id="performance-mobile-app-startup"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature
-                features={['spans-first-ui', 'starfish-mobile-ui-module']}
-                organization={organization}
-              >
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={t('Mobile UI')}
-                  to={`/organizations/${organization.slug}/performance/mobile/ui/`}
-                  id="performance-mobile-ui"
-                  icon={<SubitemDot collapsed />}
-                  isAlpha
-                />
-              </Feature>
-              <Feature features="spans-first-ui">
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={<GuideAnchor target="starfish">{MODULE_TITLE}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/${RESOURCES_BASE_URL}/`}
-                  id="performance-browser-assets"
-                  icon={<SubitemDot collapsed />}
-                />
-              </Feature>
-              <Feature features="performance-trace-explorer">
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-                  to={`/organizations/${organization.slug}/performance/traces/`}
-                  id="performance-trace-explorer"
-                  icon={<SubitemDot collapsed />}
-                  isAlpha
-                />
-              </Feature>
+              {queries}
+              {requests}
+              {caches}
+              {webVitals}
+              {queues}
+              {screenLoads}
+              {appStarts}
+              {resources}
+              {mobileUI}
+              {traces}
             </SidebarAccordion>
           );
         }
@@ -410,20 +458,6 @@ function Sidebar() {
       to={`/organizations/${organization.slug}/releases/`}
       id="releases"
     />
-  );
-
-  const aiMonitoring = hasOrganization && (
-    <Feature features="ai-analytics" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconRobot />}
-        label={t('AI Monitoring')}
-        isAlpha
-        variant="short"
-        to={`/organizations/${organization.slug}/ai-monitoring/`}
-        id="ai-monitoring"
-      />
-    </Feature>
   );
 
   const userFeedback = hasOrganization && (
@@ -480,7 +514,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconPlay />}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconPlay />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -489,18 +523,19 @@ function Sidebar() {
   );
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-  const metrics = hasOrganization && hasMetricsSidebarItem(organization) && (
-    <Feature features={['custom-metrics']} organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconGraph />}
-        label={t('Metrics')}
-        to={metricsPath}
-        search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
-        id="metrics"
-        isBeta
-      />
-    </Feature>
+  const isNewFeatureBadge = organization && hasRolledOutMetrics(organization);
+
+  const metrics = hasOrganization && canSeeMetricsPage(organization) && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
+      label={t('Metrics')}
+      to={metricsPath}
+      search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      id="metrics"
+      isBeta={!isNewFeatureBadge}
+      isNew={!!isNewFeatureBadge}
+    />
   );
 
   const dashboards = hasOrganization && (
@@ -531,8 +566,8 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={<IconProfiling />}
-        label={t('Profiling')}
+        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconProfiling />}
+        label={hasNewSidebarHierarchy ? t('Profiles') : t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
       />
@@ -559,6 +594,43 @@ function Sidebar() {
     />
   );
 
+  const insights = (
+    <SidebarAccordion
+      {...sidebarItemProps}
+      icon={<IconGraph />}
+      label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+      id="insights"
+      exact={!shouldAccordionFloat}
+    >
+      {requests}
+      {queries}
+      {resources}
+      {appStarts}
+      {screenLoads}
+      {webVitals}
+      {caches}
+      {queues}
+      {mobileUI}
+      {llmMonitoring}
+    </SidebarAccordion>
+  );
+
+  const explore = (
+    <SidebarAccordion
+      {...sidebarItemProps}
+      icon={<IconSearch />}
+      label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
+      id="explore"
+      exact={!shouldAccordionFloat}
+    >
+      {traces}
+      {metrics}
+      {profiling}
+      {replays}
+      {discover2}
+    </SidebarAccordion>
+  );
+
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <ExpandedContextProvider>
@@ -581,23 +653,45 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                <SidebarSection>
-                  {performance}
-                  {profiling}
-                  {metrics}
-                  {replays}
-                  {aiMonitoring}
-                  {feedback}
-                  {monitors}
-                  {alerts}
-                </SidebarSection>
+                {hasNewSidebarHierarchy && (
+                  <Fragment>
+                    <SidebarSection>
+                      {explore}
+                      {insights}
+                    </SidebarSection>
 
-                <SidebarSection>
-                  {discover2}
-                  {dashboards}
-                  {releases}
-                  {userFeedback}
-                </SidebarSection>
+                    <SidebarSection>
+                      {performance}
+                      {feedback}
+                      {monitors}
+                      {alerts}
+                      {dashboards}
+                      {releases}
+                    </SidebarSection>
+                  </Fragment>
+                )}
+
+                {!hasNewSidebarHierarchy && (
+                  <Fragment>
+                    <SidebarSection>
+                      {performance}
+                      {profiling}
+                      {metrics}
+                      {replays}
+                      {llmMonitoring}
+                      {feedback}
+                      {monitors}
+                      {alerts}
+                    </SidebarSection>
+
+                    <SidebarSection>
+                      {discover2}
+                      {dashboards}
+                      {releases}
+                      {userFeedback}
+                    </SidebarSection>
+                  </Fragment>
+                )}
 
                 <SidebarSection>
                   {stats}

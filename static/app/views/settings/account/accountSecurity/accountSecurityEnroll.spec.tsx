@@ -46,6 +46,7 @@ describe('AccountSecurityEnroll', function () {
     let location;
     beforeEach(function () {
       location = window.location;
+      window.location = location;
       window.location.href = 'https://example.test';
       window.__initialData = {
         ...window.__initialData,
@@ -62,10 +63,6 @@ describe('AccountSecurityEnroll', function () {
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-    });
-
-    beforeEach(function () {
-      window.location = location;
     });
 
     it('does not have enrolled circle indicator', function () {

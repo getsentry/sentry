@@ -208,6 +208,48 @@ class ConfigOptionsTest(CliTestCase):
 
         assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
 
+    def test_sync_unset_options(self):
+
+        # test options set on disk with and without prioritize disk, tracked
+        # and not tracked
+        # test options set on db, verify that untracked options are properly deleted
+
+        options.delete("drifted_option")
+
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
+        expected_output = "\n".join(
+            [
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "str_option",
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
+            ]
+        )
+
+        assert expected_output in rv.output
+
+        assert options.get("int_option") == 20
+        assert options.get("str_option") == "blabla"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+
+        # assert there's no drift after unsetting
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
+
     def test_bad_patch(self):
         rv = self.invoke(
             "--file=tests/sentry/runner/commands/badpatch.yaml",

@@ -11,16 +11,23 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
+import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
@@ -102,6 +109,16 @@ export function TransactionNodeDetails({
     organization,
   });
 
+  const {data: cacheMetrics} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject({
+        transaction: node.value.transaction,
+      } satisfies SpanMetricsQueryFilters),
+      fields: ['avg(cache.item_size)', 'cache_miss_rate()'],
+    },
+    Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
+  );
+
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -134,7 +151,14 @@ export function TransactionNodeDetails({
         />
         <AdditionalData event={event} />
         <Measurements event={event} location={location} organization={organization} />
+        {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
         <Sdk event={event} />
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+          projectId={event.projectID}
+        />
+        <TraceDrawerComponents.TraceDataSection event={event} />
       </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
@@ -156,14 +180,6 @@ export function TransactionNodeDetails({
       <EventContexts event={event} />
 
       {project ? <EventEvidence event={event} project={project} /> : null}
-
-      {event._metrics_summary ? (
-        <CustomMetricsEventData
-          metricsSummary={event._metrics_summary}
-          startTimestamp={event.startTimestamp}
-          projectId={event.projectID}
-        />
-      ) : null}
 
       <ReplayPreview event={event} organization={organization} />
 

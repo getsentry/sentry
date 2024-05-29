@@ -123,12 +123,8 @@ function ComboBox<Value extends string>({
     isOpen: state.isOpen,
     position: 'bottom-start',
     offset: [0, 8],
-    isDismissable: true,
-    onInteractOutside: () => {
-      state.close();
-      inputRef.current?.blur();
-    },
-    shouldCloseOnBlur: true,
+    // Open state is managed by useComboBoxState & useComboBox
+    isDismissable: false,
   });
 
   // The menu opens after selecting an item but the input stays focused
@@ -358,7 +354,7 @@ const StyledInput = styled(Input)`
   max-width: inherit;
   min-width: inherit;
   &:not(:focus) {
-    pointer-events: none;
+    cursor: pointer;
   }
 `;
 const StyledGrowingInput = styled(GrowingInput)`
@@ -431,7 +427,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;

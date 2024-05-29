@@ -131,6 +131,20 @@ def apply_cors_headers(
     if allowed_methods is None:
         allowed_methods = []
     allow = ", ".join(allowed_methods)
+    if not allow or "*" in allow:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_level("warning")
+            scope.set_context(
+                "cors_headers",
+                {
+                    "url": request.path,
+                    "method": request.method,
+                    "origin": request.META.get("HTTP_ORIGIN", ""),
+                    "allow": allow,
+                },
+            )
+            sentry_sdk.capture_message("api.cors.no_methods")
+
     response["Allow"] = allow
     response["Access-Control-Allow-Methods"] = allow
     response["Access-Control-Allow-Headers"] = (
@@ -138,9 +152,9 @@ def apply_cors_headers(
         "Content-Type, Authentication, Authorization, Content-Encoding, "
         "sentry-trace, baggage, X-CSRFToken"
     )
-    response["Access-Control-Expose-Headers"] = (
-        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
-    )
+    response[
+        "Access-Control-Expose-Headers"
+    ] = "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
 
     if request.META.get("HTTP_ORIGIN") == "null":
         # if ORIGIN header is explicitly specified as 'null' leave it alone
