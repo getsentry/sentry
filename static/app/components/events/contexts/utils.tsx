@@ -492,3 +492,5 @@ const RelativeTime = styled('span')`
   color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
 `;
+
+export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;

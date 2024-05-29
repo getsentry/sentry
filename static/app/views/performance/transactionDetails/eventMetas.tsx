@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import {Button} from 'sentry/components/button';
 import {DateTime} from 'sentry/components/dateTime';
 import ContextIcon from 'sentry/components/events/contexts/contextIcon';
-import {generateIconName} from 'sentry/components/events/contextSummary/utils';
+import {generateIconName} from 'sentry/components/events/contexts/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
