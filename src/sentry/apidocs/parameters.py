@@ -365,6 +365,25 @@ class TeamParams:
 Specify `"0"` to return team details that do not include projects.
 """,
     )
+    COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt out of certain pieces of data. Supports `organization`.
+""",
+    )
+
+    EXPAND = OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt in to additional data. Supports `projects`, `externalTeams`.
+""",
+    )
 
 
 class ReplayParams:
