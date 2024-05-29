@@ -262,6 +262,10 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
+      if (!value) {
+        return;
+      }
+
       if (canSelectMultipleValues) {
         dispatch({
           type: 'TOGGLE_FILTER_VALUE',
@@ -315,6 +319,7 @@ export function SearchQueryBuilderValueCombobox({
         onInputChange={e => setInputValue(e.target.value)}
         onKeyDown={onKeyDown}
         autoFocus
+        maxOptions={50}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>
