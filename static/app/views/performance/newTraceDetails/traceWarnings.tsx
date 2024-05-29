@@ -41,6 +41,10 @@ export function TraceWarnings({type}: TraceWarningsProps) {
           </ExternalLink>
         </Alert>
       );
+    // Multiple roots are an edge case in browser SDKs and should be handled by the SDK.
+    // The user should not see a warning as they cannot do anything about it.
+    case TraceType.BROWSER_MULTIPLE_ROOTS:
+      return null;
     case TraceType.MULTIPLE_ROOTS:
       return (
         <Alert type="info" showIcon>
