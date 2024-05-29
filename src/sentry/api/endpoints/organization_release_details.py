@@ -327,7 +327,6 @@ class OrganizationReleaseDetailsEndpoint(
     )
     def get(self, request: Request, organization, version) -> Response:
         """
-        Retrieve an Organization's Release
 
         Return details on an individual release.
         """
@@ -430,7 +429,6 @@ class OrganizationReleaseDetailsEndpoint(
     )
     def put(self, request: Request, organization, version) -> Response:
         """
-        Update an Organization's Release
 
         Update a release. This can change some metadata associated with
         the release (the ref, url, and dates).
@@ -545,7 +543,6 @@ class OrganizationReleaseDetailsEndpoint(
     )
     def delete(self, request: Request, organization, version) -> Response:
         """
-        Delete an Organization's Release
 
         Permanently remove a release and all of its files.
         """
