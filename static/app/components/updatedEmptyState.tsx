@@ -256,29 +256,27 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         </Setup>
         <Preview>
           <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-          <VideoWrapper>
-            <Video
-              src="https://s3.us-east-1.amazonaws.com/remotionlambda-production/renders/x87ndylphr/out.mp4?v=415e1797fdba69d917459d119dc6c5af"
+          <ArcadeWrapper>
+            <Arcade
+              src="https://demo.arcade.software/LjEJ1sfLaVRdtOs3mri1?embed"
               loading="lazy"
               allowFullScreen
             />
-          </VideoWrapper>
+          </ArcadeWrapper>
         </Preview>
       </Body>
     </div>
   );
 }
-
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: 600;
 `;
-
 const Description = styled('div')`
   max-width: 340px;
 `;
 
-const VideoWrapper = styled('div')`
+const ArcadeWrapper = styled('div')`
   margin-top: ${space(1)};
 `;
 
@@ -286,16 +284,13 @@ const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(4)};
 `;
-
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: 600;
   margin-bottom: ${space(1)};
 `;
-
 const Setup = styled('div')`
   padding: ${space(4)};
-
   &:after {
     content: '';
     position: absolute;
@@ -305,21 +300,17 @@ const Setup = styled('div')`
     border-right: 1px ${p => p.theme.border} solid;
   }
 `;
-
 const Preview = styled('div')`
   padding: ${space(4)};
 `;
-
 const Body = styled('div')`
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
-
   h4 {
     margin-bottom: 0;
   }
 `;
-
 const Image = styled('img')`
   position: absolute;
   display: block;
@@ -328,12 +319,10 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
-
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
@@ -343,23 +332,21 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const Video = styled('iframe')`
+const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  height: 500px;
+  height: 600px;
   border: 0;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
   display: flex;
 `;
-
 const IndicatorWrapper = styled('div')`
   width: 300px;
   max-width: 100%;
   margin-bottom: ${space(1)};
 `;
-
 const StyledCodeSnippet = styled(CodeSnippet)`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
