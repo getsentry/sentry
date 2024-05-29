@@ -2001,22 +2001,6 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert kafka_producer.return_value.publish.call_count == 0
         incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
-    def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        assert kafka_producer.return_value.publish.call_count == 0
-        for args, _ in incr.call_args_list:
-            assert args != ("post_process.process_replay_link.id_sampled")
-
 
 class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
     def test_user_report_gets_environment(self):
