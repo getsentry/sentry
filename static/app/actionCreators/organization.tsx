@@ -30,7 +30,7 @@ async function fetchOrg(
       // If this url changes make sure to update the preload
       api.requestPromise(`/organizations/${slug}/`, {
         includeAllArgs: true,
-        query: {detailed: 0},
+        query: {detailed: 0, include_feature_flags: 1},
       }),
     usePreload
   );
