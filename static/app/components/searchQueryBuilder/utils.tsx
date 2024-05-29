@@ -14,6 +14,8 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
+export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
+
 /**
  * Generates a unique key for the given token.
  *
@@ -104,12 +106,12 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(token: TokenResult<Token.FILTER>): string {
-  switch (token.value.type) {
+export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
+  switch (token.type) {
     case Token.VALUE_TEXT:
-      return unescapeTagValue(token.value.value);
+      return unescapeTagValue(token.value);
     default:
-      return token.value.text;
+      return token.text;
   }
 }
 

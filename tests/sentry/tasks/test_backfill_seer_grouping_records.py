@@ -1,22 +1,27 @@
 import copy
 from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from random import choice
 from string import ascii_uppercase
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
+from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.backfill_seer_grouping_records import (
     GroupStacktraceData,
     backfill_seer_grouping_records,
@@ -32,6 +37,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
+from sentry.utils.snuba import bulk_snuba_queries
 
 EXCEPTION = {
     "values": [
@@ -935,3 +941,162 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         groups = Group.objects.filter(project_id=self.project.id, id__in=group_ids)
         for group in groups:
             assert group.data["metadata"] == default_metadata
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_exclude_deleted_groups(
+        self, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that groups that are pending deletion/in the process of being deleted are not included.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Create groups pending deletion and in the process of being deleted
+        deleted_group_ids = []
+        data = {
+            "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.status = GroupStatus.PENDING_DELETION
+        event.group.save()
+        deleted_group_ids.append(event.group.id)
+
+        data = {
+            "exception": self.create_exception_values("function name?", "type?", "value?"),
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.status = GroupStatus.DELETION_IN_PROGRESS
+        event.group.save()
+        deleted_group_ids.append(event.group.id)
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id).exclude(id__in=deleted_group_ids)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
+        assert last_processed_index == len(groups)
+
+        # Assert metadata was not set for groups that will be deleted
+        for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
+            assert group.data["metadata"].get("seer_similarity") is None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
+    @patch("sentry.tasks.backfill_seer_grouping_records.bulk_snuba_queries")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_no_events(
+        self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger
+    ):
+        """
+        Test that groups that have no events in snuba are excluded.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Mock snuba response to purposefully exclude the first group
+        group_ids_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
+        group_id_batch = [group.id for group in group_ids_minus_first]
+        time_now = datetime.now()
+        events_entity = Entity("events", alias="events")
+        query = Query(
+            match=events_entity,
+            select=[
+                Column("group_id"),
+                Function("max", [Column("event_id")], "event_id"),
+            ],
+            groupby=[Column("group_id")],
+            where=[
+                Condition(Column("project_id"), Op.EQ, self.project.id),
+                Condition(Column("group_id"), Op.IN, group_id_batch),
+                Condition(
+                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
+                ),
+                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
+            ],
+            orderby=[OrderBy(Column("group_id"), Direction.ASC)],
+        )
+
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+            query=query,
+            tenant_ids={
+                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                "cross_org_query": 1,
+            },
+        )
+
+        result = bulk_snuba_queries(
+            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
+        mock_snuba_queries.return_value = result
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        for group in Group.objects.filter(project_id=self.project.id).order_by("id")[1:]:
+            assert group.data["metadata"].get("seer_similarity") is not None
+
+        # Check that the group with no events has no seer metadata
+        group_no_events = Group.objects.filter(project_id=self.project.id).order_by("id")[0]
+        assert group_no_events.data["metadata"].get("seer_similarity") is None
+        assert (
+            call(
+                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                extra={
+                    "organization_id": self.project.organization.id,
+                    "project_id": self.project.id,
+                    "group_id": group_no_events.id,
+                },
+            )
+            in mock_logger.info.call_args_list
+        )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_exclude_90_day_old_groups(
+        self, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that groups that are over 90 days old are excluded.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Create groups pending deletion and in the process of being deleted
+        old_group_id = []
+        data = {
+            "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.last_seen = datetime.now(UTC) - timedelta(days=90)
+        event.group.save()
+        old_group_id = event.group.id
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id).exclude(id=old_group_id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
+        assert last_processed_index == len(groups)
+
+        # Assert metadata was not set for groups that is 90 days old
+        old_group = Group.objects.filter(project_id=self.project.id, id=old_group_id).first()
+        assert old_group.data["metadata"].get("seer_similarity") is None
