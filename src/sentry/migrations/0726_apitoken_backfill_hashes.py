@@ -13,7 +13,7 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
     ApiToken = apps.get_model("sentry", "ApiToken")
 
     for api_token in ApiToken.objects.all():
-        if not api_token.hashed_token:
+        if api_token.hashed_token is None:
             hashed_token = hashlib.sha256(api_token.token.encode()).hexdigest()
 
             # if there's a refresh token make sure it is hashed as well
