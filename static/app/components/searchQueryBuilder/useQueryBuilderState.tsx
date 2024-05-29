@@ -68,14 +68,11 @@ function modifyFilterOperator(
 ): string {
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
-  token.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
-  token.negated = isNotEqual;
+  const newToken: TokenResult<Token.FILTER> = {...token};
+  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  newToken.negated = isNotEqual;
 
-  return (
-    query.substring(0, token.location.start.offset) +
-    stringifyToken(token) +
-    query.substring(token.location.end.offset)
-  );
+  return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function replaceQueryToken(

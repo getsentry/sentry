@@ -100,6 +100,39 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
+    it('can modify operator for filter with multiple values', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:[firefox,chrome]"
+        />
+      );
+
+      // Should display as "is" to start
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        ).getByText('is')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+
+      // Token should be modified to be negated
+      expect(
+        screen.getByRole('row', {name: '!browser.name:[firefox,chrome]'})
+      ).toBeInTheDocument();
+
+      // Should now have "is not" label
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        ).getByText('is not')
+      ).toBeInTheDocument();
+    });
+
     it('can modify the value by clicking into it (single-select)', async function () {
       // `age` is a duration filter which only accepts single values
       render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-1d" />);
