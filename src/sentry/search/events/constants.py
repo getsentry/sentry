@@ -8,6 +8,9 @@ TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
 """
+TIMEOUT_SPAN_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or filtering on transaction of tag fields when filtering span data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
