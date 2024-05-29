@@ -533,9 +533,9 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(
             EventMatcher(event2, group=group1), False, True, False, False, False
         )
-        sent_group_date = mock_processor.call_args[0][0].group.last_seen
+        sent_group_date: datetime = mock_processor.call_args[0][0].group.last_seen
         # Check that last_seen was updated to be at least the new event's date
-        self.assertAlmostEqual(sent_group_date, event2.datetime, delta=timedelta(seconds=10))
+        assert abs(sent_group_date - event2.datetime) < timedelta(seconds=10)
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
@@ -1056,10 +1056,19 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
     def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self):
         self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/things/in/a/path/example2.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
         committer = GroupOwner(
-            group=self.created_event.group,
-            project=self.created_event.project,
-            organization=self.created_event.project.organization,
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
         committer.save()
@@ -1500,6 +1509,8 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 },
             )
             organization_integration = integration.add_organization(self.organization)
+        assert organization_integration is not None
+
         self.repo.update(integration_id=integration.id, provider="integrations:github_enterprise")
         self.code_mapping.update(organization_integration_id=organization_integration.id)
 
@@ -2004,7 +2015,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         )
         assert kafka_producer.return_value.publish.call_count == 0
         for args, _ in incr.call_args_list:
-            self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+            assert args != "post_process.process_replay_link.id_sampled"
 
 
 class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
