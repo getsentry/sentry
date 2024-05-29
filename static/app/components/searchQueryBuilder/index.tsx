@@ -86,7 +86,7 @@ export function SearchQueryBuilder({
   );
 
   const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ')),
+    () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),
     [state.query]
   );
 
