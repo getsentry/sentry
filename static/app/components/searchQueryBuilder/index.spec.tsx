@@ -87,16 +87,22 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Switch to plain text'}));
 
       // No longer displays tokens, has an input instead
-      expect(
-        screen.queryByRole('row', {name: 'browser.name:firefox'})
-      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
       expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
 
       // Switching back should restore the tokens
       await userEvent.click(
         screen.getByRole('button', {name: 'Switch to tokenized search'})
       );
-      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
     });
   });
 
