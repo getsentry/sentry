@@ -29,7 +29,7 @@ export default function HighlightsSettingsForm({
     projectSlug,
   });
   const queryClient = useQueryClient();
-  if (!organization.features.includes('event-tags-tree-ui') || !project) {
+  if (!project) {
     return null;
   }
   const access = new Set(organization.access.concat(project.access));

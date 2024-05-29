@@ -111,7 +111,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    *
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   download?: HTMLAnchorElement['download'];
   /**
