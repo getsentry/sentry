@@ -106,11 +106,125 @@ class SiloCacheBackedCallable(Generic[_R]):
         return _consume_generator(self.resolve_from(object_id, values))
 
 
+class SiloCacheManyBackedCallable(Generic[_R]):
+    """
+    Get a multiple records from cache or wrapped function.
+
+    When cache read returns no or partial data, the wrapped function will be invoked
+    with keys missing data. The result of the wrapped function will then be stored in cache.
+    """
+
+    silo_mode: SiloMode
+    base_key: str
+    cb: Callable[[list[int]], list[_R]]
+    type_: type[_R]
+    timeout: int | None
+
+    def __init__(
+        self,
+        base_key: str,
+        silo_mode: SiloMode,
+        cb: Callable[[list[int]], list[_R]],
+        t: type[_R],
+        timeout: int | None = None,
+    ):
+        self.base_key = base_key
+        self.silo_mode = silo_mode
+        self.cb = cb
+        self.type_ = t
+        self.timeout = timeout
+
+    def __call__(self, ids: list[int]) -> list[_R]:
+        if (
+            SiloMode.get_current_mode() != self.silo_mode
+            and SiloMode.get_current_mode() != SiloMode.MONOLITH
+        ):
+            return self.cb(ids)
+        return self.get_many(ids)
+
+    def key_from(self, object_id: int) -> str:
+        return f"{self.base_key}:{object_id}"
+
+    def get_many(self, ids: list[int]) -> list[_R]:
+        from .impl import _consume_generator, _delete_cache, _get_cache, _set_cache
+
+        keys = {i: self.key_from(i) for i in ids}
+        cache_values = _consume_generator(_get_cache(list(keys.values()), self.silo_mode))
+
+        # Mapping between object_id and cache versions
+        missing: dict[int, int] = {}
+        found: dict[int, _R] = {}
+
+        for object_id, cache_key in keys.items():
+            version: int | None = None
+            cache_value = cache_values[cache_key]
+            if isinstance(cache_value, str):
+                # Found data in cache
+                try:
+                    found[object_id] = self.type_(**json.loads(cache_value))
+                except (pydantic.ValidationError, JSONDecodeError, TypeError):
+                    version = _consume_generator(_delete_cache(cache_key, self.silo_mode))
+            else:
+                # Data was missing in cache but we have a version for the cache key
+                version = cache_value
+            if version is not None:
+                missing[object_id] = version
+
+        # This result could have different order than missing_object_ids, or have gaps
+        cb_result = self.cb(list(missing.keys()))
+        for record in cb_result:
+            # TODO(hybridcloud) The types/interfaces don't make reading this attribute safe.
+            # We rely on a convention of records having `id` for now. In the future
+            # this could become a decorator parameter intead.
+            record_id = getattr(record, "id")
+            if record_id is None:
+                continue
+            cache_key = keys[record_id]
+            record_version = missing[record_id]
+            _consume_generator(_set_cache(cache_key, record.json(), record_version, self.timeout))
+            found[record_id] = record
+
+        return [found[id] for id in ids if id in found]
+
+
 def back_with_silo_cache(
     base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
 ) -> Callable[[Callable[[int], _OptionalR]], "SiloCacheBackedCallable[_R]"]:
+    """
+    Decorator for adding local caching to RPC operations on a single record.
+
+    This decorator can be applied to RPC methods that fetch a single object.
+    If the cache read fails, the decorated function will be called and its result
+    will be stored in cache. The decorator adds helper methods on the wrapped
+    function for generating keys to clear cache entries
+    with region_caching_service and control_caching_service.
+
+    See user_service.get_user() for an example usage.
+    """
+
     def wrapper(cb: Callable[[int], _OptionalR]) -> "SiloCacheBackedCallable[_R]":
         return SiloCacheBackedCallable(base_key, silo_mode, cb, t, timeout)
+
+    return wrapper
+
+
+def back_with_silo_cache_many(
+    base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
+) -> Callable[[Callable[[list[int]], list[_R]]], "SiloCacheManyBackedCallable[_R]"]:
+    """
+    Decorator for adding local caching to RPC operations that fetch many records by id.
+
+    This decorator can be applied to RPC methods that fetch multiple objects.
+    First all ids will be read from cache. Any records that were not available in cache
+    will be forwarded to the wrapped method. The result of the wrapped method will be stored
+    in cache for future use.
+
+    Like `back_with_silo_cache`, this decorator adds helpers to the wrapped function
+    for generating keys to clear cache.
+    """
+
+    def wrapper(cb: Callable[[list[int]], list[_R]]) -> "SiloCacheManyBackedCallable[_R]":
+        return SiloCacheManyBackedCallable(base_key, silo_mode, cb, t, timeout)
 
     return wrapper
 
