@@ -695,7 +695,8 @@ def send_email(
         # TODO see if we can use the UUID to track if the email was sent or not
         logger.info(
             "weekly_report.send_email",
-            extra={"organization": ctx.organization.id, uuid: template_ctx["notification_uuid"]},
+            extra={"organization": ctx.organization.id, "uuid": template_ctx["notification_uuid"]},
         )
+
         message.add_users((user_id,))
         message.send_async()
