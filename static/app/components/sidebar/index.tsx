@@ -360,7 +360,7 @@ function Sidebar() {
   );
 
   const resources = hasOrganization && (
-    <Feature key="assets" features="spans-first-ui">
+    <Feature key="resource" features="spans-first-ui">
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
