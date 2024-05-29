@@ -14,19 +14,15 @@ class ConfiguratioAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.url = reverse(
-            self.endpoint,
-            args=(self.organization.slug, self.project.slug, self.projectkey.public_key),
-        )
+        self.url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug))
 
     @property
     def storage(self):
-        return StorageBackend(self.projectkey)
+        return StorageBackend(self.project)
 
     def test_get_configuration(self):
         self.storage.set(
             {
-                "id": self.projectkey.public_key,
                 "features": [{"key": "abc", "value": "def"}],
                 "options": {"sample_rate": 0.5, "traces_sample_rate": 0},
             },
@@ -38,7 +34,6 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 200
         assert response.json() == {
             "data": {
-                "id": self.projectkey.public_key,
                 "features": [{"key": "abc", "value": "def"}],
                 "options": {"sample_rate": 0.5, "traces_sample_rate": 0},
             }
@@ -47,7 +42,6 @@ class ConfiguratioAPITestCase(APITestCase):
     def test_get_configuration_not_enabled(self):
         self.storage.set(
             {
-                "id": self.projectkey.public_key,
                 "features": [{"key": "abc", "value": "def"}],
                 "options": {"sample_rate": 0.5, "traces_sample_rate": 0},
             },
@@ -76,7 +70,6 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 201, response.content
         assert response.json() == {
             "data": {
-                "id": self.projectkey.public_key,
                 "features": [{"key": "hello", "value": "world"}],
                 "options": {"sample_rate": 1.0, "traces_sample_rate": 0.2},
             }
@@ -160,7 +153,6 @@ class ConfiguratioAPITestCase(APITestCase):
     def test_delete_configuration(self):
         self.storage.set(
             {
-                "id": self.projectkey.public_key,
                 "features": [],
                 "options": {"sample_rate": 1.0, "traces_sample_rate": 1.0},
             }
