@@ -27,7 +27,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
@@ -78,6 +77,7 @@ from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
+    valid_tags = constants.DEFAULT_METRIC_TAGS
 
     organization_column: str = "organization_id"
 
@@ -103,7 +103,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metrics_layer_functions: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
-        self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
         # always true if this is being called
         config.has_metrics = True
@@ -129,17 +128,6 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
-
-    @property
-    def use_default_tags(self) -> bool:
-        if self._use_default_tags is None:
-            if self.params.organization is not None:
-                self._use_default_tags = features.has(
-                    "organizations:mep-use-default-tags", self.params.organization, actor=None
-                )
-            else:
-                self._use_default_tags = False
-        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
@@ -661,13 +649,12 @@ class MetricsQueryBuilder(QueryBuilder):
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
-        if self.use_default_tags:
-            if value in constants.DEFAULT_METRIC_TAGS:
-                return self.resolve_metric_index(value)
-            else:
-                raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
-        else:
+        # Attempt to resolve tag keys, for the metrics preformance datasets we use an allowlist so ondemand keys don't
+        # overlap. If you don't want this functionality for your dataset set valid_tags to an empty sequence
+        if len(self.valid_tags) > 0 and value in self.valid_tags:
             return self.resolve_metric_index(value)
+        else:
+            raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
 
     def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name

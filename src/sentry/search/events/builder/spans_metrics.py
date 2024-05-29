@@ -13,11 +13,10 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+    # TODO: need to fill this in once the span metrics product has stabilized a bit more, by being empty we'll use the
+    # indexer
+    valid_tags = {}
     free_text_key = "span.description"
-
-    @property
-    def use_default_tags(self) -> bool:
-        return False
 
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
