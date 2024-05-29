@@ -68,7 +68,9 @@ def track_memory_usage(metric, **kwargs):
         metrics.distribution(metric, get_rss_usage() - before, unit="byte", **kwargs)
 
 
-def load_model_from_db(tp: type[ModelT], instance_or_id: ModelT | int, allow_cache=True) -> ModelT:
+def load_model_from_db(
+    tp: type[ModelT], instance_or_id: ModelT | int, allow_cache: bool = True
+) -> ModelT:
     """Utility function to allow a task to transition to passing ids rather than model instances."""
     if isinstance(instance_or_id, int):
         if hasattr(tp.objects, "get_from_cache") and allow_cache:
