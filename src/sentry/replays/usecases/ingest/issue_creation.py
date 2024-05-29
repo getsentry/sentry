@@ -14,6 +14,7 @@ logger = logging.getLogger()
 HYDRATION_ERROR_TITLE = "Hydration Error"
 HYDRATION_ERROR_SUBTITLE = "A hydration error occurred."
 HYDRATION_ERROR_LEVEL = "error"
+HYDRATION_ERROR_FINGERPRINT = "1"  # all hydration errors will be grouped together
 RAGE_CLICK_TITLE = "Rage Click"
 RAGE_CLICK_LEVEL = "error"
 
@@ -30,14 +31,13 @@ def report_hydration_error_issue_with_replay_event(
     # Seconds since epoch is UTC.
     date = datetime.datetime.fromtimestamp(timestamp)
     timestamp_utc = date.replace(tzinfo=datetime.UTC)
-    fingerprint = str(_trunc_timestamp_week(timestamp))
 
     new_issue_occurrence(
         culprit=url[:MAX_CULPRIT_LENGTH],
         environment=replay_event.get(
             "environment", "production"
         ),  # if no environment is set, default to production
-        fingerprint=[fingerprint],
+        fingerprint=[HYDRATION_ERROR_FINGERPRINT],
         issue_type=ReplayHydrationErrorType,
         level=HYDRATION_ERROR_LEVEL,
         platform=replay_event["platform"],
@@ -176,7 +176,3 @@ def _make_clicked_element(node):
                 element += f'[data-sentry-component="{value}"]'
 
     return element
-
-
-def _trunc_timestamp_week(timestamp: float) -> int:
-    return int(timestamp) % (7 * 24 * 60 * 60)
