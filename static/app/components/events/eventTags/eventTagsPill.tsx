@@ -15,7 +15,9 @@ type Props = {
   tag: EventTag;
   meta?: Record<any, any>;
 };
-
+/**
+ * @deprecated Legacy design, use EventTagsTreeRow instead
+ */
 function EventTagsPill({
   tag,
   query,

@@ -12,6 +12,10 @@ describe('eventDisplay', () => {
 
   beforeEach(() => {
     mockProject = ProjectFixture();
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${mockProject.slug}/`,
+      body: mockProject,
+    });
   });
 
   it('renders an empty state if no events returned', async () => {
@@ -67,7 +71,7 @@ describe('eventDisplay', () => {
       />
     );
 
-    expect(await screen.findByText('mock-tag')).toBeInTheDocument();
+    expect(await screen.findByText('mock-tag', {selector: 'div'})).toBeInTheDocument();
     expect(screen.getByText('mock-value')).toBeInTheDocument();
   });
 

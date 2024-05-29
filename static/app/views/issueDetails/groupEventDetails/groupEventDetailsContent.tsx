@@ -21,7 +21,6 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -99,7 +98,6 @@ function DefaultGroupEventDetailsContent({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
   const location = useLocation();
   const tagsRef = useRef<HTMLDivElement>(null);
 
@@ -176,9 +174,6 @@ function DefaultGroupEventDetailsContent({
         project={project}
         viewAllRef={tagsRef}
       />
-      {!hasNewTagsUI && (
-        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-      )}
       {showMaybeSolutionsHigher && (
         <ResourcesAndMaybeSolutionsIssueDetailsContent
           event={event}
@@ -231,11 +226,9 @@ function DefaultGroupEventDetailsContent({
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
-      {hasNewTagsUI && (
-        <div ref={tagsRef}>
-          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-        </div>
-      )}
+      <div ref={tagsRef}>
+        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+      </div>
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />

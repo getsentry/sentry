@@ -13,7 +13,7 @@ import {
 import {EventTags} from 'sentry/components/events/eventTags';
 
 describe('EventTagsTree', function () {
-  const {organization, project, router} = initializeOrg();
+  const {organization, project} = initializeOrg();
   const tags = [
     {key: 'app', value: 'Sentry'},
     {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
@@ -71,16 +71,13 @@ describe('EventTagsTree', function () {
     });
   });
 
-  it('avoids tag tree without query param or flag', function () {
-    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
-    tags.forEach(({key: fullTagKey, value}) => {
-      expect(screen.getByText(fullTagKey)).toBeInTheDocument();
-      expect(screen.getByText(value)).toBeInTheDocument();
+  it('renders tag tree', async function () {
+    render(<EventTags projectSlug={project.slug} event={event} />, {
+      organization,
     });
-  });
+    expect(mockDetailedProject).toHaveBeenCalled();
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-  /** Asserts that new tags view is rendering the appropriate data. Requires render() call prior. */
-  async function assertNewTagsView() {
     tags.forEach(({value}) => {
       expect(screen.getByText(value)).toBeInTheDocument();
     });
@@ -116,34 +113,10 @@ describe('EventTagsTree', function () {
       ).toBeInTheDocument();
       expect(screen.getByLabelText('Copy tag value to clipboard')).toBeInTheDocument();
     }
-  }
-
-  it('renders tag tree with query param', async function () {
-    router.location.query.tagsTree = '1';
-    render(<EventTags projectSlug={project.slug} event={event} />, {
-      organization,
-      router,
-    });
-    expect(mockDetailedProject).toHaveBeenCalled();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    await assertNewTagsView();
-  });
-
-  it("renders tag tree with the 'event-tags-tree-ui' feature", async function () {
-    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    render(<EventTags projectSlug={project.slug} event={event} />, {
-      organization: featuredOrganization,
-    });
-    expect(mockDetailedProject).toHaveBeenCalled();
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
-    await assertNewTagsView();
   });
 
   it('renders release tag differently', async function () {
     const releaseVersion = 'v1.0';
-    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
 
     const reposRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
@@ -162,7 +135,7 @@ describe('EventTagsTree', function () {
       tags: [{key: 'release', value: releaseVersion}],
     });
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
-      organization: featuredOrganization,
+      organization,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -232,12 +205,9 @@ describe('EventTagsTree', function () {
   ])(
     "renders unique links for '$tag.key' tag",
     async ({tag, labelText, validateLink}) => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['event-tags-tree-ui'],
-      });
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
-        organization: featuredOrganization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -250,7 +220,6 @@ describe('EventTagsTree', function () {
   );
 
   it('renders error message tooltips instead of dropdowns', async function () {
-    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
@@ -285,7 +254,7 @@ describe('EventTagsTree', function () {
       ],
     });
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
-      organization: featuredOrganization,
+      organization,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -299,7 +268,6 @@ describe('EventTagsTree', function () {
   });
 
   it('avoids rendering nullish tags', async function () {
-    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
     const uniqueTagsEvent = EventFixture({
       tags: [
         {key: null, value: 'null tag'},
@@ -308,7 +276,7 @@ describe('EventTagsTree', function () {
       ],
     });
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
-      organization: featuredOrganization,
+      organization,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -320,7 +288,6 @@ describe('EventTagsTree', function () {
   });
 
   it("renders 'Add to event highlights' option based on highlights", async function () {
-    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
     const highlightsEvent = EventFixture({
       tags: [
         {key: 'useless-tag', value: 'not so much'},
@@ -334,7 +301,7 @@ describe('EventTagsTree', function () {
       body: highlightProject,
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
-      organization: featuredOrganization,
+      organization,
     });
     await expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -356,8 +323,7 @@ describe('EventTagsTree', function () {
   });
 
   it("renders 'Add to event highlights' option based on permissions", async function () {
-    const featuredOrganization = OrganizationFixture({
-      features: ['event-tags-tree-ui'],
+    const readAccessOrganization = OrganizationFixture({
       access: ['org:read'],
     });
     const highlightsEvent = EventFixture({
@@ -374,7 +340,7 @@ describe('EventTagsTree', function () {
       body: highlightProject,
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
-      organization: featuredOrganization,
+      organization: readAccessOrganization,
     });
     await expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();

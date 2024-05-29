@@ -496,44 +496,27 @@ describe('groupEventDetails', () => {
     ).toBeInTheDocument();
   });
 
-  describe('changes to event tags ui', () => {
-    async function assertNewTagsView() {
-      expect(await screen.findByText('Event ID:')).toBeInTheDocument();
-      expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
-      expect(screen.getByTestId('event-tags')).toBeInTheDocument();
-      const highlights = screen.getByTestId('event-highlights');
-      expect(
-        within(highlights).getByRole('button', {name: 'View All'})
-      ).toBeInTheDocument();
-      expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
-      // No highlights setup
-      expect(
-        within(highlights).getByRole('button', {name: 'Add Highlights'})
-      ).toBeInTheDocument();
-      expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
-    }
+  it('renders event tags ui', async () => {
+    const props = makeDefaultMockData();
+    mockGroupApis(props.organization, props.project, props.group, props.event);
+    const organization = OrganizationFixture();
+    render(<TestComponent group={props.group} event={props.event} />, {
+      organization,
+    });
 
-    it('works with the feature flag', async function () {
-      const props = makeDefaultMockData();
-      mockGroupApis(props.organization, props.project, props.group, props.event);
-      const organization = OrganizationFixture({
-        features: ['event-tags-tree-ui'],
-      });
-      render(<TestComponent group={props.group} event={props.event} />, {
-        organization,
-      });
-      await assertNewTagsView();
-    });
-    it('works with the query param', async function () {
-      const props = makeDefaultMockData();
-      mockGroupApis(props.organization, props.project, props.group, props.event);
-      const {organization} = initializeOrg();
-      render(
-        <TestComponent group={props.group} event={props.event} query={{tagsTree: '1'}} />,
-        {organization}
-      );
-      await assertNewTagsView();
-    });
+    expect(await screen.findByText('Event ID:')).toBeInTheDocument();
+    expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+    const highlights = screen.getByTestId('event-highlights');
+    expect(
+      within(highlights).getByRole('button', {name: 'View All'})
+    ).toBeInTheDocument();
+    expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    // No highlights setup
+    expect(
+      within(highlights).getByRole('button', {name: 'Add Highlights'})
+    ).toBeInTheDocument();
+    expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
   });
 });
 

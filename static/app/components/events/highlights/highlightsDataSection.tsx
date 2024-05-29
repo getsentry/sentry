@@ -15,10 +15,7 @@ import {
   TreeContainer,
 } from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {
-  useHasNewTagsUI,
-  useIssueDetailsColumnCount,
-} from 'sentry/components/events/eventTags/util';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
@@ -221,16 +218,11 @@ export default function HighlightsDataSection({
   viewAllRef,
   ...props
 }: HighlightsDataSectionProps) {
-  const hasNewTagsUI = useHasNewTagsUI();
   const organization = useOrganization();
   // XXX: A bit convoluted to have the edit action created by the child component, but this allows
   // us to wrap it with an Error Boundary and still display the EventDataSection header if something
   // goes wrong
   const [editAction, setEditAction] = useState<React.ReactNode>(null);
-
-  if (!hasNewTagsUI) {
-    return null;
-  }
 
   const viewAllButton = viewAllRef ? (
     <Button

@@ -20,7 +20,9 @@ type Props = {
   group?: Group;
   value?: Record<string, any>;
 };
-
+/**
+ * @deprecated Legacy design, use ContextCard instead
+ */
 export function Chunk({group, type, alias, value = {}, event}: Props) {
   const [pluginLoading, setPluginLoading] = useState(false);
 

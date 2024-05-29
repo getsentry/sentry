@@ -60,8 +60,8 @@ describe('EventEntries', function () {
     const sections = screen.getAllByTestId(/event-section/);
 
     // Replay should be after message but before images loaded
-    expect(sections[1]).toHaveTextContent(/message/i);
-    expect(sections[2]).toHaveTextContent(/replay/i);
-    expect(sections[3]).toHaveTextContent(/images loaded/i);
+    expect(sections[0]).toHaveTextContent(/message/i);
+    expect(sections[1]).toHaveTextContent(/replay/i);
+    expect(sections[2]).toHaveTextContent(/images loaded/i);
   });
 });

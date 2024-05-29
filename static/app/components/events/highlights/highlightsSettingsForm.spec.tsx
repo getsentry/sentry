@@ -7,7 +7,7 @@ import HighlightsSettingsForm from 'sentry/components/events/highlights/highligh
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsSettingForm', function () {
-  const organization = OrganizationFixture({features: ['event-tags-tree-ui']});
+  const organization = OrganizationFixture();
   const highlightTags = ['environment', 'handled', 'release', 'url'];
   const highlightContext = {
     user: ['email'],
