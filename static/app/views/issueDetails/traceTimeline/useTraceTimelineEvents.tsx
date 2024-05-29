@@ -37,6 +37,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   endTimestamp: number;
   isError: boolean;
   isLoading: boolean;
+  oneOtherIssueEvent: TimelineEvent | undefined;
   startTimestamp: number;
   traceEvents: TimelineEvent[];
 } {
@@ -120,6 +121,8 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     // Events is unsorted since they're grouped by date later
     const events = [...issuePlatformData.data, ...discoverData.data];
 
+    const oneOtherIssueEvent = getOneOtherIssueEvent(event, events);
+
     // The current event might be missing when there is a large number of issues
     const hasCurrentEvent = events.some(e => e.id === event.id);
     if (!hasCurrentEvent) {
@@ -141,6 +144,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       data: events,
       startTimestamp,
       endTimestamp,
+      oneOtherIssueEvent,
     };
   }, [
     event,
@@ -158,5 +162,24 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     endTimestamp: eventData.endTimestamp,
     isLoading: isLoadingIssuePlatform || isLoadingDiscover,
     isError: isErrorIssuePlatform || isErrorDiscover,
+    oneOtherIssueEvent: eventData.oneOtherIssueEvent,
   };
+}
+
+function getOneOtherIssueEvent(
+  event: Event,
+  allTraceEvents: TimelineEvent[]
+): TimelineEvent | undefined {
+  const groupId = event.groupID;
+  if (!groupId) {
+    return undefined;
+  }
+  const otherIssues = allTraceEvents.filter(
+    (_event, index, self) =>
+      _event['issue.id'] !== undefined &&
+      // Exclude the current issue
+      _event['issue.id'] !== Number(groupId) &&
+      self.findIndex(e => e['issue.id'] === _event['issue.id']) === index
+  );
+  return otherIssues.length === 1 ? otherIssues[0] : undefined;
 }
