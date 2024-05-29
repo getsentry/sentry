@@ -943,7 +943,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most time consuming resources widget', async function () {
-    const data = initializeData();
+    const data = initializeData(undefined, {features: ['performance-insights']});
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
@@ -959,7 +959,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/performance/browser/resources/'
+      '/insights/browser/resources/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(

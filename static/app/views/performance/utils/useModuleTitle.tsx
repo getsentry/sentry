@@ -1,5 +1,9 @@
+import useOrganization from 'sentry/utils/useOrganization';
 import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
-import {MODULE_TITLE as RESOURCES_MODULE_TITLE} from 'sentry/views/performance/browser/resources/settings';
+import {
+  MODULE_TITLE as RESOURCES_MODULE_TITLE,
+  PERFORMANCE_MODULE_TITLE as PERFORMANCE_RESOURCES_MODULE_TITLE,
+} from 'sentry/views/performance/browser/resources/settings';
 import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/performance/browser/webVitals/settings';
 import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/performance/cache/settings';
 import {MODULE_TITLE as DB_MODULE_TITLE} from 'sentry/views/performance/database/settings';
@@ -25,9 +29,20 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.ALL]: '',
 };
 
+export const PERFORMANCE_MODULE_TITLES: {[key in ModuleName]?: string} = {
+  [ModuleName.RESOURCE]: PERFORMANCE_RESOURCES_MODULE_TITLE,
+};
+
 type ModuleNameStrings = `${ModuleName}`;
 type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 export function useModuleTitle(moduleName: TitleableModuleNames) {
+  const organization = useOrganization();
+  const isInsightsEnabled = organization?.features?.includes('performance-insights');
+
+  if (!isInsightsEnabled && PERFORMANCE_MODULE_TITLES[moduleName]) {
+    return PERFORMANCE_MODULE_TITLES[moduleName];
+  }
+
   return MODULE_TITLES[moduleName];
 }
