@@ -144,6 +144,7 @@ def backfill_seer_grouping_records(
             "project_id": project.id,
             "batch_len": len(group_id_message_data_batch),
             "last_processed_index": last_processed_index,
+            "total_groups_length": len(group_id_message_data),
         },
     )
 
@@ -304,6 +305,7 @@ def backfill_seer_grouping_records(
                     extra={
                         "project_id": project.id,
                         "last_processed_index": last_processed_index,
+                        "last_processed_group_id": group_id_batch[-1],
                         "dry_run": dry_run,
                     },
                 )
@@ -331,7 +333,7 @@ def backfill_seer_grouping_records(
             extra={
                 "project_id": project.id,
                 "snuba_result": result,
-                "group_id_batch": group_id_batch,
+                "group_id_batch": json.dumps(group_id_batch),
             },
         )
 
