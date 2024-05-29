@@ -102,16 +102,12 @@ const TraceIssueLinkContainer = styled(Link)`
   }
 `;
 
-// The padding-right prevents overflowing the container
-// This can be changed with more CSS expertise
 const TraceIssueDetailsContainer = styled('div')`
-  padding-right: ${space(4)};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const NoOverflowDiv = styled('div')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const TraceIssueEventTitle = styled('span')`
