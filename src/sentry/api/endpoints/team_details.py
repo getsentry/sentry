@@ -13,7 +13,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
+from sentry.api.serializers.models.team import TeamSerializer as TeamRequestSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
@@ -28,7 +28,7 @@ from sentry.models.team import Team, TeamStatus
 
 
 @extend_schema_serializer(exclude_fields=["name"])
-class TeamRequestSerializer(CamelSnakeModelSerializer):
+class TeamDetailsSerializer(CamelSnakeModelSerializer):
     slug = SentrySerializerSlugField(
         max_length=50,
         help_text="Uniquely identifies a team. This is must be available.",
@@ -65,7 +65,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
             TeamParams.COLLAPSE,
         ],
         responses={
-            200: ModelTeamSerializer,
+            200: TeamRequestSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -88,15 +88,15 @@ class TeamDetailsEndpoint(TeamEndpoint):
             expand.append("organization")
 
         return Response(
-            serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand))
+            serialize(team, request.user, TeamRequestSerializer(collapse=collapse, expand=expand))
         )
 
     @extend_schema(
         operation_id="Update a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
-        request=TeamRequestSerializer,
+        request=TeamDetailsSerializer,
         responses={
-            200: ModelTeamSerializer,
+            200: TeamRequestSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -110,7 +110,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Update various attributes and configurable settings for the given
         team.
         """
-        serializer = TeamRequestSerializer(team, data=request.data, partial=True)
+        serializer = TeamDetailsSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
