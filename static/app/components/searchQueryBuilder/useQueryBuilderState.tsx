@@ -14,6 +14,8 @@ type QueryBuilderState = {
 
 type ClearAction = {type: 'CLEAR'};
 
+type UpdateQueryAction = {query: string; type: 'UPDATE_QUERY'};
+
 type DeleteTokenAction = {
   token: ParseResultToken;
   type: 'DELETE_TOKEN';
@@ -50,6 +52,7 @@ type DeleteLastMultiSelectFilterValueAction = {
 
 export type QueryBuilderActions =
   | ClearAction
+  | UpdateQueryAction
   | DeleteTokenAction
   | UpdateFreeTextAction
   | UpdateFilterOpAction
@@ -187,6 +190,10 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
         case 'CLEAR':
           return {
             query: '',
+          };
+        case 'UPDATE_QUERY':
+          return {
+            query: action.query,
           };
         case 'DELETE_TOKEN':
           return {
