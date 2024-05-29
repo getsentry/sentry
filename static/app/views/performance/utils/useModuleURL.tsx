@@ -31,10 +31,6 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.ALL]: '',
 };
 
-export const PERFORMANCE_MODULE_BASE_URLS: {[key in ModuleName]?: string} = {
-  [ModuleName.RESOURCE]: PERFORMANCE_RESOURCES_BASE_URL,
-};
-
 type ModuleNameStrings = `${ModuleName}`;
 type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
@@ -73,11 +69,11 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
         : normalizeUrl(`/organizations/${slug}/${moduleURLSegment}`);
     }
 
-    if (!isInsightsEnabled && PERFORMANCE_MODULE_BASE_URLS[moduleName]) {
+    if (!isInsightsEnabled && PERFORMANCE_RESOURCES_BASE_URL) {
       return bare
-        ? `${insightsURL}/${PERFORMANCE_MODULE_BASE_URLS[moduleName]}`
+        ? `${insightsURL}/${PERFORMANCE_RESOURCES_BASE_URL}`
         : normalizeUrl(
-            `/organizations/${slug}/${insightsURL}/${PERFORMANCE_MODULE_BASE_URLS[moduleName]}`
+            `/organizations/${slug}/${insightsURL}/${PERFORMANCE_RESOURCES_BASE_URL}`
           );
     }
 

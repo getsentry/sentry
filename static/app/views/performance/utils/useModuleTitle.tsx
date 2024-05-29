@@ -29,10 +29,6 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.ALL]: '',
 };
 
-export const PERFORMANCE_MODULE_TITLES: {[key in ModuleName]?: string} = {
-  [ModuleName.RESOURCE]: PERFORMANCE_RESOURCES_MODULE_TITLE,
-};
-
 type ModuleNameStrings = `${ModuleName}`;
 type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
@@ -40,8 +36,8 @@ export function useModuleTitle(moduleName: TitleableModuleNames) {
   const organization = useOrganization({allowNull: true});
   const isInsightsEnabled = organization?.features?.includes('performance-insights');
 
-  if (!isInsightsEnabled && PERFORMANCE_MODULE_TITLES[moduleName]) {
-    return PERFORMANCE_MODULE_TITLES[moduleName];
+  if (!isInsightsEnabled && moduleName === ModuleName.RESOURCE) {
+    return PERFORMANCE_RESOURCES_MODULE_TITLE;
   }
 
   return MODULE_TITLES[moduleName];
