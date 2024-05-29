@@ -1,7 +1,9 @@
+import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
+  getContextIcon,
   getContextMeta,
   getContextTitle,
   getFormattedContextData,
@@ -98,8 +100,19 @@ export default function ContextCard({
   return (
     <KeyValueData.Card
       contentItems={contentItems}
-      title={getContextTitle({alias, type, value})}
+      title={
+        <Title>
+          <div>{getContextTitle({alias, type, value})}</div>
+          <div>{getContextIcon({type, value})}</div>
+        </Title>
+      }
       sortAlphabetically
     />
   );
 }
+
+const Title = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;

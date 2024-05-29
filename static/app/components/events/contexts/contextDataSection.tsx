@@ -1,7 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
-import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
+import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import * as KeyValueData from 'sentry/components/keyValueData/card';
 import ExternalLink from 'sentry/components/links/externalLink';

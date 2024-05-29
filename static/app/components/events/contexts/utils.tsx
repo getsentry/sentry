@@ -3,11 +3,15 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
 import type {
+  AvatarUser,
   Event,
   KeyValueListData,
   KeyValueListDataItem,
@@ -106,6 +110,57 @@ const CONTEXT_TYPES = {
   // we want to keep it here for now so it works for existing versions
   'Memory Info': MemoryInfoEventContext,
 };
+
+/**
+ * Generates the class name used for contexts
+ */
+export function generateIconName(
+  name?: string | boolean | null,
+  version?: string
+): string {
+  if (!defined(name) || typeof name === 'boolean') {
+    return '';
+  }
+
+  const lowerCaseName = name.toLowerCase();
+
+  // amazon fire tv device id changes with version: AFTT, AFTN, AFTS, AFTA, AFTVA (alexa), ...
+  if (lowerCaseName.startsWith('aft')) {
+    return 'amazon';
+  }
+
+  if (lowerCaseName.startsWith('sm-') || lowerCaseName.startsWith('st-')) {
+    return 'samsung';
+  }
+
+  if (lowerCaseName.startsWith('moto')) {
+    return 'motorola';
+  }
+
+  if (lowerCaseName.startsWith('pixel')) {
+    return 'google';
+  }
+
+  const formattedName = name
+    .split(/\d/)[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]+/g, '-')
+    .replace(/\-+$/, '')
+    .replace(/^\-+/, '');
+
+  if (formattedName === 'edge' && version) {
+    const majorVersion = version.split('.')[0];
+    const isLegacyEdge = majorVersion >= '12' && majorVersion <= '18';
+
+    return isLegacyEdge ? 'legacy-edge' : 'edge';
+  }
+
+  if (formattedName.endsWith('-mobile')) {
+    return formattedName.split('-')[0];
+  }
+
+  return formattedName;
+}
 
 export function getContextComponent(type: string) {
   return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
@@ -303,6 +358,41 @@ export function getContextMeta(event: Event, contextType: string): Record<string
   }
 }
 
+export function getContextIcon({
+  type,
+  value = {},
+}: {
+  type: string;
+  value?: Record<string, any>;
+}): React.ReactNode {
+  let iconName = '';
+  switch (type) {
+    case 'device':
+      iconName = generateIconName(value?.model);
+      break;
+    case 'client_os':
+    case 'os':
+      iconName = generateIconName(value?.name);
+      break;
+    case 'runtime':
+    case 'browser':
+      iconName = generateIconName(value?.name, value?.version);
+      break;
+    case 'user':
+      const user = removeFilterMaskedEntries(value);
+      return <UserAvatar user={user as AvatarUser} size={14} gravatar={false} />;
+    case 'gpu':
+      iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
+      break;
+    default:
+      break;
+  }
+  if (iconName.length === 0) {
+    return null;
+  }
+  return <ContextIcon name={iconName} size="sm" />;
+}
+
 export function getFormattedContextData({
   event,
   contextType,
@@ -402,3 +492,5 @@ const RelativeTime = styled('span')`
   color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
 `;
+
+export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;

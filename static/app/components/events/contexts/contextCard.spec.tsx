@@ -1,17 +1,17 @@
 import startCase from 'lodash/startCase';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 
 describe('ContextCard', function () {
+  const group = GroupFixture();
+  const project = ProjectFixture();
   it('renders the card with formatted context data', function () {
     const event = EventFixture();
-    const group = GroupFixture();
-    const {project} = initializeOrg();
     const alias = 'Things in my Vicinity';
     const simpleContext = {
       snack: 'peanut',
@@ -55,6 +55,45 @@ describe('ContextCard', function () {
     });
   });
 
+  it('renders with icons if able', function () {
+    const event = EventFixture();
+
+    const browserContext = {
+      type: 'browser',
+      name: 'Firefox',
+      version: 'Infinity',
+    };
+    const browserCard = render(
+      <ContextCard
+        type="browser"
+        alias="browser"
+        value={browserContext}
+        event={event}
+        group={group}
+        project={project}
+      />
+    );
+    expect(screen.getByRole('img')).toBeInTheDocument();
+    browserCard.unmount();
+
+    const unknownContext = {
+      type: 'default',
+      organization: 'acme',
+      tier: 'gold',
+    };
+    render(
+      <ContextCard
+        type="default"
+        alias="organization"
+        value={unknownContext}
+        event={event}
+        group={group}
+        project={project}
+      />
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
   it('renders the annotated text and errors', function () {
     const alias = 'broken';
     const event = EventFixture({
@@ -92,8 +131,6 @@ describe('ContextCard', function () {
         },
       },
     });
-    const group = GroupFixture();
-    const {project} = initializeOrg();
     const errorContext = {
       error: '',
       redacted: '',
