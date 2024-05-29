@@ -184,6 +184,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     timestamp: 1,
     generation: 0,
     span_id: s,
+    sdk_name: 'sdk_name',
     'transaction.duration': 1,
     transaction: 'transaction-name' + t,
     'transaction.op': 'transaction-op-' + t,

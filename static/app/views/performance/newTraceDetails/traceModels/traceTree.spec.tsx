@@ -5,7 +5,6 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, type Event, type EventTransaction} from 'sentry/types';
 import type {
-  TraceFullDetailed,
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -31,18 +30,21 @@ const EVENT_REQUEST_URL =
   '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
 
 function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceFullDetailed>>
-): TraceSplitResults<TraceFullDetailed> {
+  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
+): TraceSplitResults<TraceTree.Transaction> {
   return {
     transactions: [],
     orphan_errors: [],
     ...overrides,
-  } as TraceSplitResults<TraceFullDetailed>;
+  } as TraceSplitResults<TraceTree.Transaction>;
 }
 
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
+function makeTransaction(
+  overrides: Partial<TraceTree.Transaction> = {}
+): TraceTree.Transaction {
   return {
     children: [],
+    sdk_name: '',
     start_timestamp: 0,
     timestamp: 1,
     transaction: 'transaction',
@@ -51,7 +53,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     performance_issues: [],
     errors: [],
     ...overrides,
-  } as TraceFullDetailed;
+  } as TraceTree.Transaction;
 }
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
@@ -991,6 +993,20 @@ describe('TraceTree', () => {
     );
 
     expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
+  });
+
+  it('browser multiple roots shape', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({sdk_name: 'javascript', parent_span_id: null}),
+          makeTransaction({sdk_name: 'javascript', parent_span_id: null}),
+        ],
+        orphan_errors: [],
+      })
+    );
+
+    expect(tree.shape).toBe(TraceType.BROWSER_MULTIPLE_ROOTS);
   });
 
   it('builds from spans when root is a transaction node', () => {

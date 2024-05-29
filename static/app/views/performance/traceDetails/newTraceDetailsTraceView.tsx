@@ -31,6 +31,7 @@ import type {
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TraceDetailBody,
   TraceViewContainer,
@@ -62,7 +63,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceEventView: EventView;
   traceSlug: string;
   traceType: TraceType;
-  traces: TraceFullDetailed[];
+  traces: TraceTree.Transaction[];
   filteredEventIds?: Set<string>;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];

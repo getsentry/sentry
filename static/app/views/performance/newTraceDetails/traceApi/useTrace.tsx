@@ -15,6 +15,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 
+import type {TraceTree} from '../traceModels/traceTree';
+
 export function fetchTrace(
   api: Client,
   params: {
@@ -134,6 +136,7 @@ function makeTraceFromTransaction(
     transaction: event.title,
     'transaction.duration': (event.endTimestamp - event.startTimestamp) * 1000,
     errors: [],
+    sdk_name: event.sdk?.name ?? '',
     children: [],
     start_timestamp: event.startTimestamp,
     'transaction.op': traceContext?.op ?? '',
@@ -148,7 +151,7 @@ function makeTraceFromTransaction(
 function useDemoTrace(
   demo: string | undefined,
   organization: {slug: string}
-): UseApiQueryResult<TraceSplitResults<TraceFullDetailed> | undefined, any> {
+): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
   const demoEventSlug = parseDemoEventSlug(demo);
 
   // When projects don't have performance set up, we allow them to view a demo transaction.
@@ -180,7 +183,7 @@ function useDemoTrace(
   // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
   // from EventTransaction to TraceSplitResults<TraceFullDetailed>
   return {...demoEventQuery, data} as UseApiQueryResult<
-    TraceSplitResults<TraceFullDetailed> | undefined,
+    TraceSplitResults<TraceTree.Transaction> | undefined,
     any
   >;
 }
@@ -192,7 +195,7 @@ type UseTraceParams = {
 const DEFAULT_OPTIONS = {};
 export function useTrace(
   options: Partial<UseTraceParams> = DEFAULT_OPTIONS
-): UseApiQueryResult<TraceSplitResults<TraceFullDetailed> | undefined, any> {
+): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -203,7 +206,7 @@ export function useTrace(
   }, [options]);
   const mode = queryParams.demo ? 'demo' : undefined;
   const demoTrace = useDemoTrace(queryParams.demo, organization);
-  const traceQuery = useApiQuery<TraceSplitResults<TraceFullDetailed>>(
+  const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
       {query: queryParams},
