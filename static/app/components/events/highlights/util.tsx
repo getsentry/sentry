@@ -24,6 +24,8 @@ interface ContextData extends ContextItem {
 }
 
 export const EMPTY_HIGHLIGHT_DEFAULT = '--';
+export const HIGHLIGHT_DOCS_LINK =
+  'https://docs.sentry.io/product/issues/issue-details/#event-highlights';
 
 /**
  * Helper function to use try HighlightContext saved values on multiple fields improve match rate.
