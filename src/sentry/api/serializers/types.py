@@ -53,15 +53,14 @@ class ReleaseSerializerResponseOptional(TypedDict, total=False):
 
 
 class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
-    releases: list[Any]
     id: int
     version: str
+    newGroups: int
     status: str
     shortVersion: str
     versionInfo: VersionInfo
     dateCreated: datetime
     data: dict[str, Any]
-    newGroups: int
     commitCount: int
     deployCount: int
     authors: list[Author]

@@ -98,6 +98,7 @@ class HealthDataOptional(TypedDict, total=False):
 class HealthData(HealthDataOptional):
     sessionsCrashed: int
     sessionsErrored: int
+    hasHealthData: bool
     stats: dict[str, Any]
 
 
@@ -109,7 +110,8 @@ class Project(ProjectOptional):
     id: int
     slug: str
     name: str
-    new_groups: int
+    newGroups: int
     platform: str
     platforms: list[str]
-    has_health_data: bool
+    hasHealthData: bool
+    healthData: HealthData

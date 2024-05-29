@@ -561,6 +561,7 @@ class OrganizationExamples:
                         "id": 2837091,
                         "name": "Raj's Raspberries",
                         "username": "rajraspberry",
+                        "email": "raj@raspberries",
                         "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
                         "isActive": True,
                         "hasPasswordAuth": False,
