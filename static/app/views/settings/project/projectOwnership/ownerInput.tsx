@@ -270,12 +270,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 

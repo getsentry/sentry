@@ -26,6 +26,7 @@ import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/quer
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_TITLE,
 } from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
@@ -149,7 +150,7 @@ export function DatabaseLandingPage() {
           <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
-            {t('Queries')}
+            {MODULE_TITLE}
             <PageHeadingQuestionTooltip
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
@@ -269,10 +270,7 @@ const LIMIT: number = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Database')].join(' — ')}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="db" features="spans-first-ui">
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

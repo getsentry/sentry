@@ -7,13 +7,11 @@ This is similar to existing featureflagging systems we have, but with less
 features and more performant.
 """
 
-import copy
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
 import click
-import sentry_sdk
 
 from sentry import options
 from sentry.utils import metrics
@@ -274,7 +272,6 @@ def normalize_value(
     return rv
 
 
-@sentry_sdk.tracing.trace
 def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
@@ -328,19 +325,3 @@ def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchCon
         + ")"
         for condition in option_value
     )
-
-
-def add_condition(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, condition: Condition
-) -> KillswitchConfig:
-    option_value = copy.deepcopy(normalize_value(killswitch_name, raw_option_value))
-    option_value.append(condition)
-    return normalize_value(killswitch_name, option_value)
-
-
-def remove_condition(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, condition: Condition
-) -> KillswitchConfig:
-    option_value = copy.deepcopy(normalize_value(killswitch_name, raw_option_value))
-    option_value = [m for m in option_value if m != condition]
-    return normalize_value(killswitch_name, option_value)

@@ -10,7 +10,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -21,6 +20,7 @@ import ResourceView, {
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_TITLE,
 } from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -48,7 +48,7 @@ function ResourcesLandingPage() {
             <Breadcrumbs crumbs={crumbs} />
 
             <Layout.Title>
-              {t('Resources')}
+              {MODULE_TITLE}
               <PageHeadingQuestionTooltip
                 docsUrl={MODULE_DOC_LINK}
                 title={MODULE_DESCRIPTION}
@@ -89,10 +89,7 @@ function ResourcesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), t('Resources')].join(' — ')}
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="resource" features="spans-first-ui">
       <ResourcesLandingPage />
     </ModulePageProviders>
   );

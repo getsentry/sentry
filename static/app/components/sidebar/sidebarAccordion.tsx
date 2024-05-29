@@ -2,8 +2,6 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  type ReactElement,
-  type ReactNode,
   useCallback,
   useContext,
   useRef,
@@ -166,7 +164,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
 export {SidebarAccordion};
 
-const renderChildrenWithProps = (children: ReactNode): ReactNode => {
+const renderChildrenWithProps = (children: React.ReactNode): React.ReactNode => {
   const propsToAdd: Partial<SidebarItemProps> = {
     isNested: true,
   };
@@ -175,9 +173,11 @@ const renderChildrenWithProps = (children: ReactNode): ReactNode => {
     if (!isValidElement(child)) {
       return child;
     }
-    return cloneElement(child as ReactElement<any>, {
+    return cloneElement(child as React.ReactElement<any>, {
       ...propsToAdd,
-      children: renderChildrenWithProps((child as ReactElement<any>).props.children),
+      children: renderChildrenWithProps(
+        (child as React.ReactElement<any>).props.children
+      ),
     });
   });
 };

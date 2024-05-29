@@ -35,7 +35,7 @@ export function Sdk({event}: {event: EventTransaction}) {
   return (
     <TraceDrawerComponents.SectionCard
       items={items}
-      title={t('Sdk')}
+      title={t('SDK')}
       sortAlphabetically
     />
   );

@@ -57,7 +57,7 @@ const DesyncedFilterMessageWrap = styled('div')`
 
   strong {
     display: block;
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
     color: ${p => p.theme.headingColor};
   }
 `;

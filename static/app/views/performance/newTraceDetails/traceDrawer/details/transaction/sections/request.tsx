@@ -211,7 +211,8 @@ function RequestBodySection({
                   depth={0}
                 />
               ),
-              subject: null,
+              subject: t('Body'),
+              subjectNode: null,
             },
           ]}
           title={t('Body')}
@@ -256,7 +257,8 @@ function RequestBodySection({
                   maxDefaultDepth={2}
                 />
               ),
-              subject: null,
+              subject: t('Body'),
+              subjectNode: null,
             },
           ]}
           title={t('Body')}
@@ -289,7 +291,7 @@ const Monospace = styled('span')`
 const Path = styled('span')`
   color: ${p => p.theme.textColor};
   text-transform: none;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   & strong {
     margin-right: ${space(0.5)};

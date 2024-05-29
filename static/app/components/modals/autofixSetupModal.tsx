@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -18,6 +18,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface AutofixSetupModalProps extends ModalRenderProps {
   groupId: string;
@@ -240,6 +242,8 @@ function AutofixCodebaseIndexingStep({
           priority="primary"
           size="sm"
           disabled={!canIndex}
+          analyticsEventKey="autofix.index_repositories_clicked"
+          analyticsEventName="Autofix: Index Repositories Clicked"
           onClick={() => {
             startIndexing();
             closeModal();
@@ -305,11 +309,28 @@ function AutofixSetupContent({
   groupId: string;
   projectId: string;
 }) {
+  const organization = useOrganization();
   const {data, hasSuccessfulSetup, isLoading, isError} = useAutofixSetup(
     {groupId},
     // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
   );
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    trackAnalytics('autofix.setup_modal_viewed', {
+      groupId,
+      projectId,
+      organization,
+      setup_codebase_index: data.codebaseIndexing.ok,
+      setup_gen_ai_consent: data.genAIConsent.ok,
+      setup_integration: data.integration.ok,
+      setup_write_integration: data.githubWriteIntegration.ok,
+    });
+  }, [data, groupId, organization, projectId]);
 
   if (isLoading) {
     return <LoadingIndicator />;

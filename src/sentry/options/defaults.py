@@ -325,13 +325,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "api.remove-non-webhook-control-path-gitlab-parser",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls the rate of using the hashed value of User API tokens for lookups when logging in
 # and also updates tokens which are not hashed
 register(
@@ -435,6 +428,19 @@ register(
 )
 register(
     "chart-rendering.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Configuration Options
+register(
+    "configurations.storage.backend",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "configurations.storage.options",
     type=Dict,
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -840,6 +846,67 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for all Seer services
+#
+# TODO: So far this is only being checked when calling the Seer similar issues service during
+# ingestion
+register(
+    "seer.global-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitches for individual Seer services
+#
+# TODO: Most of these are not yet being used. The one current exception is the similarity service
+# killswitch, which is checked before calling Seer when potentially creating a  new group as part of
+# ingestion.
+register(
+    "seer.similarity-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.severity-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.breakpoint-detection-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.autofix-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.anomaly-detection-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.similarity.global-rate-limit",
+    type=Dict,
+    default={"limit": 20, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.per-project-rate-limit",
+    type=Dict,
+    default={"limit": 5, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 register(
     "issues.similarity-embeddings.projects-allowlist",
     type=Sequence,
@@ -883,6 +950,14 @@ register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
     default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings backfill batch size
+register(
+    "embeddings-grouping.seer.backfill-batch-size",
+    type=Int,
+    default=10,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -945,6 +1020,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Switch for new logic for release health metrics, based on filtering on org & project ids
+register(
+    "release-health.use-org-and-project-filter",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Switch for more performant project counter incr
 register(
     "store.projectcounter-modern-upsert-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -971,6 +1054,12 @@ register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMAT
 # Percentage sample rate for `EventAttachment`s that should use direct blob storage.
 register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Percentage sample rate for "small" `EventAttachment`s to be stored inline.
+register("eventattachments.store-small-inline", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage rollout rate to avoid sending `attachment_chunk`s for small indvidual attachments.
+register("relay.inline-attachments.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -983,9 +1072,6 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
-#
-# Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
-# needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Override to set a list of limits into passive mode by organization.
 #
@@ -1249,16 +1335,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to remove support for percentiles on a per-org basis.
-# Add the org_id to list to disable percentiles.
-register(
-    "sentry-metrics.drop-percentiles.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Option to remove support for percentiles on a per-use case basis.
-# Add the use case to list to disable percentiles.
+# Add the use case name (e.g. "custom") to this list
+# to disable percentiles storage for the use case
 register(
     "sentry-metrics.drop-percentiles.per-use-case",
     default=[],
@@ -2558,7 +2638,14 @@ register(
 register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
     type=Int,
-    default=20000000,
+    default=2000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.save-event-attachments.project-per-sec-limit",
+    type=Int,
+    default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2566,6 +2653,15 @@ register(
 # also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
 register(
     "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

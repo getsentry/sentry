@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -17,12 +24,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface OrganizationLoaderContextProps {
-  isLoading: boolean;
-  loadOrganization: () => void;
+  loadOrganization: () => Promise<void>;
 }
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 /**
@@ -41,12 +47,14 @@ export const OrganizationLoaderContext =
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const loadOrganization = useContext(OrganizationLoaderContext)?.loadOrganization;
+  const {loadOrganization} = useContext(OrganizationLoaderContext) || {};
 
-  // XXX(epurkhiser): The loadOrganization function is stable as long as the
-  // organization slug is stable. A change to the organization slug will cause
-  // the organization to be reloaded.
-  useEffect(() => loadOrganization?.(), [loadOrganization]);
+  useEffect(() => {
+    async function fetchData() {
+      await loadOrganization?.();
+    }
+    fetchData();
+  }, [loadOrganization]);
 }
 
 /**
@@ -76,28 +84,29 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  const [isLoading, setIsLoading] = useState(false);
+  const loadOrganization = useCallback(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        // Nothing to do if we already have the organization loaded
+        if (organization && organization.slug === orgSlug) {
+          resolve();
+          return;
+        }
 
-  // Provided to the OrganizationLoaderContext. Loads the organization if it is
-  // not already present.
-  const loadOrganization = useCallback(() => {
-    // Nothing to do if we already have the organization loaded
-    if (organization && organization.slug === orgSlug) {
-      return;
-    }
-    if (!orgSlug) {
-      OrganizationStore.setNoOrganization();
-      return;
-    }
+        if (!orgSlug) {
+          OrganizationStore.setNoOrganization();
+          resolve();
+          return;
+        }
 
-    metric.mark({name: 'organization-details-fetch-start'});
-    // Track when the organization finishes loading so OrganizationLoaderContext
-    // is up-to-date
-    setIsLoading(true);
-    fetchOrganizationDetails(api, orgSlug, false, true).finally(() =>
-      setIsLoading(false)
-    );
-  }, [api, orgSlug, organization]);
+        metric.mark({name: 'organization-details-fetch-start'});
+
+        fetchOrganizationDetails(api, orgSlug, false, true)
+          .then(() => resolve())
+          .catch(reject);
+      }),
+    [api, orgSlug, organization]
+  );
 
   // Take a measurement for when organization details are done loading and the
   // new state is applied
@@ -174,7 +183,7 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={{isLoading, loadOrganization}}>
+    <OrganizationLoaderContext.Provider value={{loadOrganization}}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>

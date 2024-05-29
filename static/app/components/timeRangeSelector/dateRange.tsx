@@ -270,7 +270,7 @@ const UtcPicker = styled('div')`
 
 const UtcPickerLabel = styled('label')`
   margin: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: inherit;
 `;
 

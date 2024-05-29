@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -16,7 +15,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
@@ -31,7 +29,7 @@ import {
   MobileSortKeys,
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {
@@ -56,11 +54,7 @@ function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
-
-  const {projects} = useProjects();
-  const project = useMemo(() => {
-    return projects.find(p => p.id === location.query.project);
-  }, [location.query.project, projects]);
+  const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
 
@@ -88,8 +82,7 @@ function ScreenLoadSpans() {
             <HeaderWrapper>
               <Layout.Title>{transactionName}</Layout.Title>
               {organization.features.includes('spans-first-ui') &&
-                project &&
-                isCrossPlatform(project) && <PlatformSelector />}
+                isProjectCrossPlatform && <PlatformSelector />}
             </HeaderWrapper>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
@@ -157,7 +150,6 @@ function ScreenLoadSpans() {
                 yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
-                project={project}
               />
               <SampleContainer>
                 <SampleContainerItem>
@@ -167,7 +159,6 @@ function ScreenLoadSpans() {
                     cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
                     transaction={transactionName}
                     showDeviceClassSelector
-                    project={project}
                   />
                 </SampleContainerItem>
                 <SampleContainerItem>
@@ -176,7 +167,6 @@ function ScreenLoadSpans() {
                     sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
                     cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
                     transaction={transactionName}
-                    project={project}
                   />
                 </SampleContainerItem>
               </SampleContainer>
@@ -184,7 +174,6 @@ function ScreenLoadSpans() {
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
                 secondaryRelease={secondaryRelease}
-                project={project}
               />
               {spanGroup && (
                 <SpanSamplesPanel
@@ -219,7 +208,8 @@ function PageWithProviders() {
 
   return (
     <ModulePageProviders
-      title={[transaction, t('Screen Loads')].join(' — ')}
+      moduleName="screen_load"
+      pageTitle={transaction}
       features="spans-first-ui"
     >
       <ScreenLoadSpans />

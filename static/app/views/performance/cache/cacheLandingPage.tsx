@@ -11,7 +11,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -173,7 +172,7 @@ export function CacheLandingPage() {
               <ModuleLayout.Half>
                 <CacheHitMissChart
                   series={{
-                    seriesName: DataTitles.cacheMissRate,
+                    seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
                     data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
                   }}
                   isLoading={isCacheHitRateLoading}
@@ -208,10 +207,7 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      features="performance-cache-view"
-    >
+    <ModulePageProviders moduleName="cache" features="performance-cache-view">
       <CacheLandingPage />
     </ModulePageProviders>
   );

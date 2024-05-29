@@ -4,24 +4,17 @@ import styled from '@emotion/styled';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import type {
   MetricsSummary,
   MetricsSummaryItem,
 } from 'sentry/components/events/interfaces/spans/types';
 import {Hovercard} from 'sentry/components/hovercard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import Link from 'sentry/components/links/link';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  MetricsQueryApiResponseLastMeta,
-  MetricType,
-  MRI,
-  Organization,
-} from 'sentry/types';
+import type {MetricsQueryApiResponseLastMeta, MetricType, MRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getDefaultAggregate, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -82,8 +75,8 @@ export function CustomMetricsEventData({
   startTimestamp: number;
   metricsSummary?: MetricsSummary;
 }) {
-  const hasNewTagsUI = useHasNewTagsUI();
   const organization = useOrganization();
+
   const start = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS).toISOString();
   const end = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS).toISOString();
 
@@ -187,122 +180,51 @@ export function CustomMetricsEventData({
     return null;
   }
 
-  if (hasNewTagsUI) {
-    const items: SectionCardKeyValueList = [];
+  const items: SectionCardKeyValueList = [];
 
-    dataRows.forEach(dataRow => {
-      const {mri, summaryItem} = dataRow;
-      const name = formatMRI(mri);
-      items.push({
-        key: `metric-${name}`,
-        subject: name,
-        value: (
-          <TraceDrawerComponents.CopyableCardValueWithLink
-            value={
-              <Fragment>
-                <ValueRenderer dataRow={dataRow} />{' '}
-                <DeviationRenderer dataRow={dataRow} startTimestamp={startTimestamp} />
-                <br />
-                <TagsRenderer tags={dataRow.summaryItem.tags} />
-              </Fragment>
-            }
-            linkText={t('View Metric')}
-            linkTarget={getMetricsUrl(organization.slug, {
-              start: normalizeDateTimeString(start),
-              end: normalizeDateTimeString(end),
-              interval: '10s',
-              widgets: [
-                {
-                  mri: mri,
-                  displayType: MetricDisplayType.LINE,
-                  op: getDefaultAggregate(mri),
-                  query: Object.entries(summaryItem.tags ?? {})
-                    .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
-                    .join(' '),
-                },
-              ],
-            })}
-          />
-        ),
-      });
+  dataRows.forEach(dataRow => {
+    const {mri, summaryItem} = dataRow;
+    const name = formatMRI(mri);
+    items.push({
+      key: `metric-${name}`,
+      subject: name,
+      value: (
+        <TraceDrawerComponents.CopyableCardValueWithLink
+          value={
+            <Fragment>
+              <ValueRenderer dataRow={dataRow} />{' '}
+              <DeviationRenderer dataRow={dataRow} startTimestamp={startTimestamp} />
+              <br />
+              <TagsRenderer tags={dataRow.summaryItem.tags} />
+            </Fragment>
+          }
+          linkText={t('View Metric')}
+          linkTarget={getMetricsUrl(organization.slug, {
+            start: normalizeDateTimeString(start),
+            end: normalizeDateTimeString(end),
+            interval: '10s',
+            widgets: [
+              {
+                mri: mri,
+                displayType: MetricDisplayType.LINE,
+                op: getDefaultAggregate(mri),
+                query: Object.entries(summaryItem.tags ?? {})
+                  .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
+                  .join(' '),
+              },
+            ],
+          })}
+        />
+      ),
     });
-
-    return (
-      <TraceDrawerComponents.SectionCard
-        title={t('Emitted Metrics')}
-        items={items}
-        sortAlphabetically
-      />
-    );
-  }
+  });
 
   return (
-    <table className="table key-value">
-      <tbody>
-        <tr>
-          <td className="key">{t('Emitted Metrics')}</td>
-          <td className="value">
-            <pre>
-              {dataRows.map((dataRow, index) => (
-                <Fragment key={index}>
-                  <MetricRenderer
-                    dataRow={dataRow}
-                    start={start}
-                    end={end}
-                    organization={organization}
-                  />
-                  <br />
-                  <ValueRenderer dataRow={dataRow} />{' '}
-                  <DeviationRenderer dataRow={dataRow} startTimestamp={startTimestamp} />
-                  <br />
-                  <TagsRenderer tags={dataRow.summaryItem.tags} />
-                  <br />
-                  <br />
-                </Fragment>
-              ))}
-            </pre>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  );
-}
-
-function MetricRenderer({
-  dataRow,
-  start,
-  end,
-  organization,
-}: {
-  dataRow: DataRow;
-  end: string;
-  organization: Organization;
-  start: string;
-}) {
-  const {mri, summaryItem} = dataRow;
-  return (
-    <Fragment>
-      {t('Name:')}{' '}
-      <Link
-        to={getMetricsUrl(organization.slug, {
-          start: normalizeDateTimeString(start),
-          end: normalizeDateTimeString(end),
-          interval: '10s',
-          widgets: [
-            {
-              mri: mri,
-              displayType: MetricDisplayType.LINE,
-              op: getDefaultAggregate(mri),
-              query: Object.entries(summaryItem.tags ?? {})
-                .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
-                .join(' '),
-            },
-          ],
-        })}
-      >
-        {formatMRI(mri)}
-      </Link>
-    </Fragment>
+    <TraceDrawerComponents.SectionCard
+      title={t('Emitted Metrics')}
+      items={items}
+      sortAlphabetically
+    />
   );
 }
 

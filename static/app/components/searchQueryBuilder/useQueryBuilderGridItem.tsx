@@ -36,12 +36,6 @@ export function useQueryBuilderGridItem(
         if (e.key === 'ArrowLeft') {
           return true;
         }
-        // At start and pressing backspace, focus the next full token
-        if (e.key === 'Backspace') {
-          if (state.collection.getKeyBefore(item.key)) {
-            state.selectionManager.setFocusedKey(state.collection.getKeyBefore(item.key));
-          }
-        }
       }
 
       if (
@@ -52,17 +46,12 @@ export function useQueryBuilderGridItem(
         if (e.key === 'ArrowRight') {
           return true;
         }
-        // At end and pressing delete, focus the previous full token
-        if (e.key === 'Delete') {
-          if (state.collection.getKeyAfter(item.key)) {
-            state.selectionManager.setFocusedKey(state.collection.getKeyAfter(item.key));
-          }
-        }
       }
 
+      // Otherwise, let the input handle the event
       return false;
     },
-    [item.key, state.collection, state.selectionManager]
+    []
   );
 
   const onKeyDownCapture = useCallback(

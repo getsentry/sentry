@@ -285,6 +285,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of Profiling
 
 
+## Configurations
+/src/sentry/remote_config/              @getsentry/replay-backend
+/tests/sentry/remote_config/            @getsentry/replay-backend
+## End of Configurations
+
+
 ## Replays
 /static/app/components/replays/   @getsentry/replay-frontend
 /static/app/utils/replays/        @getsentry/replay-frontend
@@ -378,7 +384,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
 /static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
 /static/app/views/organizationStats                                     @getsentry/enterprise
-/static/app/views/releases/thresholdsList/                              @getsentry/enterprise
 /static/app/views/settings/organizationAuth/                            @getsentry/enterprise
 /static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
