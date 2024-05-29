@@ -1,9 +1,8 @@
 __all__ = ("Response", "JSONResponse")
 
+import orjson
 from django.http import HttpResponse
 from django.template.context_processors import csrf
-
-from sentry.utils import json
 
 
 class Response:
@@ -35,5 +34,7 @@ class JSONResponse(Response):
 
     def respond(self, request, context=None):
         return HttpResponse(
-            json.dumps(self.context), content_type="application/json", status=self.status
+            orjson.dumps(self.context, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS),
+            content_type="application/json",
+            status=self.status,
         )
