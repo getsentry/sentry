@@ -657,7 +657,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_tag_value(self, value: str) -> int | str | None:
         # We only use the indexer for alerts queries
-        if self.is_alerts_query:
+        if self.is_alerts_query and not self.use_metrics_layer:
             return self.resolve_metric_index(value)
         return value
 
