@@ -624,6 +624,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
                             to be available and unique.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
         from sentry import features
