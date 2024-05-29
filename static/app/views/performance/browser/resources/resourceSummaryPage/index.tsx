@@ -90,7 +90,6 @@ function ResourceSummary() {
   const crumbs = useModuleBreadcrumbs('resource');
 
   const isInsightsEnabled = organization.features.includes('performance-insights');
-
   const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
 
   return (
@@ -158,10 +157,14 @@ function ResourceSummary() {
 }
 
 function PageWithProviders() {
+  const organization = useOrganization();
+
+  const isInsightsEnabled = organization.features.includes('performance-insights');
+  const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
   return (
     <ModulePageProviders
       moduleName="resource"
-      pageTitle={t('Resource Summary')}
+      pageTitle={`${resourceDataType} ${t('Summary')}`}
       features="spans-first-ui"
     >
       <ResourceSummary />
