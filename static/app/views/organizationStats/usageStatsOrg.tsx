@@ -486,6 +486,7 @@ class UsageStatsOrganization<
         } as any);
         (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]});
       });
+
       return {
         cardStats: {
           total: formatUsageWithUnits(
