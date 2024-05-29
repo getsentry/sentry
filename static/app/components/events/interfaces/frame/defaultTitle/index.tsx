@@ -27,6 +27,7 @@ type Props = {
   isHoverPreviewed?: boolean;
   isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
+  stackFramePath?: string | null | undefined;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
@@ -37,6 +38,7 @@ function DefaultTitle({
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
+  stackFramePath,
 }: Props) {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
@@ -135,9 +137,13 @@ function DefaultTitle({
     }
 
     if (frame.absPath && isUrl(frame.absPath)) {
+      let url = frame.absPath;
+      if (stackFramePath && isUrl(stackFramePath)) {
+        url = stackFramePath;
+      }
       title.push(
-        <StyledExternalLink href={frame.absPath} key="share" onClick={handleExternalLink}>
-          <IconOpen size="xs" />
+        <StyledExternalLink href={url} key="share" onClick={handleExternalLink}>
+          <IconOpen size="sm" />
         </StyledExternalLink>
       );
     }

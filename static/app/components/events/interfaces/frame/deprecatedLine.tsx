@@ -366,6 +366,7 @@ export class DeprecatedLine extends Component<Props, State> {
                   platform={this.props.platform ?? 'other'}
                   isHoverPreviewed={isHoverPreviewed}
                   meta={this.props.frameMeta}
+                  stackFramePath={this.props.frameSourceResolutionResults?.stackFramePath}
                 />
               </div>
             </LeftLineTitle>
