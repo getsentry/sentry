@@ -1071,6 +1071,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:replay_rage_click_issues": self.get_value_with_default(
                 attrs, "sentry:replay_rage_click_issues"
             ),
+            "sentry:replay_hydration_error_issues": self.get_value_with_default(
+                attrs, "sentry:replay_hydration_error_issues"
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
 
