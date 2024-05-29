@@ -194,6 +194,10 @@ def process_status_change_message(
         groups_by_fingerprints = bulk_get_groups_from_fingerprints([(project.id, fingerprint)])
         group = groups_by_fingerprints.get((project.id, fingerprint[0]), None)
         if not group:
+            logger.info(
+                "status_change.dropped_group_not_found",
+                extra={"fingerprint": fingerprint, "new_status": status_change_data["new_status"]},
+            )
             metrics.incr(
                 "occurrence_ingest.status_change.dropped_group_not_found",
                 sample_rate=1.0,
