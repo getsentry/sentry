@@ -185,7 +185,7 @@ export function Content() {
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Total Spans')}
+            {t('Matching Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
@@ -262,7 +262,11 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         </Description>
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <Count value={trace.numSpans} />
+        {tct('[numerator][space]of[space][denominator]', {
+          numerator: <Count value={trace.matchingSpans} />,
+          denominator: <Count value={trace.numSpans} />,
+          space: <Fragment>&nbsp;</Fragment>,
+        })}
       </StyledPanelItem>
       <BreakdownPanelItem
         align="right"
@@ -328,6 +332,14 @@ function SpanTable({
               setHighlightedSliceName={setHighlightedSliceName}
             />
           ))}
+          {spans.length < trace.matchingSpans && (
+            <MoreMatchingSpans span={5}>
+              {tct('[more][space]more matching spans can be found in the trace.', {
+                more: <Count value={trace.matchingSpans - spans.length} />,
+                space: <Fragment>&nbsp;</Fragment>,
+              })}
+            </MoreMatchingSpans>
+          )}
         </SpanPanelContent>
       </StyledPanel>
     </SpanTablePanelItem>
@@ -396,6 +408,7 @@ export interface TraceResult<F extends string> {
   breakdowns: TraceBreakdownResult[];
   duration: number;
   end: number;
+  matchingSpans: number;
   name: string | null;
   numErrors: number;
   numOccurrences: number;
@@ -548,6 +561,10 @@ const StyledPanelItem = styled(PanelItem)<{
         : undefined}
   ${p => p.span && `grid-column: auto / span ${p.span};`}
   white-space: nowrap;
+`;
+
+const MoreMatchingSpans = styled(StyledPanelItem)`
+  color: ${p => p.theme.gray300};
 `;
 
 const WrappingText = styled('div')`
