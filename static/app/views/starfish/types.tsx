@@ -196,6 +196,9 @@ export enum SpanIndexedField {
   REPLAY_ID = 'replay.id',
   BROWSER_NAME = 'browser.name',
   USER = 'user',
+  USER_ID = 'user.id',
+  USER_EMAIL = 'user.email',
+  USER_USERNAME = 'user.username',
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
@@ -260,6 +263,9 @@ export type IndexedResponse = {
   [SpanIndexedField.REPLAY_ID]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
+  [SpanIndexedField.USER_ID]: string;
+  [SpanIndexedField.USER_EMAIL]: string;
+  [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;

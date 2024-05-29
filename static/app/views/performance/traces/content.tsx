@@ -477,7 +477,7 @@ function useTraces<F extends string>({
       per_page: limit,
       breakdownSlices: 40,
       minBreakdownPercentage: 1 / 40,
-      maxSpansPerTrace: 5,
+      maxSpansPerTrace: 10,
       mri,
       metricsMax,
       metricsMin,
