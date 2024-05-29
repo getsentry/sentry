@@ -65,7 +65,7 @@ from datetime import datetime
 from typing import Any
 
 import orjson
-from pydantic import BaseModel, Field, ValidationError, constr
+from pydantic import BaseModel, Field, PrivateAttr, ValidationError, constr
 
 from flagpole.conditions import Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
@@ -84,7 +84,7 @@ class Feature(BaseModel):
     """Defines whether or not the feature is enabled."""
     created_at: datetime = Field(default_factory=datetime.now)
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
-    date_parsed: datetime = Field(default_factory=datetime.now)
+    _date_parsed: datetime = PrivateAttr(default_factory=datetime.now)
 
     def match(self, context: EvaluationContext) -> bool:
         if self.enabled:
@@ -101,10 +101,6 @@ class Feature(BaseModel):
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
         try:
-            # Disallow date_parsed from being set in the feature config
-            if "date_parsed" in config_dict:
-                config_dict.pop("date_parsed")
-
             feature = cls(name=name, **config_dict)
         except ValidationError as exc:
             raise InvalidFeatureFlagConfiguration("Provided JSON is not a valid feature") from exc
@@ -122,6 +118,9 @@ class Feature(BaseModel):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
+
+    def get_date_parsed(self) -> datetime:
+        return self._date_parsed
 
 
 __all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]

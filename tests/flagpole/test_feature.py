@@ -140,7 +140,7 @@ class TestParseFeatureConfig:
             {{
                 "owner": "test-user",
                 "enabled": false,
-                "date_parsed": "{set_parsed_date.astimezone().isoformat()}",
+                "_date_parsed": "{set_parsed_date.astimezone().isoformat()}",
                 "segments": [{{
                     "name": "always_pass_segment",
                     "rollout": 100,
@@ -155,4 +155,4 @@ class TestParseFeatureConfig:
             """,
         )
 
-        assert feature.date_parsed != set_parsed_date
+        assert feature.get_date_parsed() != set_parsed_date
