@@ -28,10 +28,10 @@ from sentry.models.team import Team, TeamStatus
 
 
 @extend_schema_serializer(exclude_fields=["name"])
-class TeamDetailsSerializer(CamelSnakeModelSerializer):
+class TeamRequestSerializer(CamelSnakeModelSerializer):
     slug = SentrySerializerSlugField(
         max_length=50,
-        help_text="Uniquely identifies a team and is used for the interface. Must be available.",
+        help_text="Uniquely identifies a team. This is must be available.",
     )
 
     class Meta:
@@ -94,7 +94,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
     @extend_schema(
         operation_id="Update a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
-        request=TeamDetailsSerializer,
+        request=TeamRequestSerializer,
         responses={
             200: ModelTeamSerializer,
             401: RESPONSE_UNAUTHORIZED,
@@ -110,7 +110,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Update various attributes and configurable settings for the given
         team.
         """
-        serializer = TeamDetailsSerializer(team, data=request.data, partial=True)
+        serializer = TeamRequestSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
