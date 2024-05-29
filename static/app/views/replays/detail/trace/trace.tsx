@@ -15,8 +15,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {ReplayTraceView} from 'sentry/views/performance/newTraceDetails/replayTraceView';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
+import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {TraceConfigurationsContext} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -76,6 +79,23 @@ function TraceFound({
   );
 }
 
+const REPLAY_TRACE_VIEW_PREFERENCES_KEY = 'replay-trace-view-preferences';
+const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+  drawer: {
+    minimized: false,
+    sizes: {
+      'drawer left': 0.33,
+      'drawer right': 0.33,
+      'drawer bottom': 0.4,
+    },
+    isLayoutEditable: false,
+  },
+  layout: 'drawer bottom',
+  list: {
+    width: 0.5,
+  },
+};
+
 type Props = {
   replayRecord: undefined | ReplayRecord;
 };
@@ -96,6 +116,16 @@ function Trace({replayRecord}: Props) {
       orphan_errors: orphanErrors ?? [],
     };
   }, [traces, orphanErrors]);
+
+  const rootEvent = useTraceRootEvent(traceSplitResults);
+  const traceConfigurations = useMemo(() => {
+    return {
+      preferences: {
+        localStorageKey: REPLAY_TRACE_VIEW_PREFERENCES_KEY,
+        defaultPreferenceState: DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+      },
+    };
+  }, []);
 
   useFetchTransactions();
 
@@ -131,13 +161,20 @@ function Trace({replayRecord}: Props) {
 
   if (organization.features.includes('replay-trace-view-v1')) {
     return (
-      <ReplayTraceView
-        replayRecord={replayRecord}
-        traces={traceSplitResults}
-        eventView={eventView}
-        metaResults={metaResults}
-        status={getTraceStatus({errors, isFetching, traces, didInit})}
-      />
+      <TraceConfigurationsContext.Provider value={traceConfigurations}>
+        <TraceViewWaterfallWrapper>
+          <TraceViewWaterfall
+            status={getTraceStatus({errors, isFetching, traces, didInit})}
+            trace={traceSplitResults}
+            traceSlug="Replay"
+            organization={organization}
+            traceEventView={eventView}
+            metaResults={metaResults}
+            rootEvent={rootEvent}
+            analyticsKey="performance_views.replay_trace_view_v1_page_load"
+          />
+        </TraceViewWaterfallWrapper>
+      </TraceConfigurationsContext.Provider>
     );
   }
 
@@ -185,5 +222,11 @@ function getTraceStatus(traceState: ExternalState) {
 
   return 'success';
 }
+
+const TraceViewWaterfallWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
 
 export default Trace;

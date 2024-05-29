@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -22,7 +23,6 @@ import {SpanTimeRenderer} from 'sentry/views/performance/traces/fieldRenderers';
 import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
-import {TraceViewSources} from '../../../traceViewSources';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
@@ -30,13 +30,13 @@ type GeneralInfoProps = {
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  source: TraceViewSources;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
 
 export function GeneralInfo(props: GeneralInfoProps) {
   const params = useParams<{traceSlug?: string}>();
+  const {replay} = useReplayContext();
 
   const traceNode = props.tree.root.children[0];
 
@@ -128,7 +128,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
 
   const items: SectionCardKeyValueList = [];
 
-  if (props.source !== TraceViewSources.REPLAY) {
+  if (!replay) {
     items.push({
       key: 'trace_id',
       subject: t('Trace ID'),
@@ -211,7 +211,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     }
   );
 
-  if (replay_id && props.source !== TraceViewSources.REPLAY) {
+  if (replay_id && !replay) {
     items.push({
       key: 'replay_id',
       subject: t('Replay ID'),

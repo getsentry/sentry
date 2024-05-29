@@ -50,7 +50,6 @@ import {
   type TraceTreeNode,
 } from '../traceModels/traceTree';
 import type {TraceType} from '../traceType';
-import {TraceViewSources} from '../traceViewSources';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
@@ -61,7 +60,6 @@ type TraceDrawerProps = {
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  source: TraceViewSources;
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
@@ -419,12 +417,12 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-          {props.source === TraceViewSources.REPLAY ? null : (
+          {props.trace_state.preferences.drawer.isLayoutEditable ? (
             <TraceLayoutButtons
               trace_dispatch={props.trace_dispatch}
               trace_state={props.trace_state}
             />
-          )}
+          ) : null}
         </TabsLayout>
       </TabsHeightContainer>
       {props.trace_state.preferences.drawer.minimized ? null : (
@@ -436,7 +434,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
             {props.trace_state.tabs.current_tab ? (
               props.trace_state.tabs.current_tab.node === 'trace' ? (
                 <TraceDetails
-                  source={props.source}
                   metaResults={props.metaResults}
                   traceType={props.traceType}
                   tree={props.trace}
@@ -452,7 +449,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
               ) : (
                 <TraceTreeNodeDetails
-                  source={props.source}
                   manager={props.manager}
                   organization={organization}
                   onParentClick={onParentClick}

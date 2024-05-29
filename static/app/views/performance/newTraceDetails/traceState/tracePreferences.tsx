@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-import {TraceViewSources} from '../traceViewSources';
+import type {TracePreferencesConfigurations} from '../traceConfigurations';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
@@ -16,13 +16,14 @@ type TracePreferencesAction =
   | {payload: boolean; type: 'minimize drawer'};
 
 type TraceDrawerPreferences = {
+  isLayoutEditable: boolean;
   minimized: boolean;
   sizes: {
     [key in TraceLayoutPreferences]: number;
   };
 };
 
-type TracePreferencesState = {
+export type TracePreferencesState = {
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
   list: {
@@ -36,10 +37,7 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer bottom': 0.5,
 };
 
-const TRACE_VIEW_PREFERENCES_KEY = 'trace-view-preferences';
-const REPLAY_TRACE_VIEW_PREFERENCES_KEY = 'replay-trace-view-preferences';
-
-const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
     sizes: {
@@ -47,6 +45,7 @@ const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer right': 0.33,
       'drawer bottom': 0.5,
     },
+    isLayoutEditable: true,
   },
   layout: 'drawer right',
   list: {
@@ -54,33 +53,14 @@ const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
-  drawer: {
-    minimized: false,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.4,
-    },
-  },
-  layout: 'drawer bottom',
-  list: {
-    width: 0.5,
-  },
-};
-
 export function storeTraceViewPreferences(
   state: TracePreferencesState,
-  source: TraceViewSources
+  config: TracePreferencesConfigurations
 ): void {
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      const key =
-        source === TraceViewSources.REPLAY
-          ? REPLAY_TRACE_VIEW_PREFERENCES_KEY
-          : TRACE_VIEW_PREFERENCES_KEY;
-      localStorage.setItem(key, JSON.stringify(state));
+      localStorage.setItem(config.localStorageKey, JSON.stringify(state));
     } catch (e) {
       Sentry.captureException(e);
     }
@@ -91,13 +71,9 @@ function isInt(value: any): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
 export function loadTraceViewPreferences(
-  source: TraceViewSources
+  config: TracePreferencesConfigurations
 ): TracePreferencesState {
-  const stored = localStorage.getItem(
-    source === TraceViewSources.REPLAY
-      ? REPLAY_TRACE_VIEW_PREFERENCES_KEY
-      : TRACE_VIEW_PREFERENCES_KEY
-  );
+  const stored = localStorage.getItem(config.localStorageKey);
 
   if (stored) {
     try {
@@ -108,6 +84,7 @@ export function loadTraceViewPreferences(
       if (
         parsed?.drawer &&
         typeof parsed.drawer.minimized === 'boolean' &&
+        typeof parsed.drawer.isLayoutEditable === 'boolean' &&
         parsed.drawer.sizes &&
         isInt(parsed.drawer.sizes['drawer left']) &&
         isInt(parsed.drawer.sizes['drawer right']) &&
@@ -124,9 +101,7 @@ export function loadTraceViewPreferences(
     }
   }
 
-  return source === TraceViewSources.REPLAY
-    ? DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES
-    : DEFAULT_TRACE_VIEW_PREFERENCES;
+  return config.defaultPreferenceState;
 }
 
 export function tracePreferencesReducer(

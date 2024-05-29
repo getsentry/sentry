@@ -18,7 +18,6 @@ import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
 import type {TraceType} from '../../../traceType';
-import type {TraceViewSources} from '../../../traceViewSources';
 import {IssueList} from '../../details/issues/issues';
 import {TraceDrawerComponents} from '../../details/styles';
 
@@ -29,7 +28,6 @@ type TraceDetailsProps = {
   metaResults: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  source: TraceViewSources;
   tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;
   traceEventView: EventView;
   traceType: TraceType;
@@ -62,7 +60,6 @@ export function TraceDetails(props: TraceDetailsProps) {
       <IssueList issues={issues} node={props.node} organization={organization} />
       <TraceDrawerComponents.SectionCardGroup>
         <GeneralInfo
-          source={props.source}
           organization={organization}
           traces={props.traces}
           tree={props.tree}
