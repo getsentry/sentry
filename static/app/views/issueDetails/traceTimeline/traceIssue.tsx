@@ -55,20 +55,22 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
               },
             }}
           >
-            {project ? (
-              <ProjectBadge
-                project={project}
-                avatarSize={avatarSize}
-                hideName
-                disableLink
-              />
-            ) : (
-              <Placeholder
-                shape="rect"
-                width={`${avatarSize}px`}
-                height={`${avatarSize}px`}
-              />
-            )}
+            <TraceIssueProjectBadge>
+              {project ? (
+                <ProjectBadge
+                  project={project}
+                  avatarSize={avatarSize}
+                  hideName
+                  disableLink
+                />
+              ) : (
+                <Placeholder
+                  shape="rect"
+                  width={`${projectBadgeSize}px`}
+                  height={`${projectBadgeSize}px`}
+                />
+              )}
+            </TraceIssueProjectBadge>
             <TraceIssueDetailsContainer>
               <NoOverflowDiv>
                 <TraceIssueEventTitle>
@@ -101,6 +103,18 @@ const TraceIssueLinkContainer = styled(Link)`
     background-color: ${p => p.theme.surface200};
     color: ${p => p.theme.textColor};
   }
+`;
+
+// This size helps line up the contents of Suspect Commit
+// with the project avatar
+const projectBadgeSize = 36;
+
+const TraceIssueProjectBadge = styled('div')`
+  height: ${projectBadgeSize}px;
+  width: ${projectBadgeSize}px;
+  display: flex;
+  align-self: center;
+  justify-content: center;
 `;
 
 const TraceIssueDetailsContainer = styled('div')`

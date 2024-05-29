@@ -66,6 +66,8 @@ const StyledDataSection = styled(DataSection)`
 
 const StyledTraceLink = styled('div')`
   display: flex;
+  white-space: nowrap;
+  overflow: hidden;
   gap: ${space(0.25)};
 `;
 
