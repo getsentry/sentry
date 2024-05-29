@@ -548,7 +548,7 @@ class ReleaseSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> ReleaseSerializerResponse:
-        d = {
+        d: ReleaseSerializerResponse = {
             "id": obj.id,
             "version": obj.version,
             "status": ReleaseStatus.to_string(obj.status),

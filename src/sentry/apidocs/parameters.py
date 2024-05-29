@@ -195,7 +195,7 @@ class ReleaseParams:
         required=False,
         type=str,
         description="The period of time used to query summary stats for the release. By default, this is 14d.",
-        enum=STATS_PERIODS.keys(),
+        enum=list(STATS_PERIODS.keys()),
     )
     HEALTH_STATS_PERIOD = OpenApiParameter(
         name="healthStatsPeriod",
@@ -203,7 +203,7 @@ class ReleaseParams:
         required=False,
         type=str,
         description="The period of time used to query health stats for the release. By default, this is 24h if health is enabled.",
-        enum=STATS_PERIODS.keys(),
+        enum=list(STATS_PERIODS.keys()),
     )
     SORT = OpenApiParameter(
         name="sort",
