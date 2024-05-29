@@ -29,7 +29,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_query_builder,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -603,10 +602,9 @@ class BuildSnqlQueryTest(TestCase):
                 time_window=time_window,
                 extra_fields=entity_extra_fields,
             )
-            query_builder = build_query_builder(
-                entity_subscription,
-                query,
-                [self.project.id],
+            query_builder = entity_subscription.build_query_builder(
+                query=query,
+                project_ids=[self.project.id],
                 environment=environment,
                 params={
                     "organization_id": self.organization.id,
