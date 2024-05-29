@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import datetime
 
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -35,6 +35,10 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         }
 
     @property
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
+        return {}
+
+    @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         return {
             "fingerprint": self._resolve_fingerprint_alias,
@@ -47,10 +51,17 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
 
     def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         try:
+            # return Condition(
+            #     self.builder.resolve_column("fingerprint"),
+            #     Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
+            #     int(search_filter.value.value),
+            # )
             return Condition(
-                self.builder.resolve_column("fingerprint"),
-                Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
-                int(search_filter.value.value),
+                Function(
+                    "has", [self.builder.column("fingerprint"), int(search_filter.value.value)]
+                ),
+                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
+                0,
             )
         except ValueError:
             raise InvalidSearchQuery(
@@ -247,19 +258,21 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "cpm",  # calls per minute
-                    snql_aggregate=lambda args, alias: self._resolve_cpm(args, alias),
+                    snql_distribution=lambda args, alias: self._resolve_cpm(args, alias),
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "cpm_before",
                     required_args=[fields.TimestampArg("timestamp")],
-                    snql_aggregate=lambda args, alias: self._resolve_cpm_cond(args, alias, "less"),
+                    snql_distribution=lambda args, alias: self._resolve_cpm_cond(
+                        args, alias, "less"
+                    ),
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "cpm_after",
                     required_args=[fields.TimestampArg("timestamp")],
-                    snql_aggregate=lambda args, alias: self._resolve_cpm_cond(
+                    snql_distribution=lambda args, alias: self._resolve_cpm_cond(
                         args, alias, "greater"
                     ),
                     default_result_type="number",
@@ -267,7 +280,7 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "cpm_delta",
                     required_args=[fields.TimestampArg("timestamp")],
-                    snql_aggregate=self._resolve_cpm_delta,
+                    snql_distribution=self._resolve_cpm_delta,
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
