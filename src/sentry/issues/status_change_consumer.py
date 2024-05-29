@@ -196,7 +196,11 @@ def process_status_change_message(
         if not group:
             logger.info(
                 "status_change.dropped_group_not_found",
-                extra={"fingerprint": fingerprint, "new_status": status_change_data["new_status"]},
+                extra={
+                    "fingerprint": fingerprint,
+                    "new_status": status_change_data["new_status"],
+                    "project_id": status_change_data["project_id"],
+                },
             )
             metrics.incr(
                 "occurrence_ingest.status_change.dropped_group_not_found",
