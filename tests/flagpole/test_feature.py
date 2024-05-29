@@ -1,5 +1,5 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import NamedTuple
 
 import pytest
 
@@ -7,7 +7,8 @@ from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureF
 from flagpole.conditions import ConditionOperatorKind
 
 
-class ContextData(NamedTuple):
+@dataclass
+class ContextData:
     pass
 
 
