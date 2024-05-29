@@ -80,16 +80,16 @@ describe('DatePageFilter', function () {
     // Click 30 day period
     await userEvent.click(screen.getByRole('option', {name: 'Absolute date'}));
 
-    const fromDateInput = screen.getByTestId('date-range-primary-from');
+    const fromDateInput = await screen.findByTestId('date-range-primary-from');
     const toDateInput = screen.getByTestId('date-range-primary-to');
     fireEvent.change(fromDateInput, {target: {value: '2017-10-03'}});
     fireEvent.change(toDateInput, {target: {value: '2017-10-04'}});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Apply'}));
 
     // Confirm selection changed visible text and query params
     expect(
-      screen.getByRole('button', {name: 'Oct 3 – Oct 4', expanded: false})
+      await screen.findByRole('button', {name: 'Oct 3 – Oct 4', expanded: false})
     ).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
