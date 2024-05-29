@@ -12,6 +12,8 @@ type QueryBuilderState = {
   query: string;
 };
 
+type ClearAction = {type: 'CLEAR'};
+
 type DeleteTokenAction = {
   token: ParseResultToken;
   type: 'DELETE_TOKEN';
@@ -47,6 +49,7 @@ type DeleteLastMultiSelectFilterValueAction = {
 };
 
 export type QueryBuilderActions =
+  | ClearAction
   | DeleteTokenAction
   | UpdateFreeTextAction
   | UpdateFilterOpAction
@@ -184,6 +187,10 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       switch (action.type) {
+        case 'CLEAR':
+          return {
+            query: '',
+          };
         case 'DELETE_TOKEN':
           return {
             query: removeQueryToken(state.query, action.token),
