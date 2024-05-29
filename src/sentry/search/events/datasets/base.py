@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 from snuba_sdk import OrderBy
 
@@ -13,7 +13,7 @@ from sentry.search.events.types import SelectType, WhereType
 class DatasetConfig(abc.ABC):
     custom_threshold_columns: set[str] = set()
     non_nullable_keys: set[str] = set()
-    missing_function_error: Any = InvalidSearchQuery
+    missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
 
     @property
     @abc.abstractmethod
