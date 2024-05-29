@@ -25,7 +25,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
   ].includes(chartSetting);
 
   const isResourcesWidget =
-    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS;
+    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
 
   const isCacheWidget =
     chartSetting === PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS;

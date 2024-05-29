@@ -949,7 +949,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       <MEPSettingProvider forceTransactions>
         <WrappedComponent
           data={data}
-          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_ASSETS}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES}
         />
       </MEPSettingProvider>
     );
