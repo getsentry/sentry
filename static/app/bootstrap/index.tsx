@@ -97,7 +97,9 @@ function preloadOrganizationData(config: Config) {
     if (!slug) {
       return;
     }
-    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+    preloadPromises.organization = promiseRequest(
+      makeUrl('/?detailed=0&include_feature_flags=1')
+    );
     preloadPromises.projects = promiseRequest(
       makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
