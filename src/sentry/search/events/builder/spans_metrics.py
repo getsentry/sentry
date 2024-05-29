@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from snuba_sdk import Condition, Granularity
 
 from sentry.search.events import constants
@@ -15,7 +17,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     has_transaction = False
     # TODO: need to fill this in once the span metrics product has stabilized a bit more, by being empty we'll use the
     # indexer
-    valid_tags = {}
+    valid_tags: Sequence[str] = []
     free_text_key = "span.description"
 
     column_remapping = {

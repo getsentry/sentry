@@ -77,7 +77,7 @@ from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
-    valid_tags = constants.DEFAULT_METRIC_TAGS
+    valid_tags: Sequence[str] = constants.DEFAULT_METRIC_TAGS
 
     organization_column: str = "organization_id"
 
