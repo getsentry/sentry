@@ -104,6 +104,10 @@ def backfill_seer_grouping_records(
 
     if only_delete:
         delete_seer_grouping_records(project.id, redis_client)
+        logger.info(
+            "backfill_seer_grouping_records.deleted_all_records",
+            extra={"project_id": project.id},
+        )
         return
 
     if last_processed_index == 0:
@@ -228,6 +232,10 @@ def backfill_seer_grouping_records(
 
         # If nodestore is down, we should stop
         if data["data"] == [] and data["stacktrace_list"] == []:
+            logger.info(
+                "backfill_seer_grouping_records.no_data",
+                extra={"project_id": project.id},
+            )
             return
 
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
