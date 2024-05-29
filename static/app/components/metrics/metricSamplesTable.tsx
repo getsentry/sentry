@@ -745,7 +745,7 @@ const StyledHovercard = styled(Hovercard)`
 `;
 
 const SpanIdWrapper = styled('span')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const SectionTitle = styled('h6')`

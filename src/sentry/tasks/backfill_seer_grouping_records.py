@@ -12,25 +12,27 @@ from rediscluster import RedisCluster
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features, nodestore
-from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
+from sentry import features, nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.seer.utils import (
+from sentry.seer.similarity.backfill import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
-    IncompleteSeerDataError,
-    SeerSimilarIssueData,
-    SimilarGroupNotFoundError,
     delete_grouping_records,
     post_bulk_grouping_records,
 )
+from sentry.seer.similarity.types import (
+    IncompleteSeerDataError,
+    SeerSimilarIssueData,
+    SimilarGroupNotFoundError,
+)
+from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -41,7 +43,6 @@ from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
-BATCH_SIZE = 10
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
 
@@ -103,6 +104,10 @@ def backfill_seer_grouping_records(
 
     if only_delete:
         delete_seer_grouping_records(project.id, redis_client)
+        logger.info(
+            "backfill_seer_grouping_records.deleted_all_records",
+            extra={"project_id": project.id},
+        )
         return
 
     if last_processed_index == 0:
@@ -123,12 +128,14 @@ def backfill_seer_grouping_records(
 
     group_id_message_data = (
         Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
+        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
         .order_by("times_seen")
         .order_by("id")
     )
 
-    batch_end_index = min(last_processed_index + BATCH_SIZE, len(group_id_message_data))
+    batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+    batch_end_index = min(last_processed_index + batch_size, len(group_id_message_data))
     group_id_message_data_batch = group_id_message_data[last_processed_index:batch_end_index]
 
     logger.info(
@@ -198,6 +205,23 @@ def backfill_seer_grouping_records(
 
     if result and result[0].get("data"):
         rows: list[GroupEventRow] = result[0]["data"]
+
+        # Log if any group does not have any events in snuba and skip it
+        if len(rows) != len(group_id_batch):
+            row_group_ids = {row["group_id"] for row in rows}
+            for group_id in group_id_batch:
+                if group_id not in row_group_ids:
+                    logger.info(
+                        "tasks.backfill_seer_grouping_records.no_snuba_event",
+                        extra={
+                            "organization_id": project.organization.id,
+                            "project_id": project_id,
+                            "group_id": group_id,
+                        },
+                    )
+                    group_id_batch.remove(group_id)
+                    del group_id_message_batch_filtered[group_id]
+
         group_hashes = GroupHash.objects.filter(
             project_id=project.id, group_id__in=group_id_batch
         ).distinct("group_id")
@@ -208,6 +232,10 @@ def backfill_seer_grouping_records(
 
         # If nodestore is down, we should stop
         if data["data"] == [] and data["stacktrace_list"] == []:
+            logger.info(
+                "backfill_seer_grouping_records.no_data",
+                extra={"project_id": project.id},
+            )
             return
 
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
@@ -270,7 +298,7 @@ def backfill_seer_grouping_records(
                 ex=60 * 60 * 24 * 7,
             )
 
-            if last_processed_index < len(group_id_message_data):
+            if last_processed_index and last_processed_index < len(group_id_message_data):
                 logger.info(
                     "calling next backfill task",
                     extra={
@@ -300,7 +328,11 @@ def backfill_seer_grouping_records(
     else:
         logger.info(
             "backfill_seer_snuba_returned_empty_result",
-            extra={"project_id": project.id},
+            extra={
+                "project_id": project.id,
+                "snuba_result": result,
+                "group_id_batch": group_id_batch,
+            },
         )
 
 

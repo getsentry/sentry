@@ -4,7 +4,7 @@ import orjson
 import requests
 from django.conf import settings
 
-from sentry.api.helpers.repos import get_repos_from_project_code_mappings
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 
 
 class AutofixCodebaseIndexingStatus(str, enum.Enum):
@@ -14,7 +14,7 @@ class AutofixCodebaseIndexingStatus(str, enum.Enum):
 
 
 def get_project_codebase_indexing_status(project):
-    repos = get_repos_from_project_code_mappings(project)
+    repos = get_autofix_repos_from_project_code_mappings(project)
 
     if not repos:
         return None

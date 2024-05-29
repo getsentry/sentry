@@ -8,5 +8,10 @@ import {browserHistory as react3BrowserHistory} from 'react-router';
  *
  * browserHistory.push('/next')    -> navigate('/next')
  * browserHistory.replace('/next') -> navigate('/next', {replace: true})
+ *
+ * You may also use a LocationDescriptor object
+ *
+ * browserHistory.push({...location, query: {someKey: 1}})
+ * navigate({...location, query: {someKey: 1}})
  */
 export const browserHistory = react3BrowserHistory;

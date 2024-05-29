@@ -463,8 +463,12 @@ const appConfig: Configuration = {
       'process/browser': require.resolve('process/browser'),
     },
 
+    // Might be an issue if changing file extensions during development
+    cache: true,
+    // Prefers local modules over node_modules
+    preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
     symlinks: false,
   },
   output: {
@@ -512,8 +516,9 @@ const appConfig: Configuration = {
 if (IS_TEST) {
   appConfig.resolve!.alias!['sentry-fixture'] = path.join(
     __dirname,
-    'fixtures',
-    'js-stubs'
+    'tests',
+    'js',
+    'fixtures'
   );
 }
 

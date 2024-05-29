@@ -61,7 +61,7 @@ export function useFocusArea({
   onRemove,
   onZoom,
 }: UseFocusAreaProps) {
-  const hasFocusArea = selection && selection.widgetIndex === widgetIndex;
+  const hasFocusArea = !isDisabled && selection && selection.widgetIndex === widgetIndex;
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartElement = chartRef.current?.ele;
   const isDrawingRef = useRef(false);

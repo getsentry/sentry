@@ -296,5 +296,5 @@ const DSNText = styled('div')`
 
 const ManualSetupTitle = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

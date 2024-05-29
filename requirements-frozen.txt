@@ -49,12 +49,13 @@ google-cloud-core==2.4.1
 google-cloud-functions==1.14.0
 google-cloud-kms==2.20.0
 google-cloud-pubsub==2.19.0
-google-cloud-spanner==3.40.1
+google-cloud-spanner==3.46.0
 google-cloud-storage==2.14.0
 google-crc32c==1.5.0
 google-resumable-media==2.7.0
 googleapis-common-protos==1.63.0
 grpc-google-iam-v1==0.13.0
+grpc-interceptor==0.15.4
 grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.14.0
@@ -63,6 +64,7 @@ httpcore==1.0.2
 httpx==0.25.2
 idna==2.10
 inflection==0.5.1
+iso3166==2.1.1
 isodate==0.6.1
 jmespath==0.10.0
 jsonschema==4.20.0
@@ -138,7 +140,7 @@ symbolic==12.8.0
 tiktoken==0.6.0
 toronado==0.1.0
 tqdm==4.64.1
-typing-extensions==4.9.0
+typing-extensions==4.12.0
 tzdata==2023.3
 ua-parser==0.10.0
 unidiff==0.7.4

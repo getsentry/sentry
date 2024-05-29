@@ -8,12 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
+import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -27,7 +27,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
-  TraceFullDetailed,
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -107,7 +106,6 @@ function logTraceType(type: TraceType, organization: Organization) {
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
 
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
@@ -121,20 +119,6 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
-
-  useLayoutEffect(() => {
-    if (hasNewTagsUI) {
-      return;
-    }
-
-    // Enables the new trace tags/contexts ui for the trace view
-    const queryString = qs.parse(window.location.search);
-    queryString.traceView = '1';
-    browserHistory.replace({
-      pathname: window.location.pathname,
-      query: queryString,
-    });
-  }, [traceSlug, hasNewTagsUI]);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -228,7 +212,7 @@ type TraceViewContentProps = {
   metaResults: UseApiQueryResult<TraceMeta | null, any>;
   organization: Organization;
   status: UseApiQueryResult<any, any>['status'];
-  trace: TraceSplitResults<TraceFullDetailed> | null;
+  trace: TraceSplitResults<TraceTree.Transaction> | null;
   traceEventView: EventView;
   traceSlug: string;
 };
@@ -239,12 +223,30 @@ function TraceViewContent(props: TraceViewContentProps) {
   const {projects} = useProjects();
   const rootEvent = useTraceRootEvent(props.trace);
   const loadingTraceRef = useRef<TraceTree | null>(null);
-  const [forceRender, rerender] = useReducer(x => x + (1 % 2), 0);
+  const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+
+  const forceRerender = useCallback(() => {
+    flushSync(rerender);
+  }, []);
 
   const initializedRef = useRef(false);
-  const scrollQueueRef = useRef<{eventId?: string; path?: TraceTree.NodePath[]} | null>(
-    null
-  );
+  const scrollQueueRef = useRef<
+    {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
+  >(undefined);
+
+  if (scrollQueueRef.current === undefined) {
+    const queryParams = qs.parse(location.search);
+    const maybeQueue = decodeScrollQueue(queryParams.node);
+
+    if (maybeQueue || queryParams.eventId) {
+      scrollQueueRef.current = {
+        eventId: queryParams.eventId as string,
+        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
+      };
+    } else {
+      scrollQueueRef.current = null;
+    }
+  }
 
   const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
@@ -390,18 +392,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
     // We only want to update the tabs when the tree changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree]);
-
-  useLayoutEffect(() => {
-    const queryParams = qs.parse(location.search);
-    const maybeQueue = decodeScrollQueue(queryParams.node);
-
-    if (maybeQueue || queryParams.eventId) {
-      scrollQueueRef.current = {
-        eventId: queryParams.eventId as string,
-        path: maybeQueue as TraceTreeNode<TraceTree.NodeValue>['path'],
-      };
-    }
   }, [tree]);
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
@@ -603,7 +593,7 @@ function TraceViewContent(props: TraceViewContentProps) {
 
       // We call expandToNode because we want to ensure that the node is
       // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(tree, node.path, rerender, {
+      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
         organization,
       }).then(maybeNode => {
@@ -638,14 +628,22 @@ function TraceViewContent(props: TraceViewContentProps) {
         }
       });
     },
-    [api, organization, setRowAsFocused, scrollRowIntoView, tree, traceDispatch]
+    [
+      api,
+      organization,
+      setRowAsFocused,
+      scrollRowIntoView,
+      tree,
+      traceDispatch,
+      forceRerender,
+    ]
   );
 
   // Unlike onTabScrollToNode, this function does not set the node as the current
   // focused node, but rather scrolls the node into view and sets the roving index to the node.
   const onScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(tree, node.path, rerender, {
+      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
         organization,
       }).then(maybeNode => {
@@ -673,7 +671,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         }
       });
     },
-    [api, organization, scrollRowIntoView, tree, traceDispatch]
+    [api, organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
@@ -830,7 +828,6 @@ function TraceViewContent(props: TraceViewContentProps) {
       return undefined;
     }
 
-    initializedRef.current = true;
     viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
 
     // Whenever the timeline changes, update the trace space
@@ -868,7 +865,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
           <Trace
             trace={tree}
-            rerender={rerender}
+            rerender={forceRerender}
             trace_id={props.traceSlug}
             trace_state={traceState}
             trace_dispatch={traceDispatch}

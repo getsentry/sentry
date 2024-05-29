@@ -9,7 +9,6 @@ from sentry.sentry_metrics.use_case_id_registry import (
 )
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -74,7 +73,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
 
         assert isinstance(response.data, list)
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_with_public_use_case(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -104,7 +103,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             use_case_ids=[UseCaseID.SESSIONS],
         )
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_with_private_use_case(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -133,7 +132,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         )
         get_metrics_meta.assert_not_called()
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_default_use_cases(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -189,6 +188,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             ("s:custom/user@none", "set", project_2),
             ("c:custom/clicks@none", "counter", project_1),
             ("d:custom/page_load@millisecond", "distribution", project_2),
+            ("g:custom/page_load@millisecond", "distribution", project_2),
         )
         for mri, entity, project in metrics:
             self.store_metric(
@@ -205,7 +205,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         response = self.get_success_response(
             self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
         )
-        assert len(response.data) == 3
+        assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
@@ -216,9 +216,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert data[1]["blockingStatus"] == [
             {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
         ]
-        assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
-        assert data[2]["blockingStatus"] == [
+        assert data[3]["mri"] == "s:custom/user@none"
+        assert sorted(data[3]["projectIds"]) == sorted([project_1.id, project_2.id])
+        assert data[3]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
         assert sorted(data[1]["operations"]) == [
@@ -232,29 +232,77 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "sum",
         ]
 
-        with override_options(
-            {
-                "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs": [
-                    self.organization.id
-                ]
-            },
-        ):
-            response = self.get_success_response(
-                self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-            )
-            data = sorted(response.data, key=lambda d: d["mri"])
-            assert sorted(data[1]["operations"]) == [
-                "avg",
-                "count",
-                "histogram",
-                "max",
-                "max_timestamp",
-                "min",
-                "min_timestamp",
-                "p50",
-                "p75",
-                "p90",
-                "p95",
-                "p99",
-                "sum",
-            ]
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "max",
+            "min",
+            "sum",
+        ]
+
+        # test default deactivated percentiles
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "sum",
+        ]
+
+        # test activated percentiles
+        self.organization.update_option("sentry:metrics_activate_percentiles", True)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
+            "sum",
+        ]
+
+        # test default deactivated gauges
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "max",
+            "min",
+            "sum",
+        ]
+
+        # test activated gauges
+        self.organization.update_option("sentry:metrics_activate_last_for_gauges", True)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "last",
+            "max",
+            "min",
+            "sum",
+        ]
