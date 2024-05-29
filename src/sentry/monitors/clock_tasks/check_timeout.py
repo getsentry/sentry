@@ -95,6 +95,10 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
     ).exists()
     if not has_newer_result:
+        # The status was updated in the database. Update the field without
+        # needing to reload the check-in
+        checkin.status = CheckInStatus.TIMEOUT
+
         # Similar to mark_missed we compute when the most recent check-in should
         # have happened to use as our reference time for mark_failed.
         #
