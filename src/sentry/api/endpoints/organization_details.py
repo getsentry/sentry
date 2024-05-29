@@ -594,7 +594,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
-        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
 
         serializer = org_serializers.OrganizationSerializer
 
@@ -606,6 +605,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
 
         context = serialize(organization, request.user, serializer(), access=request.access)
+
+        if not include_feature_flags:
+            context.pop("features", None)
 
         return self.respond(context)
 
@@ -628,7 +630,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
-        (include_feature_flags)  # TODO: Remove this once include_feature_flags is used
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
@@ -697,6 +698,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                 access=request.access,
             )
+
+            if not include_feature_flags:
+                context.pop("features", None)
 
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
