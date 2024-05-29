@@ -49,36 +49,8 @@ import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
-
-export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
-  [SpanMetricsField.SPAN_DURATION]: {
-    outputType: 'duration',
-  },
-  [SpanMetricsField.SPAN_SELF_TIME]: {
-    outputType: 'duration',
-  },
-  [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanIndexedField.CACHE_ITEM_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.CACHE_ITEM_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
-    outputType: 'duration',
-  },
-};
 
 export enum ChartType {
   BAR = 0,
