@@ -99,11 +99,11 @@ export function unescapeTagValue(value: string): string {
   return value.replace(/\\"/g, '"');
 }
 
-export function formatFilterValue(token: TokenResult<Token.FILTER>): string {
-  switch (token.value.type) {
+export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
+  switch (token.type) {
     case Token.VALUE_TEXT:
-      return unescapeTagValue(token.value.value);
+      return unescapeTagValue(token.value);
     default:
-      return token.value.text;
+      return token.text;
   }
 }
