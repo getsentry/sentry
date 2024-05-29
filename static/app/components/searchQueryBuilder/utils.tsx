@@ -9,6 +9,8 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
+export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
+
 /**
  * Generates a unique key for the given token.
  *
