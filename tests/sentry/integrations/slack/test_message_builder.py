@@ -1247,14 +1247,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
 
 class ActionsTest(TestCase):
     def test_identity_and_action(self):
-        group = self.create_group(project=self.project)
-        MOCKIDENTITY = Mock()
-
-        assert build_actions(
-            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "", False)
-
-    def test_identity_and_action_has_action(self):
         # returns True to indicate to use the white circle emoji
         group = self.create_group(project=self.project)
         MOCKIDENTITY = Mock()
