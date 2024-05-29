@@ -38,6 +38,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {ProfilingUnsupportedAlert} from 'sentry/views/profiling/unsupportedAlert';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
@@ -197,40 +198,44 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                // If user is on m2, show default
-                <ProfilingOnboardingPanel
-                  content={
-                    <ProfilingAM1OrMMXUpgrade
-                      organization={organization}
-                      fallback={
-                        <Fragment>
-                          <h3>{t('Function level insights')}</h3>
-                          <p>
-                            {t(
-                              'Discover slow-to-execute or resource intensive functions within your application'
-                            )}
-                          </p>
-                        </Fragment>
-                      }
-                    />
-                  }
-                >
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    priority="primary"
-                    onClick={onSetupProfilingClick}
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} priority="primary">
-                        {t('Set Up Profiling')}
-                      </Button>
+                <Fragment>
+                  <ProfilingUnsupportedAlert selectedProjects={selection.projects} />
+                  <ProfilingOnboardingPanel
+                    content={
+                      // If user is on m2, show default
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
                     }
                   >
-                    {t('Set Up Profiling')}
-                  </ProfilingUpgradeButton>
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                    <ProfilingUpgradeButton
+                      data-test-id="profiling-upgrade"
+                      organization={organization}
+                      priority="primary"
+                      onClick={onSetupProfilingClick}
+                      fallback={
+                        <Button onClick={onSetupProfilingClick} priority="primary">
+                          {t('Set Up Profiling')}
+                        </Button>
+                      }
+                    >
+                      {t('Set Up Profiling')}
+                    </ProfilingUpgradeButton>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                </Fragment>
               ) : (
                 <Fragment>
                   {organization.features.includes(
