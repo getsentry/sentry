@@ -955,7 +955,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Time Consuming Assets'
+      'Most Time Consuming-Assets'
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
