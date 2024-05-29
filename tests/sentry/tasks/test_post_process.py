@@ -2015,7 +2015,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         )
         assert kafka_producer.return_value.publish.call_count == 0
         for args, _ in incr.call_args_list:
-            assert args != "post_process.process_replay_link.id_sampled"
+            assert args != ("post_process.process_replay_link.id_sampled")
 
 
 class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
