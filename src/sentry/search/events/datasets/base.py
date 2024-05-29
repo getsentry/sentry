@@ -13,7 +13,7 @@ from sentry.search.events.types import SelectType, WhereType
 class DatasetConfig(abc.ABC):
     custom_threshold_columns: set[str] = set()
     non_nullable_keys: set[str] = set()
-    missing_function_error = InvalidSearchQuery
+    missing_function_error: Any = InvalidSearchQuery
 
     @property
     @abc.abstractmethod
