@@ -1,30 +1,11 @@
 from django.db import models
 from django.db.models import UniqueConstraint
-from django.utils.translation import gettext_lazy as _
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import region_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
-
-
-class SortOptions:
-    DATE = "date"
-    NEW = "new"
-    TRENDS = "trends"
-    FREQ = "freq"
-    USER = "user"
-    INBOX = "inbox"
-
-    @classmethod
-    def as_choices(cls):
-        return (
-            (cls.DATE, _("Last Seen")),
-            (cls.NEW, _("First Seen")),
-            (cls.TRENDS, _("Trends")),
-            (cls.FREQ, _("Events")),
-            (cls.USER, _("Users")),
-            (cls.INBOX, _("Date Added")),
-        )
+from sentry.models.savedsearch import SortOptions
 
 
 @region_silo_model
@@ -33,11 +14,8 @@ class IssueUserViews(DefaultFieldsModel):
     A model for a user's view of the issue stream
     """
 
-    # Open Questions:
-    #   - Do we need to store the search type (like in savedsearches)
-    #   - What is the character limit on the name field?
-
-    name = models.TextField()  # Limit?
+    __relocation_scope__ = RelocationScope.Organization
+    name = models.TextField(max_length=128)
     query = models.TextField()
     query_sort = models.CharField(
         max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices(), null=True
