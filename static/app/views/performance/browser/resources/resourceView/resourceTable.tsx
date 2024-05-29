@@ -79,7 +79,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const {setPageInfo, pageAlert} = usePageAlert();
 
   const isInsightsEnabled = organization.features.includes('performance-insights');
-
   const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
 
   const {data, isLoading, pageLinks} = useResourcesQuery({
