@@ -110,4 +110,10 @@ describe('TeamStore', function () {
       });
     });
   });
+
+  it('returns a stable reference with getState', () => {
+    TeamStore.loadInitialData([teamFoo]);
+    const state = TeamStore.getState();
+    expect(Object.is(state, TeamStore.getState())).toBe(true);
+  });
 });

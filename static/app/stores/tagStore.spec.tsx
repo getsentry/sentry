@@ -7,8 +7,6 @@ describe('TagStore', function () {
     TagStore.reset();
   });
 
-  afterEach(() => {});
-
   describe('loadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
       jest.spyOn(TagStore, 'trigger');
@@ -108,5 +106,16 @@ describe('TagStore', function () {
       expect(tags['device.family']).toBeTruthy();
       expect(tags['device.family'].key).toBe('device.family');
     });
+  });
+
+  it('returns a stable reference with getState', () => {
+    TagStore.loadTagsSuccess([
+      {
+        key: 'mytag',
+        name: 'My Custom Tag',
+      },
+    ]);
+    const state = TagStore.getState();
+    expect(Object.is(state, TagStore.getState())).toBe(true);
   });
 });

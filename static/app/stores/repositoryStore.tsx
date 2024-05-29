@@ -1,6 +1,6 @@
-import type {StoreDefinition} from 'reflux';
 import {createStore} from 'reflux';
 
+import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {Repository} from 'sentry/types/integrations';
 
 type State = {
@@ -10,14 +10,12 @@ type State = {
   repositoriesLoading?: boolean;
 };
 
-interface RepositoryStoreDefinition extends StoreDefinition {
+interface RepositoryStoreDefinition extends StrictStoreDefinition<State> {
   get(): State;
-  init(): void;
   loadRepositories(orgSlug: string): void;
   loadRepositoriesError(error: Error): void;
   loadRepositoriesSuccess(data: Repository[]): void;
   resetRepositories(): void;
-  state: State;
 }
 
 const storeConfig: RepositoryStoreDefinition = {
@@ -76,7 +74,11 @@ const storeConfig: RepositoryStoreDefinition = {
   },
 
   get() {
-    return {...this.state};
+    return this.state;
+  },
+
+  getState() {
+    return this.state;
   },
 };
 

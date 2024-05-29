@@ -6,7 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -16,13 +16,11 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
   return acc;
 }, {});
 
-interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
+interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
   getIssueAttributes(org: Organization): TagCollection;
   getIssueTags(org: Organization): TagCollection;
-  init(): void;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
-  state: TagCollection;
 }
 
 const storeConfig: TagStoreDefinition = {
