@@ -655,7 +655,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def resolve_tag_value(self, value: str) -> str:
+    def resolve_tag_value(self, value: str) -> int | str | None:
+        # We only use the indexer for alerts queries
+        if self.is_alerts_query:
+            return self.resolve_metric_index(value)
         return value
 
     def resolve_tag_key(self, value: str) -> int | str | None:
