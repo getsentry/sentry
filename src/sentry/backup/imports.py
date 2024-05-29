@@ -40,7 +40,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -294,7 +293,11 @@ def _import(
                 batch = []
                 last_seen_model_name = model_name
             if len(batch) >= MAX_BATCH_SIZE:
-                yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+                yield (
+                    last_seen_model_name,
+                    orjson.dumps(batch, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS).decode(),
+                    num_current_model_instances_yielded,
+                )
                 num_current_model_instances_yielded += len(batch)
                 batch = []
 
