@@ -214,15 +214,23 @@ export function Content() {
               </EmptyStateWarning>
             </StyledPanelItem>
           )}
-          {data?.map(trace => <TraceRow key={trace.trace} trace={trace} />)}
+          {data?.map((trace, i) => (
+            <TraceRow key={trace.trace} trace={trace} defaultExpanded={i === 0} />
+          ))}
         </TracePanelContent>
       </StyledPanel>
     </LayoutMain>
   );
 }
 
-function TraceRow({trace}: {trace: TraceResult<Field>}) {
-  const [expanded, setExpanded] = useState<boolean>(false);
+function TraceRow({
+  defaultExpanded,
+  trace,
+}: {
+  defaultExpanded;
+  trace: TraceResult<Field>;
+}) {
+  const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
 
   const setHighlightedSliceName = useMemo(
