@@ -940,19 +940,15 @@ class ProjectUpdateTest(APITestCase):
         ]
 
     def test_highlight_tags(self):
-        # Default with or without flag, ignore update attempt
-        highlight_tags = ["bears", "beets", "battlestar_galactica"]
-        resp = self.get_success_response(
-            self.org_slug,
-            self.proj_slug,
-            highlightTags=highlight_tags,
-        )
+        # Unrelated change returns presets
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
         assert self.project.get_option("sentry:highlight_tags") is None
-
         preset = get_highlight_preset_for_project(self.project)
         assert resp.data["highlightTags"] == preset["tags"]
+        assert resp.data["highlightPreset"] == preset
 
         # Set to custom
+        highlight_tags = ["bears", "beets", "battlestar_galactica"]
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -969,22 +965,19 @@ class ProjectUpdateTest(APITestCase):
         )
         assert self.project.get_option("sentry:highlight_tags") == []
         assert resp.data["highlightTags"] == []
+        assert resp.data["highlightPreset"] == preset
 
     def test_highlight_context(self):
-        # Default with or without flag, ignore update attempt
-        highlight_context_type = "bird-words"
-        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
-        resp = self.get_success_response(
-            self.org_slug,
-            self.proj_slug,
-            highlightContext=highlight_context,
-        )
-        assert self.project.get_option("sentry:highlight_context") is None
-
+        # Unrelated change returns presets
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
         preset = get_highlight_preset_for_project(self.project)
+        assert self.project.get_option("sentry:highlight_context") is None
         assert resp.data["highlightContext"] == preset["context"]
+        assert resp.data["highlightPreset"] == preset
 
         # Set to custom
+        highlight_context_type = "bird-words"
+        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -995,6 +988,7 @@ class ProjectUpdateTest(APITestCase):
         for highlight_context_key in highlight_context[highlight_context_type]:
             assert highlight_context_key in option_result[highlight_context_type]
             assert highlight_context_key in resp_result[highlight_context_type]
+
         # Filters duplicates
         assert (
             len(option_result[highlight_context_type])
@@ -1010,6 +1004,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert self.project.get_option("sentry:highlight_context") == {}
         assert resp.data["highlightContext"] == {}
+        assert resp.data["highlightPreset"] == preset
 
         # Checking validation
         resp = self.get_error_response(
