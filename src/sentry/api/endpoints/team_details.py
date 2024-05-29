@@ -74,8 +74,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
     )
     def get(self, request: Request, team) -> Response:
         """
-        Retrieve a Team
-
         Return details on an individual team.
         """
         collapse = request.GET.getlist("collapse", [])
@@ -105,8 +103,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
     )
     def put(self, request: Request, team) -> Response:
         """
-        Update a Team
-
         Update various attributes and configurable settings for the given
         team.
         """
@@ -139,8 +135,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
     @sudo_required
     def delete(self, request: Request, team) -> Response:
         """
-        Delete a Team
-
         Schedules a team for deletion.
 
         **Note:** Deletion happens asynchronously and therefore is not
