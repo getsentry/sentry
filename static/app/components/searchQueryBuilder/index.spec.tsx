@@ -188,6 +188,17 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('new search tokens', function () {
+    it('can add an unsupported filter key and value', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'a:b{enter}'
+      );
+
+      expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
+    });
+
     it('breaks keys into sections', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
