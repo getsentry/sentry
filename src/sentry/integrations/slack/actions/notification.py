@@ -7,7 +7,6 @@ from typing import Any
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -130,15 +129,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 rule_action_uuid=rule_action_uuid,
             )
 
-            # Only try to get the parent notification message if the organization is in the FF
             # We need to search by rule action uuid and rule id, so only search if they exist
             reply_broadcast = False
             thread_ts = None
-            if (
-                features.has(
-                    "organizations:slack-thread-issue-alert", event.group.project.organization
-                )
-                and OrganizationOption.objects.get_value(
+            if OrganizationOption.objects.get_value(
                     organization=self.project.organization,
                     key="sentry:issue_alerts_thread_flag",
                     default=ISSUE_ALERTS_THREAD_DEFAULT,
@@ -267,11 +261,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         str(ts) if ts is not None else None
                     )
 
-            if (
-                features.has("organizations:slack-thread-issue-alert", organization)
-                and rule_action_uuid
-                and rule_id
-            ):
+            if rule_action_uuid and rule_id:
                 try:
                     self._repository.create_notification_message(
                         data=new_notification_message_object
