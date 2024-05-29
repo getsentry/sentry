@@ -316,7 +316,6 @@ def test_report_hydration_error_creates_issue(default_project):
         )
 
     # test that the Issue gets created
-    assert Group.objects.get(culprit__contains="www.sentry.io")
     assert Group.objects.get(message__contains="Hydration Error")
 
 
@@ -340,4 +339,26 @@ def test_report_hydration_error_long_url(default_project):
 
     # test that the Issue gets created with the truncated url
     assert Group.objects.get(culprit__contains="www.sentry.io")
+    assert Group.objects.get(message__contains="Hydration Error")
+
+
+@pytest.mark.snuba
+@django_db_all
+def test_report_hydration_error_no_url(default_project):
+    replay_id = "b58a67446c914f44a4e329763420047b"
+    seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+    with Feature(
+        {
+            ReplayHydrationErrorType.build_ingest_feature_name(): True,
+        }
+    ):
+        report_hydration_error_issue_with_replay_event(
+            project_id=default_project.id,
+            replay_id=replay_id,
+            timestamp=seq1_timestamp.timestamp(),
+            url=None,
+            replay_event=mock_replay_event(),
+        )
+
+    # test that the Issue gets created
     assert Group.objects.get(message__contains="Hydration Error")

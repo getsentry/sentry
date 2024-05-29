@@ -23,7 +23,7 @@ def report_hydration_error_issue_with_replay_event(
     project_id: int,
     replay_id: str,
     timestamp: float,
-    url: str,
+    url: str | None,
     replay_event: dict[str, Any],
 ):
     metrics.incr("replay.hydration_error_issue_creation_with_replay_event")
@@ -33,7 +33,7 @@ def report_hydration_error_issue_with_replay_event(
     timestamp_utc = date.replace(tzinfo=datetime.UTC)
 
     new_issue_occurrence(
-        culprit=url[:MAX_CULPRIT_LENGTH],
+        culprit=url[:MAX_CULPRIT_LENGTH] if url else "",
         environment=replay_event.get(
             "environment", "production"
         ),  # if no environment is set, default to production
