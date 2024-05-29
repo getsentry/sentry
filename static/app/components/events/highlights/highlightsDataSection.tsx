@@ -21,11 +21,13 @@ import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
+  HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit, IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -238,9 +240,17 @@ export default function HighlightsDataSection({
 
   return (
     <EventDataSection
-      title={t('Event Highlights')}
-      data-test-id="event-highlights"
+      key="event-highlights"
       type="event-highlights"
+      title={t('Event Highlights')}
+      help={tct(
+        'Promoted tags and context items saved for this project. [link:Learn more]',
+        {
+          link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
+        }
+      )}
+      isHelpHoverable
+      data-test-id="event-highlights"
       actions={
         <ButtonBar gap={1}>
           <HighlightsFeedback />

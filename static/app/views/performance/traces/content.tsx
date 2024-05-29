@@ -255,7 +255,7 @@ function TraceRow({
         />
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
-      <StyledPanelItem align="left" overflow onClick={onClickExpand}>
+      <StyledPanelItem align="left" overflow>
         <Description>
           {trace.project ? (
             <ProjectRenderer projectSlug={trace.project} hideName />

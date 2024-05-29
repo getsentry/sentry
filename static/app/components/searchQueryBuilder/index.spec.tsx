@@ -1,6 +1,12 @@
 import type {ComponentProps} from 'react';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {TagCollection} from 'sentry/types/group';
@@ -41,6 +47,28 @@ describe('SearchQueryBuilder', function () {
     supportedKeys: MOCK_SUPPORTED_KEYS,
     label: 'Query Builder',
   };
+
+  describe('actions', function () {
+    it('can clear the query', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+      userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('');
+      });
+
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+  });
 
   describe('mouse interactions', function () {
     it('can remove a token by clicking the delete button', async function () {
@@ -90,6 +118,39 @@ describe('SearchQueryBuilder', function () {
       // Token should be modified to be negated
       expect(
         screen.getByRole('row', {name: '!browser.name:firefox'})
+      ).toBeInTheDocument();
+
+      // Should now have "is not" label
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        ).getByText('is not')
+      ).toBeInTheDocument();
+    });
+
+    it('can modify operator for filter with multiple values', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:[firefox,chrome]"
+        />
+      );
+
+      // Should display as "is" to start
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        ).getByText('is')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+
+      // Token should be modified to be negated
+      expect(
+        screen.getByRole('row', {name: '!browser.name:[firefox,chrome]'})
       ).toBeInTheDocument();
 
       // Should now have "is not" label
@@ -160,11 +221,12 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getByRole('row', {name: 'browser.name:[firefox,Chrome]'})
       ).toBeInTheDocument();
-      expect(
-        within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        ).getByText('[firefox,Chrome]')
-      ).toBeInTheDocument();
+      const valueButton = screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      expect(within(valueButton).getByText('firefox')).toBeInTheDocument();
+      expect(within(valueButton).getByText('or')).toBeInTheDocument();
+      expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
     });
 
     it('escapes values with spaces and reserved characters', async function () {
