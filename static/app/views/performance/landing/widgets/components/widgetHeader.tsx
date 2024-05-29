@@ -24,16 +24,11 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
     PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE,
   ].includes(chartSetting);
 
-  const isResourcesWidget =
-    chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES;
-
   const isCacheWidget =
     chartSetting === PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS;
 
   const featureBadge =
-    isWebVitalsWidget || isResourcesWidget || isCacheWidget ? (
-      <FeatureBadge type="new" />
-    ) : null;
+    isWebVitalsWidget || isCacheWidget ? <FeatureBadge type="new" /> : null;
 
   return (
     <WidgetHeaderContainer>
