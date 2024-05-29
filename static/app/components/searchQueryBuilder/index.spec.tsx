@@ -160,11 +160,12 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getByRole('row', {name: 'browser.name:[firefox,Chrome]'})
       ).toBeInTheDocument();
-      expect(
-        within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        ).getByText('[firefox,Chrome]')
-      ).toBeInTheDocument();
+      const valueButton = screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      expect(within(valueButton).getByText('firefox')).toBeInTheDocument();
+      expect(within(valueButton).getByText('or')).toBeInTheDocument();
+      expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
     });
 
     it('escapes values with spaces and reserved characters', async function () {
