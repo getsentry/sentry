@@ -46,9 +46,9 @@ from sentry.tasks.relocation import (
     ERR_PREPROCESSING_DECRYPTION,
     ERR_PREPROCESSING_INTERNAL,
     ERR_PREPROCESSING_INVALID_JSON,
+    ERR_PREPROCESSING_INVALID_ORG_SLUG,
     ERR_PREPROCESSING_INVALID_TARBALL,
     ERR_PREPROCESSING_MISSING_ORGS,
-    ERR_PREPROCESSING_NO_ORGS,
     ERR_PREPROCESSING_NO_USERS,
     ERR_PREPROCESSING_TOO_MANY_ORGS,
     ERR_PREPROCESSING_TOO_MANY_USERS,
@@ -310,7 +310,6 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.want_usernames == [
             "admin@example.com",
             "member@example.com",
-            "superadmin@example.com",
         ]
         assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
@@ -339,7 +338,6 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.want_usernames == [
             "admin@example.com",
             "member@example.com",
-            "superadmin@example.com",
         ]
         assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
@@ -536,7 +534,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_NO_USERS
 
-    @patch("sentry.tasks.relocation.MAX_USERS_PER_RELOCATION", 0)
+    @patch("sentry.tasks.relocation.MAX_USERS_PER_RELOCATION", 1)
     def test_fail_too_many_users(
         self,
         preprocessing_transfer_mock: Mock,
@@ -559,7 +557,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
-        assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=3)
+        assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=2)
 
     def test_fail_no_orgs(
         self,
@@ -585,7 +583,9 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
-        assert relocation.failure_reason == ERR_PREPROCESSING_NO_ORGS
+        assert relocation.failure_reason == ERR_PREPROCESSING_MISSING_ORGS.substitute(
+            orgs="testing"
+        )
 
     @patch("sentry.tasks.relocation.MAX_ORGS_PER_RELOCATION", 0)
     def test_fail_too_many_orgs(
@@ -640,6 +640,36 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_MISSING_ORGS.substitute(
             orgs=",".join(orgs)
+        )
+
+    def test_fail_invalid_org_slug(
+        self,
+        preprocessing_transfer_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        orgs = ["$$##"]
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        relocation.want_org_slugs = orgs
+        relocation.save()
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        preprocessing_scan(self.uuid)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert preprocessing_transfer_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
+        assert relocation.failure_reason == ERR_PREPROCESSING_INVALID_ORG_SLUG.substitute(
+            slug="$$##"
         )
 
 

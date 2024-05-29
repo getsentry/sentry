@@ -2,10 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, type Event} from 'sentry/types';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   type VirtualizedList,
   VirtualizedViewManager,
@@ -21,16 +18,18 @@ function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): E
 }
 
 function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceFullDetailed>>
-): TraceSplitResults<TraceFullDetailed> {
+  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
+): TraceSplitResults<TraceTree.Transaction> {
   return {
     transactions: [],
     orphan_errors: [],
     ...overrides,
-  } as TraceSplitResults<TraceFullDetailed>;
+  } as TraceSplitResults<TraceTree.Transaction>;
 }
 
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
+function makeTransaction(
+  overrides: Partial<TraceTree.Transaction> = {}
+): TraceTree.Transaction {
   return {
     children: [],
     start_timestamp: 0,
@@ -41,7 +40,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     errors: [],
     performance_issues: [],
     ...overrides,
-  } as TraceFullDetailed;
+  } as TraceTree.Transaction;
 }
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
