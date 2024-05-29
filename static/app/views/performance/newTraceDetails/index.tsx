@@ -14,7 +14,6 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -107,7 +106,6 @@ function logTraceType(type: TraceType, organization: Organization) {
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
 
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
@@ -121,20 +119,6 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
-
-  useLayoutEffect(() => {
-    if (hasNewTagsUI) {
-      return;
-    }
-
-    // Enables the new trace tags/contexts ui for the trace view
-    const queryString = qs.parse(window.location.search);
-    queryString.traceView = '1';
-    browserHistory.replace({
-      pathname: window.location.pathname,
-      query: queryString,
-    });
-  }, [traceSlug, hasNewTagsUI]);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {

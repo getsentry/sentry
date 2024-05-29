@@ -200,7 +200,11 @@ function EventTagsTree(props: EventTagsTreeProps) {
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
-      <TreeContainer columnCount={columnCount} ref={containerRef}>
+      <TreeContainer
+        columnCount={columnCount}
+        ref={containerRef}
+        data-test-id="event-tags-tree"
+      >
         <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeContainer>
     </ErrorBoundary>
