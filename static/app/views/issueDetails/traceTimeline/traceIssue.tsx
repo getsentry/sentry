@@ -93,7 +93,7 @@ const TraceIssueLinkContainer = styled(Link)`
   display: flex;
   gap: ${space(2)};
   color: ${p => p.theme.textColor};
-  padding: ${space(1)} ${space(2)} ${space(1)} ${space(2)};
+  padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
   margin: ${space(1)} 0 ${space(1)} 0;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
