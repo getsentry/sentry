@@ -180,21 +180,21 @@ class ReleaseParams:
         location="query",
         required=False,
         type=bool,
-        description="Include health data with the release.",
+        description="Whether or not to include health data with the release. By default, this is false.",
     )
     ADOPTION_STAGES = OpenApiParameter(
         name="adoptionStages",
         location="query",
         required=False,
         type=bool,
-        description="Include adoption stages with the release.",
+        description="Whether or not to include adoption stages with the release. By default, this is false.",
     )
     SUMMARY_STATS_PERIOD = OpenApiParameter(
         name="summaryStatsPeriod",
         location="query",
         required=False,
         type=str,
-        description="The period of time for the query, default is 14d.",
+        description="The period of time used to query summary stats for the release. By default, this is 14d.",
         enum=STATS_PERIODS.keys(),
     )
     HEALTH_STATS_PERIOD = OpenApiParameter(
@@ -202,7 +202,7 @@ class ReleaseParams:
         location="query",
         required=False,
         type=str,
-        description="The period of time for the query, default is 24h if health is enabled.",
+        description="The period of time used to query health stats for the release. By default, this is 24h if health is enabled.",
         enum=STATS_PERIODS.keys(),
     )
     SORT = OpenApiParameter(
@@ -210,7 +210,7 @@ class ReleaseParams:
         location="query",
         required=False,
         type=str,
-        description="The field to sort results by, default is `date`.",
+        description="The field used to sort results by. By default, this is `date`.",
         enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
     )
     STATUS_FILTER = OpenApiParameter(
@@ -218,7 +218,7 @@ class ReleaseParams:
         location="query",
         required=False,
         type=str,
-        description="Filter by release status.",
+        description="Release statuses that you can filter by.",
         enum=["open", "archived"],
     )
 

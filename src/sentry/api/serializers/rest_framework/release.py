@@ -62,12 +62,12 @@ class ReleaseSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="A URL that points to the release. This can be the path to an online interface to the sourcecode for instance.",
+        help_text="A URL that points to the release. For instance, this can be the path to an online interface to the source code, such as a GitHub URL.",
     )
     dateReleased = serializers.DateTimeField(
         required=False,
         allow_null=True,
-        help_text="An optional date that indicates when the release went live.  If not provided the current time is assumed.",
+        help_text="An optional date that indicates when the release went live.  If not provided the current time is used.",
     )
     commits = serializers.ListField(
         child=CommitSerializer(),
