@@ -357,7 +357,7 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.gray400};
   width: 250px;
   white-space: normal;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const SetupReleasesHeader = styled('h6')`

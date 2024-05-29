@@ -18,7 +18,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.backfill import (
@@ -104,6 +104,10 @@ def backfill_seer_grouping_records(
 
     if only_delete:
         delete_seer_grouping_records(project.id, redis_client)
+        logger.info(
+            "backfill_seer_grouping_records.deleted_all_records",
+            extra={"project_id": project.id},
+        )
         return
 
     if last_processed_index == 0:
@@ -124,6 +128,7 @@ def backfill_seer_grouping_records(
 
     group_id_message_data = (
         Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
+        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
         .order_by("times_seen")
         .order_by("id")
@@ -200,6 +205,23 @@ def backfill_seer_grouping_records(
 
     if result and result[0].get("data"):
         rows: list[GroupEventRow] = result[0]["data"]
+
+        # Log if any group does not have any events in snuba and skip it
+        if len(rows) != len(group_id_batch):
+            row_group_ids = {row["group_id"] for row in rows}
+            for group_id in group_id_batch:
+                if group_id not in row_group_ids:
+                    logger.info(
+                        "tasks.backfill_seer_grouping_records.no_snuba_event",
+                        extra={
+                            "organization_id": project.organization.id,
+                            "project_id": project_id,
+                            "group_id": group_id,
+                        },
+                    )
+                    group_id_batch.remove(group_id)
+                    del group_id_message_batch_filtered[group_id]
+
         group_hashes = GroupHash.objects.filter(
             project_id=project.id, group_id__in=group_id_batch
         ).distinct("group_id")
@@ -210,6 +232,10 @@ def backfill_seer_grouping_records(
 
         # If nodestore is down, we should stop
         if data["data"] == [] and data["stacktrace_list"] == []:
+            logger.info(
+                "backfill_seer_grouping_records.no_data",
+                extra={"project_id": project.id},
+            )
             return
 
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):

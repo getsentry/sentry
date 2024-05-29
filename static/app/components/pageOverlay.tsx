@@ -35,7 +35,7 @@ const subItemAnimation = {
 const Header = styled(motion.h2)`
   display: flex;
   align-items: center;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 

@@ -136,6 +136,7 @@ function EventDetailsContent(props: Props) {
             event={transaction}
             location={location}
             orgSlug={organization.slug}
+            skipLight={false}
           >
             {results => (
               <TransactionProfileIdProvider

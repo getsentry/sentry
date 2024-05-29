@@ -21,6 +21,7 @@ class TimeWindow(Enum):
 METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.fcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
     "d:transactions/measurements.lcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
+    "d:spans/webvital.inp@millisecond": None,
 }
 
 # Currently there are no default per-use case aggregation options

@@ -644,6 +644,29 @@ class OrganizationMember(ReplicatedRegionModel):
             mapping=rpc_org_member_update,
         )
 
+    @classmethod
+    def query_for_relocation_export(cls, q: Q, pk_map: PrimaryKeyMap) -> Q:
+        q = super().query_for_relocation_export(q, pk_map)
+
+        # Manually avoid filtering on `inviter_id` when exporting. This ensures that
+        # `OrganizationMember`s that were invited by a user from a different organization are not
+        # filtered out when export in `Organization` scope.
+        new_q = Q()
+        for clause in q.children:
+            if not isinstance(clause, Q):
+                new_q.children.append(clause)
+                continue
+
+            mentioned_inviter = False
+            for subclause in clause.children:
+                if isinstance(subclause, tuple) and "inviter" in subclause[0]:
+                    mentioned_inviter = True
+                    break
+            if not mentioned_inviter:
+                new_q.children.append(clause)
+
+        return new_q
+
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:

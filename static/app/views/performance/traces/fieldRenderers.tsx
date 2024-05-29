@@ -226,7 +226,7 @@ export function SpanBreakdownSliceRenderer({
 }
 
 const Subtext = styled('span')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
 `;
 const FlexContainer = styled('div')`

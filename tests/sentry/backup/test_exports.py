@@ -130,9 +130,12 @@ class ScopingTests(ExportTestCase):
     @freeze_time("2023-10-11 18:00:00")
     def test_config_export_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        self.create_exhaustive_user("admin", is_admin=True)
-        self.create_exhaustive_user("staff", is_staff=True)
-        self.create_exhaustive_user("superuser", is_superuser=True)
+        admin = self.create_exhaustive_user("admin", is_admin=True)
+        staff = self.create_exhaustive_user("staff", is_staff=True)
+        superuser = self.create_exhaustive_user("superuser", is_superuser=True)
+        self.create_exhaustive_api_keys_for_user(admin)
+        self.create_exhaustive_api_keys_for_user(staff)
+        self.create_exhaustive_api_keys_for_user(superuser)
         with tempfile.TemporaryDirectory() as tmp_dir:
             unencrypted = self.export(tmp_dir, scope=ExportScope.Config)
             self.verify_model_inclusion(unencrypted, ExportScope.Config)
