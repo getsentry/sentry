@@ -1,11 +1,16 @@
 from snuba_sdk import Entity, Flags, Query, Request
 
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
 from sentry.snuba.dataset import Dataset
 
 
 class MetricsSummariesQueryBuilder(QueryBuilder):
     requires_organization_condition = False
+
+    def load_config(self):
+        self.config = MetricsSummariesDatasetConfig(self)
+        self.parse_config(self.config)
 
     def get_field_type(self, field: str) -> str | None:
         if field in ["min_metric", "max_metric", "sum_metric", "count_metric"]:

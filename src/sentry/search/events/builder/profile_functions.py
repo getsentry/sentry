@@ -32,6 +32,10 @@ class ProfileFunctionsQueryBuilderProtocol(Protocol):
 
 
 class ProfileFunctionsQueryBuilderMixin:
+    def load_config(self):
+        self.config = ProfileFunctionsDatasetConfig(self)
+        self.parse_config(self.config)
+
     def resolve_column_name(self: ProfileFunctionsQueryBuilderProtocol, col: str) -> str:
         # giving resolved a type here convinces mypy that the type is str
         resolved: str = self.config.resolve_column(col)

@@ -6,6 +6,7 @@ from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 
 
@@ -24,6 +25,10 @@ class SessionsV2QueryBuilder(QueryBuilder):
         self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
         self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
+
+    def load_config(self):
+        self.config = SessionsDatasetConfig(self)
+        self.parse_config(self.config)
 
     def resolve_groupby(self, groupby_columns: list[str] | None = None) -> list[SelectType]:
         """

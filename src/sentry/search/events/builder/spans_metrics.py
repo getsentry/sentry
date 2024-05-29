@@ -6,6 +6,7 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import SelectType
 
 
@@ -20,6 +21,10 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         # when the user performs a free text search
         "message": "span.description",
     }
+
+    def load_config(self):
+        self.config = SpansMetricsDatasetConfig(self)
+        return self.parse_config(self.config)
 
     @property
     def use_default_tags(self) -> bool:

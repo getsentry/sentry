@@ -3,6 +3,7 @@ from snuba_sdk import Column, Function
 
 from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
+from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
 from sentry.search.events.types import SelectType
 
 
@@ -15,6 +16,10 @@ class SpansIndexedQueryBuilder(QueryBuilder):
         self.value_resolver_map[
             constants.SPAN_STATUS
         ] = lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
+
+    def load_config(self):
+        self.config = SpansIndexedDatasetConfig(self)
+        self.parse_config(self.config)
 
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
