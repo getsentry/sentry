@@ -13,6 +13,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import useOrganization from 'sentry/utils/useOrganization';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
