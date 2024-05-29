@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from random import choice
 from string import ascii_uppercase
 from typing import Any
@@ -1061,3 +1061,42 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
             in mock_logger.info.call_args_list
         )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_exclude_90_day_old_groups(
+        self, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that groups that are over 90 days old are excluded.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Create groups pending deletion and in the process of being deleted
+        old_group_id = []
+        data = {
+            "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "timestamp": iso_format(before_now(seconds=10)),
+        }
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+        event.group.times_seen = 2
+        event.group.last_seen = datetime.now(UTC) - timedelta(days=90)
+        event.group.save()
+        old_group_id = event.group.id
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id).exclude(id=old_group_id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
+        assert last_processed_index == len(groups)
+
+        # Assert metadata was not set for groups that is 90 days old
+        old_group = Group.objects.filter(project_id=self.project.id, id=old_group_id).first()
+        assert old_group.data["metadata"].get("seer_similarity") is None

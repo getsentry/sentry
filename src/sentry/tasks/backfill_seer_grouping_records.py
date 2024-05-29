@@ -1,7 +1,7 @@
 import logging
 import time
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -127,7 +127,12 @@ def backfill_seer_grouping_records(
             Group.objects.bulk_update(groups_seen_once, ["data"])
 
     group_id_message_data = (
-        Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
+        Group.objects.filter(
+            project_id=project.id,
+            type=ErrorGroupType.type_id,
+            times_seen__gt=1,
+            last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
+        )
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
         .order_by("times_seen")
