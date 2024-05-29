@@ -354,7 +354,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
-    "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
     "sentry.models.integrations.sentry_app_installation",
     "sentry.models.organizationaccessrequest",
