@@ -20,6 +20,7 @@ import ResourceView, {
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  PERFORMANCE_MODULE_DESCRIPTION,
 } from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -38,9 +39,11 @@ export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
+  const organization = useOrganization();
   const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
 
   const crumbs = useModuleBreadcrumbs('resource');
+  const isInsightsEnabled = organization.features.includes('performance-insights');
 
   return (
     <React.Fragment>
@@ -53,7 +56,9 @@ function ResourcesLandingPage() {
               {moduleTitle}
               <PageHeadingQuestionTooltip
                 docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
+                title={
+                  isInsightsEnabled ? MODULE_DESCRIPTION : PERFORMANCE_MODULE_DESCRIPTION
+                }
               />
             </Layout.Title>
           </Layout.HeaderContent>

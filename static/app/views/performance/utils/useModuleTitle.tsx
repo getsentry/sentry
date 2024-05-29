@@ -37,7 +37,7 @@ type ModuleNameStrings = `${ModuleName}`;
 type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 export function useModuleTitle(moduleName: TitleableModuleNames) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const isInsightsEnabled = organization?.features?.includes('performance-insights');
 
   if (!isInsightsEnabled && PERFORMANCE_MODULE_TITLES[moduleName]) {

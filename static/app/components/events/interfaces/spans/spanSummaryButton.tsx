@@ -11,6 +11,7 @@ import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
@@ -22,6 +23,7 @@ interface Props {
 
 function SpanSummaryButton(props: Props) {
   const location = useLocation();
+  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
 
   const {event, organization, span} = props;
 
@@ -65,7 +67,7 @@ function SpanSummaryButton(props: Props) {
       <LinkButton
         size="xs"
         to={resourceSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          baseUrl: resourceBaseUrl,
           query: location.query,
           group: sentryTags.group,
           projectID: event.projectID,
