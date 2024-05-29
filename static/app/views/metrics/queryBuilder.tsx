@@ -1,4 +1,5 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -8,10 +9,10 @@ import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconInfo, IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {MetricMeta, MetricsAggregate, MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDefaultAggregate,
@@ -66,6 +67,32 @@ function useMriMode() {
   }, [mriModeKeyPressed]);
 
   return mriMode;
+}
+
+function getDisabledPercentileOptions(
+  projectSlug: string
+): SelectOption<MetricsAggregate>[] {
+  const commonProps = {
+    disabled: true,
+    tooltip: tct('Percentiles are a beta feature. Enable them in [link:settings].', {
+      link: (
+        <Link
+          to={`settings/projects/${projectSlug}/metrics/`}
+          style={{pointerEvents: 'all'}}
+          data-allow-overlay-interaction
+        />
+      ),
+    }),
+    trailingItems: [<IconInfo key="info" />],
+    tooltipOptions: {isHoverable: true, position: 'right' as const},
+  };
+
+  return [
+    {label: 'p50', value: 'p50', ...commonProps},
+    {label: 'p75', value: 'p75', ...commonProps},
+    {label: 'p95', value: 'p95', ...commonProps},
+    {label: 'p99', value: 'p99', ...commonProps},
+  ];
 }
 
 export const QueryBuilder = memo(function QueryBuilder({
@@ -268,6 +295,31 @@ export const QueryBuilder = memo(function QueryBuilder({
     [displayedMetrics, mriMode, onChange, selectedProjects]
   );
 
+  const opOptions = useMemo(() => {
+    const options: SelectOption<MetricsAggregate>[] =
+      selectedMeta?.operations.filter(isAllowedOp).map(op => ({
+        label: op,
+        value: op,
+      })) ?? [];
+
+    const firstProject =
+      selectedProjects.find(project => projectIds.includes(parseInt(project.id, 10))) ||
+      selectedProjects[0];
+
+    // Add disabled percentiles options if the metric is a distribution and the feature is not enabled
+    if (selectedMeta?.type === 'd' && !organization.metricsActivatePercentiles) {
+      return options.concat(...getDisabledPercentileOptions(firstProject.slug));
+    }
+
+    return options;
+  }, [
+    organization.metricsActivatePercentiles,
+    projectIds,
+    selectedMeta?.operations,
+    selectedMeta?.type,
+    selectedProjects,
+  ]);
+
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
   return (
@@ -299,12 +351,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             <OpSelect
               size="md"
               triggerProps={{prefix: t('Agg')}}
-              options={
-                selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                  label: op,
-                  value: op,
-                })) ?? []
-              }
+              options={opOptions}
               triggerLabel={metricsQuery.op}
               disabled={!selectedMeta}
               value={metricsQuery.op}

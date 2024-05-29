@@ -263,6 +263,9 @@ function useOverlay({
       shouldCloseOnBlur,
       isKeyboardDismissDisabled,
       shouldCloseOnInteractOutside: target => {
+        if (target && target.getAttribute('data-allow-overlay-interaction') === 'true') {
+          return false;
+        }
         if (
           target &&
           triggerRef.current !== target &&

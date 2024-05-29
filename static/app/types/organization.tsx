@@ -59,6 +59,7 @@ export interface Organization extends OrganizationSummary {
   genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
+  metricsActivatePercentiles: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
   orgRoleList: OrgRole[];

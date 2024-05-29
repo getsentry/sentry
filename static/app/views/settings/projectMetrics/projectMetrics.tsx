@@ -32,6 +32,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {CardinalityLimit} from 'sentry/views/settings/projectMetrics/cardinalityLimit';
+import {Percentiles} from 'sentry/views/settings/projectMetrics/percentiles';
 
 type Props = {
   organization: Organization;
@@ -107,6 +108,7 @@ function ProjectMetrics({project, location}: Props) {
 
       <PermissionAlert project={project} />
 
+      <Percentiles />
       <CardinalityLimit project={project} />
 
       <SearchWrapper>
