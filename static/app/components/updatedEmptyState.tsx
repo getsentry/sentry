@@ -295,6 +295,7 @@ const BodyTitle = styled('div')`
 
 const Setup = styled('div')`
   padding: ${space(4)};
+
   &:after {
     content: '';
     position: absolute;
@@ -313,6 +314,7 @@ const Body = styled('div')`
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
+
   h4 {
     margin-bottom: 0;
   }
@@ -326,6 +328,7 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
+
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
