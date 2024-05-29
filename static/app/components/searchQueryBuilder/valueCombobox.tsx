@@ -58,7 +58,11 @@ function getPredefinedValues({key}: {key?: Tag}): string[] {
   }
 }
 
-function keySupportsMultipleValues(key: Tag): boolean {
+function keySupportsMultipleValues(key?: Tag): boolean {
+  if (!key) {
+    return true;
+  }
+
   const fieldDef = getFieldDefinition(key.key);
 
   switch (fieldDef?.valueType) {
