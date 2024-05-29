@@ -66,7 +66,9 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
         alias: str | None,
         extra_condition: Function | None = None,
     ) -> SelectType:
-        assert self.builder.params.end is not None and self.builder.params.start is not None
+        assert (
+            self.builder.params.end is not None and self.builder.params.start is not None
+        ), f"params.end: {self.builder.params.end} - params.start: {self.builder.params.start}"
         interval = (self.builder.params.end - self.builder.params.start).total_seconds()
 
         base_condition = Function(
@@ -104,13 +106,15 @@ class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
     ) -> SelectType:
         timestmp = args["timestamp"]
         if cond == "greater":
-            assert isinstance(self.builder.params.end, datetime) and isinstance(timestmp, datetime)
+            assert isinstance(self.builder.params.end, datetime) and isinstance(
+                timestmp, datetime
+            ), f"params.end: {self.builder.params.end} - timestmp: {timestmp}"
             interval = (self.builder.params.end - timestmp).total_seconds()
             # interval = interval
         elif cond == "less":
             assert isinstance(self.builder.params.start, datetime) and isinstance(
                 timestmp, datetime
-            )
+            ), f"params.start: {self.builder.params.start} - timestmp: {timestmp}"
             interval = (timestmp - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
