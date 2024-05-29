@@ -376,3 +376,81 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         )
         assert status_change_1.id
         assert status_change_1.id != status_change_2.id
+
+    @patch(
+        "sentry.issues.producer._prepare_status_change_message", return_value={"mock_data": "great"}
+    )
+    @patch("sentry.issues.producer._occurrence_producer.produce")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_payload_sent_to_kafka_with_partition_key(
+        self, mock_produce: MagicMock, mock_prepare_status_change_message: MagicMock
+    ) -> None:
+        status_change = StatusChangeMessage(
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=status_change,
+            event_data={},
+        )
+        mock_produce.assert_called_once_with(
+            ArroyoTopic(name="ingest-occurrences"),
+            KafkaPayload(
+                status_change.fingerprint[0].encode(),
+                json.dumps({"mock_data": "great"}).encode("utf-8"),
+                [],
+            ),
+        )
+
+    @patch(
+        "sentry.issues.producer._prepare_status_change_message", return_value={"mock_data": "great"}
+    )
+    @patch("sentry.issues.producer._occurrence_producer.produce")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_payload_sent_to_kafka_with_partition_key_no_fingerprint(
+        self, mock_produce: MagicMock, mock_prepare_status_change_message: MagicMock
+    ) -> None:
+        status_change = StatusChangeMessage(
+            project_id=self.project.id,
+            fingerprint=[],
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=status_change,
+            event_data={},
+        )
+        mock_produce.assert_called_once_with(
+            ArroyoTopic(name="ingest-occurrences"),
+            KafkaPayload(
+                None,
+                json.dumps({"mock_data": "great"}).encode("utf-8"),
+                [],
+            ),
+        )
+
+    @patch(
+        "sentry.issues.producer._prepare_status_change_message", return_value={"mock_data": "great"}
+    )
+    @patch("sentry.issues.producer._occurrence_producer.produce")
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_payload_sent_to_kafka_with_partition_key_no_status_change(
+        self, mock_produce: MagicMock, mock_prepare_status_change_message: MagicMock
+    ) -> None:
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=None,
+            event_data={},
+        )
+        mock_produce.assert_called_once_with(
+            ArroyoTopic(name="ingest-occurrences"),
+            KafkaPayload(
+                None,
+                json.dumps({"mock_data": "great"}).encode("utf-8"),
+                [],
+            ),
+        )
