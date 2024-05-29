@@ -50,7 +50,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 
@@ -204,11 +203,10 @@ class SubscriptionProcessor:
         )
         try:
             project_ids = [self.subscription.project_id]
-            query_builder = build_query_builder(
-                entity_subscription,
-                snuba_query.query,
-                project_ids,
-                snuba_query.environment,
+            query_builder = entity_subscription.build_query_builder(
+                query=snuba_query.query,
+                project_ids=project_ids,
+                environment=snuba_query.environment,
                 params={
                     "organization_id": self.subscription.project.organization.id,
                     "project_id": project_ids,
