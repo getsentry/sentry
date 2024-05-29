@@ -776,7 +776,7 @@ const commonTheme = {
 
     containerWidth: '1440px',
     headerHeight: '61px',
-    sidebarWidth: '220px',
+    sidebarWidth: '250px',
   },
 
   sidebar: {
@@ -786,7 +786,7 @@ const commonTheme = {
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
-    expandedWidth: '220px',
+    expandedWidth: '250px',
     mobileHeight: '54px',
     menuSpacing: '15px',
   },
