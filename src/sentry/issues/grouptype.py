@@ -560,6 +560,7 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     notification_config = NotificationConfig()
 
 
+@dataclass(frozen=True)
 class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5003
     slug = "replay_hydration_error"

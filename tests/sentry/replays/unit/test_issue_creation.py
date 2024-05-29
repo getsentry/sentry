@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.issues.grouptype import ReplayHydrationErrorType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.group import Group
 from sentry.replays.testutils import mock_replay_event
@@ -298,19 +299,45 @@ def test_report_hydration_error_issue_with_replay_event(mock_new_issue_occurrenc
 
 @pytest.mark.snuba
 @django_db_all
+def test_report_hydration_error_creates_issue(default_project):
+    replay_id = "b58a67446c914f44a4e329763420047b"
+    seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+    with Feature(
+        {
+            ReplayHydrationErrorType.build_ingest_feature_name(): True,
+        }
+    ):
+        report_hydration_error_issue_with_replay_event(
+            project_id=default_project.id,
+            replay_id=replay_id,
+            timestamp=seq1_timestamp.timestamp(),
+            url="https://www.sentry.io",
+            replay_event=mock_replay_event(),
+        )
+
+    # test that the Issue gets created
+    assert Group.objects.get(culprit__contains="www.sentry.io")
+    assert Group.objects.get(message__contains="Hydration Error")
+
+
+@pytest.mark.snuba
+@django_db_all
 def test_report_hydration_error_long_url(default_project):
     replay_id = "b58a67446c914f44a4e329763420047b"
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
-    report_hydration_error_issue_with_replay_event(
-        project_id=default_project.id,
-        replay_id=replay_id,
-        timestamp=seq1_timestamp.timestamp(),
-        url=f"https://www.sentry.io{'a' * 300}",
-        replay_event=mock_replay_event(),
-    )
+    with Feature(
+        {
+            ReplayHydrationErrorType.build_ingest_feature_name(): True,
+        }
+    ):
+        report_hydration_error_issue_with_replay_event(
+            project_id=default_project.id,
+            replay_id=replay_id,
+            timestamp=seq1_timestamp.timestamp(),
+            url=f"https://www.sentry.io{'a' * 300}",
+            replay_event=mock_replay_event(),
+        )
 
     # test that the Issue gets created with the truncated url
-    # WIP: these asserts fail (no groups created)
-
-    # assert Group.objects.all().count()  # .get(culprit__contains="www.sentry.io")
-    # assert Group.objects.get(message__contains="Hydration Error")
+    assert Group.objects.get(culprit__contains="www.sentry.io")
+    assert Group.objects.get(message__contains="Hydration Error")
