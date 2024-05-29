@@ -283,7 +283,7 @@ export const WIDGET_DEFINITIONS: ({
       chartColor: WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
-      title: t('Most Time Consuming [resourceModuleTitle]', {resourceModuleTitle}),
+      title: `${t('Most Time-Consuming')} ${resourceModuleTitle}`,
       subTitle: t('Render blocking for pages'),
       titleTooltip: getTermHelp(
         organization,
