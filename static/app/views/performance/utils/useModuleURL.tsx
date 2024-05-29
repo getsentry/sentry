@@ -69,7 +69,7 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
         : normalizeUrl(`/organizations/${slug}/${moduleURLSegment}`);
     }
 
-    if (!isInsightsEnabled && PERFORMANCE_RESOURCES_BASE_URL) {
+    if (!isInsightsEnabled && moduleName === ModuleName.RESOURCE) {
       return bare
         ? `${insightsURL}/${PERFORMANCE_RESOURCES_BASE_URL}`
         : normalizeUrl(
