@@ -27,9 +27,8 @@ class ConfiguratioAPITestCase(APITestCase):
         self.storage.set(
             {
                 "id": self.projectkey.public_key,
-                "sample_rate": 0.5,
-                "traces_sample_rate": 0,
-                "user_config": {"abc": "def"},
+                "features": [{"key": "abc", "value": "def"}],
+                "options": {"sample_rate": 0.5, "traces_sample_rate": 0},
             },
         )
 
@@ -40,9 +39,8 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.json() == {
             "data": {
                 "id": self.projectkey.public_key,
-                "sample_rate": 0.5,
-                "traces_sample_rate": 0,
-                "user_config": {"abc": "def"},
+                "features": [{"key": "abc", "value": "def"}],
+                "options": {"sample_rate": 0.5, "traces_sample_rate": 0},
             }
         }
 
@@ -50,9 +48,8 @@ class ConfiguratioAPITestCase(APITestCase):
         self.storage.set(
             {
                 "id": self.projectkey.public_key,
-                "sample_rate": 0.5,
-                "traces_sample_rate": 0,
-                "user_config": {"abc": "def"},
+                "features": [{"key": "abc", "value": "def"}],
+                "options": {"sample_rate": 0.5, "traces_sample_rate": 0},
             },
         )
         response = self.client.get(self.url)
@@ -69,11 +66,8 @@ class ConfiguratioAPITestCase(APITestCase):
                 self.url,
                 data={
                     "data": {
-                        "sample_rate": 1.0,
-                        "traces_sample_rate": 0.2,
-                        "user_config": {
-                            "hello": "world",
-                        },
+                        "features": [{"key": "hello", "value": "world"}],
+                        "options": {"sample_rate": 1.0, "traces_sample_rate": 0.2},
                     }
                 },
                 format="json",
@@ -83,11 +77,8 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.json() == {
             "data": {
                 "id": self.projectkey.public_key,
-                "sample_rate": 1.0,
-                "traces_sample_rate": 0.2,
-                "user_config": {
-                    "hello": "world",
-                },
+                "features": [{"key": "hello", "value": "world"}],
+                "options": {"sample_rate": 1.0, "traces_sample_rate": 0.2},
             }
         }
 
@@ -99,58 +90,60 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 404
 
     def test_post_configuration_different_types(self):
-        data: dict[str, Any] = {"data": {"sample_rate": 1.0, "traces_sample_rate": 0.2}}
+        data: dict[str, Any] = {
+            "data": {"options": {"sample_rate": 1.0, "traces_sample_rate": 0.2}}
+        }
 
         # Null type
-        data["data"]["user_config"] = None
+        data["data"]["features"] = [{"key": "abc", "value": None}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] is None
+        assert response.json()["data"]["features"][0]["value"] is None
 
         # Bool types
-        data["data"]["user_config"] = False
+        data["data"]["features"] = [{"key": "abc", "value": False}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] is False
+        assert response.json()["data"]["features"][0]["value"] is False
 
         # String types
-        data["data"]["user_config"] = "string"
+        data["data"]["features"] = [{"key": "abc", "value": "string"}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] == "string"
+        assert response.json()["data"]["features"][0]["value"] == "string"
 
         # Integer types
-        data["data"]["user_config"] = 1
+        data["data"]["features"] = [{"key": "abc", "value": 1}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] == 1
+        assert response.json()["data"]["features"][0]["value"] == 1
 
         # Float types
-        data["data"]["user_config"] = 1.0
+        data["data"]["features"] = [{"key": "abc", "value": 1.0}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] == 1.0
+        assert response.json()["data"]["features"][0]["value"] == 1.0
 
         # Array types
-        data["data"]["user_config"] = ["a", "b"]
+        data["data"]["features"] = [{"key": "abc", "value": ["a", "b"]}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] == ["a", "b"]
+        assert response.json()["data"]["features"][0]["value"] == ["a", "b"]
 
         # Object types
-        data["data"]["user_config"] = {"hello": "world"}
+        data["data"]["features"] = [{"key": "abc", "value": {"hello": "world"}}]
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(self.url, data=data, format="json")
         assert response.status_code == 201, response.content
-        assert response.json()["data"]["user_config"] == {"hello": "world"}
+        assert response.json()["data"]["features"][0]["value"] == {"hello": "world"}
 
-    def test_post_configuration_validation_error(self):
+    def test_post_configuration_required_fields(self):
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.post(
                 self.url,
@@ -160,18 +153,16 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 400, response.content
 
         result = response.json()
-        assert len(result["data"]) == 3
-        assert result["data"]["sample_rate"] is not None
-        assert result["data"]["traces_sample_rate"] is not None
-        assert result["data"]["user_config"] is not None
+        assert len(result["data"]) == 2
+        assert result["data"]["options"] is not None
+        assert result["data"]["features"] is not None
 
     def test_delete_configuration(self):
         self.storage.set(
             {
                 "id": self.projectkey.public_key,
-                "sample_rate": 1.0,
-                "traces_sample_rate": 1.0,
-                "user_config": None,
+                "features": [],
+                "options": {"sample_rate": 1.0, "traces_sample_rate": 1.0},
             }
         )
         assert self.storage.get() is not None

@@ -14,15 +14,24 @@ from sentry.models.projectkey import ProjectKey
 from sentry.remote_config.storage import make_storage
 
 
-class ConfigurationValidator(Serializer):
-    id = serializers.UUIDField(read_only=True)
+class OptionValidator(Serializer):
     sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     traces_sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
-    user_config = serializers.JSONField(required=True, allow_null=True)
+
+
+class FeatureValidator(Serializer):
+    key = serializers.CharField(required=True)
+    value = serializers.JSONField(required=True, allow_null=True)
+
+
+class ConfigurationValidator(Serializer):
+    id = serializers.UUIDField(read_only=True)
+    features = serializers.ListSerializer(child=FeatureValidator(), required=True)  # type: ignore[assignment]
+    options = OptionValidator(required=True)  # type: ignore[assignment]
 
 
 class ConfigurationContainerValidator(Serializer):
-    data = ConfigurationValidator()  # type: ignore[assignment]
+    data = ConfigurationValidator(required=True)  # type: ignore[assignment]
 
 
 @region_silo_endpoint

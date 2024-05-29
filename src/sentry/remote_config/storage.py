@@ -12,19 +12,23 @@ JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSO
 class Options(TypedDict):
     sample_rate: float
     traces_sample_rate: float
-    user_config: JSONValue
+
+
+class Feature(TypedDict):
+    key: str
+    value: JSONValue
 
 
 class StorageFormat(TypedDict):
+    features: list[Feature]
     options: Options
     version: int
 
 
 class APIFormat(TypedDict):
+    features: list[Feature]
     id: str
-    sample_rate: float
-    traces_sample_rate: float
-    user_config: JSONValue
+    options: Options
 
 
 class StorageBackend:
@@ -48,18 +52,14 @@ class StorageBackend:
         assert self.key.public_key is not None
         return {
             "id": self.key.public_key,
-            "sample_rate": result["options"]["sample_rate"],
-            "traces_sample_rate": result["options"]["traces_sample_rate"],
-            "user_config": result["options"]["user_config"],
+            "features": result["features"],
+            "options": result["options"],
         }
 
     def _serialize(self, result: APIFormat) -> StorageFormat:
         return {
-            "options": {
-                "sample_rate": result["sample_rate"],
-                "traces_sample_rate": result["traces_sample_rate"],
-                "user_config": result["user_config"],
-            },
+            "features": result["features"],
+            "options": result["options"],
             "version": 1,
         }
 
