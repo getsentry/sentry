@@ -14,12 +14,11 @@ Retrieve the DSN's configuration.
 
 **Attributes**
 
-| Column   | Type           | Description                                                                  |
-| -------- | -------------- | ---------------------------------------------------------------------------- |
-| id       | string         | Client key.                                                                  |
-| hash     | option[string] | A hash of the contents of the value. Sent on write to ensure atomic updates. |
-| features | array[Feature] | Custom, user-defined configuration container.                                |
-| options  | Option         | Sentry SDK options container.                                                |
+| Column   | Type           | Description                                   |
+| -------- | -------------- | --------------------------------------------- |
+| id       | string         | Client key.                                   |
+| features | array[Feature] | Custom, user-defined configuration container. |
+| options  | Option         | Sentry SDK options container.                 |
 
 **Feature Object**
 
@@ -43,7 +42,6 @@ Retrieve the DSN's configuration.
   {
     "data": {
       "id": "99aabf0dad1c48ad8e47e2a43969f312",
-      "hash": "4e0bc3b37ede0701dc388c360a8ba5849700739c",
       "features": [
         {
           "key": "hello",
@@ -68,16 +66,13 @@ Retrieve the DSN's configuration.
 
 ### Set Configuration [POST]
 
-Set the DSN's configuration. A hash value of `null` is provided if the object does not exist. If the API finds an existing configuration object an error is returned. If the hash value is provided then it will be compared against the hash of the remote value. A new hash is always returned on successful write. If the hashes do not match an error is returned.
-
-The client will never generate a HASH. It forwards the hash the server has provided it.
+Set the DSN's configuration.
 
 - Request
 
   ```json
   {
     "data": {
-      "hash": null,
       "features": [
         {
           "key": "hello",
@@ -102,7 +97,6 @@ The client will never generate a HASH. It forwards the hash the server has provi
   {
     "data": {
       "id": "99aabf0dad1c48ad8e47e2a43969f312",
-      "hash": "4e0bc3b37ede0701dc388c360a8ba5849700739c",
       "features": [
         {
           "key": "hello",
