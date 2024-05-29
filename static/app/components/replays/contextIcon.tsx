@@ -17,7 +17,7 @@ type Props = {
 };
 
 const LazyContextIcon = lazy(
-  () => import('sentry/components/events/contextSummary/contextIcon')
+  () => import('sentry/components/events/contexts/contextIcon')
 );
 
 const ContextIcon = styled(

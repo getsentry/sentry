@@ -13,7 +13,7 @@ type Props = {
   icon?: string | React.ReactElement;
 };
 
-const ContextIcon = lazy(() => import('./contextIcon'));
+const ContextIcon = lazy(() => import('../contexts/contextIcon'));
 
 function Item({children, icon = 'unknown'}: Props) {
   // XXX: Codesplit the ContextIcon component since it packs a lot of SVGs
