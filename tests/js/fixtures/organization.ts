@@ -61,6 +61,7 @@ export function OrganizationFixture(
     githubNudgeInvite: false,
     issueAlertsThreadFlag: false,
     metricAlertsThreadFlag: false,
+    metricsActivatePercentiles: false,
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,
