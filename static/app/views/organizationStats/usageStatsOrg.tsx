@@ -127,7 +127,7 @@ class UsageStatsOrganization<
 
   // Metric stats are not reported when grouping by category, so we make a separate request
   // and combine the results
-  get metricsEndpoint(): [string, string, {query: Record<string, any>}][] {
+  get metricsEndpoint(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     if (hasCustomMetrics(this.props.organization)) {
       return [
         [
@@ -439,7 +439,10 @@ class UsageStatsOrganization<
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
         // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`)) {
+        if (
+          dataCategory !== DATA_CATEGORY_INFO.metrics.plural &&
+          !dataCategory.includes(`${category}`)
+        ) {
           return;
         }
 
@@ -656,7 +659,7 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: 400;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;

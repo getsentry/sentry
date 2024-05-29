@@ -14,7 +14,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -147,7 +146,6 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -477,7 +475,7 @@ function useTraces<F extends string>({
       per_page: limit,
       breakdownSlices: 40,
       minBreakdownPercentage: 1 / 40,
-      maxSpansPerTrace: 5,
+      maxSpansPerTrace: 10,
       mri,
       metricsMax,
       metricsMin,
