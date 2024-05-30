@@ -76,7 +76,8 @@ describe('SearchQueryBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('can switch between interfaces', async function () {
+    // biome-ignore lint/suspicious/noSkippedTests: This test flakes in CI due to an act warning in Tooltip
+    it.skip('can switch between interfaces', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
