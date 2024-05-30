@@ -362,7 +362,6 @@ module = [
     "sentry.notifications.notifications.activity.base",
     "sentry.notifications.notifications.activity.release",
     "sentry.notifications.notifications.integration_nudge",
-    "sentry.notifications.notifications.rules",
     "sentry.ownership.grammar",
     "sentry.pipeline.base",
     "sentry.pipeline.views.base",
