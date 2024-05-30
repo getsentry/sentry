@@ -31,6 +31,9 @@ describe('TraceTimeline', () => {
       {
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
+        // In issuePlatform, we store the subtitle within the message
+        // XXX: File issue to fix this
+        message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         project: project.slug,
         'project.name': project.name,
         title: 'Slow DB Query',
@@ -45,6 +48,7 @@ describe('TraceTimeline', () => {
       {
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
+        message: 'Irrelevant for errors',
         project: project.slug,
         'project.name': project.name,
         title: 'AttributeError: Something Failed',
@@ -169,16 +173,6 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
-    });
-    // We need the metadata from the issue in order to render the related issue
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/1000/`,
-      body: {
-        metadata: {
-          title: 'Slow DB Query',
-          value: 'bar',
-        },
-      },
     });
 
     render(<TraceTimeline event={event} />, {
