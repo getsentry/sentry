@@ -1,161 +1,40 @@
 import logging
 
-import sentry_sdk
-
 from sentry import features
-from sentry.api import client
-from sentry.charts import backend as charts
-from sentry.charts.types import ChartType
+from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.time_utils import (
-    get_approx_start_time,
-    get_relative_time,
-)
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
-from sentry.snuba.referrer import Referrer
-from sentry.utils.performance_issues.detectors.utils import escape_transaction
+from sentry.types.integrations import ExternalProviderEnum
 
-logger = logging.getLogger("sentry.integrations.slack")
+IMAGE_ALT = {
+    PerformanceP95EndpointRegressionGroupType: "P95(transaction.duration)",
+    ProfileFunctionRegressionType: "P95(function.duration)",
+}
 
 
-class ImageBlockBuilder(BlockSlackMessageBuilder):
+class ImageBlockBuilder(BlockSlackMessageBuilder, IssueAlertImageBuilder):
     def __init__(self, group: Group) -> None:
-        super().__init__()
-        self.group = group
+        super().__init__(
+            group=group,
+            provider=ExternalProviderEnum.SLACK,
+            logger=logging.getLogger("sentry.integrations.slack"),
+        )
 
     def build_image_block(self) -> SlackBlock | None:
-        if (
-            features.has("organizations:slack-endpoint-regression-image", self.group.organization)
-            and self.group.issue_type == PerformanceP95EndpointRegressionGroupType
-        ):
-            return self._build_endpoint_regression_image_block()
-
-        if (
-            features.has("organizations:slack-function-regression-image", self.group.organization)
-            and self.group.issue_type == ProfileFunctionRegressionType
-        ):
-            return self._build_function_regression_image_block()
-
-        # TODO: Add support for other issue alerts
+        # TODO @athena: Clean up! These feature flags are basically equal because they're tied within the same launch
+        if features.has(
+            "organizations:slack-endpoint-regression-image", self.group.organization
+        ) or features.has("organizations:slack-function-regression-image", self.group.organization):
+            image_url = self.get_image_url()
+            if image_url:
+                return self.get_image_block(
+                    url=image_url,
+                    title=self.group.title,
+                    alt=IMAGE_ALT.get(self.group.issue_category),
+                )
         return None
-
-    def _build_endpoint_regression_image_block(self) -> SlackBlock | None:
-        logger.info(
-            "build_endpoint_regression_image.attempt",
-            extra={
-                "group_id": self.group.id,
-            },
-        )
-
-        try:
-            organization = self.group.organization
-            event = self.group.get_latest_event_for_environments()
-            if event is None or event.transaction is None or event.occurrence is None:
-                return None
-            transaction_name = escape_transaction(event.transaction)
-            period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
-            resp = client.get(
-                auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
-                user=None,
-                path=f"/organizations/{organization.slug}/events-stats/",
-                data={
-                    "yAxis": ["count()", "p95(transaction.duration)"],
-                    "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
-                    "query": f"event.type:transaction transaction:{transaction_name}",
-                    "project": self.group.project.id,
-                    "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
-                    "end": period["end"].strftime("%Y-%m-%d %H:%M:%S"),
-                    "dataset": "metrics",
-                },
-            )
-
-            url = charts.generate_chart(
-                ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION,
-                data={
-                    "evidenceData": event.occurrence.evidence_data,
-                    "percentileData": resp.data["p95(transaction.duration)"]["data"],
-                },
-            )
-
-            return self.get_image_block(
-                url=url,
-                title=self.group.title,
-                alt="P95(transaction.duration)",
-            )
-
-        except Exception as e:
-            logger.exception(
-                "build_endpoint_regression_image.failed",
-                extra={
-                    "exception": e,
-                },
-            )
-            sentry_sdk.capture_exception()
-            return None
-
-    def _build_function_regression_image_block(self) -> SlackBlock | None:
-        logger.info(
-            "build_function_regression_image.attempt",
-            extra={
-                "group_id": self.group.id,
-            },
-        )
-
-        try:
-            organization = self.group.organization
-            event = self.group.get_latest_event_for_environments()
-            if event is None or event.occurrence is None:
-                return None
-
-            period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
-            resp = client.get(
-                auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
-                user=None,
-                path=f"/organizations/{organization.slug}/events-stats/",
-                data={
-                    "dataset": "profileFunctions",
-                    "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
-                    "project": self.group.project.id,
-                    "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
-                    "end": period["end"].strftime("%Y-%m-%d %H:%M:%S"),
-                    "yAxis": ["p95()"],
-                    "query": f"fingerprint:{event.occurrence.evidence_data['fingerprint']}",
-                },
-            )
-
-            # Convert the aggregate range from nanoseconds to milliseconds
-            evidence_data = {
-                "aggregate_range_1": event.occurrence.evidence_data["aggregate_range_1"] / 1e6,
-                "aggregate_range_2": event.occurrence.evidence_data["aggregate_range_2"] / 1e6,
-                "breakpoint": event.occurrence.evidence_data["breakpoint"],
-            }
-
-            url = charts.generate_chart(
-                ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION,
-                data={
-                    "evidenceData": evidence_data,
-                    "rawResponse": resp.data,
-                },
-            )
-
-            return self.get_image_block(
-                url=url,
-                title=self.group.title,
-                alt="P95(function.duration)",
-            )
-
-        except Exception as e:
-            logger.exception(
-                "build_function_regression_image.failed",
-                extra={
-                    "exception": e,
-                },
-            )
-            sentry_sdk.capture_exception()
-            return None
