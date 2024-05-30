@@ -582,11 +582,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         >
           {({hasFeature}) =>
             hasFeature && (
-              <DatasetSelector
-                isHomepage={isHomepage}
-                organization={organization}
-                savedQuery={savedQuery}
-              />
+              <DatasetSelector isHomepage={isHomepage} savedQuery={savedQuery} />
             )
           }
         </Feature>

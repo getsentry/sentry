@@ -2,24 +2,25 @@ import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import type {Organization, SavedQuery} from 'sentry/types';
+import type {SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
 
 export const DATASET_PARAM = 'queryDataset';
 
 type Props = {
   isHomepage: boolean | undefined;
-  organization: Organization;
   savedQuery: SavedQuery | undefined;
 };
 
 export function DatasetSelector(props: Props) {
-  const {organization, savedQuery, isHomepage} = props;
+  const {savedQuery, isHomepage} = props;
   const location = useLocation();
+  const organization = useOrganization();
   const navigate = useNavigate();
   const value = decodeScalar(location.query[DATASET_PARAM]) ?? 'errors';
 
