@@ -12,8 +12,8 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization, OrganizationSummary} from 'sentry/types';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -55,6 +55,7 @@ const typeMappedChildren = {
     'quotaMonitorSeats',
     'quotaWarnings',
     'quotaSpendAllocations',
+    'quotaSpans',
   ],
 };
 
@@ -198,8 +199,29 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           organization.features?.includes('spend-visibility-notifications')
         )
       ) {
+        // at least one org exists with am3 tiered plan
+        const hasOrgWithAm3 = organizations.some(organization =>
+          organization.features?.includes('am3-tier')
+        );
+
+        // at least one org exists without am3 tier plan
+        const hasOrgWithoutAm3 = organizations.some(
+          organization => !organization.features?.includes('am3-tier')
+        );
+
+        const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
+        const includeSpans = hasOrgWithAm3;
+
         fields.push(
-          ...SPEND_FIELDS.map(field => ({
+          ...SPEND_FIELDS.filter(field => {
+            if (field.name === 'quotaSpans' && !includeSpans) {
+              return false;
+            }
+            if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            return true;
+          }).map(field => ({
             ...field,
             type: 'select' as const,
             getData: data => {

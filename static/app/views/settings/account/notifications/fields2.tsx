@@ -240,5 +240,16 @@ export const SPEND_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
+  {
+    name: 'quotaSpans',
+    label: t('Spans'),
+    help: tct('Receive notifications about your spans quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('spans')} />,
+    }),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
   ...QUOTA_FIELDS.slice(1),
 ];

@@ -36,7 +36,7 @@ export const groupByOrganization = (
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
 export function getDocsLinkForEventType(
-  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat'
+  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat' | 'spans'
 ) {
   switch (event) {
     case 'transaction':
@@ -47,6 +47,8 @@ export function getDocsLinkForEventType(
       return 'https://docs.sentry.io/product/session-replay/';
     case 'monitorSeat':
       return 'https://docs.sentry.io/product/crons/';
+    case 'spans':
+      return 'https://docs.sentry.io/product/spans/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
