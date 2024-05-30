@@ -29,7 +29,6 @@ class GroupSearchView(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsearchview"
-        unique_together = ()
         # Two views cannot occupy the same position in an organization user's list of views
         constraints = [
             UniqueConstraint(
