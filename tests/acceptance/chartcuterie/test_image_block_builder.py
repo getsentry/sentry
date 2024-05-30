@@ -1,8 +1,10 @@
+import threading
 import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.core.cache import cache
 
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.issues.grouptype import (
@@ -36,9 +38,9 @@ class TestSlackImageBlockBuilder(
             "organizations:slack-endpoint-regression-image": True,
             "organizations:slack-function-regression-image": True,
         }
+        cache.clear()
 
-    @with_feature("organizations:slack-endpoint-regression-image")
-    def test_image_block_for_endpoint_regression(self):
+    def _create_endpoint_regression_issue(self):
         for i in range(10):
             event_id = uuid.uuid4().hex
             _ = self.process_occurrence(
@@ -63,12 +65,42 @@ class TestSlackImageBlockBuilder(
             )
         group = Group.objects.first()
         group.update(type=PerformanceP95EndpointRegressionGroupType.type_id)
+        return group
 
+    @with_feature("organizations:slack-endpoint-regression-image")
+    def test_image_block_for_endpoint_regression(self):
+        group = self._create_endpoint_regression_issue()
         with self.feature(self.features):
             image_block = ImageBlockBuilder(group=group).build_image_block()
 
         assert image_block and "type" in image_block and image_block["type"] == "image"
         assert "_media/" in image_block["image_url"]
+
+    @patch("sentry.utils.performance_issues.detectors.utils.escape_transaction")
+    @with_feature("organizations:slack-endpoint-regression-image")
+    def test_caching(self, mock_escape_transaction):
+        mock_escape_transaction.return_value = "Test Transaction"
+        group = self._create_endpoint_regression_issue()
+        image_blocks = []
+
+        def make_request():
+            with self.feature(self.features):
+                image_blocks.append(ImageBlockBuilder(group=group).build_image_block())
+
+        threads = [threading.Thread(target=make_request) for _ in range(2)]
+        # Start all the threads
+        for thread in threads:
+            thread.start()
+
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
+
+        # make_request()
+        # make_request()
+        assert mock_escape_transaction.call_count == 1
+        assert len(image_blocks) == 2
+        assert image_blocks[0]["image_url"] == image_blocks[1]["image_url"]
 
     @with_feature("organizations:slack-function-regression-image")
     def test_image_block_for_function_regression(self):
