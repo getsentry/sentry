@@ -262,6 +262,7 @@ class TriggersChart extends PureComponent<Props, State> {
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+    const queryOverride = (queryExtras.query as string | undefined) ?? query;
 
     if (shouldUseErrorsDiscoverDataset(query, dataset)) {
       queryDataset = DiscoverDatasets.ERRORS;
@@ -271,7 +272,7 @@ class TriggersChart extends PureComponent<Props, State> {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
         project: projects.map(({id}) => id),
-        query,
+        query: queryOverride,
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,

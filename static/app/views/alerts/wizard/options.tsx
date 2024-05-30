@@ -192,12 +192,12 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
   llm_tokens: {
-    aggregate: 'sum(c:spans/ai.total_tokens.used@none)',
+    aggregate: 'sum(ai.total_tokens.used)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
   llm_cost: {
-    aggregate: 'sum(c:spans/ai.total_cost@usd)',
+    aggregate: 'sum(ai.total_cost)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },

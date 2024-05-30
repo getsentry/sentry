@@ -42,6 +42,8 @@ export enum SpanMetricsField {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   FILE_EXTENSION = 'file_extension',
+  AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
+  AI_TOTAL_COST = 'ai.total_cost',
   OS_NAME = 'os.name',
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
@@ -51,6 +53,8 @@ export enum SpanMetricsField {
 }
 
 export type SpanNumberFields =
+  | SpanMetricsField.AI_TOTAL_COST
+  | SpanMetricsField.AI_TOTAL_TOKENS_USED
   | SpanMetricsField.SPAN_SELF_TIME
   | SpanMetricsField.SPAN_DURATION
   | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
@@ -112,7 +116,7 @@ export const SPAN_FUNCTIONS = [
   'http_error_count',
   'cache_hit_rate',
   'cache_miss_rate',
-  'ai_total_tokens_used',
+  'sum',
 ] as const;
 
 const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
@@ -142,8 +146,6 @@ export type SpanMetricsResponse = {
   'http_response_rate(3)': number;
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
-} & {
-  'ai_total_tokens_used(c:spans/ai.total_cost@usd)': number;
 } & {
   ['project']: string;
   ['project.id']: number;

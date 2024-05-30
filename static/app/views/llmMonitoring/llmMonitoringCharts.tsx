@@ -10,7 +10,7 @@ interface TotalTokensUsedChartProps {
 }
 
 export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
-  const aggregate = 'ai_total_tokens_used()';
+  const aggregate = 'sum(ai.total_tokens.used)';
 
   let query = 'span.category:"ai"';
   if (groupId) {
