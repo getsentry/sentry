@@ -290,7 +290,7 @@ function TagsSideBar(props: {
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;

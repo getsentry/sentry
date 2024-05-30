@@ -1,12 +1,13 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {isUrl} from 'sentry/utils';
+import {defined, isUrl} from 'sentry/utils';
 
 import {
   looksLikeMultiLineString,
@@ -64,13 +65,20 @@ function AnnotatedValue({
   );
 }
 
-function LinkHint({value}: {value: string}) {
-  if (!isUrl(value)) {
+function LinkHint({meta, value}: {value: string; meta?: Record<any, any>}) {
+  if (!isUrl(value) || defined(meta)) {
     return null;
   }
 
   return (
-    <ExternalLink href={value} className="external-icon">
+    <ExternalLink
+      onClick={e => {
+        e.preventDefault();
+        openNavigateToExternalLinkModal({linkText: value});
+      }}
+      role="link"
+      className="external-icon"
+    >
       <StyledIconOpen size="xs" aria-label={t('Open link')} />
     </ExternalLink>
   );
@@ -180,7 +188,7 @@ export function StructuredData({
               withOnlyFormattedText={withOnlyFormattedText}
             />
             {'"'}
-            <LinkHint value={stringValue} />
+            <LinkHint meta={meta} value={stringValue} />
           </ValueString>
         </Wrapper>
       );
@@ -225,7 +233,7 @@ export function StructuredData({
             withAnnotatedText={withAnnotatedText}
             withOnlyFormattedText={withOnlyFormattedText}
           />
-          <LinkHint value={value} />
+          <LinkHint meta={meta} value={value} />
         </span>
       </Wrapper>
     );
@@ -330,12 +338,12 @@ const StyledIconOpen = styled(IconOpen)`
 `;
 
 const ValueNull = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: var(--prism-property);
 `;
 
 const ValueBoolean = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: var(--prism-property);
 `;
 
@@ -351,7 +359,7 @@ const ValueMultiLineString = styled('span')`
 `;
 
 const ValueStrippedString = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: var(--prism-keyword);
 `;
 

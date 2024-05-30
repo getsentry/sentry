@@ -311,6 +311,7 @@ function EventDetailsContent(props: Props) {
                 event={event}
                 location={location}
                 orgSlug={organization.slug}
+                skipLight={false}
               >
                 {results => render(results, metaResults)}
               </QuickTraceQuery>

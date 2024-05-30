@@ -8,7 +8,6 @@ from sentry.search.events.types import SelectType
 
 class SpansIndexedQueryBuilder(QueryBuilder):
     requires_organization_condition = False
-    free_text_key = "span.description"
     uuid_fields = {"transaction.id", "replay.id", "profile.id", "trace"}
 
     def __init__(self, *args, **kwargs):

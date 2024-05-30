@@ -89,7 +89,7 @@ export const SuspectCommitHeader = styled('div')`
   & h3 {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   & h3 {

@@ -1,4 +1,4 @@
-import {Children, useRef, useState} from 'react';
+import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -8,7 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem, MetaError} from 'sentry/types';
+import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
 export interface ContentProps {
@@ -61,7 +61,7 @@ export function Content({
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper>
           {!disableRichValue && defined(action?.link) ? (
-            <Link to={action.link}>{dataComponent}</Link>
+            <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent
           )}
@@ -132,12 +132,45 @@ export function Card({
   );
 }
 
+type ReactFCWithProps = React.FC<CardProps>;
+
+const isReactComponent = (type): type is ReactFCWithProps => {
+  return (
+    typeof type === 'function' ||
+    (typeof type === 'object' && type !== null && 'render' in type)
+  );
+};
+
+// Returns an array of children where null/undefined children and children returning null are filtered out.
+// For example:
+// <Component1/> --> returns a <Card/>
+// {null}
+// <Component2/> --> returns null
+// Gives us back [<Component1/>]
+const filterChildren = (children: ReactNode): ReactNode[] => {
+  return Children.toArray(children).filter((child: React.ReactNode) => {
+    if (isValidElement(child) && isReactComponent(child.type)) {
+      // Render the child and check if it returns null
+      const renderedChild = child.type(child.props);
+      return renderedChild !== null;
+    }
+
+    return child != null;
+  });
+};
+
+// Note: When rendered children have hooks, we need to ensure that there are no hook count mismatches between renders.
+// Instead of rendering rendering {condition ? <Component/> : null}, we should render
+// if(!condition) return null inside Component itself, where Component renders a Card.
 export function Group({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
 
   const columns: React.ReactNode[] = [];
-  const cards = Children.toArray(children);
+
+  // Filter out null/undefined children, so that we don't count them
+  // when determining column size.
+  const cards = filterChildren(children);
 
   // Evenly distributing the cards into columns.
   const columnSize = Math.ceil(cards.length / columnCount);
@@ -160,12 +193,11 @@ const CardPanel = styled(Panel)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Title = styled('p')`
+const Title = styled('div')`
   grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
-  margin: 0;
   color: ${p => p.theme.headingColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const ContentWrapper = styled('div')<{hasErrors: boolean}>`
@@ -201,6 +233,7 @@ const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boole
 
 const ValueWrapper = styled('div')`
   word-break: break-word;
+  grid-column: 1 / -1;
 `;
 
 const TruncateWrapper = styled('a')`
@@ -220,4 +253,8 @@ const CardWrapper = styled('div')<{columnCount: number}>`
 
 const CardColumn = styled('div')`
   grid-column: span 1;
+`;
+
+const ValueLink = styled(Link)`
+  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
