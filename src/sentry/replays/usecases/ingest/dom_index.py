@@ -11,10 +11,7 @@ from typing import Any, Literal, TypedDict
 from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.issue_creation import (
-    report_hydration_error_issue_with_replay_event,
-    report_rage_click_issue_with_replay_event,
-)
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -287,19 +284,6 @@ def _parse_classes(classes: str) -> list[str]:
     return list(filter(lambda n: n != "", classes.split(" ")))[:10]
 
 
-def _should_report_hydration_error_issue(project_id: int) -> bool:
-    project = Project.objects.get(id=project_id)
-    """
-    The feature is controlled by Sentry admins for release of the feature,
-    while the project option is controlled by the project owner, and is a
-    permanent setting
-    """
-    return features.has(
-        "organizations:session-replay-hydration-error-issue-creation",
-        project.organization,
-    ) and project.get_option("sentry:replay_hydration_error_issues")
-
-
 def _should_report_rage_click_issue(project_id: int) -> bool:
     project = Project.objects.get(id=project_id)
 
@@ -448,15 +432,4 @@ def _handle_breadcrumb(
         )
         if click is not None:
             return click
-
-    elif category == "replay.hydrate-error":
-        if replay_event is not None and _should_report_hydration_error_issue(project_id):
-            report_hydration_error_issue_with_replay_event(
-                project_id,
-                replay_id,
-                payload["timestamp"],
-                payload["data"].get("url"),
-                replay_event,
-            )
-
     return None
