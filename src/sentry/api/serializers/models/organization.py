@@ -326,7 +326,7 @@ class OrganizationSerializer(Serializer):
 
         status = OrganizationStatus(obj.status)
 
-        include_feature_flags = kwargs.get("include_feature_flags", False)
+        include_feature_flags = kwargs.get("include_feature_flags", True)
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
@@ -464,7 +464,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         from sentry import experiments
 
         experiment_assignments = experiments.all(org=obj, actor=user)
-        include_feature_flags = kwargs.get("include_feature_flags", False)
+        include_feature_flags = kwargs.get("include_feature_flags", True)
 
         context = cast(
             DetailedOrganizationSerializerResponse,
