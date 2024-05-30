@@ -1,7 +1,8 @@
 import dataclasses
 import math
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Generator, Mapping, MutableMapping
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
@@ -11,6 +12,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import And, BooleanCondition, BooleanOp, Column, Condition, Function, Op, Or
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -22,6 +24,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
 from sentry.snuba.dataset import Dataset
@@ -81,6 +84,15 @@ class OrganizationTracesSerializer(serializers.Serializer):
     suggestedQuery = serializers.CharField(required=False)
     minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
+
+
+@contextmanager
+def handle_span_query_errors() -> Generator[None, None, None]:
+    with handle_query_errors():
+        try:
+            yield
+        except ReadTimeoutError:
+            raise ParseError(detail=TIMEOUT_SPAN_ERROR_MESSAGE)
 
 
 @region_silo_endpoint
@@ -194,7 +206,7 @@ class TraceSamplesExecutor:
         selected_projects_params = self.params
         selected_projects_snuba_params = self.snuba_params
 
-        with handle_query_errors():
+        with handle_span_query_errors():
             (
                 min_timestamp,
                 max_timestamp,
@@ -210,7 +222,7 @@ class TraceSamplesExecutor:
         if not trace_ids:
             return {"data": [], "meta": {"fields": {}}}
 
-        with handle_query_errors():
+        with handle_span_query_errors():
             all_queries = self.get_all_queries(
                 self.params,
                 self.snuba_params,
