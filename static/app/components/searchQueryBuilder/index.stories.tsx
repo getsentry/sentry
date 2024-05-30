@@ -20,7 +20,20 @@ const SUPPORTED_KEYS: TagCollection = {
     name: 'Assigned To',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['me', 'unassigned', 'person@sentry.io'],
+    values: [
+      {
+        title: 'Suggested',
+        type: 'header',
+        icon: null,
+        children: [{value: 'me'}, {value: 'unassigned'}],
+      },
+      {
+        title: 'All',
+        type: 'header',
+        icon: null,
+        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+      },
+    ],
   },
   [FieldKey.BROWSER_NAME]: {
     key: FieldKey.BROWSER_NAME,
