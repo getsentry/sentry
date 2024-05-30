@@ -20,7 +20,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
-from sentry.utils.snuba import _snql_query
+from sentry.utils.snuba import _snuba_query
 
 
 class GroupAttributesTest(TestCase):
@@ -238,7 +238,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             request = json_to_snql(json_body, "group_attributes")
             request.validate()
             identity = lambda x: x
-            resp = _snql_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
+            resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
             assert resp[0].status == 200
             stuff = json.loads(resp[0].data)
             assert stuff["data"] == [

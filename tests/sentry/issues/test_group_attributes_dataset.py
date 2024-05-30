@@ -9,7 +9,7 @@ from sentry.issues.attributes import (
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json
-from sentry.utils.snuba import _snql_query
+from sentry.utils.snuba import _snuba_query
 
 
 class DatasetTest(SnubaTestCase, TestCase):
@@ -32,7 +32,7 @@ class DatasetTest(SnubaTestCase, TestCase):
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
         identity = lambda x: x
-        resp = _snql_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
+        resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
         assert resp[0].status == 200
         stuff = json.loads(resp[0].data)
 
@@ -63,7 +63,7 @@ class DatasetTest(SnubaTestCase, TestCase):
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
         identity = lambda x: x
-        resp = _snql_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
+        resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
         assert resp[0].status == 200
         stuff = json.loads(resp[0].data)
 
