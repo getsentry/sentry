@@ -68,6 +68,11 @@ class Migration(CheckedMigration):
                 migrations.RunSQL(
                     sql="""
                         CREATE UNIQUE INDEX CONCURRENTLY "sentry_issueviews_unique_view_position_per_org_user" ON "sentry_groupsearchview" ("user_id", "organization_id", "position");
+                    """,
+                    hints={"tables": ["sentry_groupsearchview"]},
+                ),
+                migrations.RunSQL(
+                    sql="""
                         ALTER TABLE "sentry_groupsearchview" ADD CONSTRAINT "sentry_issueviews_unique_view_position_per_org_user" UNIQUE USING INDEX "sentry_issueviews_unique_view_position_per_org_user" DEFERRABLE INITIALLY DEFERRED;
                     """,
                     hints={"tables": ["sentry_groupsearchview"]},
