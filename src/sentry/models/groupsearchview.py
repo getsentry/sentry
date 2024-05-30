@@ -17,8 +17,8 @@ class GroupSearchView(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.TextField(max_length=128)
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
 
     query = models.TextField()
     query_sort = models.CharField(
