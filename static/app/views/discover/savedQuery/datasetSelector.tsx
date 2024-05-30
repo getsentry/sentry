@@ -1,12 +1,24 @@
+import omit from 'lodash/omit';
+
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import type {Organization, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
 
-const DATASET_PARAM = 'query_dataset';
+export const DATASET_PARAM = 'queryDataset';
 
-export function DatasetSelector() {
+type Props = {
+  isHomepage: boolean | undefined;
+  organization: Organization;
+  savedQuery: SavedQuery | undefined;
+};
+
+export function DatasetSelector(props: Props) {
+  const {organization, savedQuery, isHomepage} = props;
   const location = useLocation();
   const navigate = useNavigate();
   const value = decodeScalar(location.query[DATASET_PARAM]) ?? 'errors';
@@ -22,9 +34,16 @@ export function DatasetSelector() {
       value={value}
       options={options}
       onChange={newValue => {
+        const eventView = DEFAULT_EVENT_VIEW_MAP[newValue.value];
+        const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : eventView;
+        const nextEventView = EventView.fromNewQueryWithLocation(query, location);
+        const nextLocation = nextEventView.getResultsViewUrlTarget(
+          organization.slug,
+          isHomepage
+        );
         navigate({
           ...location,
-          query: {...location.query, [DATASET_PARAM]: newValue.value},
+          query: {...nextLocation.query, [DATASET_PARAM]: newValue.value},
         });
       }}
       size="sm"
