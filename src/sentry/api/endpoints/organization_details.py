@@ -605,13 +605,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if is_detailed:
                 serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
 
-        context = serialize(
-            organization,
-            request.user,
-            serializer(),
-            access=request.access,
-            include_feature_flags=include_feature_flags,
-        )
+        context = serialize(organization, request.user, serializer(), access=request.access)
 
         if not include_feature_flags:
             context.pop("features", None)

@@ -239,11 +239,22 @@ class OrganizationSerializer(Serializer):
             for o in item_list
         }
 
-    def get_feature_list(
+    def serialize(
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> set[str]:
+    ) -> OrganizationSerializerResponse:
         from sentry import features
         from sentry.features.base import OrganizationFeature
+
+        if attrs.get("avatar"):
+            avatar = {
+                "avatarType": attrs["avatar"].get_avatar_type_display(),
+                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUrl": attrs["avatar"].absolute_url(),
+            }
+        else:
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
+
+        status = OrganizationStatus(obj.status)
 
         # Retrieve all registered organization features
         org_features = [
@@ -308,24 +319,6 @@ class OrganizationSerializer(Serializer):
         if "dynamic-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
 
-    def serialize(
-        self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> OrganizationSerializerResponse:
-        from sentry import features
-
-        if attrs.get("avatar"):
-            avatar = {
-                "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
-                "avatarUrl": attrs["avatar"].absolute_url(),
-            }
-        else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
-
-        status = OrganizationStatus(obj.status)
-
-        include_feature_flags = kwargs.get("include_feature_flags", True)
-
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
         context = {
@@ -341,15 +334,13 @@ class OrganizationSerializer(Serializer):
                 and obj.flags.require_email_verification
             ),
             "avatar": avatar,
+            "features": feature_list,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
                 "regionUrl": generate_region_url(),
             },
             "hasAuthProvider": has_auth_provider,
         }
-
-        if include_feature_flags:
-            context["features"] = self.get_feature_list(obj, attrs, user, **kwargs)
 
         if "access" in kwargs:
             context["access"] = kwargs["access"].scopes
