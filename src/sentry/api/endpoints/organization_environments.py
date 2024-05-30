@@ -44,7 +44,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization) -> Response:
         """
-        Lists an organization's environments. Use the `visibility` parameter to filter which environments are returned.
+        Lists an organization's environments.
         """
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:
