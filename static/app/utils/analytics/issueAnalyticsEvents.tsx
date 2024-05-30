@@ -21,10 +21,6 @@ type ActionableItemDebugParam = {
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
-type RelatedTraceIssueParam = {
-  group_id: string;
-} & BaseEventAnalyticsParams;
-
 type SourceMapWizardParam = {
   project_id: string;
   group_id?: string;
@@ -111,7 +107,9 @@ export type IssueEventParameters = {
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
-  'issue_details.related_trace_issue.trace_issue_clicked': RelatedTraceIssueParam;
+  'issue_details.related_trace_issue.trace_issue_clicked': {
+    group_id: number;
+  };
   'issue_details.set_priority': SetPriorityParams;
   'issue_details.similar_issues.diff_clicked': {
     error_message?: string;
