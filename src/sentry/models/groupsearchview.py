@@ -34,6 +34,7 @@ class GroupSearchView(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["user_id", "organization_id", "position"],
                 name="sentry_issueviews_unique_view_position_per_org_user",
+                deferrable=models.Deferrable.DEFERRED,
             )
         ]
 
