@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -80,35 +81,35 @@ export function SampleList({
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {query} = useLocation();
+  const location = useLocation();
   const {projects} = useProjects();
 
-  const spanSearchQuery = decodeScalar(query.spanSearchQuery);
+  const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
   const supportedTags = useSpanFieldSupportedTags();
 
   const project = useMemo(
-    () => projects.find(p => p.id === String(query.project)),
-    [projects, query.project]
+    () => projects.find(p => p.id === String(location.query.project)),
+    [projects, location.query.project]
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
     router.replace({
       pathname: location.pathname,
       query: {
-        ...query,
+        ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
   };
 
   const onOpenDetailPanel = useCallback(() => {
-    if (query.transaction) {
+    if (location.query.transaction) {
       trackAnalytics('performance_views.sample_spans.opened', {
         organization,
         source: moduleName,
       });
     }
-  }, [organization, query.transaction, moduleName]);
+  }, [organization, location.query.transaction, moduleName]);
 
   const label =
     transactionMethod && !transactionName.startsWith(transactionMethod)
@@ -117,15 +118,18 @@ export function SampleList({
 
   const link = normalizeUrl(
     `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
-      project: query.project,
+      project: location.query.project,
       transaction: transactionName,
     })}`
   );
 
   // set additional query filters from the span search bar and the `query` param
   const spanSearch = new MutableSearch(spanSearchQuery ?? '');
-  if (query.query) {
-    (Array.isArray(query.query) ? query.query : [query.query]).forEach(filter => {
+  if (location.query.query) {
+    (Array.isArray(location.query.query)
+      ? location.query.query
+      : [location.query.query]
+    ).forEach(filter => {
       spanSearch.addStringFilter(filter);
     });
   }
@@ -209,7 +213,15 @@ export function SampleList({
           additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
-              `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+              generateLinkToEventInTraceView({
+                eventId: span['transaction.id'],
+                projectSlug: span.project,
+                spanId: span.span_id,
+                location,
+                organization,
+                traceSlug: span.trace,
+                timestamp: span.timestamp,
+              })
             );
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}

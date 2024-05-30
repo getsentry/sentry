@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -175,7 +176,15 @@ export function SpanSamplesContainer({
         transactionMethod={transactionMethod}
         onClickSample={span => {
           router.push(
-            `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+            generateLinkToEventInTraceView({
+              eventId: span['transaction.id'],
+              projectSlug: span.project,
+              spanId: span.span_id,
+              location,
+              organization,
+              traceSlug: span.trace,
+              timestamp: span.timestamp,
+            })
           );
         }}
         onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
