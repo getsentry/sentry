@@ -388,7 +388,7 @@ def lookup_group_data_stacktrace_bulk(
                     "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                     extra=extra,
                 )
-                raise ()
+                raise
 
     group_data = []
     stacktrace_strings = []
@@ -461,7 +461,7 @@ def lookup_group_data_stacktrace_single(
                 logger.exception(
                     "tasks.backfill_seer_grouping_records.event_lookup_exception", extra=extra
                 )
-                raise ()
+                raise
 
     if event and event.data and event.data.get("exception"):
         with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
