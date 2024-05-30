@@ -125,12 +125,10 @@ function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
     return (
       <RepoLinkItem>
         <GithubLink>
-          <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
-            <IconGithub color="linkColor" size="sm" />
-            <span>
-              {repo.owner}/{repo.name}
-            </span>
-          </ExternalLink>
+          <IconGithub size="sm" />
+          <span>
+            {repo.owner}/{repo.name}
+          </span>
         </GithubLink>
         {repo.ok ? <IconCheckmark color="success" isCircled /> : null}
       </RepoLinkItem>
@@ -190,7 +188,7 @@ function AutofixGithubIntegrationStep({
           'Install the [link:Sentry Autofix Github App] on your Github organization or each individual repository with write permissions to enable Autofix.',
           {
             link: (
-              <ExternalLink href="https://github.com/apps/sentry-autofix-experimental" />
+              <ExternalLink href="https://github.com/apps/sentry-autofix-experimental/installations/new" />
             ),
           }
         )}
@@ -403,6 +401,7 @@ const RepoLinkUl = styled('ul')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  padding: 0;
 `;
 
 const RepoLinkItem = styled('li')`
@@ -414,13 +413,5 @@ const RepoLinkItem = styled('li')`
 const GithubLink = styled('div')`
   display: flex;
   align-items: center;
-
-  a {
-    display: flex;
-    align-items: center;
-  }
-
-  svg {
-    margin-right: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;

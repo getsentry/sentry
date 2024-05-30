@@ -29,8 +29,11 @@ describe('TraceTimeline', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
+        // In issuePlatform, we store the subtitle within the message
+        message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
+
         project: project.slug,
         'project.name': project.name,
         title: 'Slow DB Query',
@@ -43,6 +46,7 @@ describe('TraceTimeline', () => {
   const discoverBody: TraceEventResponse = {
     data: [
       {
+        message: 'This is the subtitle of the issue',
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
         project: project.slug,
@@ -170,16 +174,6 @@ describe('TraceTimeline', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
-    // We need the metadata from the issue in order to render the related issue
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/1000/`,
-      body: {
-        metadata: {
-          title: 'Slow DB Query',
-          value: 'bar',
-        },
-      },
-    });
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
@@ -189,6 +183,9 @@ describe('TraceTimeline', () => {
 
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       trace_timeline_status: 'empty',

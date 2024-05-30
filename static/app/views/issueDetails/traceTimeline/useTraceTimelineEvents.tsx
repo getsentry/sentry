@@ -9,6 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface BaseEvent {
   id: string;
   'issue.id': number;
+  message: string;
   project: string;
   'project.name': string;
   timestamp: string;
@@ -57,7 +58,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         query: {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'transaction'],
+          field: ['message', 'title', 'project', 'timestamp', 'issue.id', 'transaction'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
@@ -84,6 +85,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: [
+            'message',
             'title',
             'project',
             'timestamp',
@@ -129,6 +131,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       events.push({
         id: event.id,
         'issue.id': Number(event.groupID),
+        message: event.message,
         project: event.projectID,
         // The project name for current event is not used
         'project.name': '',

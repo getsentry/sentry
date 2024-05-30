@@ -40,6 +40,7 @@ OPTION_KEYS = frozenset(
         "sentry:releases",
         "sentry:error_messages",
         "sentry:scrape_javascript",
+        "sentry:replay_hydration_error_issues",
         "sentry:replay_rage_click_issues",
         "sentry:feedback_user_report_notifications",
         "sentry:feedback_ai_spam_detection",
