@@ -19,7 +19,7 @@ from sentry.models.project import Project
 from sentry.relay.utils import get_header_relay_id
 from sentry.remote_config.storage import BlobDriver, make_storage
 from sentry.silo.base import SiloMode
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.sdk import configure_scope
 
 
@@ -132,6 +132,8 @@ class ProjectConfigurationProxyEndpoint(Endpoint):
     enforce_rate_limit = False
 
     def get(self, request: Request, project_id: int) -> Response:
+        metrics.incr("remote_config.configuration_requested")
+
         project = Project.objects.select_related("organization").get(pk=project_id)
         if not features.has("organizations:remote-config", project.organization, actor=None):
             return Response("", status=404)
@@ -140,12 +142,15 @@ class ProjectConfigurationProxyEndpoint(Endpoint):
         if result is None:
             return Response("", status=404)
 
+        result_str = json.dumps(result)
+        metrics.distribution("remote_config.configuration_size", value=len(result_str))
+
         # Emulating cache headers just because.
         return Response(
             result,
             status=200,
             headers={
                 "Cache-Control": "public, max-age=3600",
-                "ETag": hashlib.sha1(json.dumps(result).encode()).hexdigest(),
+                "ETag": hashlib.sha1(result_str.encode()).hexdigest(),
             },
         )
