@@ -179,7 +179,7 @@ export function TraceView() {
 
   return (
     <SentryDocumentTitle
-      title={`${t('Trace')} - ${traceSlug}`}
+      title={`${t('Trace Details')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
