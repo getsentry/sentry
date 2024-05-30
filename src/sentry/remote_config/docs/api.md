@@ -6,7 +6,7 @@ Host: https://sentry.io/api/0
 
 @cmanallen
 
-## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/keys/<key_id>/configuration/]
+## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/]
 
 ### Get Configuration [GET]
 
@@ -14,12 +14,24 @@ Retrieve the DSN's configuration.
 
 **Attributes**
 
-| Column             | Type   | Description                     |
-| ------------------ | ------ | ------------------------------- |
-| id                 | string | Client key.                     |
-| sample_rate        | number | A number value between 0 and 1. |
-| traces_sample_rate | number | A number value between 0 and 1. |
-| user_config        | any    | Arbitrary user supplied JSON.   |
+| Column   | Type           | Description                                   |
+| -------- | -------------- | --------------------------------------------- |
+| features | array[Feature] | Custom, user-defined configuration container. |
+| options  | Option         | Sentry SDK options container.                 |
+
+**Feature Object**
+
+| Field | Type   | Description                        |
+| ----- | ------ | ---------------------------------- |
+| key   | string | The name used to lookup a feature. |
+| value | any    | A JSON value.                      |
+
+**Option Object**
+
+| Field              | Type  | Description                                         |
+| ------------------ | ----- | --------------------------------------------------- |
+| sample_rate        | float | Error sample rate. A numeric value between 0 and 1. |
+| traces_sample_rate | float | Trace sample rate. A numeric value between 0 and 1. |
 
 **If an existing configuration exists**
 
@@ -28,11 +40,19 @@ Retrieve the DSN's configuration.
   ```json
   {
     "data": {
-      "id": "99aabf0dad1c48ad8e47e2a43969f312",
-      "sample_rate": 1.0,
-      "traces_sample_rate": 0.5,
-      "user_config": {
-        "hello": "world"
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
       }
     }
   }
@@ -51,9 +71,20 @@ Set the DSN's configuration.
   ```json
   {
     "data": {
-      "sample_rate": 0.2,
-      "traces_sample_rate": 0.5,
-      "user_config": ["hello", "world"]
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
+      }
     }
   }
   ```
@@ -63,10 +94,20 @@ Set the DSN's configuration.
   ```json
   {
     "data": {
-      "id": "99aabf0dad1c48ad8e47e2a43969f312",
-      "sample_rate": 0.2,
-      "traces_sample_rate": 0.5,
-      "user_config": ["hello", "world"]
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
+      }
     }
   }
   ```
