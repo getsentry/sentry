@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
@@ -10,6 +11,34 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   orderby: '-timestamp',
   version: 2,
   range: '24h',
+};
+
+const DEFAULT_TRANSACTION_VIEW: Readonly<NewQuery> = {
+  id: undefined,
+  name: t('All Transactions'),
+  query: 'event.type:transaction',
+  projects: [],
+  fields: ['title', 'project', 'user.display', 'timestamp'],
+  orderby: '-timestamp',
+  version: 2,
+  range: '24h',
+};
+
+const DEFAULT_ERROR_VIEW: Readonly<NewQuery> = {
+  id: undefined,
+  name: t('All Errors'),
+  query: 'event.type:error', // what about csp events etc
+  projects: [],
+  fields: ['title', 'project', 'user.display', 'timestamp'],
+  orderby: '-timestamp',
+  version: 2,
+  range: '24h',
+};
+
+export const DEFAULT_EVENT_VIEW_MAP: Record<SavedQueryDatasets, Readonly<NewQuery>> = {
+  [SavedQueryDatasets.DISCOVER]: DEFAULT_EVENT_VIEW,
+  [SavedQueryDatasets.ERRORS]: DEFAULT_ERROR_VIEW,
+  [SavedQueryDatasets.TRANSACTIONS]: DEFAULT_TRANSACTION_VIEW,
 };
 
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
