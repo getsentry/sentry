@@ -117,3 +117,41 @@ Set the DSN's configuration.
 Delete the DSN's configuration.
 
 - Response 204
+
+## Configuration Proxy [/relays/<project_id>/configuration/]
+
+Temporary configuration proxy resource.
+
+### Get Configuration [GET]
+
+Fetch a project's configuration. Responses should be proxied exactly to the SDK.
+
+- Response 200
+
+  - Headers
+
+    Cache-Control: public, max-age=3600
+    Content-Type: application/json
+    ETag: a7966bf58e23583c9a5a4059383ff850
+
+  - Body
+
+    ```json
+    {
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
+      },
+      "version": 1
+    }
+    ```
