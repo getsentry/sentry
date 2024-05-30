@@ -25,7 +25,7 @@ export const Badge = styled('div')<{status: string}>`
   border-radius: 12px;
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 0 ${space(1)};
   display: inline-block;
