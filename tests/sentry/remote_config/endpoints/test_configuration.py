@@ -50,6 +50,7 @@ class ConfiguratioAPITestCase(APITestCase):
         assert response.status_code == 404
 
     def test_get_configuration_not_found(self):
+        self.storage.pop()  # Pop anything that might be in the cache.
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 404
@@ -165,9 +166,7 @@ class ConfiguratioAPITestCase(APITestCase):
         assert self.storage.get() is None
 
     def test_delete_configuration_not_found(self):
-        # Eagerly delete option if one exists.
         self.storage.pop()
-
         with self.feature(REMOTE_CONFIG_FEATURES):
             response = self.client.delete(self.url)
         assert response.status_code == 204
