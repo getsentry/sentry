@@ -73,18 +73,6 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_subscriptions_for_projects(
-        self,
-        *,
-        user_id: int,
-        project_ids: list[int],
-        type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
-        """Deprecated: Use subscriptions_for_projects instead."""
-        pass
-
-    @rpc_method
-    @abstractmethod
     def subscriptions_for_projects(
         self,
         *,

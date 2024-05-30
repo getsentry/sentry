@@ -132,37 +132,6 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_organization_context(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        """
-        Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
-        by either integration_id, or a combination of provider and external_id.
-
-        :deprecated: Use organization_context() instead.
-        """
-
-    @rpc_method
-    @abstractmethod
-    def get_organization_contexts(
-        self,
-        *,
-        organization_id: int | None = None,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
-        """
-        :deprecated: Use organization_contexts() instead.
-        """
-
-    @rpc_method
-    @abstractmethod
     def organization_context(
         self,
         *,

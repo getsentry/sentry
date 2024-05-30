@@ -68,10 +68,6 @@ class RpcPrimaryKeyMap(RpcModel):
     """
 
     # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    # Deprecated, use map_entries going forward as that property does not contain tuples.
-    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]] = {}
-
-    # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
     map_entries: dict[str, dict[int, RpcPrimaryKeyEntry]] = {}
 
     def from_rpc(self) -> PrimaryKeyMap:
@@ -84,15 +80,11 @@ class RpcPrimaryKeyMap(RpcModel):
                     entries_data[old_id] = (entry.new_id, entry.kind, entry.slug)
                 pk_mapping[model_name] = entries_data
             pk_map.mapping = pk_mapping
-        else:
-            pk_map.mapping = defaultdict(dict, self.mapping)
         return pk_map
 
     @classmethod
     def into_rpc(cls, base_map: PrimaryKeyMap) -> "RpcPrimaryKeyMap":
         converted = cls()
-        converted.mapping = dict(base_map.mapping)
-
         mapping_entries = dict()
         for model_name, entries in base_map.mapping.items():
             mapping_entries[model_name] = {

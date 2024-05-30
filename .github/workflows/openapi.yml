@@ -56,7 +56,7 @@ jobs:
       - name: Build RPC method schema
         if: steps.changes.outputs.api_docs == 'true'
         run: |
-          sentry rpcschema --partial > rpc_method_schema.json
+          sentry rpcschema > rpc_method_schema.json
 
       - name: Copy artifacts into getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'
