@@ -1,7 +1,10 @@
 import logging
 
 import sentry_sdk
+<<<<<<< HEAD
 from django.conf import settings
+=======
+>>>>>>> 98d4a59265e (Add cache to Chartcuterie)
 from django.core.cache import cache
 
 from sentry.api import client
@@ -111,6 +114,7 @@ class IssueAlertImageBuilder:
                 "evidenceData": event.occurrence.evidence_data,
                 "percentileData": resp.data["p95(transaction.duration)"]["data"],
             },
+            cache_key=self.cache_key,
         )
 
     def _get_function_regression_image_url(self) -> str | None:
@@ -148,4 +152,5 @@ class IssueAlertImageBuilder:
                 "evidenceData": evidence_data,
                 "rawResponse": resp.data,
             },
+            cache_key=self.cache_key,
         )

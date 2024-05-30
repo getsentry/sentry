@@ -15,6 +15,7 @@ from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
 from .types import ChartSize, ChartType
+from django.core.cache import cache
 
 
 class Chartcuterie(ChartRenderer):
@@ -95,5 +96,8 @@ class Chartcuterie(ChartRenderer):
             storage = get_storage(self.storage_options)
             storage.save(file_name, BytesIO(resp.content))
             url = absolute_uri(storage.url(file_name))
-
+        # We don't want to regenerate the image if another type of notification is sending the same one
+        # For example slack notification and email notification for the same issue
+        if upload and cache_key:
+            cache.set(cache_key, url, timeout=60 * 15)
         return url
