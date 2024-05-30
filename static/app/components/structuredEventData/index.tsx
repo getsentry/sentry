@@ -36,6 +36,10 @@ export type StructuredEventDataProps = {
   // TODO(TS): What possible types can `data` be?
   data?: any;
   'data-test-id'?: string;
+  /**
+   * Forces objects to default to expanded when rendered
+   */
+  forceDefaultExpand?: boolean;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
   withAnnotatedText?: boolean;
@@ -93,12 +97,14 @@ export function StructuredData({
   withOnlyFormattedText = false,
   meta,
   objectKey,
+  forceDefaultExpand,
 }: {
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
   config?: StructedEventDataConfig;
+  forceDefaultExpand?: boolean;
   objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
@@ -302,6 +308,7 @@ export function StructuredData({
       prefix={formattedObjectKey}
       maxDefaultDepth={maxDefaultDepth}
       depth={depth}
+      forceDefaultExpand={forceDefaultExpand}
     >
       {children}
     </CollapsibleValue>
@@ -315,6 +322,7 @@ export default function StructuredEventData({
   maxDefaultDepth = 2,
   data = null,
   withAnnotatedText = false,
+  forceDefaultExpand,
   ...props
 }: StructuredEventDataProps) {
   return (
@@ -326,6 +334,7 @@ export default function StructuredEventData({
         maxDefaultDepth={maxDefaultDepth}
         meta={meta}
         withAnnotatedText={withAnnotatedText}
+        forceDefaultExpand={forceDefaultExpand}
       />
       {children}
     </pre>
