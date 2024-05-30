@@ -2511,7 +2511,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_top_timeseries_query_with_on_demand_columns(self):
         field = "count()"
         field_two = "count_web_vitals(measurements.lcp, good)"
-        groupbys = ["customtag1", "customtag2"]
+        # Can't use fake tags here, since the second call to the builder has ondemand=false
+        groupbys = ["transaction.op", "transaction.method"]
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query_s)
         spec_two = OnDemandMetricSpec(field=field_two, groupbys=groupbys, query=query_s)
@@ -2521,8 +2522,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 day * 62 * 24,
                 spec=spec,
                 additional_tags={
-                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
-                    "customtag2": "red",
+                    "transaction.op": "http.server",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "transaction.method": "POST",
                 },
                 timestamp=self.start + datetime.timedelta(days=day),
             )
@@ -2530,8 +2531,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 day * 60 * 24,
                 spec=spec_two,
                 additional_tags={
-                    "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
-                    "customtag2": "red",
+                    "transaction.op": "http.server",  # Spec tags for fields need to be overriden since the stored value is dynamic
+                    "transaction.method": "POST",
                 },
                 timestamp=self.start + datetime.timedelta(days=day),
             )
@@ -2540,7 +2541,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             Dataset.PerformanceMetrics,
             self.params,
             3600 * 24,
-            [{"customtag1": "div > text"}, {"customtag2": "red"}],
+            [{"transaction.op": "http.server", "transaction.method": "POST"}],
             query=query_s,
             selected_columns=groupbys,
             timeseries_columns=[field, field_two],
@@ -2556,7 +2557,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             Dataset.PerformanceMetrics,
             self.params,
             3600 * 24,
-            [{"customtag1": "div > text"}, {"customtag2": "red"}],
+            [{"transaction.op": "http.server", "transaction.method": "POST"}],
             query="",
             selected_columns=groupbys,
             timeseries_columns=[field, field_two],
@@ -2575,22 +2576,22 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 "time": (self.start + datetime.timedelta(days=0, hours=-10)).isoformat(),
                 "count": 0.0,
                 "count_web_vitals_measurements_lcp_good": 0.0,
-                "customtag1": "div > text",
-                "customtag2": "red",
+                "transaction.op": "http.server",
+                "transaction.method": "POST",
             },
             {
                 "time": (self.start + datetime.timedelta(days=1, hours=-10)).isoformat(),
                 "count": 1488.0,
                 "count_web_vitals_measurements_lcp_good": 1440.0,
-                "customtag1": "div > text",
-                "customtag2": "red",
+                "transaction.op": "http.server",
+                "transaction.method": "POST",
             },
             {
                 "time": (self.start + datetime.timedelta(days=2, hours=-10)).isoformat(),
                 "count": 2976.0,
                 "count_web_vitals_measurements_lcp_good": 2880.0,
-                "customtag1": "div > text",
-                "customtag2": "red",
+                "transaction.op": "http.server",
+                "transaction.method": "POST",
             },
         ]
 
@@ -2600,8 +2601,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "time", "type": "DateTime('Universal')"},
                 {"name": "count", "type": "Float64"},
                 {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
-                {"name": "customtag1", "type": "string"},
-                {"name": "customtag2", "type": "string"},
+                {"name": "transaction.method", "type": "string"},
+                {"name": "transaction.op", "type": "string"},
             ],
         )
 

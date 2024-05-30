@@ -657,7 +657,12 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Attempt to resolve tag keys, for the metrics preformance datasets we use an allowlist so ondemand keys don't
         # overlap. If you don't want this functionality for your dataset set valid_tags to an empty sequence
-        if len(self.valid_tags) > 0 and value in self.valid_tags:
+        # Ondemand should always resolve the metric_index
+        if (
+            (len(self.valid_tags) > 0 and value in self.valid_tags)
+            or len(self.valid_tags) == 0
+            or self.use_on_demand
+        ):
             return self.resolve_metric_index(value)
         else:
             raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
