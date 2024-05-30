@@ -48,7 +48,7 @@
     "@react-stately/radio": "^3.10.1",
     "@react-stately/slider": "^3.5.0",
     "@react-stately/tabs": "^3.6.3",
-    "@react-stately/tree": "^3.7.5",
+    "@react-stately/tree": "^3.8.1",
     "@react-types/shared": "^3.22.0",
     "@rsdoctor/webpack-plugin": "^0.2.5",
     "@sentry-internal/global-search": "^1.0.0",
