@@ -605,10 +605,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if is_detailed:
                 serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
 
-        context = serialize(organization, request.user, serializer(), access=request.access)
-
-        if not include_feature_flags:
-            context.pop("features", None)
+        context = serialize(
+            organization,
+            request.user,
+            serializer(),
+            access=request.access,
+            include_feature_flags=include_feature_flags,
+        )
 
         return self.respond(context)
 
@@ -699,10 +702,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 request.user,
                 org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                 access=request.access,
+                include_feature_flags=include_feature_flags,
             )
-
-            if not include_feature_flags:
-                context.pop("features", None)
 
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
