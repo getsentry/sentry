@@ -214,7 +214,7 @@ class IntegrationRepositoryProvider:
             status=201,
         )
 
-    def handle_api_error(self, e):
+    def handle_api_error(self, e: Exception) -> Response:
         if isinstance(e, IntegrationError):
             if "503" in str(e):
                 return Response(
