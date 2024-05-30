@@ -651,6 +651,9 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
  * Sidebar navigation item customization allows passing render props to disable
  * the link, wrap it in an upsell modal, and give it some additional content
  * (e.g., a Business Icon) to render.
+ *
+ * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
+ * too, since this is a more generic version.
  */
 type SidebarNavigationItemHook = () => React.ComponentType<{
   children: (opts: {
