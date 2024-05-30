@@ -119,8 +119,7 @@ def backfill_seer_grouping_records(
         )
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
-        .order_by("times_seen")
-        .order_by("id")
+        .order_by("-times_seen", "id")
     )
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
