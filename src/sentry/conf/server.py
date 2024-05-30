@@ -1889,6 +1889,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Show links and upsells to Insights modules
+    "organizations:insights-entry-points": False,
+    # Enable access to initial Insights modules (Queries, Requests, Vitals, App Starts, Page Loads, Resources)
+    "organizations:insights-initial-modules": False,
+    # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
+    "organizations:insights-addon-modules": False,
     # Measure usage by spans instead of transactions
     "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
@@ -1988,8 +1994,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
-    # Enable considering group severity when creating and evaluating alert rules
-    "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
     "projects:first-event-severity-calculation": False,
     # Enable escalation detection for new issues
@@ -2971,7 +2975,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "symbolicator": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/symbolicator:nightly",
+            "image": "us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly",
             "ports": {"3021/tcp": 3021},
             "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
             "command": ["run", "--config", "/etc/symbolicator/config.yml"],
