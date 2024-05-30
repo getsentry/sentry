@@ -313,7 +313,7 @@ const SidebarNavigationItemHook = HookOrDefault({
   defaultComponent: ({children}) =>
     children({
       disabled: false,
-      additionalContent: <Fragment />,
+      additionalContent: null,
       Wrapper: Fragment,
     }),
 });
