@@ -128,9 +128,6 @@ export type PerformanceEventParameters = {
   'performance_views.relative_breakdown.selection': {
     action: string;
   };
-  'performance_views.replay_trace_view_v1_page_load': {
-    organization: Organization;
-  };
   'performance_views.sample_spans.filter_updated': {
     filter: string;
     new_state: FieldValue;
@@ -195,6 +192,7 @@ export type PerformanceEventParameters = {
   'performance_views.trace_view.view': {};
   'performance_views.trace_view_v1_page_load': {
     organization: Organization;
+    source: string;
   };
   'performance_views.transactionEvents.cellaction': {
     action: string;
@@ -269,8 +267,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Widget Switched',
   'performance_views.trace_view_v1_page_load':
     'Performance Views: Trace View v1 Page Load',
-  'performance_views.replay_trace_view_v1_page_load':
-    'Performance Views: Replay Trace View v1 load in trace tab',
   'performance_views.landingv3.batch_queries':
     'Performance Views: Landing Query Batching',
   'performance_views.landingv3.display_change': 'Performance Views: Switch Landing Tabs',

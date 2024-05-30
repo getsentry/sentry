@@ -186,11 +186,11 @@ export function TraceView() {
   }, []);
 
   return (
-    <TraceConfigurationsContext.Provider value={traceConfigurations}>
-      <SentryDocumentTitle
-        title={`${t('Trace')} - ${traceSlug}`}
-        orgSlug={organization.slug}
-      >
+    <SentryDocumentTitle
+      title={`${t('Trace')} - ${traceSlug}`}
+      orgSlug={organization.slug}
+    >
+      <TraceConfigurationsContext.Provider value={traceConfigurations}>
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
             <TraceUXChangeAlert />
@@ -210,13 +210,13 @@ export function TraceView() {
                 traceEventView={traceEventView}
                 metaResults={meta}
                 rootEvent={rootEvent}
-                analyticsKey="performance_views.trace_view_v1_page_load"
+                source="performance"
               />
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
-      </SentryDocumentTitle>
-    </TraceConfigurationsContext.Provider>
+      </TraceConfigurationsContext.Provider>
+    </SentryDocumentTitle>
   );
 }
 
@@ -236,16 +236,15 @@ type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  source: string;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceTree.Transaction> | null;
   traceEventView: EventView;
   traceSlug: string;
-  analyticsKey?: string;
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
-  const organization = props.organization;
   const {projects} = useProjects();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
@@ -257,12 +256,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, []);
 
   useEffect(() => {
-    if (props.analyticsKey) {
-      trackAnalytics(props.analyticsKey, {
-        organization,
-      });
-    }
-  }, [organization, props.analyticsKey]);
+    trackAnalytics('performance_views.trace_view_v1_page_load', {
+      organization: props.organization,
+      source: props.source,
+    });
+  }, [props.organization, props.source]);
 
   const initializedRef = useRef(false);
   const scrollQueueRef = useRef<
@@ -633,7 +631,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       // visible and may not have been collapsed/hidden by the user
       TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
-        organization,
+        organization: props.organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
@@ -668,7 +666,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     },
     [
       api,
-      organization,
+      props.organization,
       setRowAsFocused,
       scrollRowIntoView,
       tree,
@@ -683,7 +681,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
       TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
-        organization,
+        organization: props.organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
@@ -709,7 +707,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         }
       });
     },
-    [api, organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
+    [api, props.organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
@@ -860,8 +858,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    logTraceType(shape, organization);
-  }, [tree, shape, organization]);
+    logTraceType(shape, props.organization);
+  }, [tree, shape, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {
@@ -890,7 +888,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           trace_dispatch={traceDispatch}
           onTraceSearch={onTraceSearch}
         />
-        <TraceResetZoomButton viewManager={viewManager} organization={organization} />
+        <TraceResetZoomButton
+          viewManager={viewManager}
+          organization={props.organization}
+        />
         <TraceShortcuts />
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>

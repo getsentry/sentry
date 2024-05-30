@@ -163,14 +163,14 @@ function Trace({replayRecord}: Props) {
       <TraceConfigurationsContext.Provider value={traceConfigurations}>
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
+            traceSlug="Replay"
             status={errors.length > 0 ? 'error' : isFetching ? 'loading' : 'success'}
             trace={traceSplitResults}
-            traceSlug="Replay"
             organization={organization}
             traceEventView={eventView}
             metaResults={metaResults}
             rootEvent={rootEvent}
-            analyticsKey="performance_views.replay_trace_view_v1_page_load"
+            source="replay"
           />
         </TraceViewWaterfallWrapper>
       </TraceConfigurationsContext.Provider>
