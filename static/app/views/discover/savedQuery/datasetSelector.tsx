@@ -34,16 +34,21 @@ export function DatasetSelector(props: Props) {
       value={value}
       options={options}
       onChange={newValue => {
-        const eventView = DEFAULT_EVENT_VIEW_MAP[newValue.value];
-        const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : eventView;
-        const nextEventView = EventView.fromNewQueryWithLocation(query, location);
+        const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
+        const newQuery = savedQuery
+          ? omit(query, ['name', 'id', 'projects', 'range'])
+          : query;
+        const nextEventView = EventView.fromNewQueryWithLocation(newQuery, location);
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
           isHomepage
         );
         navigate({
           ...location,
-          query: {...nextLocation.query, [DATASET_PARAM]: newValue.value},
+          query: {
+            ...nextLocation.query,
+            [DATASET_PARAM]: newValue.value,
+          },
         });
       }}
       size="sm"
