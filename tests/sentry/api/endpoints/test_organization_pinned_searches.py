@@ -34,6 +34,15 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             sort=sort,
             visibility=Visibility.OWNER_PINNED,
         ).exists()
+        # TODO(msun): Remove this when custom views are GA'd
+        assert GroupSearchView.objects.filter(
+            organization=self.organization,
+            name="Default Search",
+            user_id=self.member.id,
+            query=query,
+            query_sort=sort,
+            position=0,
+        ).exists()
 
         query = "test_2"
         self.get_success_response(type=search_type, query=query, sort=sort, status_code=201)
