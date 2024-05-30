@@ -167,7 +167,8 @@ class SpanMRI(Enum):
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 
     # Measurement-based metrics
-    AI_TOTAL_TOKENS = "c:spans/ai.total_tokens@none"
+    AI_TOTAL_TOKENS = "c:spans/ai.total_tokens.used@none"
+    AI_TOTAL_COST = "c:spans/ai.total_cost@usd"
     CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
     MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
