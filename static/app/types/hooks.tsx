@@ -240,6 +240,7 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -644,6 +645,15 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;
+}>;
+
+type SidebarNavigationItemHook = () => React.ComponentType<{
+  children: (opts: {
+    AdditionalContent: React.ReactElement | null;
+    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
+    disabled: boolean;
+  }) => React.ReactElement;
+  id: string;
 }>;
 
 /**
