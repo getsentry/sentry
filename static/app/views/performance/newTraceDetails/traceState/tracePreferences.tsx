@@ -2,8 +2,6 @@ import * as Sentry from '@sentry/react';
 
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-import type {TracePreferencesConfigurations} from '../traceConfigurations';
-
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
 type TracePreferencesAction =
@@ -54,13 +52,13 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 };
 
 export function storeTraceViewPreferences(
-  state: TracePreferencesState,
-  config: TracePreferencesConfigurations
+  key: string,
+  state: TracePreferencesState
 ): void {
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem(config.localStorageKey, JSON.stringify(state));
+      localStorage.setItem(key, JSON.stringify(state));
     } catch (e) {
       Sentry.captureException(e);
     }
@@ -70,15 +68,12 @@ export function storeTraceViewPreferences(
 function isInt(value: any): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
-export function loadTraceViewPreferences(
-  config: TracePreferencesConfigurations
-): TracePreferencesState {
-  const stored = localStorage.getItem(config.localStorageKey);
+export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
+  const stored = localStorage.getItem(key);
 
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-
       // We need a more robust way to validate the stored preferences.
       // Since we dont have a schema validation lib, just do it manually for now.
       if (
@@ -101,7 +96,7 @@ export function loadTraceViewPreferences(
     }
   }
 
-  return config.defaultPreferenceState;
+  return null;
 }
 
 export function tracePreferencesReducer(

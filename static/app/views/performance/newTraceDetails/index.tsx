@@ -39,10 +39,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
-import {
-  type DispatchingReducerMiddleware,
-  useDispatchingReducer,
-} from 'sentry/utils/useDispatchingReducer';
+import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -58,10 +55,11 @@ import {
 import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
 import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {
-  DEFAULT_TRACE_VIEW_PREFERENCES,
-  loadTraceViewPreferences,
-  storeTraceViewPreferences,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+  TraceStateProvider,
+  useTraceState,
+  useTraceStateDispatch,
+  useTraceStateEmitter,
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
@@ -69,11 +67,14 @@ import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
+import {
+  DEFAULT_TRACE_VIEW_PREFERENCES,
+  loadTraceViewPreferences,
+} from './traceState/tracePreferences';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
-import {TraceConfigurationsContext, useTraceConfigurations} from './traceConfigurations';
 import {TraceMetadataHeader} from './traceMetadataHeader';
-import {TraceReducer, type TraceReducerState} from './traceState';
+import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -105,8 +106,6 @@ function logTraceType(type: TraceType, organization: Organization) {
     }
   }
 }
-
-const TRACE_VIEW_PREFERENCES_KEY = 'trace-view-preferences';
 
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
@@ -176,21 +175,22 @@ export function TraceView() {
   const meta = useTraceMeta([traceSlug]);
   const rootEvent = useTraceRootEvent(trace.data ?? null);
 
-  const traceConfigurations = useMemo(() => {
-    return {
-      preferences: {
-        localStorageKey: TRACE_VIEW_PREFERENCES_KEY,
-        defaultPreferenceState: DEFAULT_TRACE_VIEW_PREFERENCES,
-      },
-    };
-  }, []);
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('trace-view-preferences') ||
+      DEFAULT_TRACE_VIEW_PREFERENCES,
+    []
+  );
 
   return (
     <SentryDocumentTitle
       title={`${t('Trace')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
-      <TraceConfigurationsContext.Provider value={traceConfigurations}>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey="trace-view-preferences"
+      >
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
             <TraceUXChangeAlert />
@@ -215,7 +215,7 @@ export function TraceView() {
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
-      </TraceConfigurationsContext.Provider>
+      </TraceStateProvider>
     </SentryDocumentTitle>
   );
 }
@@ -229,8 +229,6 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
   node: 'vitals',
   label: t('Vitals'),
 };
-
-const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 
 type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
@@ -248,8 +246,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const {projects} = useProjects();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const traceConfigurations = useTraceConfigurations();
   const {replay} = useReplayContext();
+
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
+  const traceStateEmitter = useTraceStateEmitter();
 
   const forceRerender = useCallback(() => {
     flushSync(rerender);
@@ -328,48 +329,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
     throw new Error('Invalid trace state');
   }, [props.traceSlug, props.trace, props.status, projects, replay]);
-
-  const initialQuery = useMemo((): string | undefined => {
-    const query = qs.parse(location.search);
-
-    if (typeof query.search === 'string') {
-      return query.search;
-    }
-    return undefined;
-    // We only want to decode on load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const preferences = useMemo(
-    () => loadTraceViewPreferences(traceConfigurations.preferences),
-    [traceConfigurations.preferences]
-  );
-
-  const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
-    TraceReducer,
-    {
-      rovingTabIndex: {
-        index: null,
-        items: null,
-        node: null,
-      },
-      search: {
-        node: null,
-        query: initialQuery,
-        resultIteratorIndex: null,
-        resultIndex: null,
-        results: null,
-        status: undefined,
-        resultsLookup: new Map(),
-      },
-      preferences,
-      tabs: {
-        tabs: STATIC_DRAWER_TABS,
-        current_tab: STATIC_DRAWER_TABS[0] ?? null,
-        last_clicked_tab: null,
-      },
-    }
-  );
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -842,11 +801,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [traceState.search.query]);
 
   useTraceQueryParamStateSync(traceQueryStateSync);
-  useLayoutEffect(() => {
-    if (traceConfigurations?.preferences) {
-      storeTraceViewPreferences(traceState.preferences, traceConfigurations.preferences);
-    }
-  }, [traceState.preferences, traceConfigurations?.preferences]);
 
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 

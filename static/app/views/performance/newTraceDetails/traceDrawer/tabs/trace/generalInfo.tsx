@@ -46,7 +46,6 @@ export function GeneralInfo(props: GeneralInfoProps) {
     }
 
     const unique: TraceErrorOrIssue[] = [];
-
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -128,6 +127,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
 
   const items: SectionCardKeyValueList = [];
 
+  // Hide trace_id inside replays because a replay could be connected to multiple traces.
   if (!replay) {
     items.push({
       key: 'trace_id',
@@ -211,6 +211,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     }
   );
 
+  // Hide replay preview if we are already in a replay page.
   if (replay_id && !replay) {
     items.push({
       key: 'replay_id',

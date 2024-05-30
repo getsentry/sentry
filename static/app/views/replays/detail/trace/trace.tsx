@@ -18,8 +18,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {TraceConfigurationsContext} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -31,6 +31,8 @@ import {
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+
+import {loadTraceViewPreferences} from '../../../performance/newTraceDetails/traceState/tracePreferences';
 
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
@@ -78,7 +80,6 @@ function TraceFound({
   );
 }
 
-const REPLAY_TRACE_VIEW_PREFERENCES_KEY = 'replay-trace-view-preferences';
 const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
@@ -108,6 +109,12 @@ function Trace({replayRecord}: Props) {
   } = useTransactionData();
 
   const metaResults = useReplayTraceMeta(replayRecord);
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('replay-trace-view-preferences') ||
+      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+    []
+  );
 
   const traceSplitResults = useMemo(() => {
     return {
@@ -117,15 +124,6 @@ function Trace({replayRecord}: Props) {
   }, [traces, orphanErrors]);
 
   const rootEvent = useTraceRootEvent(traceSplitResults);
-  const traceConfigurations = useMemo(() => {
-    return {
-      preferences: {
-        localStorageKey: REPLAY_TRACE_VIEW_PREFERENCES_KEY,
-        defaultPreferenceState: DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
-      },
-    };
-  }, []);
-
   useFetchTransactions();
 
   if (errors.length) {
@@ -160,7 +158,10 @@ function Trace({replayRecord}: Props) {
 
   if (organization.features.includes('replay-trace-view-v1')) {
     return (
-      <TraceConfigurationsContext.Provider value={traceConfigurations}>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey="replay-trace-view-preferences"
+      >
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
             traceSlug="Replay"
@@ -173,7 +174,7 @@ function Trace({replayRecord}: Props) {
             source="replay"
           />
         </TraceViewWaterfallWrapper>
-      </TraceConfigurationsContext.Provider>
+      </TraceStateProvider>
     );
   }
 
