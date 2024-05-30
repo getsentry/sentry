@@ -837,11 +837,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   return (
     <Fragment>
       <TraceToolbar>
-        <TraceSearchInput
-          trace_state={traceState}
-          trace_dispatch={traceDispatch}
-          onTraceSearch={onTraceSearch}
-        />
+        <TraceSearchInput onTraceSearch={onTraceSearch} />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}
@@ -853,8 +849,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           trace={tree}
           rerender={rerender}
           trace_id={props.traceSlug}
-          trace_state={traceState}
-          trace_dispatch={traceDispatch}
           scrollQueueRef={scrollQueueRef}
           initializedRef={initializedRef}
           onRowClick={onRowClick}
@@ -881,8 +875,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceGridRef={traceGridRef}
           traces={props.trace}
           manager={viewManager}
-          trace_state={traceState}
-          trace_dispatch={traceDispatch}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
           rootEventResults={props.rootEvent}
