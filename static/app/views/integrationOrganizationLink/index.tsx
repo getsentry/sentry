@@ -57,7 +57,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   disableErrorReport = false;
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    return [['organizations', '/organizations/']];
+    return [['organizations', '/organizations/?include_feature_flags=1']];
   }
 
   getTitle() {
