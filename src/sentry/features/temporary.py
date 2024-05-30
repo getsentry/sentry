@@ -277,7 +277,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:ai-autofix", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("projects:first-event-severity-alerting", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
