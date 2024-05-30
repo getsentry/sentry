@@ -6,7 +6,6 @@ import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceFullDetailed,
-  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
@@ -16,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TraceWarnings} from 'sentry/views/performance/newTraceDetails/traceWarnings';
 
 import {isTraceNode} from '../../../guards';
+import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
 import type {TraceType} from '../../../traceType';
 import {IssueList} from '../../details/issues/issues';
@@ -25,7 +25,7 @@ import {GeneralInfo} from './generalInfo';
 import {TagsSummary} from './tagsSummary';
 
 type TraceDetailsProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
+  metaResults: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;

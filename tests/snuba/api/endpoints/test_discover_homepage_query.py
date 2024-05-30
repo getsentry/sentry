@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
 FEATURES = ("organizations:discover-query",)
@@ -84,6 +84,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.data == serialize(new_query)
         assert new_query.query["fields"] == homepage_query_payload["fields"]
         assert new_query.query["environment"] == homepage_query_payload["environment"]
+        assert new_query.dataset == DiscoverSavedQueryTypes.get_id_for_type_name("discover")
         assert set(new_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
     def test_put_responds_with_saved_empty_name_field(self):

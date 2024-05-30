@@ -24,15 +24,20 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     # TODO: Implement rate limits, kill switches, other flags, etc
     # TODO: Return False if the event has a custom fingerprint (check for both client- and server-side fingerprints)
 
+    has_either_seer_grouping_feature = features.has(
+        "projects:similarity-embeddings-metadata", project
+    ) or features.has("projects:similarity-embeddings-grouping", project)
+
+    if not has_either_seer_grouping_feature:
+        return False
+
     if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
         return False
 
     if not event_content_is_seer_eligible(event):
         return False
 
-    return features.has("projects:similarity-embeddings-metadata", project) or features.has(
-        "projects:similarity-embeddings-grouping", project
-    )
+    return True
 
 
 def _killswitch_enabled(event: Event, project: Project) -> bool:
