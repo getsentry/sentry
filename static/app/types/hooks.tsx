@@ -654,8 +654,8 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
  */
 type SidebarNavigationItemHook = () => React.ComponentType<{
   children: (opts: {
-    AdditionalContent: React.ReactElement | null;
     Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
+    additionalContent: React.ReactElement | null;
     disabled: boolean;
   }) => React.ReactElement;
   id: string;

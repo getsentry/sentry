@@ -216,7 +216,7 @@ function SidebarItem({
       position={placement}
     >
       <SidebarNavigationItemHook id={id}>
-        {({disabled, AdditionalContent, Wrapper}) => (
+        {({disabled, additionalContent, Wrapper}) => (
           <Wrapper>
             <StyledSidebarItem
               {...props}
@@ -239,7 +239,7 @@ function SidebarItem({
                     <LabelHook id={id}>
                       <TruncatedLabel>{label}</TruncatedLabel>
                       {badges}
-                      {AdditionalContent}
+                      {additionalContent}
                     </LabelHook>
                   </SidebarItemLabel>
                 )}
@@ -313,7 +313,7 @@ const SidebarNavigationItemHook = HookOrDefault({
   defaultComponent: ({children}) =>
     children({
       disabled: false,
-      AdditionalContent: <Fragment />,
+      additionalContent: <Fragment />,
       Wrapper: Fragment,
     }),
 });
