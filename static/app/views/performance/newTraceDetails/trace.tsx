@@ -7,6 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -493,6 +494,7 @@ export function Trace({
             </div>
           );
         })}
+        <ReplayTimeStampIndicators viewmanager={manager} tree={treeRef.current} />
       </div>
       <div
         ref={setScrollContainer}
@@ -1620,6 +1622,53 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   );
 }
 
+function ReplayTimeStampIndicators({
+  viewmanager,
+  tree,
+}: {
+  tree: TraceTree;
+  viewmanager: VirtualizedViewManager;
+}) {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const traceNode = tree.root.children[0];
+  const traceStartTimestamp = traceNode.space?.[0];
+
+  if (!replay || !traceNode || !traceStartTimestamp) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <div
+        ref={r =>
+          viewmanager.registerReplayTimestamp(
+            r,
+            traceStartTimestamp + currentTime,
+            'current'
+          )
+        }
+        className="TraceIndicator Timeline"
+      >
+        <div className="ReplayTraceIndicatorLine" />
+      </div>
+      {currentHoverTime ? (
+        <div
+          ref={r =>
+            viewmanager.registerReplayTimestamp(
+              r,
+              traceStartTimestamp + currentHoverTime,
+              'hover'
+            )
+          }
+          className="TraceIndicator Timeline"
+        >
+          <div className="ReplayTraceIndicatorLine HoverTimestamp" />
+        </div>
+      ) : null}
+    </Fragment>
+  );
+}
+
 /**
  * This is a wrapper around the Trace component to apply styles
  * to the trace tree. It exists because we _do not_ want to trigger
@@ -1656,6 +1705,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceIndicatorLine {
         top: 30px;
+      }
+
+      .ReplayTraceIndicatorLine {
+        top: 44px;
       }
     }
   }
@@ -1791,6 +1844,20 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+    }
+
+    .ReplayTraceIndicatorLine {
+      width: 1px;
+      height: 100%;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-2px);
+      background: ${p => p.theme.purple300};
+      top: 26px;
+
+      &.HoverTimestamp {
+        background: ${p => p.theme.purple200};
+      }
     }
 
     &.Errored {

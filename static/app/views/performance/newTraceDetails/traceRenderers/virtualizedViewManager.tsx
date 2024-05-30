@@ -127,6 +127,20 @@ export class VirtualizedViewManager {
   private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
 
+  replay_indicators: {
+    current: {
+      ref: HTMLElement | null;
+      timestamp: number | undefined;
+    };
+    hover: {
+      ref: HTMLElement | null;
+      timestamp: number | undefined;
+    };
+  } = {
+    current: {ref: null, timestamp: undefined},
+    hover: {ref: null, timestamp: undefined},
+  };
+
   timers: {
     onFovChange: {id: number} | null;
     onRowIntoView: number | null;
@@ -511,6 +525,17 @@ export class VirtualizedViewManager {
     if (ref) {
       this.timeline_indicators[index] = ref;
       this.drawTimelineInterval(ref, index);
+    }
+  }
+
+  registerReplayTimestamp(
+    ref: HTMLElement | null,
+    timestamp: number,
+    type: 'current' | 'hover'
+  ) {
+    if (ref) {
+      this.replay_indicators[type] = {ref, timestamp};
+      this.drawReplayTimestamp(ref, timestamp);
     }
   }
 
@@ -1412,6 +1437,7 @@ export class VirtualizedViewManager {
     }
 
     this.drawTimelineIntervals();
+    this.drawReplayTimestamps();
   }
 
   // DRAW METHODS
@@ -1471,6 +1497,22 @@ export class VirtualizedViewManager {
         span_arrow.ref.className = 'TraceArrow';
       }
     }
+  }
+
+  drawReplayTimestamps() {
+    const {current, hover} = this.replay_indicators;
+    this.drawReplayTimestamp(current.ref, current.timestamp);
+    this.drawReplayTimestamp(hover.ref, hover.timestamp);
+  }
+
+  drawReplayTimestamp(ref: HTMLElement | null, timestamp: number | undefined) {
+    if (!ref || timestamp === undefined) {
+      return;
+    }
+
+    const placement = this.computeTransformXFromTimestamp(timestamp);
+    ref.style.opacity = '1';
+    ref.style.transform = `translateX(${placement}px)`;
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
