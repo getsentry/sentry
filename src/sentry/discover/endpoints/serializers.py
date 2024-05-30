@@ -253,7 +253,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "project_ids": data["projects"],
             "query": query,
             "version": version,
-            "dataset": dataset,
+            "query_dataset": dataset,
         }
 
     def validate_version_fields(self, version, query):

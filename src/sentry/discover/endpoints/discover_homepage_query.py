@@ -92,7 +92,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             name="",
             query=data["query"],
             version=data["version"],
-            dataset=data["dataset"],
+            dataset=data["query_dataset"],
             created_by_id=request.user.id,
             is_homepage=True,
         )
