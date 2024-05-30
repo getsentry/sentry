@@ -69,12 +69,12 @@ class OrganizationMemberSerializer(Serializer):
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
-            user = users_by_id.get(str(item.user_id), None)
-            user_id = user["id"] if user else ""
+            user_dct = users_by_id.get(str(item.user_id), None)
+            user_id = user_dct["id"] if user_dct else ""
             inviter = inviters_by_id.get(item.inviter_id, None)
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
-                "user": user,
+                "user": user_dct,
                 "externalUsers": external_users,
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
