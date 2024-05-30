@@ -12,7 +12,7 @@ from sentry.models.project import Project
 from sentry.remote_config.storage import make_storage
 
 
-class OptionValidator(Serializer):
+class OptionsValidator(Serializer):
     sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
     traces_sample_rate = serializers.FloatField(max_value=1.0, min_value=0, required=True)
 
@@ -24,8 +24,10 @@ class FeatureValidator(Serializer):
 
 class ConfigurationValidator(Serializer):
     id = serializers.UUIDField(read_only=True)
-    features = serializers.ListSerializer(child=FeatureValidator(), required=True)  # type: ignore[assignment]
-    options = OptionValidator(required=True)  # type: ignore[assignment]
+    features: serializers.ListSerializer = serializers.ListSerializer(
+        child=FeatureValidator(), required=True
+    )
+    options = OptionsValidator(required=True)
 
 
 class ConfigurationContainerValidator(Serializer):
