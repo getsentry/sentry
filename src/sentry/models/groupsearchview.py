@@ -22,7 +22,7 @@ class GroupSearchView(DefaultFieldsModel):
 
     query = models.TextField()
     query_sort = models.CharField(
-        max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices(), null=True
+        max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices()
     )
     position = models.PositiveSmallIntegerField()
 
