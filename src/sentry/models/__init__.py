@@ -53,6 +53,7 @@ from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
+from .groupsearchview import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
@@ -61,7 +62,6 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
-from .issueviews import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
