@@ -221,7 +221,7 @@ export const QUOTA_FIELDS = [
 
 export const SPEND_FIELDS = [
   {
-    name: 'quotaWarnings',
+    name: 'quota',
     label: t('Spend Notifications'),
     help: tct(
       'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
