@@ -2971,7 +2971,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "symbolicator": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/symbolicator:nightly",
+            "image": "us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly",
             "ports": {"3021/tcp": 3021},
             "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
             "command": ["run", "--config", "/etc/symbolicator/config.yml"],
