@@ -181,6 +181,19 @@ def test_customer_domain_path():
             "/settings/acme/developer-settings/release-bot/",
             "/settings/developer-settings/release-bot/",
         ],
+        # Settings views for orgs with acccount/billing in their slugs.
+        ["/settings/account-on/", "/settings/organization/"],
+        ["/settings/billing-co/", "/settings/organization/"],
+        ["/settings/account-on/integrations/", "/settings/integrations/"],
+        [
+            "/settings/account-on/projects/billing-app/source-maps/",
+            "/settings/projects/billing-app/source-maps/",
+        ],
+        ["/settings/billing-co/integrations/", "/settings/integrations/"],
+        [
+            "/settings/billing-co/projects/billing-app/source-maps/",
+            "/settings/projects/billing-app/source-maps/",
+        ],
         # Account settings should stay the same
         ["/settings/account/", "/settings/account/"],
         ["/settings/account/security/", "/settings/account/security/"],
