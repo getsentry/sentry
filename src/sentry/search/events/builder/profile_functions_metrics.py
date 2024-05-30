@@ -1,5 +1,3 @@
-from snuba_sdk import Condition, Granularity
-
 from sentry.search.events.builder import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
@@ -52,8 +50,7 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
 class TimeseriesProfileFunctionsMetricsQueryBuilder(
     ProfileFunctionsMetricsQueryBuilder, TimeseriesMetricQueryBuilder
 ):
-    def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
-        pass
+    pass
 
 
 class TopProfileFunctionsMetricsQueryBuilder(
