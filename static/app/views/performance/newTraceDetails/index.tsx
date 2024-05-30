@@ -95,6 +95,7 @@ function logTraceType(type: TraceType, organization: Organization) {
     case TraceType.ONE_ROOT:
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
+    case TraceType.BROWSER_MULTIPLE_ROOTS:
       traceAnalytics.trackTraceShape(type, organization);
       break;
     default: {
