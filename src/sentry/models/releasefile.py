@@ -43,7 +43,7 @@ ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
 
-class PublicReleaseFileManager(models.Manager):
+class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
     """Manager for all release files that are not internal.
 
     Internal release files include:
