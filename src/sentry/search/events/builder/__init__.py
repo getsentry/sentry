@@ -21,6 +21,11 @@ from .profile_functions import (  # NOQA
     ProfileFunctionsTimeseriesQueryBuilder,
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
+from .profile_functions_metrics import (  # NOQA
+    ProfileFunctionsMetricsQueryBuilder,
+    TimeseriesProfileFunctionsMetricsQueryBuilder,
+    TopProfileFunctionsMetricsQueryBuilder,
+)
 from .profiles import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder  # NOQA
 from .sessions import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder  # NOQA
 from .spans_indexed import (  # NOQA
@@ -54,6 +59,9 @@ __all__ = [
     "ProfileFunctionsQueryBuilder",
     "ProfileFunctionsTimeseriesQueryBuilder",
     "ProfileTopFunctionsTimeseriesQueryBuilder",
+    "ProfileFunctionsMetricsQueryBuilder",
+    "TimeseriesProfileFunctionsMetricsQueryBuilder",
+    "TopProfileFunctionsMetricsQueryBuilder",
     "SessionsV2QueryBuilder",
     "SpansIndexedQueryBuilder",
     "TimeseriesSpanIndexedQueryBuilder",

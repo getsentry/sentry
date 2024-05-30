@@ -8,6 +8,9 @@ TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
 """
+TIMEOUT_SPAN_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or filtering on transaction or tag fields when filtering span data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -341,6 +344,9 @@ SPAN_METRICS_MAP = {
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
+}
+PROFILE_METRICS_MAP = {
+    "function.duration": "d:profiles/function.duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

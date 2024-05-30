@@ -58,8 +58,12 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/performance/cache/settings';
 import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/performance/queues/settings';
-import {MODULE_TITLES} from 'sentry/views/performance/utils/useModuleTitle';
+import {
+  MODULE_TITLES,
+  useModuleTitle,
+} from 'sentry/views/performance/utils/useModuleTitle';
 import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -125,6 +129,7 @@ function Sidebar() {
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -359,7 +364,7 @@ function Sidebar() {
     <Feature key="resource" features="spans-first-ui">
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
+        label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
         id="performance-browser-resources"
         icon={<SubitemDot collapsed />}

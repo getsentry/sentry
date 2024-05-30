@@ -58,7 +58,11 @@ function getPredefinedValues({key}: {key?: Tag}): string[] {
   }
 }
 
-function keySupportsMultipleValues(key: Tag): boolean {
+function keySupportsMultipleValues(key?: Tag): boolean {
+  if (!key) {
+    return true;
+  }
+
   const fieldDef = getFieldDefinition(key.key);
 
   switch (fieldDef?.valueType) {
@@ -238,7 +242,7 @@ export function SearchQueryBuilderValueCombobox({
         onOptionSelected={handleSelectValue}
         onCustomValueSelected={handleSelectValue}
         inputValue={inputValue}
-        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token)}
+        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
