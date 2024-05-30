@@ -16,7 +16,7 @@ type TracePreferencesAction =
   | {payload: boolean; type: 'minimize drawer'};
 
 type TraceDrawerPreferences = {
-  isLayoutEditable: boolean;
+  layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
   sizes: {
     [key in TraceLayoutPreferences]: number;
@@ -45,7 +45,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer right': 0.33,
       'drawer bottom': 0.5,
     },
-    isLayoutEditable: true,
+    layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
   layout: 'drawer right',
   list: {
@@ -84,7 +84,7 @@ export function loadTraceViewPreferences(
       if (
         parsed?.drawer &&
         typeof parsed.drawer.minimized === 'boolean' &&
-        typeof parsed.drawer.isLayoutEditable === 'boolean' &&
+        Array.isArray(parsed.drawer.layoutOptions) &&
         parsed.drawer.sizes &&
         isInt(parsed.drawer.sizes['drawer left']) &&
         isInt(parsed.drawer.sizes['drawer right']) &&

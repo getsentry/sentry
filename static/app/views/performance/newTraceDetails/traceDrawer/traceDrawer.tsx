@@ -417,7 +417,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-          {props.trace_state.preferences.drawer.isLayoutEditable ? (
+          {props.trace_state.preferences.drawer.layoutOptions.length > 0 ? (
             <TraceLayoutButtons
               trace_dispatch={props.trace_dispatch}
               trace_state={props.trace_state}
@@ -542,42 +542,48 @@ function TraceLayoutButtons(props: {
 
   return (
     <TabActions>
-      <TabLayoutControlItem>
-        <TabIconButton
-          active={props.trace_state.preferences.layout === 'drawer left'}
-          onClick={() => {
-            traceAnalytics.trackLayoutChange('drawer left', organization);
-            props.trace_dispatch({type: 'set layout', payload: 'drawer left'});
-          }}
-          size="xs"
-          aria-label={t('Drawer left')}
-          icon={<IconPanel size="xs" direction="left" />}
-        />
-      </TabLayoutControlItem>
-      <TabLayoutControlItem>
-        <TabIconButton
-          active={props.trace_state.preferences.layout === 'drawer bottom'}
-          onClick={() => {
-            traceAnalytics.trackLayoutChange('drawer bottom', organization);
-            props.trace_dispatch({type: 'set layout', payload: 'drawer bottom'});
-          }}
-          size="xs"
-          aria-label={t('Drawer bottom')}
-          icon={<IconPanel size="xs" direction="down" />}
-        />
-      </TabLayoutControlItem>
-      <TabLayoutControlItem>
-        <TabIconButton
-          active={props.trace_state.preferences.layout === 'drawer right'}
-          onClick={() => {
-            traceAnalytics.trackLayoutChange('drawer right', organization);
-            props.trace_dispatch({type: 'set layout', payload: 'drawer right'});
-          }}
-          size="xs"
-          aria-label={t('Drawer right')}
-          icon={<IconPanel size="xs" direction="right" />}
-        />
-      </TabLayoutControlItem>
+      {props.trace_state.preferences.drawer.layoutOptions.includes('drawer left') ? (
+        <TabLayoutControlItem>
+          <TabIconButton
+            active={props.trace_state.preferences.layout === 'drawer left'}
+            onClick={() => {
+              traceAnalytics.trackLayoutChange('drawer left', organization);
+              props.trace_dispatch({type: 'set layout', payload: 'drawer left'});
+            }}
+            size="xs"
+            aria-label={t('Drawer left')}
+            icon={<IconPanel size="xs" direction="left" />}
+          />
+        </TabLayoutControlItem>
+      ) : null}
+      {props.trace_state.preferences.drawer.layoutOptions.includes('drawer bottom') ? (
+        <TabLayoutControlItem>
+          <TabIconButton
+            active={props.trace_state.preferences.layout === 'drawer bottom'}
+            onClick={() => {
+              traceAnalytics.trackLayoutChange('drawer bottom', organization);
+              props.trace_dispatch({type: 'set layout', payload: 'drawer bottom'});
+            }}
+            size="xs"
+            aria-label={t('Drawer bottom')}
+            icon={<IconPanel size="xs" direction="down" />}
+          />
+        </TabLayoutControlItem>
+      ) : null}
+      {props.trace_state.preferences.drawer.layoutOptions.includes('drawer right') ? (
+        <TabLayoutControlItem>
+          <TabIconButton
+            active={props.trace_state.preferences.layout === 'drawer right'}
+            onClick={() => {
+              traceAnalytics.trackLayoutChange('drawer right', organization);
+              props.trace_dispatch({type: 'set layout', payload: 'drawer right'});
+            }}
+            size="xs"
+            aria-label={t('Drawer right')}
+            icon={<IconPanel size="xs" direction="right" />}
+          />
+        </TabLayoutControlItem>
+      ) : null}
     </TabActions>
   );
 }

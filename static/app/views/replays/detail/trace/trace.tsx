@@ -87,7 +87,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer right': 0.33,
       'drawer bottom': 0.4,
     },
-    isLayoutEditable: false,
+    layoutOptions: [],
   },
   layout: 'drawer bottom',
   list: {
