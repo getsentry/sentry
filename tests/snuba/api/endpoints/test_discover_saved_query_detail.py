@@ -164,7 +164,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
                     "conditions": [],
                     "aggregations": [],
                     "orderby": "-time",
-                    "dataset": "transaction-like",
+                    "queryDataset": "transaction-like",
                 },
             )
 
@@ -174,7 +174,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["fields"] == []
         assert response.data["conditions"] == []
         assert response.data["limit"] == 20
-        assert response.data["dataset"] == "transaction-like"
+        assert response.data["queryDataset"] == "transaction-like"
 
     def test_dataset_set_to_discover_on_update(self):
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
@@ -207,7 +207,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(model.id)
-        assert response.data["dataset"] == "discover"
+        assert response.data["queryDataset"] == "discover"
 
     def test_put_with_interval(self):
         with self.feature(self.feature_name):

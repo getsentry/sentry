@@ -55,7 +55,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
             "version": obj.version or obj.query.get("version", 1),
-            "dataset": DiscoverSavedQueryTypes.get_type_name(obj.dataset),
+            "queryDataset": DiscoverSavedQueryTypes.get_type_name(obj.dataset),
             "expired": False,
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,

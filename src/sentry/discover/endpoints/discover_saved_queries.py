@@ -141,6 +141,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             version=data["version"],
+            dataset=data["dataset"],
             created_by_id=request.user.id if request.user.is_authenticated else None,
         )
 

@@ -146,7 +146,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
 class DiscoverSavedQuerySerializer(serializers.Serializer):
     name = serializers.CharField(required=True, max_length=255)
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
-    dataset = serializers.ChoiceField(
+    queryDataset = serializers.ChoiceField(
         choices=DiscoverSavedQueryTypes.as_text_choices(),
         default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.DISCOVER),
     )
@@ -246,7 +246,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
-        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(data["dataset"])
+        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(data["queryDataset"])
 
         return {
             "name": data["name"],
