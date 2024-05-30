@@ -3,7 +3,7 @@ from typing import TypedDict
 
 from sentry import options
 from sentry.models.files.utils import get_storage
-from sentry.models.projectkey import ProjectKey
+from sentry.models.project import Project
 from sentry.utils import json
 
 JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]
@@ -12,23 +12,26 @@ JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSO
 class Options(TypedDict):
     sample_rate: float
     traces_sample_rate: float
-    user_config: JSONValue
+
+
+class Feature(TypedDict):
+    key: str
+    value: JSONValue
 
 
 class StorageFormat(TypedDict):
+    features: list[Feature]
     options: Options
     version: int
 
 
 class APIFormat(TypedDict):
-    id: str
-    sample_rate: float
-    traces_sample_rate: float
-    user_config: JSONValue
+    features: list[Feature]
+    options: Options
 
 
 class StorageBackend:
-    def __init__(self, key: ProjectKey) -> None:
+    def __init__(self, key: Project) -> None:
         self.driver = BlobDriver(key)
         self.key = key
 
@@ -45,35 +48,26 @@ class StorageBackend:
         self.driver.pop()
 
     def _deserialize(self, result: StorageFormat) -> APIFormat:
-        assert self.key.public_key is not None
         return {
-            "id": self.key.public_key,
-            "sample_rate": result["options"]["sample_rate"],
-            "traces_sample_rate": result["options"]["traces_sample_rate"],
-            "user_config": result["options"]["user_config"],
+            "features": result["features"],
+            "options": result["options"],
         }
 
     def _serialize(self, result: APIFormat) -> StorageFormat:
         return {
-            "options": {
-                "sample_rate": result["sample_rate"],
-                "traces_sample_rate": result["traces_sample_rate"],
-                "user_config": result["user_config"],
-            },
+            "features": result["features"],
+            "options": result["options"],
             "version": 1,
         }
 
 
 class BlobDriver:
-    def __init__(self, project_key: ProjectKey) -> None:
-        self.project_key = project_key
+    def __init__(self, project: Project) -> None:
+        self.project = project
 
     @property
     def key(self):
-        assert self.project_key.public_key is not None
-        return (
-            f"configurations/{self.project_key.project_id}/{self.project_key.public_key}/production"
-        )
+        return f"configurations/{self.project.id}/production"
 
     @property
     def storage(self):
@@ -111,5 +105,5 @@ class BlobDriver:
             return None
 
 
-def make_storage(key: ProjectKey):
+def make_storage(key: Project):
     return StorageBackend(key)
