@@ -13,6 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
@@ -68,6 +69,7 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
@@ -76,6 +78,11 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
     ...(startType === COLD_START_TYPE ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
     ...(additionalFilters ?? []),
   ]);
+
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
+
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const {

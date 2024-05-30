@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
@@ -159,14 +158,11 @@ export function getCurlCommand(data: EntryRequest['data']) {
       default:
         if (typeof data.data === 'string') {
           result += ' \\\n --data "' + escapeBashString(data.data) + '"';
-        } else if (Object.keys(data.data).length === 0) {
-          // Do nothing with empty object data.
-        } else {
-          Sentry.withScope(scope => {
-            scope.setExtra('data', data);
-            Sentry.captureException(new Error('Unknown event data'));
-          });
         }
+      // It is common for `data.inferredContentType` to be
+      // "multipart/form-data" or "null", in which case, we do not attempt to
+      // serialize the `data.data` object as port of the cURL command.
+      // See https://github.com/getsentry/sentry/issues/71456
     }
   }
 

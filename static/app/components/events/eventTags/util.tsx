@@ -1,9 +1,6 @@
 import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-
 export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
 export enum TagFilter {
@@ -153,16 +150,6 @@ export function getSentryDefaultTags() {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set/union
     (result, s) => new Set([...result, ...s]),
     new Set([])
-  );
-}
-
-export function useHasNewTagsUI() {
-  const location = useLocation();
-  const organization = useOrganization();
-  return (
-    location.query.tagsTree === '1' ||
-    location.query.traceView === '1' ||
-    organization.features.includes('event-tags-tree-ui')
   );
 }
 

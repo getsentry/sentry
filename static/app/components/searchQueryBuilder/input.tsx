@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {getFocusableTreeWalker} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
@@ -11,6 +10,7 @@ import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
+import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
 import type {
   ParseResultToken,
   Token,
@@ -227,7 +227,11 @@ function SearchQueryBuilderInputInternal({
       token={token}
       inputLabel={t('Add a search term')}
       onInputChange={e => {
-        if (e.target.value.includes(':')) {
+        if (
+          e.target.value.includes(':') ||
+          e.target.value.includes('(') ||
+          e.target.value.includes(')')
+        ) {
           dispatch({type: 'UPDATE_FREE_TEXT', token, text: e.target.value});
           resetInputValue();
         } else {
@@ -260,26 +264,12 @@ export function SearchQueryBuilderInput({
   const ref = useRef<HTMLDivElement>(null);
 
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
-
-  const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
-      // Ensure that the state is updated correctly
-      state.selectionManager.setFocusedKey(item.key);
-
-      // When this row gains focus, immediately shift focus to the input
-      const walker = getFocusableTreeWalker(e.currentTarget);
-      const nextNode = walker.nextNode();
-      if (nextNode) {
-        (nextNode as HTMLElement).focus();
-      }
-    },
-    [item.key, state.selectionManager]
-  );
+  const {shiftFocusProps} = useShiftFocusToChild(item, state);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   return (
-    <Row {...mergeProps(rowProps, {onFocus})} ref={ref} tabIndex={-1}>
+    <Row {...mergeProps(rowProps, shiftFocusProps)} ref={ref} tabIndex={-1}>
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
         <SearchQueryBuilderInputInternal
           item={item}
@@ -295,7 +285,7 @@ export function SearchQueryBuilderInput({
 const Row = styled('div')`
   display: flex;
   align-items: stretch;
-  height: 22px;
+  height: 24px;
 `;
 
 const GridCell = styled('div')`
