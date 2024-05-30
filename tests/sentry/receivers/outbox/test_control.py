@@ -1,10 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
 from sentry.receivers.outbox.control import (
     process_api_application_updates,
     process_integration_updates,
+    process_sentry_app_updates,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -33,4 +34,28 @@ class ProcessControlOutboxTest(TestCase):
         )
         mock_maybe_process.assert_called_with(
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
+        )
+
+    @patch("sentry.receivers.outbox.control.region_caching_service")
+    def test_process_sentry_app_updates(self, mock_caching):
+        org = self.create_organization()
+        sentry_app = self.create_sentry_app()
+        install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)
+
+        org_two = self.create_organization()
+        install_two = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=org_two
+        )
+
+        process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_REGION.name)
+        calls = mock_caching.clear_key.mock_calls
+        assert len(calls) == 3
+        assert calls[0] == call(
+            key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
+        )
+        assert calls[1] == call(
+            key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
+        )
+        assert calls[2] == call(
+            key=f"app_service.get_installation:{install_two.id}", region_name=_TEST_REGION.name
         )

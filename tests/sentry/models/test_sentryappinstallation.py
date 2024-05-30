@@ -1,3 +1,6 @@
+from unittest import mock
+
+import sentry.hybridcloud.rpc.services.caching as caching_module
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
@@ -44,3 +47,12 @@ class SentryAppInstallationTest(TestCase):
         assert self.install in SentryAppInstallation.objects.filter(
             organization_id=self.install.organization_id
         )
+
+    def test_handle_async_replication_clears_region_cache(self):
+        with mock.patch.object(caching_module, "region_caching_service") as mock_caching_service:
+            self.install.save()
+            calls = mock_caching_service.clear_key.mock_calls
+            assert len(calls)
+            assert calls[0].kwargs["key"] == f"app_service.get_installation:{self.install.id}"
+            # region name is random in this test
+            assert "region_name" in calls[0].kwargs

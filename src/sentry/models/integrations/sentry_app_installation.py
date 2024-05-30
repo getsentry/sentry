@@ -199,11 +199,17 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.services.hybrid_cloud.app.service import get_installation
+
         if self.api_token is not None:
             # ApiTokens replicate the organization_id they are associated with.
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
+        region_caching_service.clear_key(
+            key=get_installation.key_from(shard_identifier), region_name=region_name
+        )
 
     @classmethod
     def handle_async_deletion(
