@@ -10,7 +10,6 @@ from typing import Any, TypeVar
 from celery import current_task
 from django.db.models import Model
 
-from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
@@ -92,13 +91,17 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     - disabling of result collection.
     """
 
-    # Use option to control default behavior of queue time monitoring
-    # Value can be dynamically updated, which is why the evaluation happens during function run-time
-    record_timing = record_timing or options.get("sentry-metrics.monitor-queue-time")
-
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            from sentry import options
+
+            # Use option to control default behavior of queue time monitoring
+            # Value can be dynamically updated, which is why the evaluation happens during function run-time
+            record_queue_wait_time = record_timing or options.get(
+                "sentry-metrics.monitor-queue-time"
+            )
+
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)
@@ -110,7 +113,7 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
             else:
                 instance = name
 
-            if start_time and record_timing:
+            if start_time and record_queue_wait_time:
                 curr_time = datetime.now().timestamp()
                 duration = (curr_time - start_time) * 1000
                 metrics.distribution(
