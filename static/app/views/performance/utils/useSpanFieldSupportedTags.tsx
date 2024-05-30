@@ -5,10 +5,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const getSpanFieldSupportedTags = omitSupportedTags => {
+const getSpanFieldSupportedTags = excludedTags => {
   const tags: TagCollection = Object.fromEntries(
     Object.values(SpanIndexedField)
-      .filter(v => !omitSupportedTags.includes(v))
+      .filter(v => !excludedTags.includes(v))
       .map(v => [v, {key: v, name: v}])
   );
   tags.has = getHasTag(tags);
