@@ -12,6 +12,10 @@ type QueryBuilderState = {
   query: string;
 };
 
+type ClearAction = {type: 'CLEAR'};
+
+type UpdateQueryAction = {query: string; type: 'UPDATE_QUERY'};
+
 type DeleteTokenAction = {
   token: ParseResultToken;
   type: 'DELETE_TOKEN';
@@ -47,6 +51,8 @@ type DeleteLastMultiSelectFilterValueAction = {
 };
 
 export type QueryBuilderActions =
+  | ClearAction
+  | UpdateQueryAction
   | DeleteTokenAction
   | UpdateFreeTextAction
   | UpdateFilterOpAction
@@ -68,14 +74,11 @@ function modifyFilterOperator(
 ): string {
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
-  token.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
-  token.negated = isNotEqual;
+  const newToken: TokenResult<Token.FILTER> = {...token};
+  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  newToken.negated = isNotEqual;
 
-  return (
-    query.substring(0, token.location.start.offset) +
-    stringifyToken(token) +
-    query.substring(token.location.end.offset)
-  );
+  return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function replaceQueryToken(
@@ -184,6 +187,14 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       switch (action.type) {
+        case 'CLEAR':
+          return {
+            query: '',
+          };
+        case 'UPDATE_QUERY':
+          return {
+            query: action.query,
+          };
         case 'DELETE_TOKEN':
           return {
             query: removeQueryToken(state.query, action.token),

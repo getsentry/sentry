@@ -1553,8 +1553,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable the Event Tags Tree UI feature
-    "organizations:event-tags-tree-ui": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1637,6 +1635,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-new-events-graph": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
+    # Enable the new issue stream search bar UI
+    "organizations:issue-stream-search-query-builder": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable metric alert charts in email/slack
@@ -1866,8 +1866,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
     "organizations:settings-legal-tos-ui": False,
-    # Enable the UI for the overage alert settings
-    "organizations:slack-overage-notifications": False,
     # Enable the UI for user spend notification settings
     "organizations:user-spend-notifications-settings": False,
     # Enable Slack messages using Block Kit
