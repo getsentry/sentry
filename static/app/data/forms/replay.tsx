@@ -16,6 +16,15 @@ const formGroups: JsonFormObject[] = [
         help: t('Toggles whether or not to create Session Replay Rage Click Issues'),
         getData: data => ({options: data}),
       },
+      {
+        name: 'sentry:replay_hydration_error_issues',
+        type: 'boolean',
+
+        // additional data/props that is related to rendering of form field rather than data
+        label: t('Create Hydration Error Issues'),
+        help: t('Toggles whether or not to create Session Replay Hydration Error Issues'),
+        getData: data => ({options: data}),
+      },
     ],
   },
 ];
