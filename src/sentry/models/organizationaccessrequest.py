@@ -54,6 +54,7 @@ class OrganizationAccessRequest(Model):
             requester = user_service.get_user(user_id=self.requester_id)
             if not requester:
                 return
+            context.update({"requester": requester.get_display_name()})
 
         msg = MessageBuilder(
             subject="Sentry Access Request",
