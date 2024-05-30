@@ -130,7 +130,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
 
 const IssueTitle = styled('div')`
   font-size: 1.1em;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis};
 `;
 

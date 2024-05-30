@@ -427,7 +427,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;

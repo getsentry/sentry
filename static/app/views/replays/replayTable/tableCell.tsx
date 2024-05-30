@@ -424,9 +424,9 @@ const MainLink = styled(Link)`
   line-height: normal;
   ${p => p.theme.overflowEllipsis};
 
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   &[data-has-viewed='true'] {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
 

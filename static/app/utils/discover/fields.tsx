@@ -10,8 +10,8 @@ import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/starfish/types';
+import {STARFISH_FIELDS} from 'sentry/views/starfish/utils/constants';
 
 import {
   AGGREGATION_FIELDS,

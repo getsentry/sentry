@@ -848,6 +848,9 @@ CELERY_QUEUES_REGION = [
     Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
     Queue("delayed_rules", routing_key="delayed_rules"),
+    Queue(
+        "delete_seer_grouping_records_by_hash", routing_key="delete_seer_grouping_records_by_hash"
+    ),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
@@ -1550,8 +1553,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable the Event Tags Tree UI feature
-    "organizations:event-tags-tree-ui": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1634,6 +1635,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-new-events-graph": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
+    # Enable the new issue stream search bar UI
+    "organizations:issue-stream-search-query-builder": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable metric alert charts in email/slack
@@ -1699,6 +1702,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable Discover Saved Query dataset selector
+    "organizations:performance-discover-dataset-selector": False,
     # Enable UI sending a discover split for widget
     "organizations:performance-discover-widget-split-ui": False,
     # Enable backend overriding and always making a fresh split decision
@@ -1821,6 +1826,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sdk-crash-detection": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
+    # Enable core remote-config backend APIs
+    "organizations:remote-config": False,
     # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
     # Enable the Replay Details > Accessibility tab
@@ -1859,8 +1866,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:set-grouping-config": False,
     # Enable the UI for updated terms of service
     "organizations:settings-legal-tos-ui": False,
-    # Enable the UI for the overage alert settings
-    "organizations:slack-overage-notifications": False,
     # Enable the UI for user spend notification settings
     "organizations:user-spend-notifications-settings": False,
     # Enable Slack messages using Block Kit
@@ -1902,6 +1907,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
     "organizations:starfish-browser-webvitals-score-computed-total": False,
+    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
+    "organizations:performance-webvitals-avg": False,
     # Rename current Performance modules to "Insights"
     "organizations:performance-insights": False,
     # Enable queues module ui
@@ -3704,6 +3711,8 @@ SEER_GROUPING_TIMEOUT = 1
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
+SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3987,6 +3996,7 @@ SEER_GROUPING_RECORDS_URL = (
 SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
+
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

@@ -210,8 +210,8 @@ function TableView(props: TableViewProps) {
 
         target = {
           // NOTE: This uses a legacy redirect for project event to the issue group event link
-          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/?referrer=discover-events-table`,
-          query: location.query,
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
+          query: {...location.query, referrer: 'discover-events-table'},
         };
       }
 
@@ -338,8 +338,8 @@ function TableView(props: TableViewProps) {
 
         target = {
           // NOTE: This uses a legacy redirect for project event to the issue group event link
-          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/?referrer=discover-events-table`,
-          query: location.query,
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
+          query: {...location.query, referrer: 'discover-events-table'},
         };
       }
 
