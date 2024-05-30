@@ -1,3 +1,8 @@
+import {useCallback} from 'react';
+import {getFocusableTreeWalker} from '@react-aria/focus';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
+
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -8,6 +13,8 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {escapeDoubleQuotes} from 'sentry/utils';
+
+export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
 /**
  * Generates a unique key for the given token.
@@ -106,4 +113,36 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
     default:
       return token.text;
   }
+}
+
+export function shiftFocusToChild(
+  element: HTMLElement,
+  item: Node<ParseResultToken>,
+  state: ListState<ParseResultToken>
+) {
+  // Ensure that the state is updated correctly
+  state.selectionManager.setFocusedKey(item.key);
+
+  // When this row gains focus, immediately shift focus to the input
+  const walker = getFocusableTreeWalker(element);
+  const nextNode = walker.nextNode();
+  if (nextNode) {
+    (nextNode as HTMLElement).focus();
+  }
+}
+
+export function useShiftFocusToChild(
+  item: Node<ParseResultToken>,
+  state: ListState<ParseResultToken>
+) {
+  const onFocus = useCallback(
+    (e: React.FocusEvent<HTMLDivElement, Element>) => {
+      shiftFocusToChild(e.currentTarget, item, state);
+    },
+    [item, state]
+  );
+
+  return {
+    shiftFocusProps: {onFocus},
+  };
 }

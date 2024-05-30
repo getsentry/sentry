@@ -1,9 +1,5 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {AriaGridListOptions} from '@react-aria/gridlist';
-import {Item} from '@react-stately/collections';
-import {useListState} from '@react-stately/list';
-import type {CollectionChildren} from '@react-types/shared';
 
 import {Button} from 'sentry/components/button';
 import {inputStyles} from 'sentry/components/input';
@@ -11,25 +7,22 @@ import {
   SearchQueryBuilerContext,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
-import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
-import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
+import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
+import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
+import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {
   collapseTextTokens,
-  makeTokenKey,
+  INTERFACE_TYPE_LOCALSTORAGE_KEY,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {
-  type ParseResultToken,
-  parseSearch,
-  Token,
-} from 'sentry/components/searchSyntax/parser';
-import {IconClose, IconSearch} from 'sentry/icons';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import {IconClose, IconSearch, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 interface SearchQueryBuilderProps {
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
@@ -39,56 +32,35 @@ interface SearchQueryBuilderProps {
   onChange?: (query: string) => void;
 }
 
-interface GridProps extends AriaGridListOptions<ParseResultToken> {
-  children: CollectionChildren<ParseResultToken>;
-  items: ParseResultToken[];
-}
-
-function Grid(props: GridProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const state = useListState<ParseResultToken>(props);
-  const {gridProps} = useQueryBuilderGrid(props, state, ref);
-
-  return (
-    <SearchQueryGridWrapper {...gridProps} ref={ref}>
-      <PositionedSearchIcon size="sm" />
-      {[...state.collection].map(item => {
-        const token = item.value;
-
-        switch (token?.type) {
-          case Token.FILTER:
-            return (
-              <SearchQueryBuilderFilter
-                key={item.key}
-                token={token}
-                item={item}
-                state={state}
-              />
-            );
-          case Token.FREE_TEXT:
-          case Token.SPACES:
-            return (
-              <SearchQueryBuilderInput
-                key={item.key}
-                token={token}
-                item={item}
-                state={state}
-              />
-            );
-          // TODO(malwilley): Add other token types
-          default:
-            return null;
-        }
-      })}
-    </SearchQueryGridWrapper>
-  );
-}
-
 function ActionButtons() {
-  const {dispatch} = useSearchQueryBuilder();
+  const {parsedQuery, dispatch} = useSearchQueryBuilder();
+  const [queryInterface, setQueryInterface] = useSyncedLocalStorageState(
+    INTERFACE_TYPE_LOCALSTORAGE_KEY,
+    QueryInterfaceType.TOKENIZED
+  );
+
+  const interfaceToggleText =
+    queryInterface === QueryInterfaceType.TEXT
+      ? t('Switch to tokenized search')
+      : t('Switch to plain text');
 
   return (
     <ButtonsWrapper>
+      <ActionButton
+        title={interfaceToggleText}
+        aria-label={interfaceToggleText}
+        size="zero"
+        icon={<IconSync />}
+        borderless
+        onClick={() =>
+          setQueryInterface(
+            queryInterface === QueryInterfaceType.TEXT
+              ? QueryInterfaceType.TOKENIZED
+              : QueryInterfaceType.TEXT
+          )
+        }
+        disabled={!parsedQuery}
+      />
       <ActionButton
         aria-label={t('Clear search query')}
         size="zero"
@@ -108,9 +80,13 @@ export function SearchQueryBuilder({
   onChange,
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
+  const [queryInterface] = useSyncedLocalStorageState(
+    INTERFACE_TYPE_LOCALSTORAGE_KEY,
+    QueryInterfaceType.TOKENIZED
+  );
 
   const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ')),
+    () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),
     [state.query]
   );
 
@@ -128,21 +104,16 @@ export function SearchQueryBuilder({
     };
   }, [state, parsedQuery, supportedKeys, getTagValues, dispatch]);
 
-  if (!parsedQuery) {
-    return null;
-  }
-
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
         <Wrapper>
-          <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
-            {item => (
-              <Item key={makeTokenKey(item, parsedQuery)}>
-                {item.text.trim() ? item.text : t('Space')}
-              </Item>
-            )}
-          </Grid>
+          <PositionedSearchIcon size="sm" />
+          {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
+            <PlainTextQueryInput label={label} />
+          ) : (
+            <TokenizedQueryGrid label={label} />
+          )}
           <ActionButtons />
         </Wrapper>
       </PanelProvider>
@@ -151,21 +122,13 @@ export function SearchQueryBuilder({
 }
 
 const Wrapper = styled('div')`
+  ${inputStyles}
+  min-height: 38px;
+  padding: 0;
+  height: auto;
   width: 100%;
   position: relative;
-`;
-
-const SearchQueryGridWrapper = styled('div')`
-  ${inputStyles}
-  height: auto;
-  position: relative;
-
-  display: flex;
-  align-items: stretch;
-  row-gap: ${space(0.5)};
-  flex-wrap: wrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(0.75)} 36px ${space(0.75)} 36px;
   cursor: text;
 
   :focus-within {
@@ -180,6 +143,7 @@ const ButtonsWrapper = styled('div')`
   top: 9px;
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const ActionButton = styled(Button)`

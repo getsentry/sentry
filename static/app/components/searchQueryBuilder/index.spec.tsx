@@ -9,8 +9,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
+import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 const MOCK_SUPPORTED_KEYS: TagCollection = {
   [FieldKey.AGE]: {
@@ -37,6 +40,10 @@ const MOCK_SUPPORTED_KEYS: TagCollection = {
 };
 
 describe('SearchQueryBuilder', function () {
+  beforeEach(() => {
+    localStorageWrapper.clear();
+  });
+
   afterEach(function () {
     jest.restoreAllMocks();
   });
@@ -67,6 +74,64 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
+    });
+
+    it('can switch between interfaces', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Displays in tokenized mode by default
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Switch to plain text'}));
+
+      // No longer displays tokens, has an input instead
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
+
+      // Switching back should restore the tokens
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Switch to tokenized search'})
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('plain text interface', function () {
+    beforeEach(() => {
+      localStorageWrapper.setItem(
+        INTERFACE_TYPE_LOCALSTORAGE_KEY,
+        JSON.stringify(QueryInterfaceType.TEXT)
+      );
+    });
+
+    it('can change the query by typing', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
+      await userEvent.type(screen.getByRole('textbox'), ' assigned:me');
+
+      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox assigned:me');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenLastCalledWith('browser.name:firefox assigned:me');
+      });
     });
   });
 
@@ -247,6 +312,15 @@ describe('SearchQueryBuilder', function () {
         ).getByText('some" value')
       ).toBeInTheDocument();
     });
+
+    it('can remove parens by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete ('}));
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
   });
 
   describe('new search tokens', function () {
@@ -332,6 +406,15 @@ describe('SearchQueryBuilder', function () {
 
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+    });
+
+    it('can add parens by typing', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('(');
+
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
     });
   });
 
@@ -448,6 +531,17 @@ describe('SearchQueryBuilder', function () {
       // Shift-tabbing should exit the component
       await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
       expect(document.body).toHaveFocus();
+    });
+
+    it('can remove parens with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
   });
 });
