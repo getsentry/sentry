@@ -73,7 +73,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "race-free-group-creation",
     "first-event-severity-new-escalation",
     "first-event-severity-calculation",
-    "first-event-severity-alerting",
     "alert-filters",
     "servicehooks",
 }
