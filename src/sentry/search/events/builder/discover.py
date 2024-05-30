@@ -262,7 +262,10 @@ class BaseQueryBuilder:
         self.turbo = turbo
         self.sample_rate = sample_rate
 
+        self.config_parsed: bool = False
         self.load_config()
+        if not self.config_parsed:
+            raise Exception("Setup failed, dataset config was not parsed")
 
         self.start: datetime | None = None
         self.end: datetime | None = None
@@ -332,6 +335,7 @@ class BaseQueryBuilder:
         self.function_converter = self.config.function_converter
         self.search_filter_converter = self.config.search_filter_converter
         self.orderby_converter = self.config.orderby_converter
+        self.config_parsed = True
 
     @abc.abstractmethod
     def load_config(self) -> None:

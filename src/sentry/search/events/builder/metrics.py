@@ -149,6 +149,8 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
+        self.parse_config(self.config)
+
     @property
     def use_default_tags(self) -> bool:
         if self._use_default_tags is None:
