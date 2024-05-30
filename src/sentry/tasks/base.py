@@ -10,6 +10,7 @@ from typing import Any, TypeVar
 from celery import current_task
 from django.db.models import Model
 
+from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
@@ -90,6 +91,10 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     - hybrid cloud silo restrictions
     - disabling of result collection.
     """
+
+    # Use option to control default behavior of queue time monitoring
+    # Value can be dynamically updated, which is why the evaluation happens during function run-time
+    record_timing = record_timing or options.get("sentry-metrics.monitor-queue-time")
 
     def wrapped(func):
         @wraps(func)
