@@ -1889,6 +1889,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # A single flag for all the new performance UI that relies on span ingestion
     "organizations:spans-first-ui": False,
+    # Show links and upsells to Insights modules
+    "organizations:insights-entry-points": False,
+    # Enable access to initial Insights modules (Queries, Requests, Vitals, App Starts, Page Loads, Resources)
+    "organizations:insights-initial-modules": False,
+    # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
+    "organizations:insights-addon-modules": False,
     # Measure usage by spans instead of transactions
     "organizations:spans-usage-tracking": False,
     # Enable the aggregate span waterfall view
