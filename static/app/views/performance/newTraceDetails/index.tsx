@@ -324,7 +324,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return loadingTrace;
     }
 
-    if (props.trace && props.status === 'success') {
+    if (props.trace) {
       return TraceTree.FromTrace(props.trace, replay?.getReplay());
     }
 

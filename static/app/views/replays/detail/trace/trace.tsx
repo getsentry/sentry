@@ -27,7 +27,6 @@ import {hasTraceData} from 'sentry/views/performance/traceDetails/utils';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
-  type ExternalState,
   useFetchTransactions,
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
@@ -129,15 +128,6 @@ function Trace({replayRecord}: Props) {
 
   useFetchTransactions();
 
-  if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
-    // Show the blank screen until we start fetching, thats when you get a spinner
-    return (
-      <StyledPlaceholder height="100%">
-        {isFetching ? <Loading /> : null}
-      </StyledPlaceholder>
-    );
-  }
-
   if (errors.length) {
     // Same style as <EmptyStateWarning>
     return (
@@ -147,6 +137,15 @@ function Trace({replayRecord}: Props) {
           <p>{t('Unable to retrieve traces')}</p>
         </EmptyState>
       </BorderedSection>
+    );
+  }
+
+  if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
+    // Show the blank screen until we start fetching, thats when you get a spinner
+    return (
+      <StyledPlaceholder height="100%">
+        {isFetching ? <Loading /> : null}
+      </StyledPlaceholder>
     );
   }
 
@@ -164,7 +163,7 @@ function Trace({replayRecord}: Props) {
       <TraceConfigurationsContext.Provider value={traceConfigurations}>
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
-            status={getTraceStatus({errors, isFetching, traces, didInit})}
+            status={errors.length > 0 ? 'error' : isFetching ? 'loading' : 'success'}
             trace={traceSplitResults}
             traceSlug="Replay"
             organization={organization}
@@ -208,20 +207,6 @@ const OverflowScrollBorderedSection = styled(BorderedSection)`
     border: none;
   }
 `;
-
-function getTraceStatus(traceState: ExternalState) {
-  const {errors, isFetching} = traceState;
-
-  if (errors.length > 0) {
-    return 'error';
-  }
-
-  if (isFetching) {
-    return 'loading';
-  }
-
-  return 'success';
-}
 
 const TraceViewWaterfallWrapper = styled('div')`
   display: flex;
