@@ -16,10 +16,10 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
         if api_token.hashed_token is None:
             hashed_token = hashlib.sha256(api_token.token.encode()).hexdigest()
 
-            # if there's a refresh token make sure it is hashed as well
-            hashed_refresh_token = None
-            if api_token.refresh_token:
-                hashed_refresh_token = hashlib.sha256(api_token.refresh_token.encode()).hexdigest()
+        # if there's a refresh token make sure it is hashed as well
+        hashed_refresh_token = None
+        if api_token.refresh_token:
+            hashed_refresh_token = hashlib.sha256(api_token.refresh_token.encode()).hexdigest()
 
             api_token.hashed_token = hashed_token
             api_token.hashed_refresh_token = hashed_refresh_token
