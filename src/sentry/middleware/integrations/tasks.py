@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.CONTROL,
     max_retries=2,
     default_retry_delay=5,
+    record_timing=True,
 )
 def convert_to_async_slack_response(
     region_names: list[str],

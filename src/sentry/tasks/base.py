@@ -94,6 +94,21 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            record_queue_wait_time = record_timing
+
+            # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
+            # Unhandled exception could cause all tasks to be effected and not work
+            try:
+                from sentry import options
+
+                # Use option to control default behavior of queue time monitoring
+                # Value can be dynamically updated, which is why the evaluation happens during function run-time
+                record_queue_wait_time = record_queue_wait_time or options.get(
+                    "sentry-metrics.monitor-queue-time"
+                )
+            except Exception:
+                pass
+
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)
@@ -105,7 +120,7 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
             else:
                 instance = name
 
-            if start_time and record_timing:
+            if start_time and record_queue_wait_time:
                 curr_time = datetime.now().timestamp()
                 duration = (curr_time - start_time) * 1000
                 metrics.distribution(
