@@ -34,7 +34,7 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
 
     @property
     def use_default_tags(self) -> bool:
-        return False
+        return True
 
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
