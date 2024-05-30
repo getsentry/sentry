@@ -18,6 +18,19 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
         # (function name) when the user performs a free text search
         "message": "name",
     }
+    default_metric_tags = {
+        "project_id",
+        "transaction",
+        "fingerprint",
+        "name",
+        "package",
+        "is_application",
+        "platform",
+        "environment",
+        "release",
+        "os_name",
+        "os_version",
+    }
 
     @property
     def use_default_tags(self) -> bool:
@@ -40,8 +53,7 @@ class TimeseriesProfileFunctionsMetricsQueryBuilder(
     ProfileFunctionsMetricsQueryBuilder, TimeseriesMetricQueryBuilder
 ):
     def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
-        """Don't do this for timeseries"""
-        return [], self.granularity
+        pass
 
 
 class TopProfileFunctionsMetricsQueryBuilder(

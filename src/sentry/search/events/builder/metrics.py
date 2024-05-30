@@ -82,6 +82,7 @@ class MetricsQueryBuilder(QueryBuilder):
     organization_column: str = "organization_id"
 
     column_remapping = {}
+    default_metric_tags = constants.DEFAULT_METRIC_TAGS
 
     def __init__(
         self,
@@ -670,7 +671,7 @@ class MetricsQueryBuilder(QueryBuilder):
         value = self.column_remapping.get(value, value)
 
         if self.use_default_tags:
-            if value in constants.DEFAULT_METRIC_TAGS:
+            if value in self.default_metric_tags:
                 return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
