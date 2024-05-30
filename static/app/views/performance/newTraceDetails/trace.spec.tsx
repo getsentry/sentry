@@ -285,7 +285,7 @@ async function pageloadTestSetup() {
   mockTraceEventDetails();
   mockMetricsResponse();
 
-  const value = render(<TraceView />);
+  const value = render(<TraceView />, {context: routerContext});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
