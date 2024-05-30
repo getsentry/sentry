@@ -13,4 +13,8 @@ source "${HERE}/lib.sh"
 # a venv can avoid enabling this by setting SENTRY_NO_VENV_CHECK
 [ -z "${SENTRY_NO_VENV_CHECK+x}" ] && eval "${HERE}/ensure-venv.sh"
 # If you call this script
+start=`date +%s`
 "$@"
+end=`date +%s`
+duration=$(($end-$start))
+sentry-cli send-metric distribution -n script_execution_time -v $duration -u second -t script:$1
