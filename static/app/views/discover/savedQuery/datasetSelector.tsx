@@ -22,7 +22,10 @@ export function DatasetSelector(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const value = decodeScalar(location.query[DATASET_PARAM]) ?? 'error-events';
+  const value =
+    decodeScalar(location.query[DATASET_PARAM]) ??
+    savedQuery?.queryDataset ??
+    'error-events';
 
   const options = [
     {value: 'error-events', label: t('Errors')},

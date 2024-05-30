@@ -306,6 +306,7 @@ export class Results extends Component<Props, State> {
       'performance-discover-dataset-selector'
     );
     const value = (decodeScalar(location.query[DATASET_PARAM]) ??
+      savedQuery?.queryDataset ??
       'error-events') as SavedQueryDatasets;
     const defaultEventView = hasDatasetSelector
       ? DEFAULT_EVENT_VIEW_MAP[value]
