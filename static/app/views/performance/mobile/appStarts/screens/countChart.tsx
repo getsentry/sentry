@@ -14,6 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {
   PRIMARY_RELEASE_COLOR,
@@ -67,11 +68,17 @@ export function CountChart({chartHeight}: Props) {
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const appStartType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([`span.op:app.start.${appStartType}`]);
+
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
+
   const queryString = `${appendReleaseFilters(
     query,
     primaryRelease,

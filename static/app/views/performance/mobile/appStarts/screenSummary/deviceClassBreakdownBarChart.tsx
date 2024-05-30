@@ -23,6 +23,7 @@ import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenS
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
@@ -55,12 +56,17 @@ function DeviceClassBreakdownBarChart({
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
   const yAxis =
     YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
   const query = new MutableSearch([...(additionalFilters ?? [])]);
+
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
 
   const searchQuery = decodeScalar(locationQuery.query, '');
   if (searchQuery) {

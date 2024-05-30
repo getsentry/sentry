@@ -12,6 +12,7 @@ import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenS
 import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
@@ -34,6 +35,7 @@ type Props = {
 export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const value = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const appStartType =
@@ -52,6 +54,11 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     `span.op:[${APP_START_SPANS.join(',')}]`,
     `app_start_type:${appStartType}`,
   ]);
+
+  if (isProjectCrossPlatform) {
+    searchQuery.addFilterValue('os.name', selectedPlatform);
+  }
+
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
     primaryRelease,
