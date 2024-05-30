@@ -1,7 +1,9 @@
 import hashlib
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
@@ -9,21 +11,16 @@ from rest_framework.serializers import Serializer
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import (
-    AnonymousUser,
-    AuthenticationFailed,
-    AuthenticationSiloLimit,
-    SiloMode,
-    configure_scope,
-    get_header_relay_id,
-    relay_from_id,
-)
+from sentry.api.authentication import AuthenticationSiloLimit, relay_from_id
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.permissions import RelayPermission
 from sentry.models.project import Project
+from sentry.relay.utils import get_header_relay_id
 from sentry.remote_config.storage import BlobDriver, make_storage
+from sentry.silo.base import SiloMode
 from sentry.utils import json
+from sentry.utils.sdk import configure_scope
 
 
 class OptionsValidator(Serializer):
