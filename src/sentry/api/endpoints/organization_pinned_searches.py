@@ -7,7 +7,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
@@ -53,12 +52,10 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             visibility=Visibility.OWNER_PINNED,
             values={"query": result["query"], "sort": result["sort"]},
         )
-        org_member = OrganizationMember.objects.get(
-            organization=organization, user_id=request.user.id
-        )
 
-        IssueUserViews.objects.create_or_update(  # type: ignore
-            org_member_id=org_member.id,
+        GroupSearchView.objects.create_or_update(  # type: ignore
+            organizaiton=organization,
+            user_id=request.user.id,
             values={
                 "name": "Default Search",
                 "query": result["query"],
