@@ -168,7 +168,7 @@ MOCK_SNUBA_RESPONSE = {
 class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:spans-first-ui",
+        "organizations:insights-initial-modules",
         "organizations:performance-view",
     ]
 
@@ -314,7 +314,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
 class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:spans-first-ui",
+        "organizations:insights-initial-modules",
         "organizations:performance-view",
     ]
 
