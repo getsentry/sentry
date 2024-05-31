@@ -118,7 +118,9 @@ export class VideoReplayerWithInteractions {
     if (!hasGestures) {
       // If the replay has no gestures, we should hide the mouse
       // @ts-expect-error private
-      this.replayer.mouse.classList.remove('replayer-mouse');
+      for (const [, {pointerEl}] of Object.entries(this.replayer.pointers)) {
+        pointerEl.classList.remove('replayer-mouse');
+      }
     }
   }
 
