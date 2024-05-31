@@ -1,3 +1,4 @@
+import copy
 import logging
 import time
 from dataclasses import asdict
@@ -9,8 +10,7 @@ from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import features, nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -159,64 +159,63 @@ def backfill_seer_grouping_records(
     events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    query = Query(
-        match=events_entity,
-        select=[
-            Column("group_id"),
-            Function("max", [Column("event_id")], "event_id"),
-        ],
-        groupby=[Column("group_id")],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project.id),
-            Condition(Column("group_id"), Op.IN, group_id_batch),
-            Condition(
-                Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
-            ),
-            Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
-        ],
-        orderby=[OrderBy(Column("group_id"), Direction.ASC)],
-    )
-
-    request = Request(
-        dataset=Dataset.Events.value,
-        app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            "cross_org_query": 1,
-        },
-    )
-
-    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-        result = bulk_snuba_queries(
-            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+    # TODO(jangjodi): Only query per group if it has over 1 million events
+    snuba_event_data, group_id_batch_all = [], copy.deepcopy(group_id_batch)
+    for group_id in group_id_batch_all:
+        query = Query(
+            match=events_entity,
+            select=[
+                Column("group_id"),
+                Column("event_id"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project.id),
+                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(
+                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
+                ),
+                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
+            ],
+            limit=Limit(1),
         )
 
-    if result and result[0].get("data"):
-        rows: list[GroupEventRow] = result[0]["data"]
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+            query=query,
+            tenant_ids={
+                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                "cross_org_query": 1,
+            },
+        )
 
-        # Log if any group does not have any events in snuba and skip it
-        if len(rows) != len(group_id_batch):
-            row_group_ids = {row["group_id"] for row in rows}
-            for group_id in group_id_batch:
-                if group_id not in row_group_ids:
-                    logger.info(
-                        "tasks.backfill_seer_grouping_records.no_snuba_event",
-                        extra={
-                            "organization_id": project.organization.id,
-                            "project_id": project_id,
-                            "group_id": group_id,
-                        },
-                    )
-                    group_id_batch.remove(group_id)
-                    del group_id_message_batch_filtered[group_id]
+        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+            result = bulk_snuba_queries(
+                [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            )
 
+        if result and result[0].get("data"):
+            snuba_event_data.append(result[0]["data"][0])
+        else:
+            # Log if any group does not have any events in snuba and skip it
+            logger.info(
+                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                extra={
+                    "organization_id": project.organization.id,
+                    "project_id": project_id,
+                    "group_id": group_id,
+                },
+            )
+            group_id_batch.remove(group_id)
+            del group_id_message_batch_filtered[group_id]
+
+    if snuba_event_data:
         group_hashes = GroupHash.objects.filter(
             project_id=project.id, group_id__in=group_id_batch
         ).distinct("group_id")
         group_hashes_dict = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
         data = lookup_group_data_stacktrace_bulk_with_fallback(
-            project, rows, group_id_message_batch_filtered, group_hashes_dict
+            project, snuba_event_data, group_id_message_batch_filtered, group_hashes_dict
         )
 
         # If nodestore returns no data
@@ -230,7 +229,7 @@ def backfill_seer_grouping_records(
                 project_id,
                 redis_client,
                 len(group_id_message_data),
-                group_id_batch[-1],
+                group_id_batch_all[-1],
                 dry_run,
             )
             return
@@ -293,7 +292,7 @@ def backfill_seer_grouping_records(
                 project_id,
                 redis_client,
                 len(group_id_message_data),
-                group_id_batch[-1],
+                group_id_batch_all[-1],
                 dry_run,
             )
         else:
@@ -308,8 +307,16 @@ def backfill_seer_grouping_records(
             extra={
                 "project_id": project.id,
                 "snuba_result": result,
-                "group_id_batch": json.dumps(group_id_batch),
+                "group_id_batch": json.dumps(group_id_batch_all),
             },
+        )
+        call_next_backfill(
+            batch_end_index,
+            project_id,
+            redis_client,
+            len(group_id_message_data),
+            group_id_batch_all[-1],
+            dry_run,
         )
 
 
