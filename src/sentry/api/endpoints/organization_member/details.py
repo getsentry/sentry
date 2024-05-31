@@ -29,6 +29,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -439,6 +440,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
                 using=router.db_for_write(Project),
             )
+
+        # Delete a member's views of this org once the member is removed
+        # We will need to modify this to delete ONLY the member-scoped views of the org and not their
+        # Organization-scoped views if we choose to support that feature in the future.
+        GroupSearchView.objects.filter(user_id=member.user_id, organization=organization).delete()
 
         self.create_audit_entry(
             request=request,
