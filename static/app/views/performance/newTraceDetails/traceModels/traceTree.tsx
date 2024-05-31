@@ -91,7 +91,7 @@ import {TraceType} from '../traceType';
  *      |- other span
  *
  * When the autogrouped node is expanded the UI needs to show the entire collapsed chain, so we swap the tail children to point
- * back to the tail, and have autogrouped node point to it's head as the children.
+ * back to the tail, and have autogrouped node point to its head as the children.
  *
  * - root                                                             - root
  *  - trace                                                            - trace

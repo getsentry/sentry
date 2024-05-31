@@ -130,7 +130,7 @@ describe('ProjectEnvironments', function () {
       //
       // XXX(epurkhiser): In the future we should improve the accessability of
       // lists, because right now there's no way to associate the hide button
-      // with it's environment
+      // with its environment
       await userEvent.click(screen.getAllByRole('button', {name: 'Hide'})[0]);
 
       expect(hideMock).toHaveBeenCalledWith(
