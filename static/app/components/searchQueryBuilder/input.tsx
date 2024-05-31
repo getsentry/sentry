@@ -19,8 +19,8 @@ import type {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
-import {toTitleCase} from 'sentry/utils';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
