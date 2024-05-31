@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Release, ReleaseMeta} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {formatVersion} from 'sentry/utils/formatters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {isReleaseArchived} from '../../utils';

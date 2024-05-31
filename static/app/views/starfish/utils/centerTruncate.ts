@@ -1,4 +1,4 @@
-import {formatVersion} from 'sentry/utils/formatters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 export const ELLIPSIS = '\u2026';
 
