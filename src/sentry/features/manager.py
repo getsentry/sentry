@@ -181,7 +181,7 @@ class FeatureManager(RegisteredFeatureManager):
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
             register(feature_option_name, type=Dict, default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-        if default is not None and name not in settings.SENTRY_FEATURES:
+        if name not in settings.SENTRY_FEATURES:
             settings.SENTRY_FEATURES[name] = default
 
         self._feature_registry[name] = cls
