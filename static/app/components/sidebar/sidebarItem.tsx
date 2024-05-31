@@ -238,7 +238,7 @@ function SidebarItem({
                   >
                     <LabelHook id={id}>
                       <TruncatedLabel>{label}</TruncatedLabel>
-                      {additionalContent || badges}
+                      {additionalContent ?? badges}
                     </LabelHook>
                   </SidebarItemLabel>
                 )}
