@@ -3,7 +3,6 @@ import {
   AllAuthenticatorsFixture,
   AuthenticatorsFixture,
 } from 'sentry-fixture/authenticators';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +12,6 @@ import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal'
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
   const mockId = AuthenticatorsFixture().Recovery().authId;
-  const routerContext = RouterContextFixture();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -35,9 +33,7 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         CloseButton={makeCloseButton(() => {})}
-      />,
-      {context: routerContext}
-    );
+      />);
   }
 
   it('can redirect to recovery codes if user skips backup phone setup', async function () {

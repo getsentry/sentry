@@ -1,7 +1,6 @@
 import type {InjectedRouter} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -154,7 +153,6 @@ describe('Transaction Summary Content', function () {
       transactionName,
       router,
     } = initialize(project, {});
-    const routerContext = RouterContextFixture([{organization}]);
 
     render(
       <WrappedComponent
@@ -169,8 +167,7 @@ describe('Transaction Summary Content', function () {
         error={null}
         onChangeFilter={() => {}}
         router={router}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(
