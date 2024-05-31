@@ -4,6 +4,7 @@ import round from 'lodash/round';
 import {t, tn} from 'sentry/locale';
 import type {CommitAuthor, User} from 'sentry/types';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -195,11 +196,6 @@ export function parseClockToSeconds(clock: string) {
   }
   const ms = Number(milliseconds) || 0;
   return seconds + ms / 1000;
-}
-
-export function formatFloat(number: number, places: number) {
-  const multi = Math.pow(10, places);
-  return parseInt((number * multi).toString(), 10) / multi;
 }
 
 /**

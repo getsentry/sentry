@@ -3,7 +3,6 @@ import {
   DAY, // ms in day
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
-  formatFloat,
   formatNumberWithDynamicDecimalPoints,
   formatPercentage,
   formatRate,
@@ -238,17 +237,6 @@ describe('formatRate()', function () {
     expect(formatRate(1523142)).toBe('1.52M/s');
     expect(formatRate(1020314200.132)).toBe('1.02B/s');
     expect(formatRate(1023140200132.789)).toBe('1.02T/s');
-  });
-});
-
-describe('formatFloat()', function () {
-  it('should format decimals', function () {
-    expect(formatFloat(0, 0)).toBe(0);
-    expect(formatFloat(10.513434, 1)).toBe(10.5);
-    expect(formatFloat(10.513494, 3)).toBe(10.513);
-  });
-  it('should not round', function () {
-    expect(formatFloat(10.513494, 4)).toBe(10.5134);
   });
 });
 
