@@ -1,10 +1,9 @@
-import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
-import type moment from 'moment';
 
 import {t, tn} from 'sentry/locale';
 import type {CommitAuthor, User} from 'sentry/types';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -20,32 +19,6 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   }
   return displayName;
 }
-
-export const isSemverRelease = (rawVersion: string): boolean => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    return !!parsedVersion.versionParsed;
-  } catch {
-    return false;
-  }
-};
-
-export const formatVersion = (rawVersion: string, withPackage = false) => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    const versionToDisplay = parsedVersion.describe();
-
-    if (versionToDisplay.length) {
-      return `${versionToDisplay}${
-        withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
-      }`;
-    }
-
-    return rawVersion;
-  } catch {
-    return rawVersion;
-  }
-};
 
 // in milliseconds
 export const MONTH = 2629800000;
@@ -151,51 +124,6 @@ export function getExactDuration(
   return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
 }
 
-export const SEC_IN_WK = 604800;
-export const SEC_IN_DAY = 86400;
-export const SEC_IN_HR = 3600;
-export const SEC_IN_MIN = 60;
-
-type Level = [lvlSfx: moment.unitOfTime.DurationConstructor, denominator: number];
-
-type ParsedLargestSuffix = [val: number, suffix: moment.unitOfTime.DurationConstructor];
-/**
- * Given a length of time in seconds, provide me the largest divisible suffix and value for that time period.
- * eg. 60 -> [1, 'minutes']
- * eg. 7200 -> [2, 'hours']
- * eg. 7260 -> [121, 'minutes']
- *
- * @param seconds
- * @param maxSuffix     determines the largest suffix we should pin the response to
- */
-export function parseLargestSuffix(
-  seconds: number,
-  maxSuffix: string = 'days'
-): ParsedLargestSuffix {
-  const levels: Level[] = [
-    ['minutes', SEC_IN_MIN],
-    ['hours', SEC_IN_HR],
-    ['days', SEC_IN_DAY],
-    ['weeks', SEC_IN_WK],
-  ];
-  let val = seconds;
-  let suffix: moment.unitOfTime.DurationConstructor = 'seconds';
-  if (val === 0) {
-    return [val, suffix];
-  }
-  for (const [lvlSfx, denominator] of levels) {
-    if (seconds % denominator) {
-      break;
-    }
-    val = seconds / denominator;
-    suffix = lvlSfx;
-    if (lvlSfx === maxSuffix) {
-      break;
-    }
-  }
-  return [val, suffix];
-}
-
 export function formatSecondsToClock(
   seconds: number,
   {padAll}: {padAll: boolean} = {padAll: true}
@@ -241,11 +169,6 @@ export function parseClockToSeconds(clock: string) {
   }
   const ms = Number(milliseconds) || 0;
   return seconds + ms / 1000;
-}
-
-export function formatFloat(number: number, places: number) {
-  const multi = Math.pow(10, places);
-  return parseInt((number * multi).toString(), 10) / multi;
 }
 
 /**

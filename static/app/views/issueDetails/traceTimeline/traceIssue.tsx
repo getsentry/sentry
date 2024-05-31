@@ -5,6 +5,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
@@ -21,17 +22,22 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const {title, subtitle} = getTitleSubtitle(event);
   const avatarSize = parseInt(space(4), 10);
 
-  // If any of data fails to load, we don't want to render the component
-  // Only "One other issue appears in the same trace. View Full Trace (X issues)" would show up
+  const referrer = 'issue_details.related_trace_issue';
+
   return (
     <Fragment>
-      {/* // XXX: Determine plan for analytics */}
       <TraceIssueLinkContainer
         to={{
           pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
           query: {
-            referrer: 'issues_trace_issue',
+            referrer: referrer,
           },
+        }}
+        onClick={() => {
+          trackAnalytics(`${referrer}.trace_issue_clicked`, {
+            organization,
+            group_id: issueId,
+          });
         }}
       >
         <TraceIssueProjectBadge>

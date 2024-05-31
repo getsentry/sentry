@@ -18,7 +18,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
+import {generateQueryWithTag} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,7 +58,7 @@ export default function EventTagsTreeRow({
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
-  const hasStem = !isLast && objectIsEmpty(content.subtree);
+  const hasStem = !isLast && isEmptyObject(content.subtree);
 
   if (!originalTag) {
     return (
@@ -417,6 +419,7 @@ const TreeSearchKey = styled('span')`
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
+  display: block;
   margin: 1px;
   height: 20px;
   .tag-button {
