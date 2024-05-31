@@ -78,9 +78,10 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
-  it('renders for self-hosted errors only', function () {
+  it('renders for self-hosted errors only', async function () {
     act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
     const {container} = renderSidebar({organization});
+    expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
     const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
     expect(sidebarItems.length).toEqual(10);
     act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
