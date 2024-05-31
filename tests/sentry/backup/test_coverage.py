@@ -44,14 +44,24 @@ def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
         }:
             continue
 
-        for unique in model_relations.uniques:
+        for unique_set in model_relations.uniques:
             necessitates_collision_test = True
-            for field in unique:
+            for field in unique_set:
                 foreign_field = model_relations.foreign_keys.get(field)
+
+                # For cases where the foreign field is named directly (ex: "foo") but the unique
+                # constraint chose to name it as the underlying id (ex: "foo_id"), try to recover.
+                if foreign_field is None and field.endswith("_id"):
+                    foreign_field = model_relations.foreign_keys.get(field[:-3])
+
+                # We have a foreign field - if it is in the `Organization` or `Global` scope, we can
+                # ensure that it will be unique for every import, thereby guaranteed that this
+                # `unique_set` does not necessitate a collision test (though other `unique_set`s
+                # still might!).
                 if foreign_field is not None:
-                    foreign_model = deps[get_model_name(foreign_field.model)]
+                    foreign_model_relations = deps[get_model_name(foreign_field.model)]
                     if not {RelocationScope.User, RelocationScope.Config}.intersection(
-                        foreign_model.get_possible_relocation_scopes()
+                        foreign_model_relations.get_possible_relocation_scopes()
                     ):
                         necessitates_collision_test = False
                         break
