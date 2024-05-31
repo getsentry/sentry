@@ -241,7 +241,7 @@ export function parseRepo<T>(repo: T): T {
 export function extractMultilineFields(value: string): string[] {
   return value
     .split('\n')
-    .map(f => trim(f))
+    .map(f => f.trim())
     .filter(f => f !== '');
 }
 
