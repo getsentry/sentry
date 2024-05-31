@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -182,7 +182,7 @@ def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: str,
+    method: Literal["fire", "resolve"],
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,
