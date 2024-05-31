@@ -310,13 +310,13 @@ _path_patterns: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$"),
+        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^\/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
     (
-        re.compile(r"^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)"),
+        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^\/]+\/(.*)"),
         r"/settings/\1",
     ),
     (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
@@ -464,31 +464,6 @@ def handle_query_errors() -> Generator[None, None, None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
-
-
-def id_or_slug_path_params_enabled(
-    convert_args_class: str | None = None, organization_id_or_slug: str | None = None
-) -> bool:
-    # GA option
-    if options.get("api.id-or-slug-enabled"):
-        return True
-
-    # Apigateway
-    if not convert_args_class and organization_id_or_slug:
-        # Return True if the organization is in the list of enabled organizations and the apigateway option is enabled
-        return organization_id_or_slug in options.get("api.id-or-slug-enabled-ea-org")
-
-    # EA option for endpoints where organization is available
-    if organization_id_or_slug and organization_id_or_slug not in options.get(
-        "api.id-or-slug-enabled-ea-org"
-    ):
-        return False
-
-    # EA option for endpoints where organization is not available
-    if convert_args_class:
-        return convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints")
-
-    return False
 
 
 def update_snuba_params_with_timestamp(

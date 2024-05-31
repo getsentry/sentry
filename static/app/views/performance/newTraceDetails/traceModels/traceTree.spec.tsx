@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {
   TracePerformanceIssue,
   TraceSplitResults,
