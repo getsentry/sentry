@@ -40,14 +40,14 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     timelineStatus = 'no_trace_id';
   }
 
-  const showTraceRelatedIssues =
+  const showTraceRelatedIssue =
     timelineStatus !== 'shown' &&
     organization.features?.includes('related-issues-issue-details-page') &&
     oneOtherIssueEvent;
 
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,
-    has_related_trace_issue: showTraceRelatedIssues,
+    has_related_trace_issue: showTraceRelatedIssue,
   });
 
   if (!hasTraceId) {
@@ -89,7 +89,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
           </TimelineWrapper>
         </Fragment>
       )}
-      {showTraceRelatedIssues && <TraceIssueEvent event={oneOtherIssueEvent} />}
+      {showTraceRelatedIssue && <TraceIssueEvent event={oneOtherIssueEvent} />}
     </ErrorBoundary>
   );
 }
