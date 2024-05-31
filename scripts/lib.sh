@@ -35,31 +35,28 @@ require() {
 }
 
 configure-sentry-cli() {
-    # DSN for `sentry-devservices` project in the Sentry SDKs org. Used as authentication for sentry-cli.
-    export SENTRY_DSN=https://8ae521d2441786bb405b3b3705bb9dc1@o447951.ingest.us.sentry.io/4507346183716864
-    if ! require sentry-cli; then
-        if [ -f "${venv_name}/bin/pip" ]; then
-            pip-install sentry-cli
-        else
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.32.0" bash
-        fi
+    if [ -f "${venv_name}/bin/sentry-cli" ]; then
+        path="${venv_name}/bin/sentry-cli"
+    elif command -v "sentry-cli" >/dev/null 2>&1; then
+        path="sentry-cli"
+    elif [ -f "${venv_name}/bin/pip" ]; then
+        pip-install sentry-cli
+        path="${venv_name}/bin/sentry-cli"
     else
-        current_version=$(sentry-cli --version 2>&1 | awk '{print $2}')
-        major=$(echo "$current_version" | cut -d. -f1)
-        minor=$(echo "$current_version" | cut -d. -f2)
-        if [ $major -ne 2 ] || [ $minor -lt 32 ]; then
-            if [ -f "${venv_name}/bin/pip" ]; then
-                pip-install sentry-cli
-            else
-                cat <<EOF
+        curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.32.0" bash
+        path="sentry-cli"
+    fi
+    current_version=$("$path" --version 2>&1 | awk '{print $2}')
+    major=$(echo "$current_version" | cut -d. -f1)
+    minor=$(echo "$current_version" | cut -d. -f2)
+    if [ $major -ne 2 ] || [ $minor -lt 32 ]; then
+        cat <<EOF
 ${red}${bold}
 ERROR: Your sentry-cli version is ${current_version}. We only support >= 2.32.0, < 3.0.
-Please uninstall sentry-cli and run this script again.
+Please run devenv sync in sentry and getsentry, or uninstall sentry-cli and try again.
 ${reset}
 EOF
-                return 1
-            fi
-        fi
+        return 1
     fi
 }
 
@@ -108,7 +105,7 @@ sudo-askpass() {
 }
 
 pip-install() {
-    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
+    "${venv_name}/bin/pip" install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
 upgrade-pip() {
