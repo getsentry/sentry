@@ -328,6 +328,7 @@ const StyledItemButton = styled(Button)`
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
+  display: block;
   position: absolute;
   top: 12px;
   right: ${space(1)};

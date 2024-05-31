@@ -418,6 +418,7 @@ const TreeSearchKey = styled('span')`
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
+  display: block;
   margin: 1px;
   height: 20px;
   .tag-button {
