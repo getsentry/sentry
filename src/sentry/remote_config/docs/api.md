@@ -10,7 +10,7 @@ Host: https://sentry.io/api/0
 
 ### Get Configuration [GET]
 
-Retrieve the DSN's configuration.
+Retrieve the project's configuration.
 
 **Attributes**
 
@@ -64,7 +64,7 @@ Retrieve the DSN's configuration.
 
 ### Set Configuration [POST]
 
-Set the DSN's configuration.
+Set the project's configuration.
 
 - Request
 
@@ -114,7 +114,7 @@ Set the DSN's configuration.
 
 ### Delete Configuration [DELETE]
 
-Delete the DSN's configuration.
+Delete the project's configuration.
 
 - Response 204
 
