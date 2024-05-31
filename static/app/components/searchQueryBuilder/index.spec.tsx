@@ -1,19 +1,46 @@
 import type {ComponentProps} from 'react';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
+import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 const MOCK_SUPPORTED_KEYS: TagCollection = {
-  [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
+  [FieldKey.AGE]: {
+    key: FieldKey.AGE,
+    name: 'Age',
+    kind: FieldKind.FIELD,
+    predefined: true,
+  },
   [FieldKey.ASSIGNED]: {
     key: FieldKey.ASSIGNED,
     name: 'Assigned To',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['me', 'unassigned', 'person@sentry.io'],
+    values: [
+      {
+        title: 'Suggested',
+        type: 'header',
+        icon: null,
+        children: [{value: 'me'}, {value: 'unassigned'}],
+      },
+      {
+        title: 'All',
+        type: 'header',
+        icon: null,
+        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+      },
+    ],
   },
   [FieldKey.BROWSER_NAME]: {
     key: FieldKey.BROWSER_NAME,
@@ -26,6 +53,10 @@ const MOCK_SUPPORTED_KEYS: TagCollection = {
 };
 
 describe('SearchQueryBuilder', function () {
+  beforeEach(() => {
+    localStorageWrapper.clear();
+  });
+
   afterEach(function () {
     jest.restoreAllMocks();
   });
@@ -36,6 +67,87 @@ describe('SearchQueryBuilder', function () {
     supportedKeys: MOCK_SUPPORTED_KEYS,
     label: 'Query Builder',
   };
+
+  describe('actions', function () {
+    it('can clear the query', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+      userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('');
+      });
+
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+
+    // biome-ignore lint/suspicious/noSkippedTests: This test flakes in CI due to an act warning in Tooltip
+    it.skip('can switch between interfaces', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Displays in tokenized mode by default
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Switch to plain text'}));
+
+      // No longer displays tokens, has an input instead
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
+
+      // Switching back should restore the tokens
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Switch to tokenized search'})
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('plain text interface', function () {
+    beforeEach(() => {
+      localStorageWrapper.setItem(
+        INTERFACE_TYPE_LOCALSTORAGE_KEY,
+        JSON.stringify(QueryInterfaceType.TEXT)
+      );
+    });
+
+    it('can change the query by typing', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
+      await userEvent.type(screen.getByRole('textbox'), ' assigned:me');
+
+      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox assigned:me');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenLastCalledWith('browser.name:firefox assigned:me');
+      });
+    });
+  });
 
   describe('mouse interactions', function () {
     it('can remove a token by clicking the delete button', async function () {
@@ -95,7 +207,72 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('can modify the value by clicking into it', async function () {
+    it('can modify operator for filter with multiple values', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:[firefox,chrome]"
+        />
+      );
+
+      // Should display as "is" to start
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        ).getByText('is')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+
+      // Token should be modified to be negated
+      expect(
+        screen.getByRole('row', {name: '!browser.name:[firefox,chrome]'})
+      ).toBeInTheDocument();
+
+      // Should now have "is not" label
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        ).getByText('is not')
+      ).toBeInTheDocument();
+    });
+
+    it('can modify the value by clicking into it (single-select)', async function () {
+      // `age` is a duration filter which only accepts single values
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-1d" />);
+
+      // Should display as "-1d" to start
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        ).getByText('-1d')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: age'})
+      );
+      // Should have placeholder text of previous value
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
+        'placeholder',
+        '-1d'
+      );
+      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+      // Clicking the "+14d" option should update the value
+      await userEvent.click(screen.getByRole('option', {name: '+14d'}));
+      expect(screen.getByRole('row', {name: 'age:+14d'})).toBeInTheDocument();
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        ).getByText('+14d')
+      ).toBeInTheDocument();
+    });
+
+    it('can modify the value by clicking into it (multi-select)', async function () {
+      // `browser.name` is a string filter which accepts multiple values
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
@@ -110,46 +287,68 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
       );
-      // Should have placeholder text of previous value
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
-        'placeholder',
-        'firefox'
-      );
+      // Previous value should be rendered before the input
+      expect(
+        within(screen.getByRole('row', {name: 'browser.name:firefox'})).getByText(
+          'firefox,'
+        )
+      ).toBeInTheDocument();
       await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
-      // Clicking the "Chrome option should update the value"
+      // Clicking the "Chrome option should add it to the list and commit changes
       await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
-      expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
       expect(
-        within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-        ).getByText('Chrome')
+        screen.getByRole('row', {name: 'browser.name:[firefox,Chrome]'})
       ).toBeInTheDocument();
+      const valueButton = screen.getByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      expect(within(valueButton).getByText('firefox')).toBeInTheDocument();
+      expect(within(valueButton).getByText('or')).toBeInTheDocument();
+      expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
     });
 
     it('escapes values with spaces and reserved characters', async function () {
-      render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'assigned:some" value{enter}'
       );
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-      );
-      await userEvent.keyboard('some" value{enter}');
       // Value should be surrounded by quotes and escaped
       expect(
-        screen.getByRole('row', {name: 'browser.name:"some\\" value"'})
+        screen.getByRole('row', {name: 'assigned:"some\\" value"'})
       ).toBeInTheDocument();
       // Display text should be display the original value
       expect(
         within(
-          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         ).getByText('some" value')
       ).toBeInTheDocument();
+    });
+
+    it('can remove parens by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete ('}));
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
   });
 
   describe('new search tokens', function () {
+    it('can add an unsupported filter key and value', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'a:b{enter}'
+      );
+
+      expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
+    });
+
     it('breaks keys into sections', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
@@ -221,6 +420,15 @@ describe('SearchQueryBuilder', function () {
 
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+    });
+
+    it('can add parens by typing', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('(');
+
+      expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
     });
   });
 
@@ -337,6 +545,50 @@ describe('SearchQueryBuilder', function () {
       // Shift-tabbing should exit the component
       await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
       expect(document.body).toHaveFocus();
+    });
+
+    it('can remove parens with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('token values', function () {
+    it('supports grouped token value suggestions', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+      );
+      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+      const groups = within(screen.getByRole('listbox')).getAllByRole('group');
+
+      // First group is selected option, second is "Suggested", third is "All"
+      expect(groups).toHaveLength(3);
+      expect(
+        within(screen.getByRole('listbox')).getByText('Suggested')
+      ).toBeInTheDocument();
+      expect(within(screen.getByRole('listbox')).getByText('All')).toBeInTheDocument();
+
+      // First group is the selected "me"
+      expect(within(groups[0]).getByRole('option', {name: 'me'})).toBeInTheDocument();
+      // Second group is the remaining option in the "Suggested" section
+      expect(
+        within(groups[1]).getByRole('option', {name: 'unassigned'})
+      ).toBeInTheDocument();
+      // Third group are the options under the "All" section
+      expect(
+        within(groups[2]).getByRole('option', {name: 'person1@sentry.io'})
+      ).toBeInTheDocument();
+      expect(
+        within(groups[2]).getByRole('option', {name: 'person2@sentry.io'})
+      ).toBeInTheDocument();
     });
   });
 });

@@ -31,6 +31,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
+            "message": self._message_filter_converter,
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
             constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
         }
@@ -137,13 +138,21 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allowed_columns=constants.SPAN_METRIC_SUMMABLE_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    snql_counter=lambda args, alias: Function(
                         "sumIf",
                         [
                             Column("value"),
@@ -322,29 +331,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                     snql_distribution=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
-                ),
-                fields.MetricsFunction(
-                    "ai_total_tokens_used",
-                    optional_args=[
-                        fields.with_default(
-                            "c:spans/ai.total_tokens.used@none",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=["c:spans/ai.total_tokens.used@none"],
-                                allow_custom_measurements=False,
-                                allow_mri=True,
-                            ),
-                        ),
-                    ],
-                    calculated_args=[resolve_metric_id],
-                    snql_counter=lambda args, alias: Function(
-                        "sumIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
                 ),
                 fields.MetricsFunction(
                     "http_response_rate",
@@ -624,6 +610,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _span_domain_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value
@@ -1349,7 +1338,7 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allowed_columns=constants.SPAN_METRIC_SUMMABLE_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),

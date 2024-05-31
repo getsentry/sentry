@@ -662,13 +662,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if features.has("organizations:event-tags-tree-ui", project.organization):
-            if result.get("highlightContext") is not None:
-                if project.update_option("sentry:highlight_context", result["highlightContext"]):
-                    changed_proj_settings["sentry:highlight_context"] = result["highlightContext"]
-            if result.get("highlightTags") is not None:
-                if project.update_option("sentry:highlight_tags", result["highlightTags"]):
-                    changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
+        if result.get("highlightContext") is not None:
+            if project.update_option("sentry:highlight_context", result["highlightContext"]):
+                changed_proj_settings["sentry:highlight_context"] = result["highlightContext"]
+        if result.get("highlightTags") is not None:
+            if project.update_option("sentry:highlight_tags", result["highlightTags"]):
+                changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
         if result.get("storeCrashReports") is not None:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
@@ -818,6 +817,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
+                )
+            if "sentry:replay_hydration_error_issues" in options:
+                project.update_option(
+                    "sentry:replay_hydration_error_issues",
+                    bool(options["sentry:replay_hydration_error_issues"]),
                 )
             if "sentry:feedback_user_report_notifications" in options:
                 project.update_option(

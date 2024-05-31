@@ -145,7 +145,7 @@ export const filterTypeConfig = {
   },
   [FilterType.TEXT_IN]: {
     validKeys: textKeys,
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
   },
@@ -187,7 +187,7 @@ export const filterTypeConfig = {
   },
   [FilterType.NUMERIC_IN]: {
     validKeys: [Token.KEY_SIMPLE],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.VALUE_NUMBER_LIST],
     canNegate: true,
   },

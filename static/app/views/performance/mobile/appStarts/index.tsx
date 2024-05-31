@@ -3,11 +3,11 @@ import {StartTypeSelector} from 'sentry/views/performance/mobile/appStarts/scree
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_TITLE,
 } from 'sentry/views/performance/mobile/appStarts/settings';
 import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModuleName} from 'sentry/views/starfish/types';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 export function InitializationModule() {
   return (
@@ -17,7 +17,7 @@ export function InitializationModule() {
       moduleName={ModuleName.APP_START}
       moduleDescription={MODULE_DESCRIPTION}
       moduleDocLink={MODULE_DOC_LINK}
-      title={ROUTE_NAMES['app-startup']}
+      title={MODULE_TITLE}
     />
   );
 }

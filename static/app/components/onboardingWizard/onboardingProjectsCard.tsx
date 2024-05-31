@@ -82,7 +82,7 @@ const Heading = styled(motion.div)`
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -99,7 +99,7 @@ Heading.defaultProps = {
 };
 
 const Title = styled('div')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(2)} ${space(3)} 0;
 `;
 

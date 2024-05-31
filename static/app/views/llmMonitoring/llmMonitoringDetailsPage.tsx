@@ -20,6 +20,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
+import {MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -75,10 +76,7 @@ export function LLMMonitoringPage({params}: Props) {
         'span.category': 'ai',
         'span.ai.pipeline.group': groupId,
       }),
-      fields: [
-        'ai_total_tokens_used()',
-        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
-      ],
+      fields: ['sum(ai.total_tokens.used)', 'sum(ai.total_cost)'],
       enabled: Boolean(groupId),
     },
     'api.ai-pipelines.view'
@@ -100,7 +98,7 @@ export function LLMMonitoringPage({params}: Props) {
                 },
               ]}
             />
-            <Layout.Title>{t('LLM Monitoring')}</Layout.Title>
+            <Layout.Title>{MODULE_TITLE}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -116,16 +114,14 @@ export function LLMMonitoringPage({params}: Props) {
                   <MetricsRibbon>
                     <MetricReadout
                       title={t('Total Tokens Used')}
-                      value={tokenUsedMetric['ai_total_tokens_used()']}
+                      value={tokenUsedMetric['sum(ai.total_tokens.used)']}
                       unit={'count'}
                       isLoading={isTotalTokenDataLoading}
                     />
 
                     <MetricReadout
                       title={t('Total Cost')}
-                      value={
-                        tokenUsedMetric['ai_total_tokens_used(c:spans/ai.total_cost@usd)']
-                      }
+                      value={tokenUsedMetric['sum(ai.total_cost)']}
                       unit={CurrencyUnit.USD}
                       isLoading={isTotalTokenDataLoading}
                     />

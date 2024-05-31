@@ -162,6 +162,7 @@ function findLongestMatchingFrame(
 }
 
 function computeProfileOffset(
+  profileStart: string | undefined,
   flamegraph: FlamegraphModel,
   transaction: RequestState<EventTransaction | null>
 ): number {
@@ -170,14 +171,11 @@ function computeProfileOffset(
   const transactionStart =
     transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
 
-  const profileStart = flamegraph.profile.timestamp;
-
   if (defined(transactionStart) && defined(profileStart)) {
-    offset += formatTo(
-      profileStart - transactionStart,
-      'second',
-      flamegraph.profile.unit
-    );
+    const profileStartTimestamp = new Date(profileStart).getTime() / 1e3;
+
+    const profileOffset = profileStartTimestamp - transactionStart;
+    offset += formatTo(profileOffset, 'second', flamegraph.profile.unit);
   }
 
   return offset;
@@ -240,18 +238,28 @@ function Flamegraph(): ReactElement {
 
   const hasBatteryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa';
-  }, [profileGroup.metadata.platform]);
+    return platform === 'cocoa' || profileGroup.measurements?.cpu_energy_usage;
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa' || platform === 'android' || platform === 'node';
-  }, [profileGroup.metadata.platform]);
+    return (
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.cpu_usage
+    );
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa' || platform === 'android' || platform === 'node';
-  }, [profileGroup.metadata.platform]);
+    return (
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.memory_footprint
+    );
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === threadId);
@@ -330,8 +338,13 @@ function Flamegraph(): ReactElement {
   }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);
 
   const profileOffsetFromTransaction = useMemo(
-    () => computeProfileOffset(flamegraph, profiledTransaction),
-    [flamegraph, profiledTransaction]
+    () =>
+      computeProfileOffset(
+        profileGroup.metadata.timestamp,
+        flamegraph,
+        profiledTransaction
+      ),
+    [flamegraph, profiledTransaction, profileGroup.metadata.timestamp]
   );
 
   const uiFrames = useMemo(() => {

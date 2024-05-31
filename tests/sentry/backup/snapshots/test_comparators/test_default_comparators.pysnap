@@ -1,5 +1,5 @@
 ---
-created: '2024-05-09T23:29:47.969852+00:00'
+created: '2024-05-28T16:54:51.531380+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -922,9 +922,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: HashObfuscatingComparator
     fields:
     - token
-  - class: EqualOrRemovedComparator
-    fields:
-    - inviter_id
   - class: DatetimeEqualityComparator
     fields:
     - date_added

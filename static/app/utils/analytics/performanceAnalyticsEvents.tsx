@@ -192,6 +192,7 @@ export type PerformanceEventParameters = {
   'performance_views.trace_view.view': {};
   'performance_views.trace_view_v1_page_load': {
     organization: Organization;
+    source: string;
   };
   'performance_views.transactionEvents.cellaction': {
     action: string;

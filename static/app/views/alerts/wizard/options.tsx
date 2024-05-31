@@ -21,6 +21,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -113,7 +114,7 @@ export const getAlertWizardCategories = (org: Organization) => {
   });
   if (org.features.includes('ai-analytics')) {
     result.push({
-      categoryHeading: t('LLM Monitoring'),
+      categoryHeading: LLM_MONITORING_MODULE_TITLE,
       options: ['llm_tokens', 'llm_cost'],
     });
   }
@@ -191,12 +192,12 @@ export const AlertWizardRuleTemplates: Record<
     eventTypes: EventTypes.TRANSACTION,
   },
   llm_tokens: {
-    aggregate: 'sum(c:spans/ai.total_tokens.used@none)',
+    aggregate: 'sum(ai.total_tokens.used)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
   llm_cost: {
-    aggregate: 'sum(c:spans/ai.total_cost@usd)',
+    aggregate: 'sum(ai.total_cost)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
