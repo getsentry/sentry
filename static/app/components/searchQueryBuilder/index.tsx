@@ -28,8 +28,17 @@ interface SearchQueryBuilderProps {
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
   supportedKeys: TagCollection;
+  className?: string;
   label?: string;
+  onBlur?: (query: string) => void;
+  /**
+   * Called when the query value changes
+   */
   onChange?: (query: string) => void;
+  /**
+   * Called when the user presses enter
+   */
+  onSearch?: (query: string) => void;
 }
 
 function ActionButtons() {
@@ -47,7 +56,7 @@ function ActionButtons() {
   return (
     <ButtonsWrapper>
       <ActionButton
-        title={interfaceToggleText}
+        title={!parsedQuery ? t('Search query parsing failed') : interfaceToggleText}
         aria-label={interfaceToggleText}
         size="zero"
         icon={<IconSync />}
@@ -73,11 +82,14 @@ function ActionButtons() {
 }
 
 export function SearchQueryBuilder({
+  className,
   label,
   initialQuery,
   supportedKeys,
   getTagValues,
   onChange,
+  onSearch,
+  onBlur,
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
   const [queryInterface] = useSyncedLocalStorageState(
@@ -101,13 +113,14 @@ export function SearchQueryBuilder({
       keys: supportedKeys,
       getTagValues,
       dispatch,
+      onSearch,
     };
-  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch]);
+  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch, onSearch]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
-        <Wrapper>
+        <Wrapper className={className} onBlur={() => onBlur?.(state.query)}>
           <PositionedSearchIcon size="sm" />
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />

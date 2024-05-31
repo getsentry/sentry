@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 // eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
@@ -145,6 +146,22 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       },
     ],
   };
+
+  if (organization.features.includes('issue-stream-search-query-builder')) {
+    return (
+      <SearchQueryBuilder
+        className={props.className}
+        initialQuery={props.query ?? ''}
+        getTagValues={getTagValues}
+        supportedKeys={getSupportedTags(tags, organization)}
+        onSearch={props.onSearch}
+        onBlur={props.onBlur}
+        onChange={value => {
+          props.onClose?.(value, {validSearch: true});
+        }}
+      />
+    );
+  }
 
   return (
     <SmartSearchBar
