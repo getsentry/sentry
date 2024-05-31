@@ -104,15 +104,11 @@ export function objectIsEmpty(obj = {}): boolean {
   return true;
 }
 
-export function trim(str: string): string {
-  return str.replace(/^\s+|\s+$/g, '');
-}
-
 /**
  * Replaces slug special chars with a space
  */
 export function explodeSlug(slug: string): string {
-  return trim(slug.replace(/[-_]+/g, ' '));
+  return slug.replace(/[-_]+/g, ' ').trim();
 }
 
 export function defined<T>(item: T): item is Exclude<T, null | undefined> {
@@ -232,7 +228,7 @@ export function parseRepo<T>(repo: T): T {
 export function extractMultilineFields(value: string): string[] {
   return value
     .split('\n')
-    .map(f => trim(f))
+    .map(f => f.trim())
     .filter(f => f !== '');
 }
 
