@@ -154,6 +154,7 @@ def get_condition_group_results(
             group_ids,
             unique_condition.environment_id,
             comparison_type,
+            _with_transaction=False,
         )
         condition_group_results[unique_condition] = result
     return condition_group_results
