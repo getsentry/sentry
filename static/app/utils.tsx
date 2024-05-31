@@ -147,13 +147,6 @@ export function percent(value: number, totalValue: number): number {
   return (value / totalValue) * 100;
 }
 
-export function toTitleCase(str: string): string {
-  return str.replace(
-    /\w\S*/g,
-    txt => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
-  );
-}
-
 /**
  * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
  * means that:
