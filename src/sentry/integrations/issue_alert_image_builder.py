@@ -20,14 +20,13 @@ from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import metrics
 from sentry.utils.performance_issues.detectors.utils import escape_transaction
 
+logger = logging.getLogger("sentry.chartcuterie")
+
 
 class IssueAlertImageBuilder:
-    def __init__(
-        self, group: Group, provider: ExternalProviderEnum, logger: logging.Logger
-    ) -> None:
+    def __init__(self, group: Group, provider: ExternalProviderEnum) -> None:
         self.group = group
         self.provider = provider
-        self.logger = logger
         self.cache_key = f"chartcuterie-image:{self.group.id}"
         self.tags = {
             "provider": self.provider,
@@ -46,7 +45,7 @@ class IssueAlertImageBuilder:
                 metrics.incr("chartcuterie.issue_alert.success", tags=self.tags)
                 return image_url
         except Exception as e:
-            self.logger.exception(
+            logger.exception(
                 "issue_alert_chartcuterie_image.failed",
                 extra={"exception": e, "group_id": self.group.id},
             )

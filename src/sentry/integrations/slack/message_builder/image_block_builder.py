@@ -1,5 +1,3 @@
-import logging
-
 from sentry import features
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.integrations.slack.message_builder import SlackBlock
@@ -22,7 +20,6 @@ class ImageBlockBuilder(BlockSlackMessageBuilder, IssueAlertImageBuilder):
         super().__init__(
             group=group,
             provider=ExternalProviderEnum.SLACK,
-            logger=logging.getLogger("sentry.integrations.slack"),
         )
 
     def build_image_block(self) -> SlackBlock | None:
