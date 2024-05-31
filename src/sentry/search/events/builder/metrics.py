@@ -81,7 +81,15 @@ class MetricsQueryBuilder(QueryBuilder):
 
     organization_column: str = "organization_id"
 
-    column_remapping = {}
+    column_remapping = {
+        # For backwards compatibility. We've been matching free text search
+        # on span.description for all metrics query builder queries. This ensures
+        # this behaviour is preserved.
+        #
+        # We should see if we can remove this mapping in the future as metrics
+        # does not always refer to span metrics.
+        "message": "span.description",
+    }
     default_metric_tags = constants.DEFAULT_METRIC_TAGS
 
     def __init__(
