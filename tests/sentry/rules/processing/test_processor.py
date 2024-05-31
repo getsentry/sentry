@@ -27,7 +27,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.utils.safe import safe_execute
 
 pytestmark = [requires_snuba]
 
@@ -917,7 +916,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         for callback, futures in rp.apply():
-            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+            callback(self.group_event, futures)
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
@@ -959,7 +958,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         for callback, futures in rp.apply():
-            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+            callback(self.group_event, futures)
         mock_post.assert_called_once()
         assert (
             "notification\\_uuid"
@@ -992,6 +991,6 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         for callback, futures in rp.apply():
-            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+            callback(self.group_event, futures)
         mock_build.assert_called_once()
         assert "notification_uuid" in mock_build.call_args[1]["embeds"][0].url
