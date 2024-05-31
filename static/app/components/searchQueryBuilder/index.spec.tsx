@@ -462,6 +462,9 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('(');
 
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+
+      // Last input (the one after the paren) should have focus
+      expect(screen.getAllByRole('combobox').at(-1)).toHaveFocus();
     });
   });
 
