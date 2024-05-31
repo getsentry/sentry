@@ -13,6 +13,11 @@ type CollapsibleValueProps = {
   depth: number;
   maxDefaultDepth: number;
   openTag: string;
+  /**
+   * Forces the value to start expanded, otherwise it will expand if there are
+   * less than 5 (MAX_ITEMS_BEFORE_AUTOCOLLAPSE) items
+   */
+  forceDefaultExpand?: boolean;
   prefix?: React.ReactNode;
 };
 
@@ -25,10 +30,12 @@ export function CollapsibleValue({
   prefix = null,
   depth,
   maxDefaultDepth,
+  forceDefaultExpand,
 }: CollapsibleValueProps) {
   const numChildren = Children.count(children);
   const [isExpanded, setIsExpanded] = useState(
-    numChildren <= MAX_ITEMS_BEFORE_AUTOCOLLAPSE && depth < maxDefaultDepth
+    forceDefaultExpand ??
+      (numChildren <= MAX_ITEMS_BEFORE_AUTOCOLLAPSE && depth < maxDefaultDepth)
   );
 
   const shouldShowToggleButton = numChildren > 0;
