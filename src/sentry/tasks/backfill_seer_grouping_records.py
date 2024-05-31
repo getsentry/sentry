@@ -174,7 +174,7 @@ def backfill_seer_grouping_records(
                 Condition(
                     Column("timestamp", entity=events_entity),
                     Op.GTE,
-                    group.last_seen - timedelta(days=10),
+                    group.last_seen - timedelta(minutes=5),
                 ),
                 Condition(
                     Column("timestamp", entity=events_entity),
