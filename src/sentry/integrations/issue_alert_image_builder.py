@@ -35,6 +35,7 @@ class IssueAlertImageBuilder:
 
     def get_image_url(self) -> str | None:
         try:
+            image_url = None
             metrics.incr("chartcuterie.issue_alert.attempt", tags=self.tags)
             if self.group.issue_type == PerformanceP95EndpointRegressionGroupType:
                 image_url = self._get_endpoint_regression_image_url()
