@@ -1,6 +1,7 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable
 
+from django.db.models.query import QuerySet
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -142,7 +143,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         # If no `ArtifactBundle`s were found matching the file, we fall back to
         # looking up the file using the legacy `ReleaseFile` infrastructure.
-        individual_files = []
+        individual_files: Iterable[ReleaseFile] = []
         if not artifact_bundles:
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
@@ -188,7 +189,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 ty, ty_id = split
                 return (ty, int(ty_id))
             else:
-                return int(split[0])
+                return ("", int(split[0]))
 
         found_artifacts.sort(key=lambda x: natural_sort(x["id"]))
 
@@ -242,8 +243,8 @@ def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> s
 
 
 def get_legacy_releasefile_by_file_url(
-    release: Release, dist: Distribution | None, url: list[str]
-) -> Sequence[ReleaseFile]:
+    release: Release, dist: Distribution | None, url: str
+) -> QuerySet[ReleaseFile]:
     # Exclude files which are also present in archive:
     return (
         ReleaseFile.public_objects.filter(

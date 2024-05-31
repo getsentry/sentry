@@ -113,24 +113,6 @@ class DatabaseBackedNotificationsService(NotificationsService):
             scope_identifier=project_id,
         ).delete()
 
-    def get_subscriptions_for_projects(
-        self,
-        *,
-        user_id: int,
-        project_ids: list[int],
-        type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
-        """
-        Deprecated: use subscriptions_for_projects instead.
-        """
-        result = self.subscriptions_for_projects(
-            user_id=user_id, project_ids=project_ids, type=type
-        )
-        return {
-            project_id: (sub.is_disabled, sub.is_active, sub.has_only_inactive_subscriptions)
-            for project_id, sub in result.items()
-        }
-
     def subscriptions_for_projects(
         self,
         *,

@@ -7,7 +7,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
@@ -428,10 +427,8 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
-      context: routerContext,
     });
 
     expect(
@@ -478,10 +475,8 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
-      context: routerContext,
     });
 
     expect(
@@ -653,11 +648,9 @@ describe('Platform Integrations', () => {
         props.event,
         mockedTrace(props.project)
       );
-      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
-        context: routerContext,
       });
 
       expect(
@@ -679,11 +672,9 @@ describe('Platform Integrations', () => {
         ...trace,
         performance_issues: [],
       });
-      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
-        context: routerContext,
       });
 
       // mechanism: ANR

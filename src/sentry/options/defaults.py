@@ -296,20 +296,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Enable EA endpoints to work with id or slug as path parameters
-register(
-    "api.id-or-slug-enabled-ea-endpoints",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# EA option limiting to certain specific organizations for endpoints where organization is available
-register(
-    "api.id-or-slug-enabled-ea-org",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # API Tokens
 register(
@@ -2665,4 +2651,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.monitor-queue-time",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
