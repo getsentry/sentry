@@ -1,7 +1,6 @@
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
@@ -206,18 +205,6 @@ export function convertMultilineFieldValue<T extends string | string[]>(
   }
 
   return '';
-}
-
-function projectDisplayCompare(a: Project, b: Project): number {
-  if (a.isBookmarked !== b.isBookmarked) {
-    return a.isBookmarked ? -1 : 1;
-  }
-  return a.slug.localeCompare(b.slug);
-}
-
-// Sort a list of projects by bookmarkedness, then by id
-export function sortProjects(projects: Array<Project>): Array<Project> {
-  return projects.sort(projectDisplayCompare);
 }
 
 // build actorIds
