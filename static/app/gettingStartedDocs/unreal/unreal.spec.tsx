@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './unreal';
 
-describe('GettingStartedWithSpring', function () {
-  it('renders gradle docs correctly', function () {
+describe('getting started with unreal', function () {
+  it('renders docs correctly', function () {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

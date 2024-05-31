@@ -3,7 +3,7 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './native-qt';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with native-qt', function () {
   it('renders gradle docs correctly', function () {
     renderWithOnboardingLayout(docs);
 
