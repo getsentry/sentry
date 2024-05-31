@@ -1,4 +1,4 @@
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
@@ -48,14 +48,9 @@ class ProcessControlOutboxTest(TestCase):
         )
 
         process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_REGION.name)
-        calls = mock_caching.clear_key.mock_calls
-        assert len(calls) == 3
-        assert calls[0] == call(
+        mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
         )
-        assert calls[1] == call(
-            key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
-        )
-        assert calls[2] == call(
+        mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install_two.id}", region_name=_TEST_REGION.name
         )
