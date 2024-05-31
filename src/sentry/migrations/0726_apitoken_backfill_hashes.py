@@ -21,9 +21,9 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
         if api_token.refresh_token:
             hashed_refresh_token = hashlib.sha256(api_token.refresh_token.encode()).hexdigest()
 
-            api_token.hashed_token = hashed_token
-            api_token.hashed_refresh_token = hashed_refresh_token
-            api_token.save(update_fields=["hashed_token", "hashed_refresh_token"])
+        api_token.hashed_token = hashed_token
+        api_token.hashed_refresh_token = hashed_refresh_token
+        api_token.save(update_fields=["hashed_token", "hashed_refresh_token"])
 
 
 class Migration(CheckedMigration):
