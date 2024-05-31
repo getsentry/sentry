@@ -66,7 +66,7 @@ class IssueAlertImageBuilder:
             data={
                 "yAxis": ["count()", "p95(transaction.duration)"],
                 "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
-                "query": f"event.type:transaction transaction:{transaction_name}",
+                "query": f'event.type:transaction transaction:"{transaction_name}"',
                 "project": self.group.project.id,
                 "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
                 "end": period["end"].strftime("%Y-%m-%d %H:%M:%S"),
