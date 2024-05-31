@@ -68,6 +68,39 @@ describe('SearchQueryBuilder', function () {
     label: 'Query Builder',
   };
 
+  describe('callbacks', function () {
+    it('calls onChange, onBlur, and onSearch with the query string', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnBlur = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          onChange={mockOnChange}
+          onBlur={mockOnBlur}
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('foo{enter}');
+
+      // Should call onChange and onSearch after enter
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('foo');
+        expect(mockOnSearch).toHaveBeenCalledWith('foo');
+      });
+
+      await userEvent.click(document.body);
+
+      // Clicking outside activates onBlur
+      await waitFor(() => {
+        expect(mockOnBlur).toHaveBeenCalledWith('foo');
+      });
+    });
+  });
+
   describe('actions', function () {
     it('can clear the query', async function () {
       const mockOnChange = jest.fn();

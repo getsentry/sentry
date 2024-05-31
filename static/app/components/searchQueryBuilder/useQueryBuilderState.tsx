@@ -94,7 +94,7 @@ function replaceQueryToken(
 
 // Ensures that the replaced token is separated from the rest of the query
 // and cleans up any extra whitespace
-function replaceTokenWithPadding(
+export function replaceTokenWithPadding(
   query: string,
   token: TokenResult<Token>,
   value: string
