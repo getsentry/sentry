@@ -2,7 +2,6 @@ import type {SourceMapProcessingIssueType} from 'sentry/components/events/interf
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -110,7 +109,6 @@ export type IssueEventParameters = {
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
-    organization: Organization;
   };
   'issue_details.set_priority': SetPriorityParams;
   'issue_details.similar_issues.diff_clicked': {
