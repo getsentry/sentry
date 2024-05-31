@@ -159,7 +159,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
         # 425 - Text content does not match server-rendered HTML.
         error_messages += [
-            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
+            "*https://react.dev/errors/{418,419,422,423,425}*",
         ]
 
     if project.get_option("filters:chunk-load-error") == "1":

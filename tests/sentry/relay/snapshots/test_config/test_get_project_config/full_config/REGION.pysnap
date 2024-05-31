@@ -83,6 +83,7 @@ config:
     errorMessages:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+      - '*https://react.dev/errors/{418,419,422,423,425}*'
       - 'ChunkLoadError: Loading chunk *'
       - '*Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
