@@ -439,9 +439,12 @@ class UsageStatsOrganization<
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
         // HACK: The backend enum are singular, but the frontend enums are plural
+        const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(
+          data => data.plural === dataCategory
+        );
         if (
           dataCategory !== DATA_CATEGORY_INFO.metrics.plural &&
-          !dataCategory.includes(`${category}`)
+          fullDataCategory?.apiName !== category
         ) {
           return;
         }
