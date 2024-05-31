@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import orderBy from 'lodash/orderBy';
@@ -168,15 +168,17 @@ function useFilterSuggestions({
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
-      .flatMap(group => group.suggestions);
+      .flatMap(group => group.suggestions)
+      .filter(value => !selectedValues.includes(value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
       {
         sectionText: '',
-        items: getItemsWithKeys(
-          [...selectedValues, ...itemsWithoutSection].map(value => createItem(value))
-        ),
+        items: getItemsWithKeys([
+          ...selectedValues.map(value => createItem(value, true)),
+          ...itemsWithoutSection.map(value => createItem(value)),
+        ]),
       },
       ...sections.map(group => ({
         sectionText: group.sectionText,
@@ -195,7 +197,6 @@ function useFilterSuggestions({
   }, [suggestionSectionItems]);
 
   return {
-    selectedValues,
     items,
     suggestionSectionItems,
   };
@@ -242,6 +243,7 @@ export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
 }: SearchQueryValueBuilderProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
 
   const {keys, dispatch} = useSearchQueryBuilder();
@@ -303,12 +305,23 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, token]
   );
 
+  // Clicking anywhere in the value editing area should focus the input
+  const onClick: React.MouseEventHandler<HTMLDivElement> = useCallback(e => {
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+      e.stopPropagation();
+      inputRef.current?.click();
+      inputRef.current?.focus();
+    }
+  }, []);
+
   return (
-    <ValueEditing>
+    <ValueEditing onClick={onClick}>
       {selectedValues.map(value => (
-        <span key={value}>{value},</span>
+        <SelectedValue key={value}>{value},</SelectedValue>
       ))}
       <SearchQueryBuilderCombobox
+        ref={inputRef}
         items={items}
         onOptionSelected={handleSelectValue}
         onCustomValueSelected={handleSelectValue}
@@ -340,6 +353,11 @@ const ValueEditing = styled('div')`
   height: 100%;
   align-items: center;
   gap: ${space(0.25)};
+`;
+
+const SelectedValue = styled('span')`
+  pointer-events: none;
+  user-select: none;
 `;
 
 const TrailingWrap = styled('div')`
