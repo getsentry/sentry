@@ -1,12 +1,9 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {
   descopeFeatureName,
   escapeDoubleQuotes,
   explodeSlug,
   extractMultilineFields,
   parseRepo,
-  sortProjects,
   valueIsEqual,
 } from 'sentry/utils';
 
@@ -173,32 +170,6 @@ describe('utils.parseRepo', function () {
 describe('utils.explodeSlug', function () {
   it('replaces slug special chars with whitespace', function () {
     expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
-  });
-});
-
-describe('utils.projectDisplayCompare', function () {
-  it('sorts by bookmark and project slug', function () {
-    const projects = [
-      ProjectFixture({isBookmarked: true, slug: 'm'}),
-      ProjectFixture({isBookmarked: false, slug: 'm'}),
-      ProjectFixture({isBookmarked: false, slug: 'a'}),
-      ProjectFixture({isBookmarked: true, slug: 'a'}),
-      ProjectFixture({isBookmarked: true, slug: 'z'}),
-      ProjectFixture({isBookmarked: false, slug: 'z'}),
-    ];
-
-    const expected = [
-      expect.objectContaining({isBookmarked: true, slug: 'a'}),
-      expect.objectContaining({isBookmarked: true, slug: 'm'}),
-      expect.objectContaining({isBookmarked: true, slug: 'z'}),
-      expect.objectContaining({isBookmarked: false, slug: 'a'}),
-      expect.objectContaining({isBookmarked: false, slug: 'm'}),
-      expect.objectContaining({isBookmarked: false, slug: 'z'}),
-    ];
-
-    const sortedProjects = sortProjects(projects);
-
-    expect(sortedProjects).toEqual(expected);
   });
 });
 
