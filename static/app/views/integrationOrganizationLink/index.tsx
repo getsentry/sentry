@@ -139,7 +139,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
+        this.api.requestPromise(`/organizations/${orgSlug}/`, {
+          query: {
+            include_feature_flags: 1,
+          },
+        }),
         this.api.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
