@@ -213,8 +213,10 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders updated table columns and orderby', async function () {
         const eventsMock = mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        expect(screen.getByText('title')).toBeInTheDocument();
-        expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+        expect(await screen.findByText('title')).toBeInTheDocument();
+        expect(
+          await screen.findByText('/organizations/:orgId/dashboards/')
+        ).toBeInTheDocument();
         expect(eventsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events/',
           expect.objectContaining({
