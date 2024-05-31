@@ -1,6 +1,5 @@
 import type {Query} from 'history';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {EventTag} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
@@ -282,10 +281,6 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
-}
-
-export function generateBaseControlSiloUrl() {
-  return ConfigStore.get('links').sentryUrl || '';
 }
 
 export function generateOrgSlugUrl(orgSlug) {
