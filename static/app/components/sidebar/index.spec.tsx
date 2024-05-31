@@ -79,11 +79,11 @@ describe('Sidebar', function () {
   });
 
   it('renders for self-hosted errors only', function () {
-    ConfigStore.set('isSelfHostedErrorsOnly', true);
+    act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
     const {container} = renderSidebar({organization});
     const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
     expect(sidebarItems.length).toEqual(10);
-    ConfigStore.set('isSelfHostedErrorsOnly', false);
+    act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
   });
 
   it('has can logout', async function () {
