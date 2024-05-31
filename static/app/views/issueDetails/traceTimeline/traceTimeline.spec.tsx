@@ -191,20 +191,8 @@ describe('TraceTimeline', () => {
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
 
     // Test analytics
-    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-      trace_timeline_status: 'empty',
-    });
-    // XXX: The component is being rendered twice, thus, two calls to trackAnalytics
-    expect(trackAnalytics).toHaveBeenCalledTimes(2);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'issue_details.related_trace_issue.viewed',
-      {
-        group_id: issuePlatformBody.data[0]['issue.id'],
-        organization: organization.slug,
-      }
-    );
     await userEvent.click(await screen.findByText('Slow DB Query'));
-    expect(trackAnalytics).toHaveBeenCalledTimes(3);
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
       {

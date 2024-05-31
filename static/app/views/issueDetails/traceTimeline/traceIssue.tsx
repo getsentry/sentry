@@ -6,6 +6,7 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
@@ -24,10 +25,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 
   const referrer = 'issue_details.related_trace_issue';
 
-  trackAnalytics(`${referrer}.viewed`, {
-    organization: organization.slug,
-    group_id: issueId,
-  });
+  useRouteAnalyticsParams({has_related_trace_issue: true});
   return (
     <Fragment>
       <TraceIssueLinkContainer
