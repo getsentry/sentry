@@ -11,8 +11,8 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
   TraceError,
@@ -101,7 +101,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
   };
 
   return (
-    <Container hasErrors={!objectIsEmpty(event.errors)}>
+    <Container hasErrors={!isEmptyObject(event.errors)}>
       <QuickTraceContext.Consumer>
         {quickTrace => {
           const errors: TraceError[] | undefined =

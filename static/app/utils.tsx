@@ -74,16 +74,6 @@ export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-export function objectIsEmpty(obj = {}): boolean {
-  for (const prop in obj) {
-    if (obj.hasOwnProperty(prop)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 /**
  * Replaces slug special chars with a space
  */

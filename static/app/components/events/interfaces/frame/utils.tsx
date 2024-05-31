@@ -2,7 +2,8 @@ import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame, PlatformKey} from 'sentry/types';
 import {EventOrGroupType} from 'sentry/types';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {SymbolicatorStatus} from '../types';
 
@@ -74,11 +75,11 @@ export function hasContextSource(frame: Frame) {
 }
 
 export function hasContextVars(frame: Frame) {
-  return !objectIsEmpty(frame.vars || {});
+  return !isEmptyObject(frame.vars || {});
 }
 
 export function hasContextRegisters(registers: Record<string, string>) {
-  return !objectIsEmpty(registers);
+  return !isEmptyObject(registers);
 }
 
 export function hasAssembly(frame: Frame, platform?: string) {

@@ -6,7 +6,8 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
@@ -47,7 +48,7 @@ function getEventExtraDataKnownDataDetails({
 export function AdditionalData({event}: {event: EventTransaction}) {
   const [raw, setRaw] = useState(false);
 
-  if (!defined(event.context) || objectIsEmpty(event.context)) {
+  if (!defined(event.context) || isEmptyObject(event.context)) {
     return null;
   }
 

@@ -5,7 +5,7 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {objectIsEmpty} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 type Props = {
   data: {
@@ -16,7 +16,7 @@ type Props = {
 };
 
 function renderParams(params: Props['data']['params'], meta: any) {
-  if (!params || objectIsEmpty(params)) {
+  if (!params || isEmptyObject(params)) {
     return null;
   }
 
