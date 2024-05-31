@@ -151,8 +151,17 @@ def get_organization_slug(*, org_id: int) -> dict:
     return {"slug": org.slug}
 
 
+def get_organization_autofix_consent(*, org_id: int) -> dict:
+    org: Organization = Organization.objects.get(id=org_id)
+    consent = org.get_option("sentry:gen_ai_consent", False)
+    return {
+        "consent": consent,
+    }
+
+
 seer_method_registry = {
     "get_organization_slug": get_organization_slug,
+    "get_organization_autofix_consent": get_organization_autofix_consent,
 }
 
 
