@@ -84,28 +84,28 @@ export function querySummaryRouteWithQuery({
 }
 
 export function generateResourceSummaryRoute({
-  orgSlug,
+  baseUrl,
   group,
 }: {
+  baseUrl: string;
   group: string;
-  orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/performance/browser/resources/spans/span/${group}/`;
+  return `${baseUrl}/spans/span/${group}/`;
 }
 
 export function resourceSummaryRouteWithQuery({
-  orgSlug,
+  baseUrl,
   query,
   group,
   projectID,
 }: {
+  baseUrl: string;
   group: string;
-  orgSlug: string;
   query: Query;
   projectID?: string | string[];
 }) {
   const pathname = generateResourceSummaryRoute({
-    orgSlug,
+    baseUrl,
     group,
   });
 

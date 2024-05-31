@@ -10,6 +10,7 @@ interface ContextData {
   keys: TagCollection;
   parsedQuery: ParseResult | null;
   query: string;
+  onSearch?: (query: string) => void;
 }
 
 export function useSearchQueryBuilder() {
@@ -22,4 +23,5 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
+  onSearch: () => {},
 });

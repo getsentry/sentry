@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import zoneinfo
 from collections.abc import Iterable, Mapping, MutableMapping
-from datetime import timezone
+from datetime import UTC, tzinfo
 from typing import Any
 from urllib.parse import urlencode
 
@@ -120,7 +120,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_recipient_context(
         self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        tz = timezone.utc
+        tz: tzinfo = UTC
         if recipient.is_user:
             user_options = user_option_service.get_many(
                 filter={"user_ids": [recipient.id], "keys": ["timezone"]}

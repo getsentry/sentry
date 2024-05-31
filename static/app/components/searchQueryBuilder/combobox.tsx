@@ -113,7 +113,7 @@ export function SearchQueryBuilderCombobox({
             onExit?.();
             return;
           case 'Enter':
-            if (!state.inputValue || state.selectionManager.focusedKey) {
+            if (state.selectionManager.focusedKey) {
               return;
             }
             state.close();

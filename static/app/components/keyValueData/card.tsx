@@ -193,10 +193,9 @@ const CardPanel = styled(Panel)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Title = styled('p')`
+const Title = styled('div')`
   grid-column: span 2;
   padding: ${space(0.25)} ${space(0.75)};
-  margin: 0;
   color: ${p => p.theme.headingColor};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
