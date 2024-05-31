@@ -206,7 +206,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders Edit and Open buttons', async function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
       });
 
@@ -232,8 +232,10 @@ describe('Modals -> WidgetViewerModal', function () {
           widget: mockWidget,
           dashboardFilters: {release: ['project-release@1.2.0']},
         });
-        expect(screen.getByText('title')).toBeInTheDocument();
-        expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+        expect(await screen.findByText('title')).toBeInTheDocument();
+        expect(
+          await screen.findByText('/organizations/:orgId/dashboards/')
+        ).toBeInTheDocument();
         expect(eventsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events/',
           expect.objectContaining({
@@ -249,7 +251,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders area chart', async function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        expect(screen.getByText('echarts mock')).toBeInTheDocument();
+        expect(await screen.findByText('echarts mock')).toBeInTheDocument();
       });
 
       it('renders description', async function () {
@@ -258,18 +260,13 @@ describe('Modals -> WidgetViewerModal', function () {
           initialData,
           widget: {...mockWidget, description: 'This is a description'},
         });
-        expect(screen.getByText('This is a description')).toBeInTheDocument();
-      });
-
-      it('renders Discover area chart widget viewer', async function () {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
+        expect(await screen.findByText('This is a description')).toBeInTheDocument();
       });
 
       it('redirects user to Discover when clicking Open in Discover', async function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        await userEvent.click(screen.getByText('Open in Discover'));
+        await userEvent.click(await screen.findByText('Open in Discover'));
         expect(initialData.router.push).toHaveBeenCalledWith(
           '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
         );
@@ -306,7 +303,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
         expect(
-          screen.getByText(
+          await screen.findByText(
             'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
           )
         ).toBeInTheDocument();
@@ -316,7 +313,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('updates selected query when selected in the query dropdown', async function () {
         mockEvents();
         const {rerender} = await renderModal({initialData, widget: mockWidget});
-        await userEvent.click(screen.getByText('Query Name'));
+        await userEvent.click(await screen.findByText('Query Name'));
         await userEvent.click(screen.getByText('Another Query Name'));
         expect(initialData.router.replace).toHaveBeenCalledWith({
           query: {query: 1},
@@ -369,7 +366,7 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders total results in footer', async function () {
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        expect(screen.getByText('33,323,612')).toBeInTheDocument();
+        expect(await screen.findByText('33,323,612')).toBeInTheDocument();
       });
 
       it('renders highlighted query text and multiple queries in select dropdown', async function () {
@@ -382,7 +379,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
         await userEvent.click(
-          screen.getByText('/organizations/:orgId/performance/summary/')
+          await screen.findByText('/organizations/:orgId/performance/summary/')
         );
       });
 
@@ -464,7 +461,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ];
         await renderModal({initialData, widget: mockWidget});
-        screen.getByText('transaction');
+        expect(await screen.findByText('transaction')).toBeInTheDocument();
       });
 
       it('includes order by in widget viewer table if not explicitly selected', async function () {
@@ -480,7 +477,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ];
         await renderModal({initialData, widget: mockWidget});
-        screen.getByText('count_unique(user)');
+        expect(await screen.findByText('count_unique(user)')).toBeInTheDocument();
       });
 
       it('includes a custom equation order by in widget viewer table if not explicitly selected', async function () {
@@ -496,7 +493,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         ];
         await renderModal({initialData, widget: mockWidget});
-        screen.getByText('count_unique(user) + 1');
+        expect(await screen.findByText('count_unique(user) + 1')).toBeInTheDocument();
       });
 
       it('renders widget chart with y axis formatter using provided seriesResultType', async function () {
@@ -724,17 +721,11 @@ describe('Modals -> WidgetViewerModal', function () {
         });
       });
 
-      it('renders Discover topn chart widget viewer', async function () {
-        mockEventsStats();
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-      });
-
       it('sorts table when a sortable column header is clicked', async function () {
         const eventsStatsMock = mockEventsStats();
         const eventsMock = mockEvents();
         const {rerender} = await renderModal({initialData, widget: mockWidget});
-        await userEvent.click(screen.getByText('count()'));
+        await userEvent.click(await screen.findByText('count()'));
         expect(initialData.router.push).toHaveBeenCalledWith({
           query: {sort: ['-count()']},
         });
@@ -771,7 +762,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEventsStats();
         mockEvents();
         await renderModal({initialData, widget: mockWidget});
-        expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
         expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
       });
 
@@ -1322,7 +1313,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders table header and body', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(await screen.findByText('release')).toBeInTheDocument();
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();
       expect(screen.getByText('6.3k')).toBeInTheDocument();
