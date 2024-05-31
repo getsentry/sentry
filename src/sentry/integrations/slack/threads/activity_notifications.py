@@ -178,6 +178,13 @@ class ExternalIssueCreatedActivityNotification(GroupActivityNotification):
     metrics_key = "create_issue"
     title = "External Issue Created"
 
+    def format_provider_name(provider: str) -> str:
+        # Make sure to make the proper noun have correct capitalization
+        # Take in account special cases
+        # I.e. github -> GitHub, jira -> Jira
+        special_cases = {"github": "GitHub"}
+        return special_cases.get(provider.lower(), provider.capitalize())
+
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         external_issue = _external_issue_activity_factory(activity=self.activity)
 
@@ -187,9 +194,7 @@ class ExternalIssueCreatedActivityNotification(GroupActivityNotification):
             base_template = "an "
         else:
             base_template = "a "
-            # Make sure to make the proper noun have correct capitalization
-            # I.e. github -> Github, jira -> Jira
-            provider = provider.capitalize()
+            provider = self.format_provider_name(provider)
         base_template += "{provider} issue"
 
         ticket_number = external_issue.get_ticket_number()
