@@ -150,11 +150,6 @@ export function getExactDuration(
   return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
 }
 
-export const SEC_IN_WK = 604800;
-export const SEC_IN_DAY = 86400;
-export const SEC_IN_HR = 3600;
-export const SEC_IN_MIN = 60;
-
 export function formatSecondsToClock(
   seconds: number,
   {padAll}: {padAll: boolean} = {padAll: true}
