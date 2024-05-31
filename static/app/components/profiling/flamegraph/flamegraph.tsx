@@ -171,9 +171,13 @@ function computeProfileOffset(
   const transactionStart =
     transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
 
-  if (defined(transactionStart) && defined(profileStart)) {
+  if (
+    defined(transactionStart) &&
+    defined(profileStart) &&
+    // Android sometimes doesnt report timestamps, which end up being wrongly initialized when the data is ingested.
+    profileStart !== '0001-01-01T00:00:00Z'
+  ) {
     const profileStartTimestamp = new Date(profileStart).getTime() / 1e3;
-
     const profileOffset = profileStartTimestamp - transactionStart;
     offset += formatTo(profileOffset, 'second', flamegraph.profile.unit);
   }
