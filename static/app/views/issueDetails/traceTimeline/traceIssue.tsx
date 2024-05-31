@@ -35,7 +35,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         }}
         onClick={() => {
           trackAnalytics(`${referrer}.trace_issue_clicked`, {
-            organization: organization.slug,
+            organization,
             group_id: issueId,
           });
         }}

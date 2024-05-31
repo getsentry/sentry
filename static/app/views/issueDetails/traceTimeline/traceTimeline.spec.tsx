@@ -200,7 +200,9 @@ describe('TraceTimeline', () => {
       'issue_details.related_trace_issue.trace_issue_clicked',
       {
         group_id: issuePlatformBody.data[0]['issue.id'],
-        organization: organization.slug,
+        organization: OrganizationFixture({
+          features: ['related-issues-issue-details-page'],
+        }),
       }
     );
   });
