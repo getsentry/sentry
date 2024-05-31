@@ -27,7 +27,6 @@ const {
   routerContext,
   organization: org,
   router,
-  project,
 } = initializeOrg({
   organization,
   router: {
@@ -282,7 +281,6 @@ describe('Performance > VitalDetail', function () {
 
     const context = RouterContextFixture([
       {
-        project,
         router: newRouter,
         location: newRouter.location,
       },
@@ -335,7 +333,6 @@ describe('Performance > VitalDetail', function () {
 
     const context = RouterContextFixture([
       {
-        project,
         router: newRouter,
         location: newRouter.location,
       },
@@ -389,7 +386,6 @@ describe('Performance > VitalDetail', function () {
 
     const context = RouterContextFixture([
       {
-        project,
         router: newRouter,
         location: newRouter.location,
       },
