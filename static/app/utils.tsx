@@ -1,6 +1,5 @@
 import type {Query} from 'history';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {EventTag} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
@@ -75,25 +74,6 @@ export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Array<T> {
-  arr.sort((a, b) => {
-    const a_score = score_fn(a),
-      b_score = score_fn(b);
-
-    for (let i = 0; i < a_score.length; i++) {
-      if (a_score[i] > b_score[i]) {
-        return 1;
-      }
-      if (a_score[i] < b_score[i]) {
-        return -1;
-      }
-    }
-    return 0;
-  });
-
-  return arr;
-}
-
 /**
  * Replaces slug special chars with a space
  */
@@ -107,17 +87,6 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 
 export function nl2br(str: string): string {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
-}
-
-/**
- * This function has a critical security impact, make sure to check all usages before changing this function.
- * In some parts of our code we rely on that this only really is a string starting with http(s).
- */
-export function isUrl(str: any): boolean {
-  return (
-    typeof str === 'string' &&
-    (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
-  );
 }
 
 export function escape(str: string): string {
@@ -299,15 +268,9 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   return query;
 }
 
-export const isFunction = (value: any): value is Function => typeof value === 'function';
-
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
-}
-
-export function generateBaseControlSiloUrl() {
-  return ConfigStore.get('links').sentryUrl || '';
 }
 
 export function generateOrgSlugUrl(orgSlug) {

@@ -18,8 +18,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl} from 'sentry/utils';
+import {generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -418,6 +419,7 @@ const TreeSearchKey = styled('span')`
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
+  display: block;
   margin: 1px;
   height: 20px;
   .tag-button {
