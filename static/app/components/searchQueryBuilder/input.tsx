@@ -215,7 +215,10 @@ function SearchQueryBuilderInputInternal({
         });
         resetInputValue();
       }}
-      onCustomValueSelected={value => {
+      onCustomValueBlurred={value => {
+        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+      }}
+      onCustomValueCommitted={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
 
         // Because the query does not change until a subsequent render,
