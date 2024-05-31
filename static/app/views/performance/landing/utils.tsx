@@ -8,11 +8,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

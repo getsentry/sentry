@@ -21,8 +21,9 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {WebVital} from 'sentry/utils/fields';
-import {formatAbbreviatedNumber, formatFloat} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
