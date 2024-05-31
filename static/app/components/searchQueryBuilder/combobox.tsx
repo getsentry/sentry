@@ -24,7 +24,8 @@ type SearchQueryBuilderComboboxProps = {
   inputLabel: string;
   inputValue: string;
   items: SelectOptionWithKey<string>[];
-  onCustomValueSelected: (value: string) => void;
+  onCustomValueBlurred: (value: string) => void;
+  onCustomValueCommitted: (value: string) => void;
   onOptionSelected: (value: string) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
@@ -43,7 +44,8 @@ export function SearchQueryBuilderCombobox({
   inputValue,
   filterValue = inputValue,
   placeholder,
-  onCustomValueSelected,
+  onCustomValueBlurred,
+  onCustomValueCommitted,
   onOptionSelected,
   inputLabel,
   onExit,
@@ -98,11 +100,7 @@ export function SearchQueryBuilderCombobox({
       onSelectionChange,
       autoFocus,
       onBlur: () => {
-        if (inputValue) {
-          onCustomValueSelected(inputValue);
-        } else {
-          onExit?.();
-        }
+        onCustomValueBlurred(inputValue);
         state.close();
       },
       onKeyDown: e => {
@@ -117,7 +115,7 @@ export function SearchQueryBuilderCombobox({
               return;
             }
             state.close();
-            onCustomValueSelected(inputValue);
+            onCustomValueCommitted(inputValue);
             return;
           default:
             return;
@@ -138,7 +136,7 @@ export function SearchQueryBuilderCombobox({
     shouldCloseOnBlur: true,
     onInteractOutside: () => {
       if (state.inputValue) {
-        onCustomValueSelected(inputValue);
+        onCustomValueBlurred(inputValue);
       } else {
         onExit?.();
       }
