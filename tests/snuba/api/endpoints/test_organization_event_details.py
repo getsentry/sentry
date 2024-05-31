@@ -339,7 +339,8 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
         )
 
     def test_get(self):
-        response = self.client.get(self.url, {"averageColumn": "span.self_time"})
+        with self.feature("organizations:insights-initial-modules"):
+            response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
@@ -357,7 +358,10 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.ten_mins_ago,
             tags={"span.group": "26b881987e4bad99"},
         )
-        response = self.client.get(self.url, {"averageColumn": ["span.self_time", "span.duration"]})
+        with self.feature("organizations:insights-initial-modules"):
+            response = self.client.get(
+                self.url, {"averageColumn": ["span.self_time", "span.duration"]}
+            )
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
@@ -373,7 +377,10 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
 
     def test_nan_column(self):
         # If there's nothing stored for a metric, span.duration in this case the query returns nan
-        response = self.client.get(self.url, {"averageColumn": ["span.self_time", "span.duration"]})
+        with self.feature("organizations:insights-initial-modules"):
+            response = self.client.get(
+                self.url, {"averageColumn": ["span.self_time", "span.duration"]}
+            )
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
         for entry in entries:
