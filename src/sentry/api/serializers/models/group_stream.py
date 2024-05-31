@@ -51,7 +51,7 @@ def get_actions(request: Request, group):
         if is_plugin_deprecated(plugin, project):
             continue
 
-        results = safe_execute(plugin.actions, request, group, action_list, _with_transaction=False)
+        results = safe_execute(plugin.actions, request, group, action_list)
 
         if not results:
             continue
@@ -61,9 +61,7 @@ def get_actions(request: Request, group):
     for plugin in plugins.for_project(project, version=2):
         if is_plugin_deprecated(plugin, project):
             continue
-        for action in (
-            safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
-        ):
+        for action in safe_execute(plugin.get_actions, request, group) or ():
             action_list.append(action)
 
     return action_list
@@ -80,9 +78,7 @@ def get_available_issue_plugins(request: Request, group):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
                 continue
-            plugin_issues = safe_execute(
-                plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
-            )
+            plugin_issues = safe_execute(plugin.plugin_issues, request, group, plugin_issues)
     return plugin_issues
 
 
