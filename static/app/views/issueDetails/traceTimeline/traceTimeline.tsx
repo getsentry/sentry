@@ -42,8 +42,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   const showTraceRelatedIssue =
     timelineStatus !== 'shown' &&
-    organization.features?.includes('related-issues-issue-details-page') &&
-    oneOtherIssueEvent;
+    organization.features.includes('related-issues-issue-details-page') &&
+    oneOtherIssueEvent !== undefined;
 
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,

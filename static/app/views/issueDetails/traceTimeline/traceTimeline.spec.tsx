@@ -85,6 +85,7 @@ describe('TraceTimeline', () => {
     await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false,
       trace_timeline_status: 'shown',
     });
   });
@@ -103,6 +104,7 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -123,6 +125,7 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -235,6 +238,7 @@ describe('TraceTimeline', () => {
     // We do not display the timeline because we only have 1 event
     expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false,
       trace_timeline_status: 'empty',
     });
   });
