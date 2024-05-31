@@ -408,7 +408,7 @@ function Sidebar() {
         // If the client has the old sidebar hierarchy _and_ something to show inside the Performance dropdown, render an accordion.
         if (
           !hasNewSidebarHierarchy &&
-          (organization.features.includes('spans-first-ui') ||
+          (organization.features.includes('insights-entry-points') ||
             organization.features.includes('performance-cache-view') ||
             organization.features.includes('performance-queues-view') ||
             organization.features.includes('performance-trace-explorer'))
@@ -594,25 +594,27 @@ function Sidebar() {
     />
   );
 
-  const insights = (
-    <SidebarAccordion
-      {...sidebarItemProps}
-      icon={<IconGraph />}
-      label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
-      id="insights"
-      exact={!shouldAccordionFloat}
-    >
-      {requests}
-      {queries}
-      {resources}
-      {appStarts}
-      {screenLoads}
-      {webVitals}
-      {caches}
-      {queues}
-      {mobileUI}
-      {llmMonitoring}
-    </SidebarAccordion>
+  const insights = hasOrganization && (
+    <Feature key="insights" features="insights-entry-points" organization={organization}>
+      <SidebarAccordion
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+        id="insights"
+        exact={!shouldAccordionFloat}
+      >
+        {requests}
+        {queries}
+        {resources}
+        {appStarts}
+        {screenLoads}
+        {webVitals}
+        {caches}
+        {queues}
+        {mobileUI}
+        {llmMonitoring}
+      </SidebarAccordion>
+    </Feature>
   );
 
   const explore = (
