@@ -1216,7 +1216,7 @@ function Flamegraph(): ReactElement {
     [selectedRoot, flamegraph.root]
   );
 
-  // In case a user selected root is present, we will display that root + it's entire sub tree.
+  // In case a user selected root is present, we will display that root + its entire sub tree.
   // If no root is selected, we will display the entire sub tree down from the root. We start at
   // root.children because flamegraph.root is a virtual node that we do not want to show in the table.
   const rootNodes = useMemo(() => {
