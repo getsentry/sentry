@@ -1,9 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization as TOrganization} from 'sentry/types';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
@@ -39,10 +37,6 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
   return mockOrg;
 }
 
-function getMockContext(mockOrg: TOrganization) {
-  return RouterContextFixture([{organization: mockOrg}]);
-}
-
 describe('ReplayList', () => {
   let mockFetchReplayListRequest;
   beforeEach(() => {
@@ -73,7 +67,6 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
       organization: mockOrg,
     });
 
@@ -96,7 +89,6 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
       organization: mockOrg,
     });
 
@@ -119,7 +111,6 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
       organization: mockOrg,
     });
 
@@ -142,7 +133,6 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
       organization: mockOrg,
     });
 
@@ -172,7 +162,6 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
       organization: mockOrg,
     });
 

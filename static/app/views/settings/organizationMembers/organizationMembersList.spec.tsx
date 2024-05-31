@@ -181,9 +181,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
@@ -204,9 +202,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
@@ -226,9 +222,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -256,9 +250,7 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -282,9 +274,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -307,9 +297,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -326,9 +314,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -370,10 +356,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/members/',
       body: [],
     });
-    const routerContext = RouterContextFixture();
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: routerContext,
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
     await userEvent.click(screen.getByRole('option', {name: 'Member'}));
@@ -465,9 +448,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} organization={org} />);
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
@@ -491,9 +472,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} />);
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -529,9 +508,7 @@ describe('OrganizationMembersList', function () {
         method: 'DELETE',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} />);
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -565,9 +542,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} />, {organization: org});
 
       await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);
 

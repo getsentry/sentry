@@ -16,12 +16,7 @@ describe('Feature', function () {
   const project = ProjectFixture({
     features: ['project-foo', 'project-bar'],
   });
-  const routerContext = RouterContextFixture([
-    {
-      organization,
-      project,
-    },
-  ]);
+  const routerContext = RouterContextFixture([{project}]);
 
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);

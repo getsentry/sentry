@@ -1,5 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DeployBadge from 'sentry/components/badge/deployBadge';
@@ -24,8 +22,7 @@ describe('DeployBadge', () => {
         orgSlug="sentry"
         version="1.2.3"
         projectId={projectId}
-      />,
-      {context: RouterContextFixture()}
+      />
     );
 
     expect(screen.queryByRole('link')).toHaveAttribute(

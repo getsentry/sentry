@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
@@ -112,9 +111,7 @@ describe('Discover > Landing', function () {
   it('links back to the homepage', async () => {
     const org = OrganizationFixture({features});
 
-    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />, {
-      context: RouterContextFixture(),
-    });
+    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
 
     expect(await screen.findByText('Discover')).toHaveAttribute(
       'href',

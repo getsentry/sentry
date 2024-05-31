@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -18,7 +17,6 @@ import TeamStore from 'sentry/stores/teamStore';
 describe('Project Creation Modal', function () {
   const closeModal = jest.fn();
   const organization = OrganizationFixture();
-  const routerContext = RouterContextFixture([{organization}]);
 
   it('renders modal', async function () {
     render(
@@ -93,8 +91,7 @@ describe('Project Creation Modal', function () {
         CloseButton={makeCloseButton(closeModal)}
         Header={makeClosableHeader(closeModal)}
         Footer={ModalFooter}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByRole('button', {name: 'Next Step'})).toBeDisabled();

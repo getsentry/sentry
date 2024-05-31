@@ -1,5 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -62,7 +60,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    render(<CommitRow commit={commit} />, {context: RouterContextFixture()});
+    render(<CommitRow commit={commit} />);
     expect(
       screen.getByText(
         textWithMarkupMatcher(

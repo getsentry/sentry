@@ -1,5 +1,4 @@
 import {MemberFixture} from 'sentry-fixture/member';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,13 +7,12 @@ import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', function () {
   let member;
-  const routerContext = RouterContextFixture();
   beforeEach(() => {
     member = MemberFixture();
   });
 
   it('renders with link when member and orgId are supplied', function () {
-    render(<MemberBadge member={member} />, {context: routerContext});
+    render(<MemberBadge member={member} />);
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Foo Bar'})).toBeInTheDocument();

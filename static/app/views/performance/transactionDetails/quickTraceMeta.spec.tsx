@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -12,8 +12,7 @@ import type {
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
 describe('QuickTraceMeta', function () {
-  const routerContext = RouterContextFixture();
-  const location = routerContext.context.location;
+  const location = LocationFixture();
   const project = ProjectFixture({platform: 'javascript'});
   const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
   const emptyQuickTrace: QuickTraceQueryChildrenProps = {
@@ -168,8 +167,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();

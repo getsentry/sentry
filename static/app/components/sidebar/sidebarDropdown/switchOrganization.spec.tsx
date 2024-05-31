@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +6,6 @@ import SwitchOrganization from 'sentry/components/sidebar/sidebarDropdown/switch
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 describe('SwitchOrganization', function () {
-  const routerContext = RouterContextFixture();
   it('can list organizations', async function () {
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1'}),
@@ -15,9 +13,7 @@ describe('SwitchOrganization', function () {
     ]);
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      context: RouterContextFixture(),
-    });
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -54,9 +50,7 @@ describe('SwitchOrganization', function () {
     ]);
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      context: routerContext,
-    });
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -91,9 +85,7 @@ describe('SwitchOrganization', function () {
     ]);
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      context: routerContext,
-    });
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -181,7 +173,6 @@ describe('SwitchOrganization', function () {
 
     render(<SwitchOrganization canCreateOrganization={false} />, {
       organization: currentOrg,
-      context: routerContext,
     });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
@@ -204,9 +195,7 @@ describe('SwitchOrganization', function () {
 
   it('shows "Create an Org" if they have permission', async function () {
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization />, {
-      context: routerContext,
-    });
+    render(<SwitchOrganization canCreateOrganization />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));

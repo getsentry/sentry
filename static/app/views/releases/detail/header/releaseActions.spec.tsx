@@ -6,7 +6,6 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {
   render,
@@ -155,7 +154,6 @@ describe('ReleaseActions', function () {
   });
 
   it('navigates to a next/prev release', function () {
-    const routerContext = RouterContextFixture();
     const {rerender} = render(
       <ReleaseActions
         organization={organization}
@@ -164,8 +162,7 @@ describe('ReleaseActions', function () {
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByLabelText('Oldest')).toHaveAttribute(

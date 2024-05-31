@@ -1,6 +1,5 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,11 +11,6 @@ function renderDropdown(props: any = {}) {
   const user = UserFixture();
   const config = ConfigFixture();
   const organization = OrganizationFixture({orgRole: 'member'});
-  const routerContext = RouterContextFixture([
-    {
-      organization,
-    },
-  ]);
   return render(
     <SidebarDropdown
       orientation="left"
@@ -26,7 +20,7 @@ function renderDropdown(props: any = {}) {
       org={organization}
       {...props}
     />,
-    {context: routerContext, organization}
+    {organization}
   );
 }
 

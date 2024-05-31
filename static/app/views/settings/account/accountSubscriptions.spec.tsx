@@ -1,4 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {SubscriptionsFixture} from 'sentry-fixture/subscriptions';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,9 +16,7 @@ describe('AccountSubscriptions', function () {
       url: ENDPOINT,
       body: [],
     });
-    render(<AccountSubscriptions />, {
-      context: RouterContextFixture(),
-    });
+    render(<AccountSubscriptions />);
   });
 
   it('renders list and can toggle', async function () {

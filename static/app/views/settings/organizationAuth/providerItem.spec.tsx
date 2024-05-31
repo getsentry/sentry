@@ -1,6 +1,5 @@
 import {AuthProvidersFixture} from 'sentry-fixture/authProviders';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,11 +11,9 @@ describe('ProviderItem', function () {
   const org = OrganizationFixture({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
-  const routerContext = RouterContextFixture([{organization: org}]);
 
   it('renders', function () {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
-      context: routerContext,
       organization: org,
     });
 
@@ -28,7 +25,6 @@ describe('ProviderItem', function () {
   it('calls configure callback', async function () {
     const mock = jest.fn();
     render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
-      context: routerContext,
       organization: org,
     });
 
@@ -38,7 +34,6 @@ describe('ProviderItem', function () {
 
   it('renders a disabled Tag when disabled', function () {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
-      context: RouterContextFixture(),
       organization: OrganizationFixture(),
     });
 

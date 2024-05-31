@@ -1,5 +1,4 @@
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,8 +6,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 
 describe('ProjectBadge', function () {
   it('renders with Avatar and team name', function () {
-    const routerContext = RouterContextFixture();
-    render(<ProjectBadge project={ProjectFixture()} />, {context: routerContext});
+    render(<ProjectBadge project={ProjectFixture()} />);
 
     expect(screen.getByRole('img')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(

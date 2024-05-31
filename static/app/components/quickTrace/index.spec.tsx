@@ -1,5 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -381,7 +379,6 @@ describe('Quick Trace', function () {
 
   describe('Event Node Clicks', function () {
     it('renders single event targets', async function () {
-      const routerContext = RouterContextFixture();
       render(
         <QuickTrace
           event={makeTransactionEventFixture(3) as Event}
@@ -401,8 +398,7 @@ describe('Quick Trace', function () {
           transactionDest="performance"
           location={location}
           organization={organization}
-        />,
-        {context: routerContext}
+        />
       );
       const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(6);
