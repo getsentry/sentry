@@ -22,7 +22,7 @@ import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -44,6 +44,7 @@ import {formatFloat, formatPercentage, formatRate} from 'sentry/utils/formatters
 import getDynamicText from 'sentry/utils/getDynamicText';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {

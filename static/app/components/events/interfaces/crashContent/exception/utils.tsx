@@ -6,8 +6,8 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import type {Frame} from 'sentry/types';
-import {isUrl} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
