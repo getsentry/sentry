@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -20,7 +21,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
-import {MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -98,7 +99,10 @@ export function LLMMonitoringPage({params}: Props) {
                 },
               ]}
             />
-            <Layout.Title>{MODULE_TITLE}</Layout.Title>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <FeatureBadge type={RELEASE_LEVEL} />
+            </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
