@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from typing import Any
 from urllib.parse import urlencode
 
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleStatus,
+    AlertRuleTriggerAction,
+    AlertRuleTriggerActionMethod,
+)
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
@@ -182,7 +186,7 @@ def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: Literal["fire", "resolve"],
+    method: AlertRuleTriggerActionMethod,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,
