@@ -79,6 +79,8 @@ async function renderModal({
   if (widget.widgetType === WidgetType.DISCOVER) {
     await waitForMetaToHaveBeenCalled();
   }
+  // Component renders twice
+  await act(tick);
   return rendered;
 }
 
