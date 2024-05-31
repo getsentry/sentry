@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
@@ -353,7 +353,9 @@ def shim_to_feedback(
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
+    if features.has(
+        "organizations:user-feedback-spam-filter-actions", project.organization
+    ) and project.slug not in options.get("feedback.projects.slug-denylist"):
         metrics.incr("feedback.spam-detection-actions.set-ignored")
         produce_occurrence_to_kafka(
             payload_type=PayloadType.STATUS_CHANGE,
