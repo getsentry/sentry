@@ -240,19 +240,6 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
             return None
 
-        # TODO: logger for investigation. should be removed
-        logger.info(
-            "get_comparison_aggregation_value",
-            extra={
-                "alert_rule_id": self.alert_rule.id,
-                "subscription_id": subscription_update.get("subscription_id"),
-                "organization_id": self.alert_rule.organization_id,
-                "comparison_aggregate": comparison_aggregate,
-                "aggregation_value": aggregation_value,
-                "result_data": results.get("data"),
-            },
-        )
-
         result: float = (aggregation_value / comparison_aggregate) * 100
         return result
 
@@ -436,17 +423,7 @@ class SubscriptionProcessor:
                 aggregation_value = self.get_comparison_aggregation_value(
                     subscription_update, aggregation_value
                 )
-                # TODO: logger for investigation. should be removed
-                logger.info(
-                    "Received a comparison alert rule update",
-                    extra={
-                        "alert_rule_id": self.alert_rule.id,
-                        "subscription_id": subscription_update.get("subscription_id"),
-                        "organization_id": self.alert_rule.organization_id,
-                        "comparison_delta": self.alert_rule.comparison_delta,
-                        "aggregation_value": aggregation_value,
-                    },
-                )
+
         return aggregation_value
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
