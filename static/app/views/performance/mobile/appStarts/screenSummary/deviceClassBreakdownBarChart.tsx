@@ -13,11 +13,11 @@ import {
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';

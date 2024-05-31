@@ -1,4 +1,3 @@
-import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
 import type moment from 'moment';
 
@@ -20,32 +19,6 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   }
   return displayName;
 }
-
-export const isSemverRelease = (rawVersion: string): boolean => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    return !!parsedVersion.versionParsed;
-  } catch {
-    return false;
-  }
-};
-
-export const formatVersion = (rawVersion: string, withPackage = false) => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    const versionToDisplay = parsedVersion.describe();
-
-    if (versionToDisplay.length) {
-      return `${versionToDisplay}${
-        withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
-      }`;
-    }
-
-    return rawVersion;
-  } catch {
-    return rawVersion;
-  }
-};
 
 // in milliseconds
 export const MONTH = 2629800000;
