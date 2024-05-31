@@ -22,12 +22,19 @@ export function DatasetSelector(props: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const value = decodeScalar(location.query[DATASET_PARAM]) ?? 'errors';
+  const value =
+    decodeScalar(location.query[DATASET_PARAM]) ??
+    savedQuery?.queryDataset ??
+    'error-events';
 
   const options = [
-    {value: 'errors', label: t('Errors')},
+    {value: 'error-events', label: t('Errors')},
     {value: 'transaction-like', label: t('Transactions')},
   ];
+
+  if (value === 'discover') {
+    options.push({value: 'discover', label: t('Unknown')});
+  }
 
   return (
     <CompactSelect
