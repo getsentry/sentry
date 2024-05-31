@@ -1,7 +1,6 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -41,7 +40,15 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     timelineStatus = 'no_trace_id';
   }
 
-  useRouteAnalyticsParams(timelineStatus ? {trace_timeline_status: timelineStatus} : {});
+  const showTraceRelatedIssue =
+    timelineStatus !== 'shown' &&
+    organization.features.includes('related-issues-issue-details-page') &&
+    oneOtherIssueEvent !== undefined;
+
+  useRouteAnalyticsParams({
+    trace_timeline_status: timelineStatus,
+    has_related_trace_issue: showTraceRelatedIssue,
+  });
 
   if (!hasTraceId) {
     return null;
@@ -60,7 +67,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   return (
     <ErrorBoundary mini>
-      {timelineStatus === 'shown' ? (
+      {timelineStatus === 'shown' && (
         <Fragment>
           <TimelineWrapper>
             <div ref={timelineRef}>
@@ -81,11 +88,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
             </QuestionTooltipWrapper>
           </TimelineWrapper>
         </Fragment>
-      ) : (
-        <Feature features="related-issues-issue-details-page">
-          {oneOtherIssueEvent && <TraceIssueEvent event={oneOtherIssueEvent} />}
-        </Feature>
       )}
+      {showTraceRelatedIssue && <TraceIssueEvent event={oneOtherIssueEvent} />}
     </ErrorBoundary>
   );
 }
