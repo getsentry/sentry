@@ -14,7 +14,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -147,7 +146,6 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -185,7 +183,7 @@ export function Content() {
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Total Spans')}
+            {t('Matching Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
@@ -216,15 +214,23 @@ export function Content() {
               </EmptyStateWarning>
             </StyledPanelItem>
           )}
-          {data?.map(trace => <TraceRow key={trace.trace} trace={trace} />)}
+          {data?.map((trace, i) => (
+            <TraceRow key={trace.trace} trace={trace} defaultExpanded={i === 0} />
+          ))}
         </TracePanelContent>
       </StyledPanel>
     </LayoutMain>
   );
 }
 
-function TraceRow({trace}: {trace: TraceResult<Field>}) {
-  const [expanded, setExpanded] = useState<boolean>(false);
+function TraceRow({
+  defaultExpanded,
+  trace,
+}: {
+  defaultExpanded;
+  trace: TraceResult<Field>;
+}) {
+  const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
 
   const setHighlightedSliceName = useMemo(
@@ -249,7 +255,7 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         />
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
-      <StyledPanelItem align="left" overflow onClick={onClickExpand}>
+      <StyledPanelItem align="left" overflow>
         <Description>
           {trace.project ? (
             <ProjectRenderer projectSlug={trace.project} hideName />
@@ -262,7 +268,11 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         </Description>
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <Count value={trace.numSpans} />
+        {tct('[numerator][space]of[space][denominator]', {
+          numerator: <Count value={trace.matchingSpans} />,
+          denominator: <Count value={trace.numSpans} />,
+          space: <Fragment>&nbsp;</Fragment>,
+        })}
       </StyledPanelItem>
       <BreakdownPanelItem
         align="right"
@@ -328,6 +338,14 @@ function SpanTable({
               setHighlightedSliceName={setHighlightedSliceName}
             />
           ))}
+          {spans.length < trace.matchingSpans && (
+            <MoreMatchingSpans span={5}>
+              {tct('[more][space]more matching spans can be found in the trace.', {
+                more: <Count value={trace.matchingSpans - spans.length} />,
+                space: <Fragment>&nbsp;</Fragment>,
+              })}
+            </MoreMatchingSpans>
+          )}
         </SpanPanelContent>
       </StyledPanel>
     </SpanTablePanelItem>
@@ -396,6 +414,7 @@ export interface TraceResult<F extends string> {
   breakdowns: TraceBreakdownResult[];
   duration: number;
   end: number;
+  matchingSpans: number;
   name: string | null;
   numErrors: number;
   numOccurrences: number;
@@ -477,7 +496,7 @@ function useTraces<F extends string>({
       per_page: limit,
       breakdownSlices: 40,
       minBreakdownPercentage: 1 / 40,
-      maxSpansPerTrace: 5,
+      maxSpansPerTrace: 10,
       mri,
       metricsMax,
       metricsMin,
@@ -548,6 +567,10 @@ const StyledPanelItem = styled(PanelItem)<{
         : undefined}
   ${p => p.span && `grid-column: auto / span ${p.span};`}
   white-space: nowrap;
+`;
+
+const MoreMatchingSpans = styled(StyledPanelItem)`
+  color: ${p => p.theme.gray300};
 `;
 
 const WrappingText = styled('div')`

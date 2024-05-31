@@ -7,17 +7,17 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {EventTags} from 'sentry/components/events/eventTags';
 
 describe('event tags', function () {
+  const {organization, project} = initializeOrg({
+    organization: {
+      relayPiiConfig: null,
+    },
+  });
+
   it('display redacted tags', async function () {
     const event = EventFixture({
       tags: null,
       _meta: {
         tags: {'': {rem: [['project:2', 'x']]}},
-      },
-    });
-
-    const {organization, project} = initializeOrg({
-      organization: {
-        relayPiiConfig: null,
       },
     });
 
@@ -52,13 +52,13 @@ describe('event tags', function () {
       },
     });
 
-    const {organization, project} = initializeOrg({
-      organization: {
-        relayPiiConfig: null,
-      },
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
 
     render(<EventTags projectSlug={project.slug} event={event} />, {organization});
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByText('device.family')).toBeInTheDocument();
     expect(screen.getByText('iOS')).toBeInTheDocument();
@@ -75,25 +75,25 @@ describe('event tags', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('transaction tag links to transaction overview', function () {
+  it('transaction tag links to transaction overview', async function () {
     const tags = [{key: 'transaction', value: 'mytransaction'}];
 
     const event = EventFixture({
       tags,
     });
 
-    const {organization, project} = initializeOrg({
-      organization: {
-        relayPiiConfig: null,
-      },
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
     });
 
     render(<EventTags projectSlug={project.slug} event={event} />, {organization});
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByText('mytransaction')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/performance/summary/`
+      `/organizations/${organization.slug}/performance/summary/?project=1&referrer=event-tags-table&transaction=mytransaction`
     );
   });
 });

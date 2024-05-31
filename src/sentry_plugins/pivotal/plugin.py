@@ -80,7 +80,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def handle_api_error(self, error):
+    def handle_api_error(self, error: Exception) -> Response:
         msg = "Error communicating with Pivotal Tracker"
         status = 400 if isinstance(error, PluginError) else 502
         return Response({"error_type": "validation", "errors": {"__all__": msg}}, status=status)
