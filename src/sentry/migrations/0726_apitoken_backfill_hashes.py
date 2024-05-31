@@ -8,6 +8,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
         logger.exception("Cannot execute migration. Required symbols could not be imported")
         return
 
-    for api_token in ApiToken.objects.all():
+    for api_token in RangeQuerySetWrapperWithProgressBar(ApiToken.objects.all()):
         hashed_token = None
         if api_token.hashed_token is None:
             hashed_token = hashlib.sha256(api_token.token.encode()).hexdigest()
