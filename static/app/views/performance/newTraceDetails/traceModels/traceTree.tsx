@@ -25,6 +25,7 @@ import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {isRootTransaction} from '../../traceDetails/utils';
+import {getStylingSliceName} from '../../traces/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -263,7 +264,10 @@ export function makeTraceNodeBarColor(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): string {
   if (isTransactionNode(node)) {
-    return pickBarColor(node.value['transaction.op']);
+    return pickBarColor(
+      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
+        node.value['transaction.op']
+    );
   }
   if (isSpanNode(node)) {
     return pickBarColor(node.value.op);
