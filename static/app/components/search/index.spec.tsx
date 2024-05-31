@@ -109,7 +109,8 @@ describe('Search', () => {
             ]),
           ],
         })}
-      />);
+      />
+    );
 
     const opener = {opener: 'Sentry.io', location: {href: null}};
 
@@ -144,7 +145,8 @@ describe('Search', () => {
             ]),
           ],
         })}
-      />);
+      />
+    );
 
     const opener = {opener: 'Sentry.io', location: {href: null}};
 
@@ -177,7 +179,8 @@ describe('Search', () => {
           maxResults: 5,
           sources: [makeSearchResultsMock(results)],
         })}
-      />);
+      />
+    );
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'));
     await userEvent.keyboard('Vandelay');
@@ -196,7 +199,8 @@ describe('Search', () => {
           maxResults: 5,
           sources: [makeSearchResultsMock([])],
         })}
-      />);
+      />
+    );
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'));
     await userEvent.keyboard('Vandelay');

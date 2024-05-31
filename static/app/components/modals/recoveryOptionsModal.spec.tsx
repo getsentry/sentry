@@ -33,7 +33,8 @@ describe('RecoveryOptionsModal', function () {
         authenticatorName="Authenticator App"
         closeModal={closeModal}
         CloseButton={makeCloseButton(() => {})}
-      />);
+      />
+    );
   }
 
   it('can redirect to recovery codes if user skips backup phone setup', async function () {

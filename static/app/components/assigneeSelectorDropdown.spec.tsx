@@ -608,7 +608,7 @@ describe('AssigneeSelectorDropdown', () => {
         group={GROUP_1}
         loading={false}
         onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
-      />,
+      />
     );
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
