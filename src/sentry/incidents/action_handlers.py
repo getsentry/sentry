@@ -171,7 +171,7 @@ class EmailActionHandler(ActionHandler):
         notification_uuid: str | None = None,
     ) -> None:
         targets = [(user_id, email) for user_id, email in self.get_targets()]
-        users = user_service.get_many(filter={"user_ids": [user_id for user_id, _ in targets]})
+        users = user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
         for index, (user_id, email) in enumerate(targets):
             user = users[index]
             email_context = generate_incident_trigger_email_context(
