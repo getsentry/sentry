@@ -110,9 +110,6 @@ export type IssueEventParameters = {
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
-  'issue_details.related_trace_issue.viewed': {
-    group_id: number;
-  };
   'issue_details.set_priority': SetPriorityParams;
   'issue_details.similar_issues.diff_clicked': {
     error_message?: string;
@@ -329,7 +326,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
   'issue_details.related_trace_issue.trace_issue_clicked':
     'Related Issue: Trace Issue Clicked',
-  'issue_details.related_trace_issue.viewed': 'Related Issue: Trace Issue Viewed',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
