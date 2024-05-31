@@ -160,7 +160,9 @@ export function getHighlightTagData({
   return highlightTags.map(tagKey => ({
     subtree: {},
     meta: tagMap[tagKey]?.meta ?? {},
-    value: tagMap[tagKey]?.tag?.value ?? EMPTY_HIGHLIGHT_DEFAULT,
+    value: tagMap[tagKey]?.tag?.hasOwnProperty('value')
+      ? tagMap[tagKey]?.tag.value
+      : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
 }
