@@ -1,17 +1,14 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 
 interface TraceLinkProps {
   event: Event;
@@ -19,7 +16,6 @@ interface TraceLinkProps {
 
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
-  const {traceEvents} = useTraceTimelineEvents({event});
   const traceTarget = generateTraceTarget(event, organization);
 
   if (!event.contexts?.trace?.trace_id) {
@@ -47,16 +43,7 @@ export function TraceLink({event}: TraceLinkProps) {
         });
       }}
     >
-      <span>
-        {t('View Full Trace')}
-        {traceEvents.length > 0 && (
-          <Fragment>
-            {traceEvents.length >= 100
-              ? t(' (100+ issues)')
-              : tn(' (%s issue)', ' (%s issues)', traceEvents.length)}
-          </Fragment>
-        )}
-      </span>
+      <span>{t('View Full Trace')}</span>
       <IconChevron direction="right" size="xs" />
     </StyledLink>
   );
