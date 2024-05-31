@@ -155,13 +155,13 @@ def backfill_seer_grouping_records(
         )
 
     group_id_batch = list(group_id_message_batch_filtered.keys())
-    time_now = datetime.now()
     events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    # TODO(jangjodi): Only query per group if it has over 1 million events
-    snuba_event_data, group_id_batch_all = [], copy.deepcopy(group_id_batch)
-    for group_id in group_id_batch_all:
+    # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
+    snuba_requests = []
+    for group_id in group_id_batch:
+        group = Group.objects.get(id=group_id)
         query = Query(
             match=events_entity,
             select=[
@@ -172,9 +172,15 @@ def backfill_seer_grouping_records(
                 Condition(Column("project_id"), Op.EQ, project.id),
                 Condition(Column("group_id"), Op.EQ, group_id),
                 Condition(
-                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
+                    Column("timestamp", entity=events_entity),
+                    Op.GTE,
+                    group.last_seen - timedelta(days=10),
                 ),
-                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
+                Condition(
+                    Column("timestamp", entity=events_entity),
+                    Op.LT,
+                    group.last_seen + timedelta(minutes=5),
+                ),
             ],
             limit=Limit(1),
         )
@@ -188,34 +194,39 @@ def backfill_seer_grouping_records(
                 "cross_org_query": 1,
             },
         )
+        snuba_requests.append(request)
 
-        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-            result = bulk_snuba_queries(
-                [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
-            )
+    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+        snuba_results = bulk_snuba_queries(
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
 
-        if result and result[0].get("data"):
-            snuba_event_data.append(result[0]["data"][0])
-        else:
-            # Log if any group does not have any events in snuba and skip it
-            logger.info(
-                "tasks.backfill_seer_grouping_records.no_snuba_event",
-                extra={
-                    "organization_id": project.organization.id,
-                    "project_id": project_id,
-                    "group_id": group_id,
-                },
-            )
-            group_id_batch.remove(group_id)
-            del group_id_message_batch_filtered[group_id]
+    group_id_batch_all = copy.deepcopy(group_id_batch)
+    if snuba_results and snuba_results[0].get("data"):
+        rows: list[GroupEventRow] = [snuba_result["data"][0] for snuba_result in snuba_results]
 
-    if snuba_event_data:
+        # Log if any group does not have any events in snuba and skip it
+        if len(rows) != len(group_id_batch):
+            row_group_ids = {row["group_id"] for row in rows}
+            for group_id in group_id_batch:
+                if group_id not in row_group_ids:
+                    logger.info(
+                        "tasks.backfill_seer_grouping_records.no_snuba_event",
+                        extra={
+                            "organization_id": project.organization.id,
+                            "project_id": project_id,
+                            "group_id": group_id,
+                        },
+                    )
+                    group_id_batch.remove(group_id)
+                    del group_id_message_batch_filtered[group_id]
+
         group_hashes = GroupHash.objects.filter(
             project_id=project.id, group_id__in=group_id_batch
         ).distinct("group_id")
         group_hashes_dict = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
         data = lookup_group_data_stacktrace_bulk_with_fallback(
-            project, snuba_event_data, group_id_message_batch_filtered, group_hashes_dict
+            project, rows, group_id_message_batch_filtered, group_hashes_dict
         )
 
         # If nodestore returns no data
@@ -306,7 +317,7 @@ def backfill_seer_grouping_records(
             "backfill_seer_snuba_returned_empty_result",
             extra={
                 "project_id": project.id,
-                "snuba_result": result,
+                "snuba_result": json.dumps(snuba_results),
                 "group_id_batch": json.dumps(group_id_batch_all),
             },
         )

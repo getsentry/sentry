@@ -9,6 +9,7 @@ from unittest.mock import ANY, call, patch
 import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info
@@ -18,6 +19,8 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.backfill_seer_grouping_records import (
     GroupStacktraceData,
     backfill_seer_grouping_records,
@@ -33,6 +36,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
+from sentry.utils.snuba import bulk_snuba_queries
 
 EXCEPTION = {
     "values": [
@@ -989,44 +993,78 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
     @patch("sentry.tasks.backfill_seer_grouping_records.bulk_snuba_queries")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    @patch("sentry.tasks.backfill_seer_grouping_records.call_next_backfill")
     def test_backfill_seer_grouping_records_no_events(
-        self,
-        mock_call_next_backfill,
-        mock_post_bulk_grouping_records,
-        mock_snuba_queries,
-        mock_logger,
+        self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger
     ):
         """
-        Test that groups that have no events in snuba are excluded and have no metadata.
+        Test that groups that have no events in snuba are excluded.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        # Mock snuba response to be empty
-        mock_snuba_queries.return_value = []
+        # Mock snuba response to purposefully exclude the first group
+        groups_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
+        group_id_batch = [group.id for group in groups_minus_first]
+        events_entity = Entity("events", alias="events")
+        snuba_requests = []
+        for group_id in group_id_batch:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(days=10),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
+
+        result = bulk_snuba_queries(
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
+        mock_snuba_queries.return_value = result
 
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
 
-        # Check that the groups with no events have no seer metadata
-        groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") is None
-            assert (
-                call(
-                    "tasks.backfill_seer_grouping_records.no_snuba_event",
-                    extra={
-                        "organization_id": self.project.organization.id,
-                        "project_id": self.project.id,
-                        "group_id": group.id,
-                    },
-                )
-                in mock_logger.info.call_args_list
-            )
+        for group in Group.objects.filter(project_id=self.project.id).order_by("id")[1:]:
+            assert group.data["metadata"].get("seer_similarity") is not None
 
-        groups_len = len(groups)
-        mock_call_next_backfill.assert_called_with(
-            groups_len, self.project.id, ANY, groups_len, groups[groups_len - 1].id, False
+        # Check that the group with no events has no seer metadata
+        group_no_events = Group.objects.filter(project_id=self.project.id).order_by("id")[0]
+        assert group_no_events.data["metadata"].get("seer_similarity") is None
+        assert (
+            call(
+                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                extra={
+                    "organization_id": self.project.organization.id,
+                    "project_id": self.project.id,
+                    "group_id": group_no_events.id,
+                },
+            )
+            in mock_logger.info.call_args_list
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
