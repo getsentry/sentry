@@ -75,25 +75,6 @@ export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Array<T> {
-  arr.sort((a, b) => {
-    const a_score = score_fn(a),
-      b_score = score_fn(b);
-
-    for (let i = 0; i < a_score.length; i++) {
-      if (a_score[i] > b_score[i]) {
-        return 1;
-      }
-      if (a_score[i] < b_score[i]) {
-        return -1;
-      }
-    }
-    return 0;
-  });
-
-  return arr;
-}
-
 export function objectIsEmpty(obj = {}): boolean {
   for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
