@@ -1450,14 +1450,8 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enables user registration.
-    "auth:register": True,
-    # Enables activated alert rules
-    "organizations:activated-alert-rules": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable AI analytics pages (sentry for AI teams)
-    "organizations:ai-analytics": False,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
     # Use metrics as the dataset for crash free metric alerts

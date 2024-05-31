@@ -29,15 +29,22 @@ def register_temporary_features(manager: FeatureManager):
 
     # NOTE: Please maintain alphabetical order when adding new feature flags
 
-    # Features that don't use resource scoping
-    manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+    # Features that don't use resource scoping #
+    ############################################
+
+    # Enables user registration.
+    manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
-    # Organization scoped features that are in development or in customer trials.
-    manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:ai-analytics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Organization scoped features that are in development or in customer trials. #
+    ###############################################################################
+
+    # Enables activated alert rules
+    manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=False)
+    # Enable AI analytics pages (sentry for AI teams)
+    manager.add("organizations:ai-analytics", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=False)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

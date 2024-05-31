@@ -73,6 +73,13 @@ class FeatureManagerTest(TestCase):
             "projects:feature3",
         }
 
+    def test_feature_register_default(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:red-paint", OrganizationFeature, default=False)
+
+        assert set(manager.all(OrganizationFeature)) == {"organizations:red-paint"}
+        assert settings.SENTRY_FEATURES["organizations:red-paint"] is False
+
     def test_handlers(self):
         project_flag = "projects:test_handlers"
         test_user = self.create_user()
