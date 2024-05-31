@@ -1,7 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
-  deepFreeze,
   descopeFeatureName,
   escapeDoubleQuotes,
   explodeSlug,
@@ -211,28 +210,6 @@ describe('utils.descopeFeatureName', function () {
       ['unknown-scope:feature', 'unknown-scope:feature'],
       ['', ''],
     ].forEach(([input, expected]) => expect(descopeFeatureName(input)).toEqual(expected));
-  });
-});
-
-describe('deepFreeze', function () {
-  it('throws error on attempt to mutate frozen object', function () {
-    const testObj = deepFreeze({foo: [1, 2, 3]});
-
-    [
-      () => {
-        testObj.foo.push(4);
-      },
-      () => {
-        // @ts-expect-error
-        testObj.bar = '';
-      },
-      () => {
-        // @ts-expect-error
-        delete testObj.foo;
-      },
-    ].forEach(fn => {
-      expect(fn).toThrow();
-    });
   });
 });
 
