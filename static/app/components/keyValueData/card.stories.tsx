@@ -18,7 +18,7 @@ export default storyBook('KeyValueData', story => {
   story('<KeyValueData.Content />', () => (
     <Fragment>
       <p>
-        <code>{'<KeyValueData.Code/>'}</code> will often be generated as a result of
+        <code>{'<KeyValueData.Content/>'}</code> will often be generated as a result of
         creating a <code>{'<KeyValueData.Card/>'}</code>
         component. These allow for customizing every item rendered in the card
         individually.
