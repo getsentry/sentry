@@ -22,7 +22,7 @@ from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_da
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -152,7 +152,6 @@ def _do_symbolicate_event(
         error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
         return
 
-    data = CanonicalKeyDict(data)
     event_id = str(data["event_id"])
     project_id = data["project"]
     has_changed = False
