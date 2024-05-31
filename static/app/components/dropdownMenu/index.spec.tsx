@@ -147,7 +147,7 @@ describe('DropdownMenu', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
-    // Sub item won't be visible until we hover over it's parent
+    // Sub item won't be visible until we hover over its parent
     expect(
       screen.queryByRole('menuitemradio', {name: 'Sub Item'})
     ).not.toBeInTheDocument();

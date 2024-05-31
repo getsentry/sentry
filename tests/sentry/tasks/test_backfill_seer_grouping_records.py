@@ -1121,11 +1121,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         groups = Group.objects.all()
         groups_len = len(groups)
+        group_ids_sorted = sorted([group.id for group in groups])
         mock_logger.info.assert_called_with(
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
                 "project_id": self.project.id,
-                "group_id_batch": json.dumps([group.id for group in groups]),
+                "group_id_batch": json.dumps(group_ids_sorted),
             },
         )
         mock_call_next_backfill.assert_called_with(

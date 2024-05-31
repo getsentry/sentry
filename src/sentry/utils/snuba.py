@@ -1069,11 +1069,6 @@ def _log_request_query(req: Request) -> None:
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(params: tuple[RequestQueryBody, Hub, Mapping[str, str], str]) -> RawResult:
-    # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(params)
-
-
 def _snuba_query(
     params: tuple[
         RequestQueryBody,

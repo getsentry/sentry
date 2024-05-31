@@ -5,12 +5,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {TraceTimeline} from './traceTimeline';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
+jest.mock('sentry/utils/analytics');
 
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture();
@@ -83,6 +85,7 @@ describe('TraceTimeline', () => {
     await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false,
       trace_timeline_status: 'shown',
     });
   });
@@ -101,6 +104,7 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -121,6 +125,7 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -187,9 +192,19 @@ describe('TraceTimeline', () => {
       await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
-    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-      trace_timeline_status: 'empty',
-    });
+
+    // Test analytics
+    await userEvent.click(await screen.findByText('Slow DB Query'));
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.related_trace_issue.trace_issue_clicked',
+      {
+        group_id: issuePlatformBody.data[0]['issue.id'],
+        organization: OrganizationFixture({
+          features: ['related-issues-issue-details-page'],
+        }),
+      }
+    );
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
@@ -225,6 +240,7 @@ describe('TraceTimeline', () => {
     // We do not display the timeline because we only have 1 event
     expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false,
       trace_timeline_status: 'empty',
     });
   });

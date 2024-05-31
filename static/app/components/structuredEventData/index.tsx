@@ -7,7 +7,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {
   looksLikeMultiLineString,

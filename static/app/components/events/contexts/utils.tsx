@@ -18,7 +18,8 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {defined, toTitleCase} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
 import {
