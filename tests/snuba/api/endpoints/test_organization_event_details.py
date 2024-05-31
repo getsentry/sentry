@@ -338,6 +338,15 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             tags={"span.group": "26b881987e4bad99"},
         )
 
+    def test_get_without_feature(self):
+        response = self.client.get(self.url, {"averageColumn": "span.self_time"})
+        assert response.status_code == 200, response.content
+        entries = response.data["entries"]  # type: ignore[attr-defined]
+        for entry in entries:
+            if entry["type"] == "spans":
+                for span in entry["data"]:
+                    assert span.get(self.RESULT_COLUMN) is None
+
     def test_get(self):
         with self.feature("organizations:insights-initial-modules"):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
