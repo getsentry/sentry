@@ -5,12 +5,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {TraceTimeline} from './traceTimeline';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
+jest.mock('sentry/utils/analytics');
 
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture();
@@ -187,9 +189,29 @@ describe('TraceTimeline', () => {
       await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+
+    // Test analytics
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       trace_timeline_status: 'empty',
     });
+    // XXX: The component is being rendered twice, thus, two calls to trackAnalytics
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.related_trace_issue.viewed',
+      {
+        group_id: issuePlatformBody.data[0]['issue.id'],
+        organization: organization.slug,
+      }
+    );
+    await userEvent.click(await screen.findByText('Slow DB Query'));
+    expect(trackAnalytics).toHaveBeenCalledTimes(3);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.related_trace_issue.trace_issue_clicked',
+      {
+        group_id: issuePlatformBody.data[0]['issue.id'],
+        organization: organization.slug,
+      }
+    );
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {

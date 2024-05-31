@@ -24,8 +24,10 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 
   const referrer = 'issue_details.related_trace_issue';
 
-  // If any of data fails to load, we don't want to render the component
-  // Only "One other issue appears in the same trace. View Full Trace (X issues)" would show up
+  trackAnalytics(`${referrer}.viewed`, {
+    organization: organization.slug,
+    group_id: issueId,
+  });
   return (
     <Fragment>
       <TraceIssueLinkContainer
@@ -37,7 +39,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         }}
         onClick={() => {
           trackAnalytics(`${referrer}.trace_issue_clicked`, {
-            organization,
+            organization: organization.slug,
             group_id: issueId,
           });
         }}
