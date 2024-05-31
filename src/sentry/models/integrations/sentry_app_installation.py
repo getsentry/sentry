@@ -208,7 +208,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
         region_caching_service.clear_key(
-            key=get_installation.key_from(shard_identifier), region_name=region_name
+            key=get_installation.key_from(self.id), region_name=region_name
         )
 
     @classmethod
