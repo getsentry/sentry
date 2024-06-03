@@ -38,6 +38,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
+from sentry.processing import realtime_metrics
 from sentry.roles import organization_roles
 from sentry.snuba import discover
 
@@ -683,6 +684,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
+            attrs[item]["symbolication_degraded"] = realtime_metrics.is_lpq_project(
+                project_id=item.id
+            )
 
         return attrs
 
@@ -701,6 +705,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasAccess=attrs["has_access"],
             dateCreated=obj.date_added,
             environments=attrs["environments"],
+            eventProcessing={
+                "symbolicationDegraded": attrs["symbolication_degraded"],
+            },
             features=attrs["features"],
             firstEvent=obj.first_event,
             firstTransactionEvent=bool(obj.flags.has_transactions),
