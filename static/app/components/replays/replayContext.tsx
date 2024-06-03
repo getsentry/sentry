@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -721,7 +722,7 @@ function ProviderNonMemo({
     }
   }, [isBuffering, events, applyInitialOffset]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     replayPlayerTimestampEmitter.emit('replay timestamp change', {
       currentTime,
       currentHoverTime,
