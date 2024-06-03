@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -18,10 +20,43 @@ function PerfDisabled() {
   );
 }
 
+type EventHandler = (...args: any[]) => void;
+
+class EventEmitter {
+  private events: {[key: string]: EventHandler[]} = {};
+
+  on(event: string, handler: EventHandler): void {
+    this.events[event] = this.events[event] || [];
+    this.events[event].push(handler);
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const handlers = this.events[event] || [];
+    handlers.forEach(handler => handler(...args));
+  }
+
+  removeListener(event: string, handler: EventHandler): void {
+    const handlers = this.events[event];
+    if (handlers) {
+      this.events[event] = handlers.filter(h => h !== handler);
+    }
+  }
+}
+
+export const replayPlayerTimeEmitter = new EventEmitter();
+
 function TraceFeature() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
+  const {currentTime, currentHoverTime} = useReplayContext();
+
+  useEffect(() => {
+    replayPlayerTimeEmitter.emit('replay player timestamp changed', {
+      currentTime,
+      currentHoverTime,
+    });
+  }, [currentTime, currentHoverTime]);
 
   return (
     <Feature

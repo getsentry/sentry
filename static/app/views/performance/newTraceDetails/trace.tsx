@@ -1,5 +1,13 @@
 import type React from 'react';
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -7,7 +15,6 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -31,6 +38,7 @@ import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
+import {replayPlayerTimeEmitter} from 'sentry/views/replays/detail/trace';
 
 import {
   makeTraceNodeBarColor,
@@ -1629,42 +1637,52 @@ function ReplayTimeStampIndicators({
   tree: TraceTree;
   viewmanager: VirtualizedViewManager;
 }) {
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
   const traceNode = tree.root.children[0];
   const traceStartTimestamp = traceNode.space?.[0];
+  const currentTimeStampIndicatorRef = useRef<HTMLDivElement | null>(null);
+  const currentHoverTimeStampIndicatorRef = useRef<HTMLDivElement | null>(null);
 
-  if (!replay || !traceNode || !traceStartTimestamp) {
+  useEffect(() => {
+    const listener = ({
+      currentTime,
+      currentHoverTime,
+    }: {
+      currentHoverTime: number;
+      currentTime: number;
+    }) => {
+      if (traceStartTimestamp !== undefined) {
+        viewmanager.registerReplayTimestamp(
+          currentTimeStampIndicatorRef.current,
+          traceStartTimestamp + currentTime,
+          'current'
+        );
+
+        viewmanager.registerReplayTimestamp(
+          currentHoverTimeStampIndicatorRef.current,
+          traceStartTimestamp + currentHoverTime,
+          'hover'
+        );
+      }
+    };
+    replayPlayerTimeEmitter.on('replay player timestamp changed', listener);
+
+    return () => {
+      replayPlayerTimeEmitter.removeListener('replay player timestamp changed', listener);
+    };
+  }, [traceStartTimestamp, viewmanager]);
+
+  if (!traceNode || !traceStartTimestamp) {
     return null;
   }
 
   return (
     <Fragment>
-      <div
-        ref={r =>
-          viewmanager.registerReplayTimestamp(
-            r,
-            traceStartTimestamp + currentTime,
-            'current'
-          )
-        }
-        className="TraceIndicator Timeline"
-      >
+      <div ref={currentTimeStampIndicatorRef} className="TraceIndicator Timeline">
         <div className="ReplayTraceIndicatorLine" />
       </div>
-      {currentHoverTime ? (
-        <div
-          ref={r =>
-            viewmanager.registerReplayTimestamp(
-              r,
-              traceStartTimestamp + currentHoverTime,
-              'hover'
-            )
-          }
-          className="TraceIndicator Timeline"
-        >
-          <div className="ReplayTraceIndicatorLine HoverTimestamp" />
-        </div>
-      ) : null}
+      <div ref={currentHoverTimeStampIndicatorRef} className="TraceIndicator Timeline">
+        <div className="ReplayTraceIndicatorLine HoverTimestamp" />
+      </div>
     </Fragment>
   );
 }

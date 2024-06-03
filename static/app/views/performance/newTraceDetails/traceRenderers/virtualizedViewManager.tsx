@@ -1506,7 +1506,11 @@ export class VirtualizedViewManager {
   }
 
   drawReplayTimestamp(ref: HTMLElement | null, timestamp: number | undefined) {
-    if (!ref || timestamp === undefined) {
+    if (!ref) {
+      return;
+    }
+    if (timestamp === undefined || isNaN(timestamp)) {
+      ref.style.opacity = '0';
       return;
     }
 

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Loading from 'sentry/components/loadingIndicator';
@@ -215,4 +215,4 @@ const TraceViewWaterfallWrapper = styled('div')`
   height: 100%;
 `;
 
-export default Trace;
+export default React.memo(Trace);
