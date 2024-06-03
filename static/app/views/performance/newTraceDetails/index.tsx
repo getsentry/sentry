@@ -871,6 +871,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         ) : null}
 
         <TraceDrawer
+          replayRecord={props.replayRecord}
           metaResults={props.metaResults}
           traceType={shape}
           trace={tree}

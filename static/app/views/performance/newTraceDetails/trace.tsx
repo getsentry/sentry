@@ -445,6 +445,9 @@ export function Trace({
     render: render,
   });
 
+  const traceNode = trace.root.children[0];
+  const traceStartTimestamp = traceNode?.space?.[0];
+
   return (
     <TraceStylingWrapper
       ref={manager.registerContainerRef}
@@ -502,7 +505,12 @@ export function Trace({
             </div>
           );
         })}
-        <VerticalTimestampIndicators viewmanager={manager} tree={treeRef.current} />
+        {traceNode && traceStartTimestamp ? (
+          <VerticalTimestampIndicators
+            viewmanager={manager}
+            traceStartTimestamp={traceStartTimestamp}
+          />
+        ) : null}
       </div>
       <div
         ref={setScrollContainer}
@@ -1632,14 +1640,11 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
 
 function VerticalTimestampIndicators({
   viewmanager,
-  tree,
+  traceStartTimestamp,
 }: {
-  tree: TraceTree;
+  traceStartTimestamp: number;
   viewmanager: VirtualizedViewManager;
 }) {
-  const traceNode = tree.root.children[0];
-  const traceStartTimestamp = traceNode.space?.[0];
-
   useEffect(() => {
     function replayTimestampListener({
       currentTime,
@@ -1648,10 +1653,6 @@ function VerticalTimestampIndicators({
       currentHoverTime: number | undefined;
       currentTime: number;
     }) {
-      if (!traceStartTimestamp || !traceNode) {
-        return;
-      }
-
       if (viewmanager.vertical_indicators['replay_timestamp.current']) {
         viewmanager.vertical_indicators['replay_timestamp.current'].timestamp =
           traceStartTimestamp + currentTime;
@@ -1676,7 +1677,7 @@ function VerticalTimestampIndicators({
         replayTimestampListener
       );
     };
-  }, [traceStartTimestamp, traceNode, viewmanager]);
+  }, [traceStartTimestamp, viewmanager]);
 
   const registerReplayCurrentTimestampRef = useCallback(
     (ref: HTMLDivElement | null) => {
@@ -1697,10 +1698,6 @@ function VerticalTimestampIndicators({
     },
     [viewmanager]
   );
-
-  if (!traceNode || !traceStartTimestamp) {
-    return null;
-  }
 
   return (
     <Fragment>
