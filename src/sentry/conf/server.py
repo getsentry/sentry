@@ -2982,7 +2982,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "relay": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/relay:nightly",
+            "image": "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly",
             "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
             "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
             "command": ["run", "--config", "/etc/relay"],
