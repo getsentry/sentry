@@ -7,15 +7,15 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 export const DATA_STORAGE_DOCS_LINK =
@@ -36,9 +36,13 @@ function OrganizationCreate() {
   const relocationUrl = normalizeUrl(`/relocation/`);
   const regionChoices = getRegionChoices();
   const client = useApi();
-  const location = useLocation();
 
-  const hasDataConsent = location.query.dataConsent !== undefined;
+  const DataConsentCheck = HookOrDefault({
+    hookName: 'component:data-consent-banner',
+    defaultComponent: null,
+  });
+
+  const hasDataConsent = defined(DataConsentCheck);
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host
@@ -141,21 +145,7 @@ function OrganizationCreate() {
               />
             </TermsWrapper>
           )}
-          {hasDataConsent && !isSelfHosted && (
-            <CheckboxField
-              name="aggregatedDataConsent"
-              label={tct(
-                'I agree to let Sentry use my service data for product improvements. [dataConsentLink: Learn more].',
-                {
-                  dataConsentLink: (
-                    <ExternalLink href="https://docs.sentry.io/security-legal-pii/security/ai-ml-policy/" />
-                  ),
-                }
-              )}
-              inline={false}
-              stacked
-            />
-          )}
+          <DataConsentCheck />
           {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
             <div>
               {tct('[relocationLink:Relocating from self-hosted?]', {

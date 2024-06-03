@@ -195,6 +195,7 @@ export type ComponentHooks = {
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
