@@ -5,6 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 class OrganizationGroupSearchViewsTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"
+    method = "get"
 
     def create_base_data(self):
         user_1 = self.user
