@@ -27,6 +27,7 @@ jobs:
       lintable_css_in_js_modified: ${{ steps.changes.outputs.lintable_css_in_js_modified }}
       lintable_css_in_js_modified_files: ${{ steps.changes.outputs.lintable_css_in_js_modified_files }}
       lintable_css_in_js_rules_changed: ${{ steps.changes.output.lintable_css_in_js_rules_changed }}
+      lintable_formatable_modified: ${{ steps.changes.output.lintable_formatable_modified }}
       lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
       lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
       lintable_rules_changed: ${{ steps.changes.outputs.lintable_rules_changed }}
@@ -98,7 +99,7 @@ jobs:
         run: yarn fix:biome
 
       - name: prettier (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_formatable_modified != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
         run: yarn prettier --write ${{ needs.files-changed.outputs.lintable_modified_files }}
 
       - name: eslint (changed files only)

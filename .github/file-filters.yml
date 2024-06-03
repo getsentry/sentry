@@ -17,10 +17,15 @@ lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
   - added|modified: 'yarn.lock'
   - added|deleted|modified: 'stylelint.*'
 
+# Provides list of changed files to format (prettier)
+lintable_formatable_modified: &lintable_formatable_modified
+  - added|modified: '**/*.[tj]{s,sx}'
+  - added|modified: '**/*.{less,json,yml}'
+
 # Provides list of changed files to lint against (eslint)
 lintable_modified: &lintable_modified
   - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.{less,json,yml}'
+  - added|modified: '**/*.{json,yml}'
 
 # Trigger for when we must run full lint (eslint)
 lintable_rules_changed: &lintable_rules_changed
