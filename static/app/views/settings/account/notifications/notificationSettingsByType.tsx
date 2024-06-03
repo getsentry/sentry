@@ -191,6 +191,20 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       : t('This is the default for all organizations.');
 
     const fields: Field[] = [];
+
+    // at least one org exists with am3 tiered plan
+    const hasOrgWithAm3 = organizations.some(organization =>
+      organization.features?.includes('am3-tier')
+    );
+
+    // at least one org exists without am3 tier plan
+    const hasOrgWithoutAm3 = organizations.some(
+      organization => !organization.features?.includes('am3-tier')
+    );
+
+    const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
+    const includeSpans = hasOrgWithAm3;
+
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
     if (notificationType === 'quota') {
@@ -199,19 +213,6 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
           organization.features?.includes('spend-visibility-notifications')
         )
       ) {
-        // at least one org exists with am3 tiered plan
-        const hasOrgWithAm3 = organizations.some(organization =>
-          organization.features?.includes('am3-tier')
-        );
-
-        // at least one org exists without am3 tier plan
-        const hasOrgWithoutAm3 = organizations.some(
-          organization => !organization.features?.includes('am3-tier')
-        );
-
-        const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
-        const includeSpans = hasOrgWithAm3;
-
         fields.push(
           ...SPEND_FIELDS.filter(field => {
             if (field.name === 'quotaSpans' && !includeSpans) {
@@ -237,7 +238,15 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       } else {
         // TODO(isabella): Once GA, remove this case
         fields.push(
-          ...QUOTA_FIELDS.map(field => ({
+          ...QUOTA_FIELDS.filter(field => {
+            if (field.name === 'quotaSpans' && !includeSpans) {
+              return false;
+            }
+            if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            return true;
+          }).map(field => ({
             ...field,
             type: 'select' as const,
             getData: data => {
