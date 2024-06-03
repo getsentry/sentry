@@ -101,7 +101,7 @@ class RoleLevel(Generic[R]):
     def get_all(self) -> Sequence[R]:
         return self._priority_seq
 
-    def get_choices(self) -> tuple[tuple[str, str]]:
+    def get_choices(self) -> Sequence[tuple[str, str]]:
         return self._choices
 
     def get_default(self) -> R:

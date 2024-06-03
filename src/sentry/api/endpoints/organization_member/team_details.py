@@ -64,7 +64,7 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
     ) -> OrganizationMemberTeamSerializerResponse:
         return {
             "isActive": obj.is_active,
-            "teamRole": obj.role,
+            "teamRole": obj.role,  # type:ignore[typeddict-item]
         }
 
 
