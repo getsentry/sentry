@@ -66,7 +66,7 @@ const onboarding: OnboardingConfig = {
         {
           language: 'json',
           configurations: getInstallConfig(params, {
-            basePackage: '@sentry/google-cloud-functions',
+            basePackage: '@sentry/google-cloud-serverless',
           }),
         },
       ],
@@ -123,7 +123,7 @@ const customMetricsOnboarding: OnboardingConfig = {
         }
       ),
       configurations: getInstallConfig(params, {
-        basePackage: '@sentry/google-cloud-functions',
+        basePackage: '@sentry/google-cloud-serverless',
       }),
     },
   ],
