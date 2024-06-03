@@ -87,7 +87,7 @@ class AppService(RpcService):
         """
         Get a sentryapp install by id
 
-        This method is cached wrapper around get_installation_by_id()
+        This method is a cached wrapper around get_installation_by_id()
         """
         return get_installation(id)
 
