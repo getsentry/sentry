@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
@@ -49,28 +49,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def _budget_key_prefix(self) -> str:
         return f"{self._prefix}:budget:{self._budget_bucket_size}"
 
-    def _backoff_key_prefix(self) -> str:
-        return f"{self._prefix}:backoff"
-
-    def _register_backoffs(self, project_ids: Sequence[int]) -> None:
-        if len(project_ids) == 0 or self._backoff_timer == 0:
-            return
-
-        with self.cluster.pipeline(transaction=False) as pipeline:
-            for project_id in project_ids:
-                key = f"{self._backoff_key_prefix()}:{project_id}"
-                # Can't use mset because it doesn't allow also specifying an expiry
-                pipeline.set(name=key, value="1", ex=self._backoff_timer)
-
-                pipeline.execute()
-
-    def _is_backing_off(self, project_id: int) -> bool:
-        """
-        Returns whether a project is currently in the middle of its backoff timer from having
-        recently been assigned to or unassigned from the LPQ.
-        """
-        key = f"{self._backoff_key_prefix()}:{project_id}"
-        return self.cluster.get(key) is not None
+    def _member_key_prefix(self) -> str:
+        return f"{self._prefix}:members"
 
     def record_project_duration(self, project_id: int, duration: float) -> None:
         """
@@ -136,9 +116,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 already_seen.add(project_id)
                 yield project_id
 
-    def get_used_budget_for_project(self, project_id: int) -> float:
+    def is_lpq_project(self, project_id: int) -> bool:
         """
-        Returns the average used per-second budget for a given project during the configured sliding time window.
+        Checks whether the given project is currently using the low priority queue.
         """
         timestamp = int(time())
 
@@ -150,74 +130,20 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
-        counts = self.cluster.mget(keys)
+        member_key = f"{self.member_key_prefix()}:{project_id}"
+        keys.insert(0, member_key)
+        results = self.cluster.mget(keys)
+        is_lpq = results[0]
+        counts = results[1:]
+
+        if is_lpq is not None:
+            return bool(is_lpq)
 
         total_time_window = timestamp - first_bucket
         total_sum = sum(int(c) if c else 0 for c in counts)
 
         # the counts in redis are in ms resolution.
-        return total_sum / total_time_window / 1000
+        is_lpq = total_sum / total_time_window / 1000
 
-    def get_lpq_projects(self) -> set[int]:
-        """
-        Fetches the list of projects that are currently using the low priority queue.
-
-        Returns a list of project IDs.
-
-        This may throw an exception if there is some sort of issue fetching the list from the redis
-        store.
-        """
-        return {int(project_id) for project_id in self.cluster.smembers(LPQ_MEMBERS_KEY)}
-
-    def is_lpq_project(self, project_id: int) -> bool:
-        """
-        Checks whether the given project is currently using the low priority queue.
-        """
-        return bool(self.cluster.sismember(LPQ_MEMBERS_KEY, project_id))
-
-    def add_project_to_lpq(self, project_id: int) -> bool:
-        """
-        Assigns a project to the low priority queue.
-
-        This registers an intent to redirect all symbolication events triggered by the specified
-        project to be redirected to the low priority queue.
-
-        Applies a backoff timer to the project which prevents it from being automatically evicted
-        from the queue while that timer is active.
-
-        Returns True if the project was a new addition to the list. Returns False if it was already
-        assigned to the low priority queue. This may throw an exception if there is some sort of
-        issue registering the project with the queue.
-        """
-
-        if self._is_backing_off(project_id):
-            return False
-        # If this successfully completes then the project is expected to be in the set.
-        was_added = int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
-        self._register_backoffs([project_id])
-        return was_added
-
-    def remove_projects_from_lpq(self, project_ids: set[int]) -> int:
-        """
-        Unassigns projects from the low priority queue.
-
-        This registers an intent to restore all specified projects back to the regular queue.
-
-        Applies a backoff timer to the project which prevents it from being automatically assigned
-        to the queue while that timer is active.
-
-        Returns the number of projects that were actively removed from the queue. Any projects that
-        were not assigned to the low priority queue to begin with will be omitted from the return
-        value. This may throw an exception if there is some sort of issue deregistering the projects
-        from the queue.
-        """
-        removable = [project for project in project_ids if not self._is_backing_off(project)]
-
-        if not removable:
-            return 0
-
-        # This returns the number of projects removed, and throws an exception if there's a problem.
-        # If this successfully completes then the projects are expected to no longer be in the set.
-        removed = int(self.cluster.srem(LPQ_MEMBERS_KEY, *removable))
-        self._register_backoffs(removable)
-        return removed
+        self.cluster.set(name=member_key, value=int(is_lpq), ex=self._backoff_timer)
+        return is_lpq
