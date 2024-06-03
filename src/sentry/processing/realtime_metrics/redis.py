@@ -9,10 +9,12 @@ from sentry.utils import redis
 
 from . import base
 
-# redis key for entry storing current list of LPQ members
-LPQ_MEMBERS_KEY = "store.symbolicate-event-lpq-selected"
-
 logger = logging.getLogger(__name__)
+
+# Redis key prefix for storing the LPQ status of projects
+MEMBER_KEY_PREFIX = "symbolicate_event_low_priority:members"
+# Redis key prefix for storing the budgets of projects
+BUDGET_KEY_PREFIX = "symbolicate_event_low_priority:budget"
 
 
 class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
@@ -36,7 +38,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self.cluster = redis.redis_clusters.get(cluster)
         self._budget_bucket_size = budget_bucket_size
         self._budget_time_window = budget_time_window
-        self._prefix = "symbolicate_event_low_priority"
         self._backoff_timer = backoff_timer
 
         self.validate()
@@ -49,10 +50,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             raise InvalidConfiguration("budget time window must be at least a minute")
 
     def _budget_key_prefix(self) -> str:
-        return f"{self._prefix}:budget:{self._budget_bucket_size}"
-
-    def _member_key_prefix(self) -> str:
-        return f"{self._prefix}:members"
+        return f"{BUDGET_KEY_PREFIX}:{self._budget_bucket_size}"
 
     def record_project_duration(self, project_id: int, duration: float) -> None:
         """
@@ -132,7 +130,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
-        member_key = f"{self._member_key_prefix()}:{project_id}"
+        member_key = f"{MEMBER_KEY_PREFIX}:{project_id}"
         keys.insert(0, member_key)
         results = self.cluster.mget(keys)
         is_lpq = results[0]
