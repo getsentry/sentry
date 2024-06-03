@@ -11,6 +11,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
 import {
   formatFilterValue,
+  getKeyLabel,
   getValidOpsForFilter,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
@@ -99,7 +100,10 @@ function FilterOperator({token, state, item}: SearchQueryTokenProps) {
 }
 
 function FilterKey({token, state, item}: SearchQueryTokenProps) {
-  const label = token.key.text;
+  const {keys} = useSearchQueryBuilder();
+  const key = token.key.text;
+  const tag = keys[key];
+  const label = tag ? getKeyLabel(tag) : key;
 
   const filterButtonProps = useFilterButtonProps({state, item});
   // TODO(malwilley): Add edit functionality
