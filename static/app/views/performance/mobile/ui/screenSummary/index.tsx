@@ -120,7 +120,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="mobile-ui"
       pageTitle={transaction}
-      features={['spans-first-ui', 'starfish-mobile-ui-module']}
+      features={['insights-addon-modules', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />
     </ModulePageProviders>
