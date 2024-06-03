@@ -15,7 +15,7 @@ class TestGetDescription(BaseTestCase):
         template, _, metadata = notification.get_description()
 
         assert template == "{author} created <{link}|a {provider} issue {ticket}>"
-        assert metadata["provider"] == provider
+        assert metadata["provider"] == "GitHub"  # This is how Github is officially spelled
         assert metadata["ticket"] == label
         assert metadata["link"] == location
 
