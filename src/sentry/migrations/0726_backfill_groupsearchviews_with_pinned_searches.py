@@ -16,7 +16,7 @@ def backfill_groupsearchviews_with_pinned_searches(
 
     pinned_searches = SavedSearch.objects.filter(visibility="owner_pinned")
     for pinned_search in RangeQuerySetWrapperWithProgressBar(pinned_searches):
-        GroupSearchView.objects.create_or_update(
+        GroupSearchView.objects.update_or_create(
             organization=pinned_search.organization,
             user_id=pinned_search.owner_id,
             position=0,
