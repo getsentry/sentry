@@ -1,6 +1,7 @@
 from functools import cached_property
 
 from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
@@ -34,6 +35,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             sort=sort,
             visibility=Visibility.OWNER_PINNED,
         ).exists()
+
         # TODO(msun): Remove this when custom views are GA'd
         assert GroupSearchView.objects.filter(
             organization=self.organization,
