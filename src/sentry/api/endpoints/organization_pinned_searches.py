@@ -55,13 +55,13 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         )
 
         GroupSearchView.objects.create_or_update(
-            organizaiton=organization,
+            organization=organization,
             user_id=request.user.id,
+            position=0,
             values={
                 "name": "Default Search",
                 "query": result["query"],
                 "query_sort": result["sort"],
-                "position": 0,  # 0 position indicates default view
             },
         )
         pinned_search = SavedSearch.objects.get(
