@@ -43,7 +43,9 @@ class ReplayPlayerTimestampEmitter {
   private listeners: {[key: string]: Set<ReplayPlayerListener>} = {};
 
   on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
-    this.listeners[event] = this.listeners[event] || [];
+    if (!this.listeners[event]) {
+      this.listeners[event] = new Set();
+    }
     this.listeners[event].add(handler);
   }
 
