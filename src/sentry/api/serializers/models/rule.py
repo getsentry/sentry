@@ -1,14 +1,23 @@
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, SentryAppStatus
+from sentry.models.apiapplication import ApiApplication
 from sentry.models.environment import Environment
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import (
+    SentryAppInstallation,
+    prepare_ui_component,
+)
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.services.hybrid_cloud.app.model import RpcSentryApp
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -66,9 +75,16 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
 
 @register(Rule)
 class RuleSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(
+        self,
+        expand: list[str] | None = None,
+        prepare_component_fields: bool = False,
+        project_slug: str | None = None,
+    ):
         super().__init__()
         self.expand = expand or []
+        self.prepare_component_fields = prepare_component_fields
+        self.project_slug = project_slug
 
     def get_attrs(self, item_list, user, **kwargs):
         from sentry.services.hybrid_cloud.app import app_service
@@ -107,45 +123,106 @@ class RuleSerializer(Serializer):
             result[rule_activity.rule].update({"created_by": creator})
 
         rules = {item.id: item for item in item_list}
-        sentry_app_uuids = [
-            sentry_app_uuid
-            for sentry_app_uuid in (
-                action.get("sentryAppInstallationUuid")
-                for rule in rules.values()
-                for action in rule.data.get("actions", [])
-            )
-            if sentry_app_uuid is not None
-        ]
-        sentry_app_installs = app_service.get_many(filter=dict(uuids=sentry_app_uuids))
-        sentry_app_map = {
-            install.sentry_app.id: install.sentry_app for install in sentry_app_installs
-        }
-        sentry_app_ids: list[int] = list(sentry_app_map.keys())
 
-        sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
-            organization_ids=[rule.project.organization_id for rule in rules.values()],
-            sentry_app_ids=sentry_app_ids,
-            type="alert-rule-action",
-            group_by="uuid",
-        )
+        sentry_app_installations_by_uuid: Mapping[str, Any] = {}
+        sentry_app_map: Mapping[int, RpcSentryApp] = {}
+        if self.prepare_component_fields:
+            sentry_app_uuids = [
+                sentry_app_uuid
+                for sentry_app_uuid in (
+                    action.get("sentryAppInstallationUuid")
+                    for rule in rules.values()
+                    for action in rule.data.get("actions", [])
+                )
+                if sentry_app_uuid is not None
+            ]
+            sentry_app_installs = app_service.get_many(filter=dict(uuids=sentry_app_uuids))
+            sentry_app_map = {
+                install.sentry_app.id: install.sentry_app for install in sentry_app_installs
+            }
+            sentry_app_ids: list[int] = list(sentry_app_map.keys())
+
+            sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
+                organization_ids=[rule.project.organization_id for rule in rules.values()],
+                sentry_app_ids=sentry_app_ids,
+                type="alert-rule-action",
+                group_by="uuid",
+            )
 
         for rule in rules.values():
             actor = rule.owner
             if actor:
                 result[rule]["owner"] = actor.identifier
 
+            errors = []
             for action in rule.data.get("actions", []):
-                install = sentry_app_installations_by_uuid.get(
+                install_context = sentry_app_installations_by_uuid.get(
                     str(action.get("sentryAppInstallationUuid"))
                 )
-                if install:
-                    installation = install.get("sentry_app_installation")
-                    action["_sentry_app_component"] = install.get("sentry_app_component")
-                    action["_sentry_app_installation"] = installation
-                    action["_sentry_app"] = sentry_app_map.get(installation.get("sentry_app_id"))
-                    # TODO(mark) Having component preparation happen here would reduce how hacky
-                    # this is. It would also let us optimize the scenario where an alert has the
-                    # same installation used as multiple actions.
+                if install_context:
+                    installation = install_context.get("sentry_app_installation")
+                    sentry_app_component = install_context.get("sentry_app_component")
+                    sentry_app_installation = installation
+                    sentry_app = sentry_app_map.get(installation.get("sentry_app_id"))
+                    if not sentry_app or not sentry_app.application:
+                        continue
+
+                    # TODO(hybridcloud) This is gross as we're converting between RPC and ORM
+                    # objects to satisfy interface requirements. Ideally we do one RPC call to get
+                    # the necessary sentryapp context, and then prepare ui components from RPC
+                    # objects.
+                    #
+                    # Fixing this mess requires a few steps:
+                    #
+                    # 1. Get this logic out of the endpoint and into the serializer so we can avoid
+                    #    hacking data into the serialized data.
+                    # 2. Introduce new RPC methods that return RPC objects instead of a nested
+                    #    set of maps
+                    # 3. Add new prepare_ui_component function that works with RPC objects.
+                    installation = SentryAppInstallation(**sentry_app_installation)
+                    # The api_token_id field is nulled out to prevent relation traversal as these
+                    # ORM objects are turned back into RPC objects.
+                    installation.api_token_id = None
+
+                    installation.sentry_app = SentryApp(
+                        id=sentry_app.id,
+                        scope_list=sentry_app.scope_list,
+                        application_id=sentry_app.application_id,
+                        application=ApiApplication(
+                            id=sentry_app.application.id,
+                            client_id=sentry_app.application.client_id,
+                            client_secret=sentry_app.application.client_secret,
+                        ),
+                        proxy_user_id=sentry_app.proxy_user_id,
+                        owner_id=sentry_app.owner_id,
+                        name=sentry_app.name,
+                        slug=sentry_app.slug,
+                        uuid=sentry_app.uuid,
+                        events=sentry_app.events,
+                        webhook_url=sentry_app.webhook_url,
+                        status=SentryAppStatus.as_int(sentry_app.status),
+                        metadata=sentry_app.metadata,
+                    )
+                    component = prepare_ui_component(
+                        installation,
+                        SentryAppComponent(**sentry_app_component),
+                        self.project_slug,
+                        action.get("settings"),
+                    )
+
+                    if component is None:
+                        errors.append(
+                            {
+                                "detail": f"Could not fetch details from {installation.sentry_app.name}"
+                            }
+                        )
+                        action["disabled"] = True
+                        continue
+
+                    action["formFields"] = component.schema.get("settings", {})
+
+            if len(errors):
+                result[rule]["errors"] = errors
 
         if "lastTriggered" in self.expand:
             last_triggered_lookup = {
@@ -227,6 +304,9 @@ class RuleSerializer(Serializer):
         }
         if "last_triggered" in attrs:
             d["lastTriggered"] = attrs["last_triggered"]
+
+        if "errors" in attrs:
+            d["errors"] = attrs["errors"]
 
         if "snooze" in attrs:
             snooze = attrs["snooze"]
