@@ -22,7 +22,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
@@ -47,6 +46,8 @@ class TraceInterval(TypedDict):
     sdkName: str | None
     start: int
     end: int
+    startIndex: int
+    endIndex: int
     kind: Literal["project", "missing", "other"]
     duration: int
     isRoot: bool
@@ -76,13 +77,13 @@ class OrganizationTracesSerializer(serializers.Serializer):
     metricsQuery = serializers.CharField(required=False)
     mri = serializers.CharField(required=False)
 
+    breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     suggestedQuery = serializers.CharField(required=False)
-    minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -144,7 +145,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             sort=serialized.get("sort"),
             limit=self.get_per_page(request),
             max_spans_per_trace=serialized["maxSpansPerTrace"],
-            min_breakdown_percentage=serialized["minBreakdownPercentage"],
+            breakdown_slices=serialized["breakdownSlices"],
         )
 
         return self.paginate(
@@ -181,7 +182,7 @@ class TraceSamplesExecutor:
         sort: str | None,
         limit: int,
         max_spans_per_trace: int,
-        min_breakdown_percentage: float,
+        breakdown_slices: int,
     ):
         self.params = params
         self.snuba_params = snuba_params
@@ -196,8 +197,7 @@ class TraceSamplesExecutor:
         self.sort = sort
         self.limit = limit
         self.max_spans_per_trace = max_spans_per_trace
-        self.min_breakdown_percentage = min_breakdown_percentage
-        self._all_projects: list[Project] | None = None
+        self.breakdown_slices = breakdown_slices
 
     def execute(self, offset: int, limit: int):
         return self._execute()
@@ -619,9 +619,7 @@ class TraceSamplesExecutor:
             row["trace"]: {
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
-                "min": int(
-                    self.min_breakdown_percentage * (row["last_seen()"] - row["first_seen()"])
-                ),
+                "slices": self.breakdown_slices,
             }
             for row in traces_metas_results["data"]
         }
@@ -989,32 +987,58 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
+def convert_to_slice(timestamp, trace_range) -> int:
+    trace_start = trace_range["start"]
+    trace_end = trace_range["end"]
+    slices = trace_range["slices"]
+    trace_duration = trace_end - trace_start
+
+    idx = round((timestamp - trace_start) * slices / trace_duration)
+    return clip(idx, 0, slices)
+
+
 def quantize_range(span_start, span_end, trace_range):
+    start_index = convert_to_slice(span_start, trace_range)
+    end_index = convert_to_slice(span_end, trace_range)
+
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
 
-    bin_size = trace_range["min"]
-
-    if bin_size > 0:
-        rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
-        rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
-
-        # ensure minimum of 1 width
-        if rounded_start == rounded_end:
-            rounded_end += bin_size
-    else:
-        rounded_start = span_start
-        rounded_end = span_end
-
     if span_start <= trace_start:
-        rounded_start = trace_start
+        span_start = trace_start
 
     # To avoid creating gaps at the end of the trace,
     # do not adjust the end if it's at the trace end.
     if span_end >= trace_end:
-        rounded_end = trace_end
+        span_end = trace_end
 
-    return int(rounded_start), int(rounded_end)
+    slices = trace_range["slices"]
+
+    trace_duration = trace_end - trace_start
+
+    bin_size = int(trace_duration / slices)
+
+    def quantize(timestamp):
+        # Scale the timestamps up when dividing to find the bin
+        # size, it doesn't go to zero.
+        scaled_timestamp = timestamp * slices
+        scaled_trace_start = trace_start * slices
+        scaled_trace_duration = trace_duration * slices
+        bin_size = int(scaled_trace_duration / slices)
+        quantized = (
+            round((scaled_timestamp - scaled_trace_start) / bin_size) * bin_size
+            + scaled_trace_start
+        )
+        return clip(round(quantized / slices), trace_start, trace_end)
+
+    rounded_start = quantize(span_start)
+    rounded_end = quantize(span_end)
+
+    # ensure minimum of 1 width
+    if rounded_start == rounded_end:
+        rounded_end += bin_size
+
+    return (int(rounded_start), int(rounded_end)), (start_index, end_index)
 
 
 def new_trace_interval(row) -> TraceInterval:
@@ -1024,6 +1048,8 @@ def new_trace_interval(row) -> TraceInterval:
         "sdkName": row["sdk.name"],
         "start": row["quantized.start_ts"],
         "end": row["quantized.finish_ts"],
+        "startIndex": row["start_index"],
+        "endIndex": row["end_index"],
         "duration": 0,
         "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
         "isRoot": not bool(row.get("parent_span")),
@@ -1031,8 +1057,8 @@ def new_trace_interval(row) -> TraceInterval:
 
 
 def process_breakdowns(data, traces_range):
-    breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
-    stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
+    breakdowns: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
+    stacks: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
 
     def should_merge(interval_a, interval_b):
         return (
@@ -1049,6 +1075,7 @@ def process_breakdowns(data, traces_range):
     def breakdown_push(trace, interval):
         breakdown = breakdowns[trace]
 
+        """ TODO: Add this back
         # Find the last interval. If there is an interval on the stack, it
         # should take priority over intervals in the breakdown because intervals
         # on the stack are always active, where intervals on the breakdown are
@@ -1074,6 +1101,7 @@ def process_breakdowns(data, traces_range):
                     "isRoot": False,
                 }
             )
+        """
 
         breakdown.append(interval)
 
@@ -1084,6 +1112,7 @@ def process_breakdowns(data, traces_range):
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
+            last_interval["endIndex"] = max(interval["endIndex"], last_interval["endIndex"])
 
             # need to update the components of the last interval by merging
             # current interval into it
@@ -1137,11 +1166,11 @@ def process_breakdowns(data, traces_range):
             trace_start = trace_range["start"]
             trace_end = trace_range["end"]
 
-            # Clip the intervals os that it is within range of the trace
+            # convert_to_slice the intervals os that it is within range of the trace
             precise_start = clip(precise_start, trace_start, trace_end)
             precise_end = clip(precise_end, trace_start, trace_end)
 
-            quantized_start, quantized_end = quantize_range(
+            (quantized_start, quantized_end), (start_index, end_index) = quantize_range(
                 precise_start,
                 precise_end,
                 traces_range[trace],
@@ -1154,6 +1183,8 @@ def process_breakdowns(data, traces_range):
                     "precise.finish_ts": precise_end,
                     "quantized.start_ts": quantized_start,
                     "quantized.finish_ts": quantized_end,
+                    "start_index": start_index,
+                    "end_index": end_index,
                 }
             )
         except Exception as e:
@@ -1162,9 +1193,9 @@ def process_breakdowns(data, traces_range):
 
     quantized_data.sort(
         key=lambda row: (
-            row["quantized.start_ts"],
+            row["start_index"],
             row["precise.start_ts"],
-            -row["quantized.finish_ts"],
+            -row["end_index"],
             -row["precise.finish_ts"],
         )
     )
@@ -1179,7 +1210,7 @@ def process_breakdowns(data, traces_range):
                 row["precise.finish_ts"], last_timestamp_per_trace["trace"]
             )
 
-            if row["quantized.start_ts"] == row["quantized.finish_ts"]:
+            if row["start_index"] == row["end_index"]:
                 # after quantizing, this span is far too small to render, so remove it
                 continue
 
@@ -1194,6 +1225,7 @@ def process_breakdowns(data, traces_range):
             context = {"trace": row["trace"]}
             sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
 
+    """ TODO: Add this back
     for trace, trace_range in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
@@ -1224,6 +1256,7 @@ def process_breakdowns(data, traces_range):
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)
+    """
 
     for breakdown in breakdowns.values():
         for interval in breakdown:
