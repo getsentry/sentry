@@ -190,7 +190,18 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
-        return super().save(*args, **kwargs)
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
+            result = super().save(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
+
+    def update(self, *args, **kwargs):
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
+            result = super().update(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
 
     def is_installed_on(self, organization):
         from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
