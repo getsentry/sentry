@@ -9,6 +9,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -850,6 +851,30 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         self.get_success_response(self.organization.slug, member_om.id)
+
+    def test_member_views_removed_upon_deletion(self):
+        user = self.create_user("bar@example.com")
+        member = self.create_member(organization=self.organization, user=user, role="member")
+
+        GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=user.id,
+            query="assigned:me",
+            query_sort="date",
+            position=0,
+        )
+        assert (
+            GroupSearchView.objects.filter(organization=self.organization, user_id=user.id).count()
+            == 1
+        )
+
+        self.get_success_response(self.organization.slug, member.id)
+
+        assert not OrganizationMember.objects.filter(id=member.id).exists()
+        assert (
+            GroupSearchView.objects.filter(organization=self.organization, user_id=user.id).count()
+            == 0
+        )
 
 
 class ResetOrganizationMember2faTest(APITestCase):
