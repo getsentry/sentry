@@ -360,6 +360,23 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
+    it('opens the value suggestions menu when clicking anywhere in the filter value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:[Chrome,Firefox]"
+        />
+      );
+
+      // Start editing value
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      // Click in the filter value area, should open the menu
+      await userEvent.click(screen.getByTestId('filter-value-editing'));
+      expect(await screen.findByRole('option', {name: 'Chrome'})).toBeInTheDocument();
+    });
+
     it('can remove parens by clicking the delete button', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
 
@@ -462,6 +479,9 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('(');
 
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+
+      // Last input (the one after the paren) should have focus
+      expect(screen.getAllByRole('combobox').at(-1)).toHaveFocus();
     });
   });
 
@@ -589,6 +609,31 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('exits filter value when pressing escape', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      // Pressing escape will exit the filter value, so edit button will come back
+      await userEvent.keyboard('{Escape}');
+      expect(
+        await screen.findByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).toBeInTheDocument();
+
+      // Focus should now be to the right of the filter
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
     });
   });
 

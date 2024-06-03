@@ -22,7 +22,7 @@ export default function PostInstallCodeSnippet({
     <div>
       <p>
         {t(
-          "Congrats, you just installed the %s integration! Now that it's is installed, the next time you trigger an error it will go to your Sentry.",
+          "Congrats, you just installed the %s integration! Now that it's installed, the next time you trigger an error it will go to your Sentry.",
           provider.name
         )}
       </p>

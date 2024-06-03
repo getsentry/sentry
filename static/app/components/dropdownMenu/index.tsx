@@ -261,6 +261,6 @@ function DropdownMenu({
 export {DropdownMenu};
 
 const DropdownMenuWrap = styled('div')`
-  display: flex;
+  display: contents;
   list-style-type: none;
 `;

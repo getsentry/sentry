@@ -19,7 +19,7 @@ import {
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
 import ModalStore from 'sentry/stores/modalStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 
 describe('EditHighlightsModal', function () {
@@ -80,11 +80,11 @@ describe('EditHighlightsModal', function () {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ModalStore.reset();
-    renderGlobalModal();
   });
 
   it('should renders with basic functions', async function () {
     renderModal({highlightContext: {}, highlightTags: []});
+    renderGlobalModal();
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-preview-section')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-empty-preview')).toBeInTheDocument();
@@ -134,6 +134,7 @@ describe('EditHighlightsModal', function () {
       body: project,
     });
     renderModal();
+    renderGlobalModal();
 
     // Existing Tags and Context Keys should be highlighted
     const previewSection = screen.getByTestId('highlights-preview-section');
@@ -203,6 +204,7 @@ describe('EditHighlightsModal', function () {
       body: project,
     });
     renderModal({highlightContext: {}});
+    renderGlobalModal();
 
     const tagSection = screen.getByTestId('highlights-tag-section');
     const previewSection = screen.getByTestId('highlights-preview-section');
@@ -263,6 +265,7 @@ describe('EditHighlightsModal', function () {
       body: project,
     });
     renderModal({highlightTags: []});
+    renderGlobalModal();
 
     const ctxSection = screen.getByTestId('highlights-context-section');
     const previewSection = screen.getByTestId('highlights-preview-section');
@@ -344,6 +347,7 @@ describe('EditHighlightsModal', function () {
 
   it('should update sections from search input', async function () {
     renderModal();
+    renderGlobalModal();
     const tagCount = TEST_EVENT_TAGS.length;
     expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
     const tagInput = screen.getByTestId('highlights-tag-search');

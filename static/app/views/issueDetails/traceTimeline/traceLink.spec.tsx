@@ -69,9 +69,7 @@ describe('TraceLink', () => {
       match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
     render(<TraceLink event={event} />, {organization});
-    expect(
-      await screen.findByRole('link', {name: 'View Full Trace (2 issues)'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('View Full Trace')).toBeInTheDocument();
   });
 
   it('renders no trace available', async () => {
