@@ -41,14 +41,14 @@ export function getDocsLinkForEventType(
   switch (event) {
     case 'transaction':
       return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
+    case 'spans':
+      return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
     case 'attachment':
       return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
     case 'replay':
       return 'https://docs.sentry.io/product/session-replay/';
     case 'monitorSeat':
       return 'https://docs.sentry.io/product/crons/';
-    case 'spans':
-      return 'https://docs.sentry.io/product/spans/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
