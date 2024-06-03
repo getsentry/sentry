@@ -175,7 +175,7 @@ class SiloCacheManyBackedCallable(Generic[_R]):
         for record in cb_result:
             # TODO(hybridcloud) The types/interfaces don't make reading this attribute safe.
             # We rely on a convention of records having `id` for now. In the future
-            # this could become a decorator parameter intead.
+            # this could become a decorator parameter instead.
             record_id = getattr(record, "id")
             if record_id is None:
                 continue

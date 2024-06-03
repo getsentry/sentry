@@ -9,7 +9,7 @@ from sentry.hybridcloud.rpc.services.caching import (
     control_caching_service,
     region_caching_service,
 )
-from sentry.hybridcloud.rpc.services.caching.impl import CacheBackend
+from sentry.hybridcloud.rpc.services.caching.impl import CacheBackend, _consume_generator
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -240,6 +240,16 @@ def test_caching_many_missing_ids() -> None:
     assert results[0].id == user_ids[0]
     assert results[1].id == user_ids[1]
 
+    cache_keys = [get_users.key_from(id) for id in user_ids]
+    cache_results = _consume_generator(CacheBackend.get_cache(cache_keys, SiloMode.REGION))
+    assert len(cache_results) == 3
+
+    assert cache_results[get_users.key_from(user_ids[0])] != 0, "should be a hit"
+    assert cache_results[get_users.key_from(user_ids[1])] != 0, "should be a hit"
+
+    missing_key = user_ids[-1]
+    assert cache_results[get_users.key_from(missing_key)] == 0, "should be a miss"
+
 
 @django_db_all(transaction=True)
 def test_caching_many_versioning() -> None:
@@ -262,14 +272,7 @@ def test_caching_many_versioning() -> None:
         )
 
     # Read from the cache directly and drain the generator
-    cache_results = None
-    gen = CacheBackend.get_cache(cache_keys, SiloMode.REGION)
-    while True:
-        try:
-            gen.send(None)
-        except StopIteration as e:
-            cache_results = e.value
-            break
+    cache_results = _consume_generator(CacheBackend.get_cache(cache_keys, SiloMode.REGION))
     assert cache_results is not None
     for item in cache_results.values():
         assert isinstance(item, int), "Should be version as data was purged"
