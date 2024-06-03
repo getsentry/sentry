@@ -33,9 +33,7 @@ class PagerDutyClientTest(APITestCase):
 
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch(
-            "sentry.shared_integrations.track_response.metrics"
-        ) as self.metrics:
+        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
             yield
 
     def setUp(self):
@@ -75,6 +73,8 @@ class PagerDutyClientTest(APITestCase):
     @responses.activate
     def test_send_trigger(self):
         expected_data = {
+            "client": "sentry",
+            "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),
             "routing_key": self.integration_key,
             "event_action": "trigger",
             "dedup_key": self.group.qualified_short_id,
@@ -130,6 +130,8 @@ class PagerDutyClientTest(APITestCase):
     @responses.activate
     def test_send_trigger_custom_severity(self):
         expected_data = {
+            "client": "sentry",
+            "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),
             "routing_key": self.integration_key,
             "event_action": "trigger",
             "dedup_key": self.group.qualified_short_id,
