@@ -33,6 +33,37 @@ type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 
+type ReplayPlayerTimestampChange = {
+  currentHoverTime: number | undefined;
+  currentTime: number;
+};
+type ReplayPlayerListener = (arg: ReplayPlayerTimestampChange) => void;
+
+class ReplayPlayerTimestampEmitter {
+  private listeners: {[key: string]: ReplayPlayerListener[]} = {};
+
+  on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
+    this.listeners[event] = this.listeners[event] || [];
+    if (!this.listeners[event].includes(handler)) {
+      this.listeners[event].push(handler);
+    }
+  }
+
+  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChange): void {
+    const handlers = this.listeners[event] || [];
+    handlers.forEach(handler => handler(arg));
+  }
+
+  off(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
+    const handlers = this.listeners[event];
+    if (handlers) {
+      this.listeners[event] = handlers.filter(h => h !== handler);
+    }
+  }
+}
+
+export const replayPlayerTimestampEmitter = new ReplayPlayerTimestampEmitter();
+
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
@@ -686,6 +717,13 @@ function ProviderNonMemo({
       applyInitialOffset();
     }
   }, [isBuffering, events, applyInitialOffset]);
+
+  useEffect(() => {
+    replayPlayerTimestampEmitter.emit('replay timestamp change', {
+      currentTime,
+      currentHoverTime,
+    });
+  }, [currentTime, currentHoverTime]);
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {

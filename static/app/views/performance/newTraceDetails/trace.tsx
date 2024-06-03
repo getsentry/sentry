@@ -15,6 +15,7 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {replayPlayerTimestampEmitter} from 'sentry/components/replays/replayContext';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -38,7 +39,6 @@ import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
-import {replayPlayerTimestampEmitter} from 'sentry/views/replays/detail/trace';
 
 import {
   makeTraceNodeBarColor,
