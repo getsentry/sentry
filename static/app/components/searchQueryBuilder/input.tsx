@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {getFocusableTreeWalker} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
@@ -11,6 +10,8 @@ import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
+import {replaceTokenWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
+import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
 import type {
   ParseResultToken,
   Token,
@@ -19,8 +20,8 @@ import type {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
-import {toTitleCase} from 'sentry/utils';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -161,7 +162,7 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {keys, dispatch} = useSearchQueryBuilder();
+  const {query, keys, dispatch, onSearch} = useSearchQueryBuilder();
 
   const allKeys = useMemo(() => {
     return Object.values(keys).sort((a, b) => a.key.localeCompare(b.key));
@@ -214,8 +215,15 @@ function SearchQueryBuilderInputInternal({
         });
         resetInputValue();
       }}
-      onCustomValueSelected={value => {
+      onCustomValueBlurred={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+      }}
+      onCustomValueCommitted={value => {
+        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+
+        // Because the query does not change until a subsequent render,
+        // we need to do the replacement that is does in the ruducer here
+        onSearch?.(replaceTokenWithPadding(query, token, value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
@@ -227,7 +235,11 @@ function SearchQueryBuilderInputInternal({
       token={token}
       inputLabel={t('Add a search term')}
       onInputChange={e => {
-        if (e.target.value.includes(':')) {
+        if (
+          e.target.value.includes(':') ||
+          e.target.value.includes('(') ||
+          e.target.value.includes(')')
+        ) {
           dispatch({type: 'UPDATE_FREE_TEXT', token, text: e.target.value});
           resetInputValue();
         } else {
@@ -237,7 +249,7 @@ function SearchQueryBuilderInputInternal({
       }}
       onKeyDown={onKeyDown}
       tabIndex={tabIndex}
-      maxOptions={100}
+      maxOptions={50}
     >
       {sections.map(({title, children}) => (
         <Section title={title} key={title}>
@@ -260,26 +272,12 @@ export function SearchQueryBuilderInput({
   const ref = useRef<HTMLDivElement>(null);
 
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
-
-  const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
-      // Ensure that the state is updated correctly
-      state.selectionManager.setFocusedKey(item.key);
-
-      // When this row gains focus, immediately shift focus to the input
-      const walker = getFocusableTreeWalker(e.currentTarget);
-      const nextNode = walker.nextNode();
-      if (nextNode) {
-        (nextNode as HTMLElement).focus();
-      }
-    },
-    [item.key, state.selectionManager]
-  );
+  const {shiftFocusProps} = useShiftFocusToChild(item, state);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   return (
-    <Row {...mergeProps(rowProps, {onFocus})} ref={ref} tabIndex={-1}>
+    <Row {...mergeProps(rowProps, shiftFocusProps)} ref={ref} tabIndex={-1}>
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
         <SearchQueryBuilderInputInternal
           item={item}
@@ -295,7 +293,7 @@ export function SearchQueryBuilderInput({
 const Row = styled('div')`
   display: flex;
   align-items: stretch;
-  height: 22px;
+  height: 24px;
 `;
 
 const GridCell = styled('div')`
@@ -328,7 +326,7 @@ const DescriptionList = styled('dl')`
 
 const Term = styled('dt')`
   color: ${p => p.theme.subText};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Details = styled('dd')``;

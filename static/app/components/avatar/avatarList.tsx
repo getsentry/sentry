@@ -113,7 +113,7 @@ const CollapsedAvatars = styled('div')<{size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.gray300};
   font-size: ${p => Math.floor(p.size / 2.3)}px;

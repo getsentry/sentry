@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
 import docs from './ruby';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with ruby', function () {
   it('renders errors onboarding docs correctly', function () {
     renderWithOnboardingLayout(docs);
 

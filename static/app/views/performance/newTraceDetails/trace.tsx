@@ -25,10 +25,7 @@ import {
   type VirtualizedRow,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {
-  TraceReducerAction,
-  TraceReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceReducerState} from 'sentry/views/performance/newTraceDetails/traceState';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
@@ -40,6 +37,7 @@ import {
   TraceTree,
   type TraceTreeNode,
 } from './traceModels/traceTree';
+import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -150,14 +148,16 @@ interface TraceProps {
   ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
-  scrollQueueRef: React.MutableRefObject<{
-    eventId?: string;
-    path?: TraceTree.NodePath[];
-  } | null>;
+  scrollQueueRef: React.MutableRefObject<
+    | {
+        eventId?: string;
+        path?: TraceTree.NodePath[];
+      }
+    | null
+    | undefined
+  >;
   trace: TraceTree;
-  trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_id: string;
-  trace_state: TraceReducerState;
 }
 
 export function Trace({
@@ -170,15 +170,15 @@ export function Trace({
   onTraceSearch,
   onTraceLoad,
   rerender,
-  trace_state,
   initializedRef,
-  trace_dispatch,
   forceRerender,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -193,8 +193,8 @@ export function Trace({
   const treeRef = useRef<TraceTree>(trace);
   treeRef.current = trace;
 
-  const traceStateRef = useRef<TraceReducerState>(trace_state);
-  traceStateRef.current = trace_state;
+  const traceStateRef = useRef<TraceReducerState>(traceState);
+  traceStateRef.current = traceState;
 
   useLayoutEffect(() => {
     if (initializedRef.current) {
@@ -251,7 +251,7 @@ export function Trace({
     trace_id,
     manager,
     onTraceLoad,
-    trace_dispatch,
+    traceDispatch,
     scrollQueueRef,
     initializedRef,
     organization,
@@ -331,7 +331,7 @@ export function Trace({
           treeRef.current.list.length - 1
         );
 
-        trace_dispatch({
+        traceDispatch({
           type: 'set roving index',
           index: nextIndex,
           node: treeRef.current.list[nextIndex],
@@ -346,7 +346,7 @@ export function Trace({
         else if (node.expanded && node.canFetch) onNodeZoomIn(event, node, true);
       }
     },
-    [manager, onNodeExpand, onNodeZoomIn, trace_dispatch]
+    [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
   );
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
@@ -383,9 +383,9 @@ export function Trace({
           index={n.index}
           organization={organization}
           previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-          tabIndex={trace_state.rovingTabIndex.node === n.item ? 0 : -1}
-          isSearchResult={trace_state.search.resultsLookup.has(n.item)}
-          searchResultsIteratorIndex={trace_state.search.resultIndex}
+          tabIndex={traceState.rovingTabIndex.node === n.item ? 0 : -1}
+          isSearchResult={traceState.search.resultsLookup.has(n.item)}
+          searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
           trace_id={trace_id}
           projects={projectLookup}
@@ -411,10 +411,10 @@ export function Trace({
       onRowClick,
       organization,
       projectLookup,
-      trace_state.rovingTabIndex.node,
-      trace_state.search.resultIteratorIndex,
-      trace_state.search.resultsLookup,
-      trace_state.search.resultIndex,
+      traceState.rovingTabIndex.node,
+      traceState.search.resultIteratorIndex,
+      traceState.search.resultsLookup,
+      traceState.search.resultIndex,
       theme,
       trace_id,
       trace.type,
@@ -1766,7 +1766,7 @@ const TraceStylingWrapper = styled('div')`
       text-align: center;
       position: absolute;
       font-size: 10px;
-      font-weight: bold;
+      font-weight: ${p => p.theme.fontWeightBold};
       color: ${p => p.theme.textColor};
       background-color: ${p => p.theme.background};
       border-radius: ${p => p.theme.borderRadius};
@@ -1815,7 +1815,7 @@ const TraceStylingWrapper = styled('div')`
       pointer-events: none;
 
       .TraceIndicatorLabel {
-        font-weight: normal;
+        font-weight: ${p => p.theme.fontWeightNormal};
         min-width: 0;
         top: 8px;
         width: auto;
@@ -2119,7 +2119,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.blue300};
 
       .TraceDescription {
-        font-weight: bold;
+        font-weight: ${p => p.theme.fontWeightBold};
       }
 
       .TraceChildrenCountWrapper {
@@ -2408,7 +2408,7 @@ const TraceStylingWrapper = styled('div')`
     margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   .TraceEmDash {

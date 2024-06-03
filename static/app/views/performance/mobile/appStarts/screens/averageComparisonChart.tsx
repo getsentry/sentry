@@ -6,15 +6,16 @@ import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {PRIMARY_RELEASE_COLOR} from 'sentry/views/starfish/colors';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -58,6 +59,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
   const {selection} = usePageFilters();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const appStartType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
@@ -67,6 +69,11 @@ export function AverageComparisonChart({chartHeight}: Props) {
     'transaction.op:ui.load',
     `count_starts(measurements.app_start_${appStartType}):>0`,
   ]);
+
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
+
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const newQuery: NewQuery = {

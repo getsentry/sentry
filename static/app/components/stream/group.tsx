@@ -594,7 +594,7 @@ const StreamGroup = withOrganization(BaseGroupRow);
 export default StreamGroup;
 
 const StyledDropdownButton = styled(Button)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   border: none;
   padding: 0;
   height: unset;

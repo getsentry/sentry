@@ -90,7 +90,7 @@ const StyledBadge = styled(Badge)`
   padding: 0 ${space(0.75)};
   line-height: ${space(2)};
   height: ${space(2)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   vertical-align: middle;
 `;

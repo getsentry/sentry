@@ -215,57 +215,66 @@ function SidebarItem({
       }
       position={placement}
     >
-      <StyledSidebarItem
-        {...props}
-        id={`sidebar-item-${id}`}
-        isInFloatingAccordion={isInFloatingAccordion}
-        active={isActive ? 'true' : undefined}
-        to={toProps}
-        className={className}
-        aria-current={isActive ? 'page' : undefined}
-        onClick={handleItemClick}
-      >
-        <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-        <SidebarItemWrapper collapsed={isInCollapsedState}>
-          {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
-          {!isInCollapsedState && !isTop && (
-            <SidebarItemLabel
+      <SidebarNavigationItemHook id={id}>
+        {({disabled, additionalContent, Wrapper}) => (
+          <Wrapper>
+            <StyledSidebarItem
+              {...props}
+              id={`sidebar-item-${id}`}
               isInFloatingAccordion={isInFloatingAccordion}
-              isNested={isNested}
+              active={isActive ? 'true' : undefined}
+              to={disabled ? '' : toProps}
+              className={className}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={handleItemClick}
             >
-              <LabelHook id={id}>
-                <TextOverflow>{label}</TextOverflow>
-                {badges}
-              </LabelHook>
-            </SidebarItemLabel>
-          )}
-          {isInCollapsedState && showIsNew && (
-            <CollapsedFeatureBadge
-              type="new"
-              variant="indicator"
-              tooltipProps={tooltipDisabledProps}
-            />
-          )}
-          {isInCollapsedState && isBeta && (
-            <CollapsedFeatureBadge
-              type="beta"
-              variant="indicator"
-              tooltipProps={tooltipDisabledProps}
-            />
-          )}
-          {isInCollapsedState && isAlpha && (
-            <CollapsedFeatureBadge
-              type="alpha"
-              variant="indicator"
-              tooltipProps={tooltipDisabledProps}
-            />
-          )}
-          {badge !== undefined && badge > 0 && (
-            <SidebarItemBadge collapsed={isInCollapsedState}>{badge}</SidebarItemBadge>
-          )}
-          {trailingItems}
-        </SidebarItemWrapper>
-      </StyledSidebarItem>
+              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+              <SidebarItemWrapper collapsed={isInCollapsedState}>
+                {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
+                {!isInCollapsedState && !isTop && (
+                  <SidebarItemLabel
+                    isInFloatingAccordion={isInFloatingAccordion}
+                    isNested={isNested}
+                  >
+                    <LabelHook id={id}>
+                      <TruncatedLabel>{label}</TruncatedLabel>
+                      {badges}
+                      {additionalContent}
+                    </LabelHook>
+                  </SidebarItemLabel>
+                )}
+                {isInCollapsedState && showIsNew && (
+                  <CollapsedFeatureBadge
+                    type="new"
+                    variant="indicator"
+                    tooltipProps={tooltipDisabledProps}
+                  />
+                )}
+                {isInCollapsedState && isBeta && (
+                  <CollapsedFeatureBadge
+                    type="beta"
+                    variant="indicator"
+                    tooltipProps={tooltipDisabledProps}
+                  />
+                )}
+                {isInCollapsedState && isAlpha && (
+                  <CollapsedFeatureBadge
+                    type="alpha"
+                    variant="indicator"
+                    tooltipProps={tooltipDisabledProps}
+                  />
+                )}
+                {badge !== undefined && badge > 0 && (
+                  <SidebarItemBadge collapsed={isInCollapsedState}>
+                    {badge}
+                  </SidebarItemBadge>
+                )}
+                {trailingItems}
+              </SidebarItemWrapper>
+            </StyledSidebarItem>
+          </Wrapper>
+        )}
+      </SidebarNavigationItemHook>
     </Tooltip>
   );
 }
@@ -298,6 +307,16 @@ export function isItemActive(
     (item?.label === 'Performance' && location.pathname.includes('/performance/'))
   );
 }
+
+const SidebarNavigationItemHook = HookOrDefault({
+  hookName: 'sidebar:navigation-item',
+  defaultComponent: ({children}) =>
+    children({
+      disabled: false,
+      additionalContent: null,
+      Wrapper: Fragment,
+    }),
+});
 
 export default SidebarItem;
 
@@ -441,8 +460,11 @@ const SidebarItemLabel = styled('span')<{
   flex: 1;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   overflow: hidden;
+`;
+
+const TruncatedLabel = styled(TextOverflow)`
+  margin-right: auto;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
