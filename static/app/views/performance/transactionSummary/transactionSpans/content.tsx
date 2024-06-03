@@ -249,6 +249,7 @@ function SpansContentV2(props: Props) {
           fields={eventView.fields}
           placeholder={t('Search for span attributes')}
           supportedTags={supportedTags}
+          // This dataset is separate from the query itself which is on metrics; it's for obtaining autocomplete recommendations
           dataset={DiscoverDatasets.SPANS_INDEXED}
           onSearch={handleChange('query')}
         />
