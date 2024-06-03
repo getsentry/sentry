@@ -190,7 +190,9 @@ def record_span_descriptions(
         description = _get_span_description_to_store(span)
         if not description:
             continue
-        safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
+        safe_execute(
+            _record_sample, ClustererNamespace.SPANS, project, description, _with_transaction=False
+        )
 
 
 def _get_span_description_to_store(span: Mapping[str, Any]) -> str | None:
