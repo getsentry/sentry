@@ -12,6 +12,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.group import Group
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -98,6 +99,14 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         widget_2_data_2 = DashboardWidgetQuery.objects.create(
             widget=widget_2, order=2, name="Outgoing data"
         )
+        custom_view = GroupSearchView.objects.create(
+            organization=org,
+            user_id=org_owner.id,
+            name="Custom View",
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+        )
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
 
@@ -129,6 +138,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not DashboardWidgetQuery.objects.filter(
             id__in=[widget_1_data.id, widget_2_data_1.id, widget_2_data_2.id]
         ).exists()
+        assert not GroupSearchView.objects.filter(id=custom_view.id).exists()
 
     def test_no_delete_visible(self):
         org = self.create_organization(name="test")
