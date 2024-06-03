@@ -622,7 +622,6 @@ function Sidebar() {
       icon={<IconSearch />}
       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
       id="explore"
-      isNew
       exact={!shouldAccordionFloat}
     >
       {traces}
