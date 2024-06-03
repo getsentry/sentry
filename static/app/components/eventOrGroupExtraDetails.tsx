@@ -13,8 +13,9 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -45,11 +46,14 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount =
-    organization.features.includes('session-replay') && projectCanLinkToReplay(project);
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(organization, project);
 
   return (
     <GroupExtra>
-      <GroupStatusBadge status={status} substatus={substatus} />
+      {!organization.features.includes('issue-stream-new-events-graph') && (
+        <GroupStatusBadge status={status} substatus={substatus} />
+      )}
       {shortId && (
         <InboxShortId
           shortId={shortId}
@@ -62,7 +66,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
       )}
       {isUnhandled && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
-        <Placeholder height="14px" width="100px" />
+        <Placeholder height="12px" width="100px" />
       ) : (
         <TimesTag
           lastSeen={lifetime?.lastSeen || lastSeen}

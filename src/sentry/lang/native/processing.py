@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from symbolic.debuginfo import normalize_debug_id
@@ -456,7 +456,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_native_symbolication_function(
-    data: Any, stacktraces: list[StacktraceInfo]
+    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
 ) -> Callable[[Symbolicator, Any], Any] | None:
     """
     Returns the appropriate symbolication function (or `None`) that will process

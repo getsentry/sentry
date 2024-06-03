@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useLayoutEffect} from 'react';
 
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
@@ -104,7 +104,7 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
 
   const transformed = query.transform(props.queryProps, results, props.query);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const isMetricsData = getIsMetricsDataFromResults(
       results,
       props.queryProps.fields[0]

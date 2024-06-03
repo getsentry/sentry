@@ -10,20 +10,20 @@ import {makeCloseButton} from 'sentry/components/globalModal/components';
 import type {InviteMissingMembersModalProps} from 'sentry/components/modals/inviteMissingMembersModal';
 import InviteMissingMembersModal from 'sentry/components/modals/inviteMissingMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
-import type {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types/organization';
 
 const roles = [
   {
     id: 'admin',
     name: 'Admin',
     desc: 'This is the admin role',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
-    allowed: true,
+    isAllowed: true,
   },
 ] as OrgRole[];
 

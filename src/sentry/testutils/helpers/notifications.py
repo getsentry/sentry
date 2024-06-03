@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sentry.issues.grouptype import (
+    FeedbackGroup,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -18,8 +19,8 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 
@@ -57,7 +58,7 @@ class DummyNotification(BaseNotification):
         return []
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         zombo_link = MessageAction(
             name="Go to Zombo.com",
@@ -118,6 +119,33 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     datetime.now(UTC),
     "info",
     "/api/123/",
+)
+TEST_FEEDBACK_ISSUE_OCCURENCE = IssueOccurrence(
+    id=uuid.uuid4().hex,
+    project_id=1,
+    event_id=uuid.uuid4().hex,
+    fingerprint=["c" * 32],
+    issue_title="User Feedback",
+    subtitle="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel aliquam velit, nec condimentum mi. Maecenas accumsan, nunc ac venenatis hendrerit, mi libero facilisis nunc, fringilla molestie dui est vulputate diam. Duis ac justo euismod, sagittis est at, bibendum purus. Praesent nec tortor vel ante accumsan lobortis. Morbi mollis augue nec dolor feugiat congue. Nullam eget blandit nisi. Sed in arcu odio. Aenean malesuada tortor quis felis dapibus congue.d",
+    culprit="api/123",
+    resource_id="1234",
+    evidence_data={
+        "contact_email": "test@test.com",
+        "message": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel aliquam velit, nec condimentum mi. Maecenas accumsan, nunc ac venenatis hendrerit, mi libero facilisis nunc, fringilla molestie dui est vulputate diam. Duis ac justo euismod, sagittis est at, bibendum purus. Praesent nec tortor vel ante accumsan lobortis. Morbi mollis augue nec dolor feugiat congue. Nullam eget blandit nisi. Sed in arcu odio. Aenean malesuada tortor quis felis dapibus congue.",
+        "name": "Test Name",
+    },
+    evidence_display=[
+        IssueEvidence("contact_email", "test@test.com", False),
+        IssueEvidence(
+            "message",
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vel aliquam velit, nec condimentum mi. Maecenas accumsan, nunc ac venenatis hendrerit, mi libero facilisis nunc, fringilla molestie dui est vulputate diam. Duis ac justo euismod, sagittis est at, bibendum purus. Praesent nec tortor vel ante accumsan lobortis. Morbi mollis augue nec dolor feugiat congue. Nullam eget blandit nisi. Sed in arcu odio. Aenean malesuada tortor quis felis dapibus congue.",
+            True,
+        ),
+        IssueEvidence("name", "Test Name", False),
+    ],
+    type=FeedbackGroup,
+    detection_time=datetime.now(UTC),
+    level="info",
 )
 TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
     uuid.uuid4().hex,

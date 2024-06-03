@@ -89,7 +89,7 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_from_webhookpayload_creation(self):
         with pytest.raises(NotImplementedError):
-            self.parser.get_response_from_outbox_creation(regions=self.region_config)
+            self.parser.get_response_from_webhookpayload(regions=self.region_config)
 
         class MockParser(BaseRequestParser):
             webhook_identifier = WebhookProviderIdentifier.SLACK
@@ -97,7 +97,7 @@ class BaseRequestParserTest(TestCase):
 
         parser = MockParser(self.request, self.response_handler)
 
-        response = parser.get_response_from_outbox_creation(regions=self.region_config)
+        response = parser.get_response_from_webhookpayload(regions=self.region_config)
         assert response.status_code == status.HTTP_202_ACCEPTED
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 2

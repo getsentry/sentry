@@ -7,7 +7,7 @@ import sentry_sdk
 from sentry.models.project import Project
 from sentry.sentry_metrics.visibility.errors import MalformedBlockedMetricsPayloadError
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
@@ -171,6 +171,7 @@ def _apply_operation(
 
 
 def block_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int, MetricBlocking]:
+    metrics.incr("ddm.metrics_api.blocked_metrics_count")
     return _apply_operation(
         MetricOperation(
             metric_mri=metric_mri, block_metric=True, block_tags=set(), unblock_tags=set()
@@ -180,6 +181,7 @@ def block_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int, M
 
 
 def unblock_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int, MetricBlocking]:
+    metrics.incr("ddm.metrics_api.unblocked_metrics_count")
     return _apply_operation(
         MetricOperation(
             metric_mri=metric_mri, block_metric=False, block_tags=set(), unblock_tags=set()
@@ -191,6 +193,7 @@ def unblock_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int,
 def block_tags_of_metric(
     metric_mri: str, tags: set[str], projects: Sequence[Project]
 ) -> Mapping[int, MetricBlocking]:
+    metrics.incr("ddm.metrics_api.blocked_metric_tags_count")
     return _apply_operation(
         MetricOperation(metric_mri=metric_mri, block_tags=tags, unblock_tags=set()), projects
     )
@@ -199,6 +202,7 @@ def block_tags_of_metric(
 def unblock_tags_of_metric(
     metric_mri: str, tags: set[str], projects: Sequence[Project]
 ) -> Mapping[int, MetricBlocking]:
+    metrics.incr("ddm.metrics_api.unblocked_metric_tags_count")
     return _apply_operation(
         MetricOperation(metric_mri=metric_mri, block_tags=set(), unblock_tags=tags), projects
     )

@@ -93,7 +93,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 query_kwargs["actor"] = request.user
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
-                results = search.query(**query_kwargs)
+                results = search.backend.query(**query_kwargs)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
             results = list(results)
@@ -134,6 +134,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             "timestamp",
             "span_id",
             "profile_id",
+            "trace",
         ]
 
         if lower_bound is None or upper_bound is None:

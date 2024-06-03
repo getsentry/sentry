@@ -8,9 +8,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import type {Group, Organization, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import toArray from 'sentry/utils/toArray';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import toArray from 'sentry/utils/array/toArray';
 
 import type {CommonStoreDefinition} from './types';
 

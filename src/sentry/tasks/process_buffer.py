@@ -6,32 +6,51 @@ from django.conf import settings
 
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.lock import Lock
 
 logger = logging.getLogger(__name__)
+
+
+def get_process_lock(lock_name: str) -> Lock:
+    from sentry.locks import locks
+
+    return locks.get(f"buffer:{lock_name}", duration=60, name=lock_name)
 
 
 @instrumented_task(
     name="sentry.tasks.process_buffer.process_pending", queue="buffers.process_pending"
 )
-def process_pending(partition=None):
+def process_pending() -> None:
     """
     Process pending buffers.
     """
     from sentry import buffer
-    from sentry.locks import locks
 
-    if partition is None:
-        lock_key = "buffer:process_pending"
-    else:
-        lock_key = "buffer:process_pending:%d" % partition
-
-    lock = locks.get(lock_key, duration=60, name="process_pending")
+    lock = get_process_lock("process_pending")
 
     try:
         with lock.acquire():
-            buffer.process_pending(partition=partition)
+            buffer.process_pending()
     except UnableToAcquireLock as error:
-        logger.warning("process_pending.fail", extra={"error": error, "partition": partition})
+        logger.warning("process_pending.fail", extra={"error": error})
+
+
+@instrumented_task(
+    name="sentry.tasks.process_buffer.process_pending_batch", queue="buffers.process_pending_batch"
+)
+def process_pending_batch() -> None:
+    """
+    Process pending buffers in a batch.
+    """
+    from sentry import buffer
+
+    lock = get_process_lock("process_pending_batch")
+
+    try:
+        with lock.acquire():
+            buffer.process_batch()
+    except UnableToAcquireLock as error:
+        logger.warning("process_pending_batch.fail", extra={"error": error})
 
 
 @instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")

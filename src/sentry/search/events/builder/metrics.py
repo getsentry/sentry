@@ -64,7 +64,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
+from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
     MetricField,
     MetricGroupByField,
@@ -72,7 +72,7 @@ from sentry.snuba.metrics.query import (
     MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
-from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -80,6 +80,9 @@ class MetricsQueryBuilder(QueryBuilder):
     is_alerts_query = False
 
     organization_column: str = "organization_id"
+
+    column_remapping = {}
+    default_metric_tags = constants.DEFAULT_METRIC_TAGS
 
     def __init__(
         self,
@@ -97,12 +100,14 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: list[CurriedFunction] = []
         self.sets: list[CurriedFunction] = []
         self.counters: list[CurriedFunction] = []
+        self.gauges: list[CurriedFunction] = []
         self.percentiles: list[CurriedFunction] = []
         # only used for metrics_layer right now
         self.metrics_layer_functions: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
         self._use_default_tags: bool | None = None
+        self._has_nullable: bool = False
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -353,10 +358,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
     @property
     def use_case_id(self) -> UseCaseID:
-        if self.is_performance:
-            return UseCaseID.TRANSACTIONS
-        elif self.spans_metrics_builder:
+
+        if self.spans_metrics_builder:
             return UseCaseID.SPANS
+        elif self.is_performance:
+            return UseCaseID.TRANSACTIONS
+        elif self.profile_functions_metrics_builder:
+            return UseCaseID.PROFILES
         else:
             return UseCaseID.SESSIONS
 
@@ -591,27 +599,44 @@ class MetricsQueryBuilder(QueryBuilder):
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        if snql_function.snql_distribution is not None:
+        prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
+        nullable = arguments.get("metric_id") == 0
+        if nullable:
+            self._has_nullable = True
+
+        if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.distributions.append(resolved_function)
+                if not nullable:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.distributions.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_set is not None:
+        if snql_function.snql_set is not None and (prefix is None or prefix == "s"):
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
-                self.sets.append(resolved_function)
+                if not nullable:
+                    self.sets.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_counter is not None:
+        if snql_function.snql_counter is not None and (prefix is None or prefix == "c"):
             resolved_function = snql_function.snql_counter(arguments, alias)
             if not resolve_only:
-                self.counters.append(resolved_function)
+                if not nullable:
+                    self.counters.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
+            resolved_function = snql_function.snql_gauge(arguments, alias)
+            if not resolve_only:
+                if not nullable:
+                    self.gauges.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
@@ -619,10 +644,11 @@ class MetricsQueryBuilder(QueryBuilder):
             resolved_function = snql_function.snql_metric_layer(arguments, alias)
             if not resolve_only:
                 self.aggregates.append(resolved_function)
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.metrics_layer_functions.append(resolved_function)
+                if not nullable:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.metrics_layer_functions.append(resolved_function)
             return resolved_function
         return None
 
@@ -635,13 +661,18 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> int | str | None:
-        if self.is_performance or self.use_metrics_layer:
+        # We only use the indexer for alerts queries
+        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
             return value
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
+        # some tag keys needs to be remapped to a different column name
+        # prior to resolving it via the indexer
+        value = self.column_remapping.get(value, value)
+
         if self.use_default_tags:
-            if value in constants.DEFAULT_METRIC_TAGS:
+            if value in self.default_metric_tags:
                 return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
@@ -667,6 +698,8 @@ class MetricsQueryBuilder(QueryBuilder):
                     1,
                 )
 
+        if name in ["organization_id", "org_id"]:
+            raise IncompatibleMetricsQuery(f"{name} isn't compatible with metrics queries")
         lhs = self.resolve_column(name)
         # If this is an aliasedexpression, we don't need the alias here, just the expression
         if isinstance(lhs, AliasedExpression):
@@ -874,6 +907,12 @@ class MetricsQueryBuilder(QueryBuilder):
                 having=[],
                 functions=self.sets,
                 entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
+            ),
+            "gauge": QueryFramework(
+                orderby=[],
+                having=[],
+                functions=self.gauges,
+                entity=Entity(f"{prefix}metrics_gauges", sample=self.sample_rate),
             ),
             "metrics_layer": QueryFramework(
                 orderby=[],
@@ -1282,6 +1321,11 @@ class MetricsQueryBuilder(QueryBuilder):
 
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
+        # Nullable columns won't be in the meta
+        if self._has_nullable:
+            for function in self.aggregates:
+                if function.alias not in [meta["name"] for meta in result["meta"]]:
+                    result["meta"].append({"name": function.alias, "type": "Nullable"})
 
         # Data might be missing for fields after merging the requests, eg a transaction with no users
         for row in result["data"]:
@@ -1305,6 +1349,53 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+    def _get_metric_prefix(
+        self, snql_function: fields.MetricsFunction, column: str | None
+    ) -> str | None:
+        if (
+            column is None
+            or self.use_metrics_layer
+            or self.use_case_id
+            not in {
+                UseCaseID.SPANS,
+                UseCaseID.TRANSACTIONS,
+            }
+        ):
+            return None
+
+        prefix_to_function_map = {
+            "d": snql_function.snql_distribution,
+            "s": snql_function.snql_set,
+            "c": snql_function.snql_counter,
+            "g": snql_function.snql_gauge,
+        }
+
+        metrics_map = {
+            UseCaseID.SPANS: constants.SPAN_METRICS_MAP,
+            UseCaseID.TRANSACTIONS: constants.METRICS_MAP,
+        }
+
+        primary_metric = metrics_map[self.use_case_id].get(column, column)
+
+        # Custom measurements are prefixed with "measurements." and always map to distributions
+        prefix = "d" if primary_metric.startswith("measurements.") else primary_metric.split(":")[0]
+
+        # Return early and allow default behaviour if the column isn't
+        # a metric (in the case of any() functions) or if the prefix
+        # doesn't have a function mapping defined
+        if (
+            not is_mri(primary_metric)
+            and not primary_metric.startswith("measurements.")
+            or prefix not in prefix_to_function_map
+        ):
+            return None
+
+        if prefix_to_function_map.get(prefix) is None:
+            raise IncompatibleMetricsQuery(
+                "The functions provided do not match the requested metric type"
+            )
+        return prefix
 
 
 class AlertMetricsQueryBuilder(MetricsQueryBuilder):
@@ -1635,7 +1726,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         queries = self.get_snql_query()
         if queries:
-            results = bulk_snql_query(queries, referrer, use_cache)
+            results = bulk_snuba_queries(queries, referrer, use_cache)
         else:
             results = []
 
@@ -1909,7 +2000,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         else:
             queries = self.get_snql_query()
             if queries:
-                results = bulk_snql_query(queries, referrer, use_cache)
+                results = bulk_snuba_queries(queries, referrer, use_cache)
 
             time_map: dict[str, dict[str, Any]] = defaultdict(dict)
             for current_result in results:

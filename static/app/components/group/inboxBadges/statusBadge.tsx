@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types';
-import {GroupSubstatus} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import {GroupSubstatus} from 'sentry/types/group';
 
 interface SubstatusBadgeProps {
   status: Group['status'];
@@ -11,7 +11,7 @@ interface SubstatusBadgeProps {
   substatus?: Group['substatus'];
 }
 
-function getBadgeProperties(
+export function getBadgeProperties(
   status: Group['status'],
   substatus: Group['substatus']
 ): {status: string; tagType: keyof Theme['tag']; tooltip?: string} | undefined {

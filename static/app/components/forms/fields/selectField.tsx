@@ -9,7 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types/core';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -99,14 +99,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   };
 
   render() {
-    const {
-      allowClear,
-      confirm,
-      multiple,
-      disabledReason,
-      hideControlState,
-      ...otherProps
-    } = this.props;
+    const {allowClear, confirm, multiple, hideControlState, ...otherProps} = this.props;
 
     return (
       <FormField {...otherProps} hideControlState flexibleControlStateSize>
@@ -117,6 +110,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           required: _required,
           children: _children,
           disabled,
+          disabledReason,
           model,
           name,
           ...props

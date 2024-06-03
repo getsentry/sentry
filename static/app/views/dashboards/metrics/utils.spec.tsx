@@ -180,6 +180,7 @@ describe('expressionsToWidget', () => {
           name: '0',
           orderby: 'asc',
           isHidden: true,
+          fieldAliases: [],
         },
       ],
     } satisfies Widget);
@@ -212,6 +213,7 @@ describe('expressionsToWidget', () => {
           name: '1',
           orderby: '',
           isHidden: false,
+          fieldAliases: [],
         },
       ],
     } satisfies Widget);

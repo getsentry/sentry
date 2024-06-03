@@ -40,9 +40,16 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
-  if (organization.features.includes('performance-screens-view')) {
+  if (organization.features.includes('spans-first-ui')) {
     doubleRowAllowedCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
+  if (organization.features.includes('starfish-mobile-appstart')) {
+    doubleRowAllowedCharts.push(
+      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
+    );
+  }
+
   if (
     organization.features.includes('performance-new-trends') &&
     canUseMetricsData(props.organization)
@@ -52,6 +59,10 @@ export function MobileView(props: BasePerformanceViewProps) {
     doubleRowAllowedCharts.push(
       ...[PerformanceWidgetSetting.MOST_IMPROVED, PerformanceWidgetSetting.MOST_REGRESSED]
     );
+  }
+
+  if (props.organization.features.includes('spans-first-ui')) {
+    doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
   return (
     <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>

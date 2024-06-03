@@ -8,8 +8,9 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager import BaseManager
+from sentry.models.releases.constants import DB_VERSION_LENGTH
 
 if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
@@ -17,19 +18,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleActivationCondition(Model):
     """
     This model represents the activation condition for an activated AlertRule
 
     label is an optional identifier for an activation condition
-    condition_type is AlertRuleActivationConditionType
+    condition_type is AlertRuleActivationConditionType (Release creation / Deploy creation)
     TODO: implement extra query params for advanced conditional rules (eg. +10m after event occurs)
     """
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_conditions")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_condition")
     label = models.TextField()
     condition_type = models.SmallIntegerField(null=True)
 
@@ -43,11 +44,13 @@ class AlertRuleActivationCondition(Model):
 
 class AlertRuleActivationsManager(BaseManager["AlertRuleActivations"]):
     def get_activations_in_window(self, alert_rule: AlertRule, start: datetime, end: datetime):
-        # Return all activations for this alert rule that were activated in the window
-        return
+        """
+        Return all activations for this alert rule that were activated in the window
+        """
+        return self.filter(alert_rule=alert_rule, date_added__gte=start, date_added__lte=end)
 
 
-@region_silo_only_model
+@region_silo_model
 class AlertRuleActivations(Model):
     """
     This model represents the record of activations for Alert Rules with monitor_type 'activated'
@@ -71,21 +74,35 @@ class AlertRuleActivations(Model):
     query_subscription = FlexibleForeignKey(
         "sentry.QuerySubscription", null=True, on_delete=models.SET_NULL
     )
+    # condition_type is AlertRuleActivationConditionType (Release creation / Deploy creation)
+    condition_type = models.SmallIntegerField(default=0)
+    # The activator is the identifier for the specific triggered instance (eg. release/deploy version)
+    activator = models.CharField(max_length=DB_VERSION_LENGTH, default="default_activator")
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivations"
+        indexes = [models.Index(fields=("alert_rule", "date_added"))]
 
     def is_complete(self) -> bool:
-        # Assert alert_rule.snuba_query exists (activated alert rules MUST have an associated snuba_query)
-        # return finished_at is not None and date_added + alert_rule.snuba_query.time_window < timezone.now()
-        return False
+        return bool(self.finished_at)
 
     def get_triggers(self):
-        # self.alert_rule.alertruletrigger_set.get()
-        return
+        """
+        Alert Rule triggers represent the thresholds required to trigger an activation
+
+        NOTE: AlertRule attr's may change and may not be reliable indicators of incident trigger reasons
+        """
+        return self.alert_rule.alertruletrigger_set.get()
 
     def get_window(self):
-        # Return start, expected end, and actual end
-        # log warning if expected end and actual end are off?
-        return
+        """
+        Window represents the monitor window
+
+        NOTE: AlertRule attr's may change and may not be a reliable indicator of window periods for past activations
+        """
+        return {
+            "start": self.date_added,
+            "expected_end": self.date_added + self.alert_rule.snuba_query.time_window,
+            "actual_end": self.finished_at,
+        }

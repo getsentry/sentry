@@ -1,6 +1,6 @@
 import type {RefObject} from 'react';
 import {useEffect} from 'react';
-import {type Feedback, getClient} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -8,14 +8,17 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
   buttonRef?: RefObject<HTMLButtonElement> | RefObject<HTMLAnchorElement>;
+  formTitle?: string;
   messagePlaceholder?: string;
 }
 
-export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props) {
+export default function useFeedbackWidget({
+  buttonRef,
+  formTitle,
+  messagePlaceholder,
+}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const client = getClient();
-  // Note that this is only defined in environments where Feedback is enabled (getsentry)
-  const feedback = client?.getIntegrationByName?.<Feedback>('Feedback');
+  const feedback = Sentry.getFeedback();
 
   useEffect(() => {
     if (!feedback) {
@@ -27,25 +30,22 @@ export default function useFeedbackWidget({buttonRef, messagePlaceholder}: Props
       buttonLabel: t('Give Feedback'),
       submitButtonLabel: t('Send Feedback'),
       messagePlaceholder: messagePlaceholder ?? t('What did you expect?'),
-      formTitle: t('Give Feedback'),
+      formTitle: formTitle ?? t('Give Feedback'),
     };
 
     if (buttonRef) {
       if (buttonRef.current) {
-        const widget = feedback.attachTo(buttonRef.current, options);
-        return () => {
-          feedback.removeWidget(widget);
-        };
+        return feedback.attachTo(buttonRef.current, options);
       }
     } else {
       const widget = feedback.createWidget(options);
       return () => {
-        feedback.removeWidget(widget);
+        widget.removeFromDom();
       };
     }
 
     return undefined;
-  }, [buttonRef, config.theme, feedback, messagePlaceholder]);
+  }, [buttonRef, config.theme, feedback, formTitle, messagePlaceholder]);
 
   return feedback;
 }

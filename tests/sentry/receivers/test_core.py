@@ -9,7 +9,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 

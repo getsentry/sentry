@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -9,49 +8,42 @@ import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEdit
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {
-  SORTABLE_FIELDS,
-  SORTABLE_SCORE_FIELDS,
-} from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
+import {SORTABLE_FIELDS} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
-
-const INP_COLUMN: GridColumnOrder<keyof RowWithScoreAndOpportunity> = {
-  key: 'p75(measurements.inp)',
-  width: COL_WIDTH_UNDEFINED,
-  name: 'INP',
-};
 
 const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'p75(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'p75(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {
+    key: 'p75(measurements.inp)',
+    width: COL_WIDTH_UNDEFINED,
+    name: 'INP',
+  },
   {key: 'p75(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'p75(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
@@ -66,19 +58,10 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
-  const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
-  const columnOrder = useMemo(() => {
-    const columns = [...COLUMN_ORDER];
-    if (shouldReplaceFidWithInp) {
-      columns.splice(4, 1, INP_COLUMN);
-    }
-    return columns;
-  }, [shouldReplaceFidWithInp]);
+  const columnOrder = COLUMN_ORDER;
 
   const query = decodeScalar(location.query.query, '');
 
@@ -89,21 +72,11 @@ export function PagePerformanceTable() {
 
   let sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
   // Need to map fid back to inp for rendering
-  if (shouldReplaceFidWithInp && sort.field === 'p75(measurements.fid)') {
+  if (sort.field === 'p75(measurements.fid)') {
     sort = {...sort, field: 'p75(measurements.inp)'};
   }
-
-  const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectRawWebVitalsQuery({transaction: query});
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({
-      transaction: query,
-      enabled: shouldUseStoredScores,
-    });
-
-  const projectScore = shouldUseStoredScores
-    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
-    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+    useProjectWebVitalsScoresQuery();
 
   const {
     data,
@@ -111,25 +84,19 @@ export function PagePerformanceTable() {
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsQuery({
     limit: MAX_ROWS,
-    transaction: query,
+    transaction: `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
+    shouldEscapeFilters: false,
   });
 
-  const count = projectData?.data?.[0]?.['count()'] as number;
   const scoreCount = projectScoresData?.data?.[0]?.[
     'count_scores(measurements.score.total)'
   ] as number;
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: shouldUseStoredScores
-      ? (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
-      : calculateOpportunity(
-          projectScore.totalScore ?? 0,
-          count,
-          row.totalScore,
-          row['count()']
-        ),
+    opportunity:
+      (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -157,9 +124,7 @@ export function PagePerformanceTable() {
         query: {...location.query, sort: newSort},
       };
     }
-    const sortableFields = shouldUseStoredScores
-      ? SORTABLE_FIELDS
-      : SORTABLE_FIELDS.filter(field => !SORTABLE_SCORE_FIELDS.includes(field));
+    const sortableFields = SORTABLE_FIELDS;
     const canSort = (sortableFields as unknown as string[]).includes(col.key);
 
     if (canSort && !['totalScore', 'opportunity'].includes(col.key)) {
@@ -182,7 +147,7 @@ export function PagePerformanceTable() {
               <span>
                 {t('The overall performance rating of this page.')}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -210,7 +175,7 @@ export function PagePerformanceTable() {
                   "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
                 )}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -257,11 +222,7 @@ export function PagePerformanceTable() {
           <Link
             to={{
               ...location,
-              ...(organization.features.includes(
-                'starfish-browser-webvitals-pageoverview-v2'
-              )
-                ? {pathname: `${location.pathname}overview/`}
-                : {}),
+              pathname: `${location.pathname}overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
@@ -285,13 +246,8 @@ export function PagePerformanceTable() {
       ].includes(key)
     ) {
       const measurement = parseFunction(key)?.arguments?.[0];
-      const func = shouldUseStoredScores ? 'count_scores' : 'count_web_vitals';
-      const args = [
-        shouldUseStoredScores
-          ? measurement?.replace('measurements.', 'measurements.score.')
-          : measurement,
-        ...(shouldUseStoredScores ? [] : ['any']),
-      ];
+      const func = 'count_scores';
+      const args = [measurement?.replace('measurements.', 'measurements.score.')];
       const countWebVitalKey = `${func}(${args.join(', ')})`;
       const countWebVital = row[countWebVitalKey];
       if (measurement === undefined || countWebVital === 0) {
@@ -304,9 +260,7 @@ export function PagePerformanceTable() {
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
     if (key === 'p75(measurements.cls)') {
-      const countWebVitalKey = shouldUseStoredScores
-        ? 'count_scores(measurements.score.cls)'
-        : 'count_web_vitals(measurements.cls, any)';
+      const countWebVitalKey = 'count_scores(measurements.score.cls)';
       const countWebVital = row[countWebVitalKey];
       if (countWebVital === 0) {
         return (
@@ -333,7 +287,7 @@ export function PagePerformanceTable() {
       ...location,
       query: {
         ...location.query,
-        query: newQuery === '' ? undefined : `*${newQuery}*`,
+        query: newQuery === '' ? undefined : newQuery,
         cursor: undefined,
       },
     });
@@ -345,14 +299,11 @@ export function PagePerformanceTable() {
         <StyledSearchBar
           placeholder={t('Search for more Pages')}
           onSearch={handleSearch}
+          defaultQuery={query}
         />
         <StyledPagination
           pageLinks={pageLinks}
-          disabled={
-            (shouldUseStoredScores && isProjectScoresLoading) ||
-            isProjectWebVitalsQueryLoading ||
-            isTransactionWebVitalsQueryLoading
-          }
+          disabled={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
@@ -377,11 +328,7 @@ export function PagePerformanceTable() {
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={
-            (shouldUseStoredScores && isProjectScoresLoading) ||
-            isProjectWebVitalsQueryLoading ||
-            isTransactionWebVitalsQueryLoading
-          }
+          isLoading={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}

@@ -1,3 +1,5 @@
+import {createEvent, fireEvent} from 'sentry-test/reactTestingLibrary';
+
 import {VideoReplayer} from './videoReplayer';
 
 // XXX: Not quite sure the best way to mock RAF - here we use fake timers
@@ -84,10 +86,11 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     // @ts-expect-error private
-    // currentIndex is undefined before we ever press play
-    expect(inst._currentIndex).toEqual(undefined);
+    expect(inst._currentIndex).toEqual(0);
 
     const playPromise = inst.play(6500);
     jest.advanceTimersByTime(10000);
@@ -109,8 +112,14 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     const playPromise = inst.play(18100);
+    // @ts-expect-error private
+    const video = inst.getVideo(2)!;
+    // the replay is actually stopped right now to wait for loading
+    fireEvent(video, createEvent.loadedData(video));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
     jest.advanceTimersByTime(2500);
@@ -132,6 +141,8 @@ describe('VideoReplayer - no starting gap', () => {
       // so can't check that onFinished is called
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
@@ -153,6 +164,8 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     const playPromise = inst.play(0);
     jest.advanceTimersByTime(2500);
@@ -160,7 +173,7 @@ describe('VideoReplayer - no starting gap', () => {
     // @ts-expect-error private
     expect(inst._currentIndex).toEqual(0);
     // @ts-expect-error private
-    expect(Object.keys(inst._videos).length).toEqual(3);
+    expect(inst._videos.size).toEqual(3);
   });
 
   it('should load the correct videos after playing at a timestamp', async () => {
@@ -171,6 +184,8 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50000,
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
@@ -188,12 +203,12 @@ describe('VideoReplayer - no starting gap', () => {
     // @ts-expect-error private
     const getVideo = index => inst.getVideo(index);
 
-    expect(Object.keys(videos).length).toEqual(7);
-    expect(videos[0]).toEqual(getVideo(0));
-    expect(videos[2]).toEqual(getVideo(2));
-    expect(videos[3]).toEqual(undefined);
-    expect(videos[4]).toEqual(getVideo(4));
-    expect(videos[7]).toEqual(getVideo(7));
+    expect(videos.size).toEqual(7);
+    expect(videos.get(0)).toEqual(getVideo(0));
+    expect(videos.get(2)).toEqual(getVideo(2));
+    expect(videos.get(3)).toEqual(undefined);
+    expect(videos.get(4)).toEqual(getVideo(4));
+    expect(videos.get(7)).toEqual(getVideo(7));
   });
 
   it('should work correctly if we have missing segments', async () => {
@@ -204,6 +219,8 @@ describe('VideoReplayer - no starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 55000,
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
@@ -218,12 +235,12 @@ describe('VideoReplayer - no starting gap', () => {
     const getVideo = index => inst.getVideo(index);
 
     // videos loaded should be [0, 1, 2, 3, 4, 5, 7, 8]
-    expect(Object.keys(videos).length).toEqual(8);
-    expect(videos[0]).toEqual(getVideo(0));
-    expect(videos[2]).toEqual(getVideo(2));
-    expect(videos[5]).toEqual(getVideo(5));
-    expect(videos[6]).toEqual(getVideo(6));
-    expect(videos[7]).toEqual(getVideo(7));
+    expect(videos.size).toEqual(8);
+    expect(videos.get(0)).toEqual(getVideo(0));
+    expect(videos.get(2)).toEqual(getVideo(2));
+    expect(videos.get(5)).toEqual(getVideo(5));
+    expect(videos.get(6)).toEqual(getVideo(6));
+    expect(videos.get(7)).toEqual(getVideo(7));
   });
 });
 
@@ -276,9 +293,11 @@ describe('VideoReplayer - with starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     // @ts-expect-error private
-    expect(inst._currentIndex).toEqual(undefined);
+    expect(inst._currentIndex).toEqual(0);
     const playPromise = inst.play(1500);
     jest.advanceTimersByTime(2000);
     await playPromise;
@@ -298,8 +317,14 @@ describe('VideoReplayer - with starting gap', () => {
       start: 0,
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     const playPromise = inst.play(18100);
+    // @ts-expect-error private
+    const video = inst.getVideo(2)!;
+    // the replay is actually stopped right now to wait for loading
+    fireEvent(video, createEvent.loadedData(video));
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
     // the beginning.
     jest.advanceTimersByTime(2500);
@@ -321,6 +346,8 @@ describe('VideoReplayer - with starting gap', () => {
       // so can't check that onFinished is called
       onFinished: jest.fn(),
       onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
@@ -332,5 +359,117 @@ describe('VideoReplayer - with starting gap', () => {
     // `currentTime` is in seconds
     // @ts-expect-error private
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toEqual(5);
+  });
+});
+
+describe('VideoReplayer - with ending gap', () => {
+  beforeEach(() => {
+    jest.clearAllTimers();
+  });
+
+  const attachments = [
+    {
+      id: 0,
+      timestamp: 2500,
+      duration: 5000,
+    },
+    // no gap
+    {
+      id: 1,
+      timestamp: 5000,
+      duration: 5000,
+    },
+    {
+      id: 2,
+      timestamp: 10_001,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 3,
+      timestamp: 20_000,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 4,
+      timestamp: 30_000,
+      duration: 5000,
+    },
+    {
+      id: 5,
+      timestamp: 35_002,
+      duration: 5000,
+    },
+  ];
+
+  it('keeps playing until the end if there is an ending gap', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50000,
+    });
+    // actual length of the segments is 40s
+    // 10s gap at the end
+
+    // play at the last segment
+    const playPromise = inst.play(36000);
+    await playPromise;
+    jest.advanceTimersByTime(4000);
+
+    // we're still within the last segment (5)
+    // @ts-expect-error private
+    expect(inst._currentIndex).toEqual(5);
+    expect(inst.getCurrentTime()).toEqual(40000);
+
+    // now we are in the gap
+    // timer should still be going since the duration is 50s
+    jest.advanceTimersByTime(5000);
+    // @ts-expect-error private
+    expect(inst._isPlaying).toEqual(true);
+
+    // a long time passes
+    // ensure the timer stops at the end duration (50s)
+    jest.advanceTimersByTime(60000);
+    expect(inst.getCurrentTime()).toEqual(50000);
+    // @ts-expect-error private
+    expect(inst._isPlaying).toEqual(false);
+  });
+
+  it('ends at the proper time if seeking into a gap at the end', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 50000,
+    });
+    // actual length of the segments is 40s
+    // 10s gap at the end
+
+    // play at the gap
+    const playPromise = inst.play(40002);
+    await playPromise;
+    jest.advanceTimersByTime(4000);
+
+    // we should be still playing in the gap
+    expect(inst.getCurrentTime()).toEqual(44002);
+    // @ts-expect-error private
+    expect(inst._isPlaying).toEqual(true);
+
+    // a long time passes
+    // ensure the timer stops at the end duration (50s)
+    jest.advanceTimersByTime(60000);
+    expect(inst.getCurrentTime()).toBeLessThan(50100);
+    // @ts-expect-error private
+    expect(inst._isPlaying).toEqual(false);
   });
 });

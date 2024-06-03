@@ -1,7 +1,12 @@
 import {ApiTokenFixture} from 'sentry-fixture/apiToken';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 
@@ -30,7 +35,7 @@ describe('ApiTokens', function () {
     render(<ApiTokens organization={organization} />);
   });
 
-  it('can delete token', function () {
+  it('can delete token', async function () {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: [ApiTokenFixture()],
@@ -43,8 +48,11 @@ describe('ApiTokens', function () {
     expect(mock).not.toHaveBeenCalled();
 
     render(<ApiTokens organization={organization} />);
+    renderGlobalModal();
 
-    fireEvent.click(screen.getByLabelText('Remove'));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+    // Confirm modal
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     // Should be loading
     expect(mock).toHaveBeenCalledTimes(1);

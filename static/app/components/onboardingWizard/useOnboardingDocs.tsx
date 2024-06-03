@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import platforms from 'sentry/data/platforms';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

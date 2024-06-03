@@ -1,11 +1,12 @@
 import type {ComponentProps} from 'react';
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -18,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -53,7 +55,8 @@ function ReplayPreviewPlayer({
   const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFinished, isPlaying} = useReplayContext();
+  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
+    useReplayContext();
   const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef(null);
@@ -76,6 +79,13 @@ function ReplayPreviewPlayer({
     },
   };
 
+  const {mutate: markAsViewed} = useMarkReplayViewed();
+  useEffect(() => {
+    if (replayRecord?.id && !replayRecord.has_viewed && !isFetching && isPlaying) {
+      markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
+    }
+  }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
+
   return (
     <PlayerPanel>
       <HeaderWrapper>
@@ -95,7 +105,7 @@ function ReplayPreviewPlayer({
           <PlayerContextContainer>
             {isFullscreen ? (
               <ContextContainer>
-                <ReplayCurrentUrl />
+                {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
                 <BrowserOSIcons />
                 <ReplaySidebarToggleButton
                   isOpen={isSidebarOpen}

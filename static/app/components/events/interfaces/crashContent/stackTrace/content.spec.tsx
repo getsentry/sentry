@@ -72,9 +72,6 @@ describe('StackTrace', function () {
     const stackTraceContent = screen.getByTestId('stack-trace-content');
     expect(stackTraceContent).toBeInTheDocument();
 
-    // stack trace content has to have a platform icon and a frame list
-    expect(stackTraceContent.children).toHaveLength(2);
-
     // platform icon
     expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
 

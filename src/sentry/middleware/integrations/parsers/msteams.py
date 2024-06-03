@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import Any
 
+import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
@@ -20,7 +21,6 @@ from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region, RegionResolutionError
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     def request_data(self):
         data = {}
         try:
-            data = json.loads(self.request.body.decode(encoding="utf-8"))
-        except Exception as err:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError as err:
             sentry_sdk.capture_exception(err)
         return data
 
@@ -68,14 +68,21 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.region_view_classes:
             logger.info(
-                "View class not in region",
+                "View class not in region, sending to webhook handler",
                 extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
 
         if not self.can_infer_integration(data=self.request_data):
             logger.info(
-                "Could not infer integration",
+                "Could not infer integration, sending to webhook handler",
+                extra={"request_data": self.request_data},
+            )
+            return self.get_response_from_control_silo()
+
+        if self.is_new_integration_installation_event(data=self.request_data):
+            logger.info(
+                "New installation event detected, sending to webhook handler",
                 extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
@@ -116,7 +123,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
         if self._check_if_event_should_be_sync(data=self.request_data):
             logger.info(
-                "MSTeams event should be handled synchronously",
+                "MSTeams event should be handled synchronously, sending to webhook handler",
                 extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
@@ -125,6 +132,6 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             "Scheduling event for request",
             extra={"request_data": self.request_data},
         )
-        return self.get_response_from_webhookpayload_for_integration(
-            regions=regions, integration=integration
+        return self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
         )

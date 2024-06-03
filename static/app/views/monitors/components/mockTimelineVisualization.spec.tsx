@@ -35,6 +35,8 @@ describe('MockTimelineVisualizer', () => {
     render(<MockTimelineVisualization schedule={schedule} />);
 
     expect(request).toHaveBeenCalled();
-    expect(await screen.findByText('Nov 21, 2023')).toBeInTheDocument();
+    expect(await screen.findByText('Nov 22, 2023')).toBeInTheDocument();
+    expect(await screen.findByText('Nov 24, 2023')).toBeInTheDocument();
+    expect(await screen.findByText('Nov 26, 2023')).toBeInTheDocument();
   });
 });

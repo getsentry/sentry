@@ -9,7 +9,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
@@ -50,10 +50,10 @@ class OrganizationRoleSelect extends Component<Props> {
 
         <PanelBody>
           {roleList.map(role => {
-            const {desc, name, id, allowed, isRetired: roleRetired} = role;
+            const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
 
             const isRetired = enforceRetired && roleRetired;
-            const isDisabled = disabled || isRetired || (enforceAllowed && !allowed);
+            const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
 
             return (
               <PanelItem

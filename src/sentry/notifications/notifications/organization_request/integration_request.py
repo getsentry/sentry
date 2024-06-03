@@ -9,7 +9,7 @@ from sentry.notifications.notifications.strategies.owner_recipient_strategy impo
     OwnerRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.types.actor import Actor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -78,10 +78,10 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     ) -> str:
         return self.get_subject()
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return "Request to Install"
 
-    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> str:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         requester_name = self.requester.get_display_name()
         optional_message = (
             f" They've included this message `{self.message}`" if self.message else ""
@@ -89,7 +89,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         return f"{requester_name} is requesting to install the {self.provider_name} integration into {self.organization.name}.{optional_message}"
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         # TODO: update referrer
         return [MessageAction(name="Check it out", url=self.integration_link)]

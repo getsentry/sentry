@@ -33,6 +33,9 @@ FEATURE_NAMES = [
 EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 
+pytestmark = pytest.mark.sentry_metrics
+
+
 @no_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):

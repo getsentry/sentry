@@ -1,12 +1,17 @@
 import {LinkButton} from 'sentry/components/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import {
+  DATA_TYPE as RESOURCE_DATA_TYPE,
+  PERFORMANCE_DATA_TYPE as PERFORMANCE_RESOURCE_DATA_TYPE,
+} from 'sentry/views/performance/browser/resources/settings';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
@@ -18,6 +23,7 @@ interface Props {
 
 function SpanSummaryButton(props: Props) {
   const location = useLocation();
+  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
 
   const {event, organization, span} = props;
 
@@ -27,9 +33,14 @@ function SpanSummaryButton(props: Props) {
   }
 
   const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
+  const isInsightsEnabled = organization.features.includes('performance-insights');
+
+  const resourceDataType = isInsightsEnabled
+    ? RESOURCE_DATA_TYPE
+    : PERFORMANCE_RESOURCE_DATA_TYPE;
 
   if (
-    organization.features.includes('performance-database-view') &&
+    organization.features.includes('spans-first-ui') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -48,7 +59,7 @@ function SpanSummaryButton(props: Props) {
   }
 
   if (
-    organization.features.includes('starfish-browser-resource-module-ui') &&
+    organization.features.includes('spans-first-ui') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(sentryTags.op)
   ) {
@@ -56,13 +67,13 @@ function SpanSummaryButton(props: Props) {
       <LinkButton
         size="xs"
         to={resourceSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          baseUrl: resourceBaseUrl,
           query: location.query,
           group: sentryTags.group,
           projectID: event.projectID,
         })}
       >
-        {t('View Resource Summary')}
+        {tct('View [dataType] Summary', {dataType: resourceDataType})}
       </LinkButton>
     );
   }

@@ -4,7 +4,7 @@ from rest_framework import status
 from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -78,7 +78,7 @@ class PostSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         )
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_post(self):
         # only superuser write can hit post
         self.login_as(self.superuser, superuser=True)
@@ -155,7 +155,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         self.get_success_response(self.internal_sentry_app.slug)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_get(self):
         self.login_as(self.superuser, superuser=True)
         self.get_success_response(self.internal_sentry_app.slug)

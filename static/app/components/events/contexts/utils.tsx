@@ -3,28 +3,88 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
-import type {Event, KeyValueListData} from 'sentry/types';
+import type {
+  AvatarUser,
+  Event,
+  KeyValueListData,
+  KeyValueListDataItem,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {AppEventContext} from './app';
-import {BrowserEventContext} from './browser';
-import {DefaultContext} from './default';
-import {DeviceEventContext} from './device';
-import {GPUEventContext} from './gpu';
-import {MemoryInfoEventContext} from './memoryInfo';
-import {OperatingSystemEventContext} from './operatingSystem';
-import {ProfileEventContext} from './profile';
-import {ReduxContext} from './redux';
-import {RuntimeEventContext} from './runtime';
-import {StateEventContext} from './state';
-import {ThreadPoolInfoEventContext} from './threadPoolInfo';
-import {TraceEventContext} from './trace';
-import {UnityEventContext} from './unity';
-import {UserEventContext} from './user';
+import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
+import {
+  BrowserEventContext,
+  getKnownBrowserContextData,
+  getUnknownBrowserContextData,
+} from './browser';
+import {DefaultContext, getDefaultContextData} from './default';
+import {
+  DeviceEventContext,
+  getKnownDeviceContextData,
+  getUnknownDeviceContextData,
+} from './device';
+import {getKnownGpuContextData, getUnknownGpuContextData, GPUEventContext} from './gpu';
+import {
+  getKnownMemoryInfoContextData,
+  getUnknownMemoryInfoContextData,
+  MemoryInfoEventContext,
+} from './memoryInfo';
+import {
+  getKnownOperatingSystemContextData,
+  getUnknownOperatingSystemContextData,
+  OperatingSystemEventContext,
+} from './operatingSystem';
+import {
+  getKnownProfileContextData,
+  getUnknownProfileContextData,
+  ProfileEventContext,
+} from './profile';
+import {getReduxContextData, ReduxContext} from './redux';
+import {
+  getKnownReplayContextData,
+  getUnknownReplayContextData,
+  ReplayEventContext,
+} from './replay';
+import {
+  getKnownRuntimeContextData,
+  getUnknownRuntimeContextData,
+  RuntimeEventContext,
+} from './runtime';
+import {
+  getKnownStateContextData,
+  getUnknownStateContextData,
+  StateEventContext,
+} from './state';
+import {
+  getKnownThreadPoolInfoContextData,
+  getUnknownThreadPoolInfoContextData,
+  ThreadPoolInfoEventContext,
+} from './threadPoolInfo';
+import {
+  getKnownTraceContextData,
+  getUnknownTraceContextData,
+  TraceEventContext,
+} from './trace';
+import {
+  getKnownUnityContextData,
+  getUnknownUnityContextData,
+  UnityEventContext,
+} from './unity';
+import {
+  getKnownUserContextData,
+  getUnknownUserContextData,
+  UserEventContext,
+} from './user';
 
 const CONTEXT_TYPES = {
   default: DefaultContext,
@@ -41,7 +101,7 @@ const CONTEXT_TYPES = {
   threadpool_info: ThreadPoolInfoEventContext,
   state: StateEventContext,
   profile: ProfileEventContext,
-
+  replay: ReplayEventContext,
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': ReduxContext,
   // 'ThreadPool Info' will be replaced with 'threadpool_info' but
@@ -51,6 +111,57 @@ const CONTEXT_TYPES = {
   // we want to keep it here for now so it works for existing versions
   'Memory Info': MemoryInfoEventContext,
 };
+
+/**
+ * Generates the class name used for contexts
+ */
+export function generateIconName(
+  name?: string | boolean | null,
+  version?: string
+): string {
+  if (!defined(name) || typeof name === 'boolean') {
+    return '';
+  }
+
+  const lowerCaseName = name.toLowerCase();
+
+  // amazon fire tv device id changes with version: AFTT, AFTN, AFTS, AFTA, AFTVA (alexa), ...
+  if (lowerCaseName.startsWith('aft')) {
+    return 'amazon';
+  }
+
+  if (lowerCaseName.startsWith('sm-') || lowerCaseName.startsWith('st-')) {
+    return 'samsung';
+  }
+
+  if (lowerCaseName.startsWith('moto')) {
+    return 'motorola';
+  }
+
+  if (lowerCaseName.startsWith('pixel')) {
+    return 'google';
+  }
+
+  const formattedName = name
+    .split(/\d/)[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]+/g, '-')
+    .replace(/\-+$/, '')
+    .replace(/^\-+/, '');
+
+  if (formattedName === 'edge' && version) {
+    const majorVersion = version.split('.')[0];
+    const isLegacyEdge = majorVersion >= '12' && majorVersion <= '18';
+
+    return isLegacyEdge ? 'legacy-edge' : 'edge';
+  }
+
+  if (formattedName.endsWith('-mobile')) {
+    return formattedName.split('-')[0];
+  }
+
+  return formattedName;
+}
 
 export function getContextComponent(type: string) {
   return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
@@ -99,23 +210,18 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
+export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
-  meta,
-  raw,
   onGetKnownDataDetails,
+  meta,
 }: {
   data: Data;
   knownDataTypes: string[];
-  onGetKnownDataDetails: (props: {data: Data; type: DataType}) =>
-    | {
-        subject: string;
-        value?: React.ReactNode;
-      }
-    | undefined;
+  onGetKnownDataDetails: (props: {data: Data; type: DataType}) => KnownDataDetails;
   meta?: Record<any, any>;
-  raw?: boolean;
 }): KeyValueListData {
   const filteredTypes = knownDataTypes.filter(knownDataType => {
     if (
@@ -142,18 +248,22 @@ export function getKnownData<Data, DataType>({
       return {
         key: type,
         ...knownDataDetails,
-        value: raw ? (
-          knownDataDetails.value
-        ) : (
-          <StructuredEventData
-            data={knownDataDetails.value}
-            meta={meta?.[type]}
-            withAnnotatedText
-          />
-        ),
+        value: knownDataDetails.value,
       };
     })
     .filter(defined);
+}
+
+export function getKnownStructuredData(
+  knownData: KeyValueListData,
+  meta: Record<string, any>
+): KeyValueListData {
+  return knownData.map(kd => ({
+    ...kd,
+    value: (
+      <StructuredEventData data={kd.value} meta={meta?.[kd.key]} withAnnotatedText />
+    ),
+  }));
 }
 
 export function getUnknownData({
@@ -181,7 +291,207 @@ export function getUnknownData({
     }));
 }
 
+export function getContextTitle({
+  alias,
+  type,
+  value = {},
+}: {
+  alias: string;
+  type: string;
+  value?: Record<string, any>;
+}) {
+  if (defined(value.title) && typeof value.title !== 'object') {
+    return value.title;
+  }
+
+  if (!defined(type)) {
+    return toTitleCase(alias);
+  }
+
+  switch (type) {
+    case 'app':
+      return t('App');
+    case 'device':
+      return t('Device');
+    case 'os':
+      return t('Operating System');
+    case 'user':
+      return t('User');
+    case 'gpu':
+      return t('Graphics Processing Unit');
+    case 'runtime':
+      return t('Runtime');
+    case 'trace':
+      return t('Trace Details');
+    case 'otel':
+      return t('OpenTelemetry');
+    case 'unity':
+      return t('Unity');
+    case 'memory_info': // Current value for memory info
+    case 'Memory Info': // Legacy for memory info
+      return t('Memory Info');
+    case 'threadpool_info': // Current value for thread pool info
+    case 'ThreadPool Info': // Legacy value for thread pool info
+      return t('Thread Pool Info');
+    case 'default':
+      if (alias === 'state') {
+        return t('Application State');
+      }
+      return toTitleCase(alias);
+    default:
+      return toTitleCase(type);
+  }
+}
+
+export function getContextMeta(event: Event, contextType: string): Record<string, any> {
+  const defaultMeta = event._meta?.contexts?.[contextType] ?? {};
+  switch (contextType) {
+    case 'memory_info': // Current
+    case 'Memory Info': // Legacy
+      return event._meta?.contexts?.['Memory Info'] ?? defaultMeta;
+    case 'threadpool_info': // Current
+    case 'ThreadPool Info': // Legacy
+      return event._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
+    case 'user':
+      return event._meta?.user ?? defaultMeta;
+    default:
+      return defaultMeta;
+  }
+}
+
+export function getContextIcon({
+  type,
+  value = {},
+}: {
+  type: string;
+  value?: Record<string, any>;
+}): React.ReactNode {
+  let iconName = '';
+  switch (type) {
+    case 'device':
+      iconName = generateIconName(value?.model);
+      break;
+    case 'client_os':
+    case 'os':
+      iconName = generateIconName(value?.name);
+      break;
+    case 'runtime':
+    case 'browser':
+      iconName = generateIconName(value?.name, value?.version);
+      break;
+    case 'user':
+      const user = removeFilterMaskedEntries(value);
+      return <UserAvatar user={user as AvatarUser} size={14} gravatar={false} />;
+    case 'gpu':
+      iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
+      break;
+    default:
+      break;
+  }
+  if (iconName.length === 0) {
+    return null;
+  }
+  return <ContextIcon name={iconName} size="sm" />;
+}
+
+export function getFormattedContextData({
+  event,
+  contextType,
+  contextValue,
+  organization,
+  project,
+}: {
+  contextType: string;
+  contextValue: any;
+  event: Event;
+  organization: Organization;
+  project?: Project;
+}): KeyValueListData {
+  const meta = getContextMeta(event, contextType);
+
+  switch (contextType) {
+    case 'app':
+      return [
+        ...getKnownAppContextData({data: contextValue, event, meta}),
+        ...getUnknownAppContextData({data: contextValue, meta}),
+      ];
+    case 'device':
+      return [
+        ...getKnownDeviceContextData({data: contextValue, event, meta}),
+        ...getUnknownDeviceContextData({data: contextValue, meta}),
+      ];
+    case 'memory_info': // Current
+    case 'Memory Info': // Legacy
+      return [
+        ...getKnownMemoryInfoContextData({data: contextValue, event, meta}),
+        ...getUnknownMemoryInfoContextData({data: contextValue, meta}),
+      ];
+    case 'browser':
+      return [
+        ...getKnownBrowserContextData({data: contextValue, meta}),
+        ...getUnknownBrowserContextData({data: contextValue, meta}),
+      ];
+    case 'os':
+      return [
+        ...getKnownOperatingSystemContextData({data: contextValue, meta}),
+        ...getUnknownOperatingSystemContextData({data: contextValue, meta}),
+      ];
+    case 'unity':
+      return [
+        ...getKnownUnityContextData({data: contextValue, meta}),
+        ...getUnknownUnityContextData({data: contextValue, meta}),
+      ];
+    case 'runtime':
+      return [
+        ...getKnownRuntimeContextData({data: contextValue, meta}),
+        ...getUnknownRuntimeContextData({data: contextValue, meta}),
+      ];
+    case 'user':
+      return [
+        ...getKnownUserContextData({data: contextValue, meta}),
+        ...getUnknownUserContextData({data: contextValue, meta}),
+      ];
+    case 'gpu':
+      return [
+        ...getKnownGpuContextData({data: contextValue, meta}),
+        ...getUnknownGpuContextData({data: contextValue, meta}),
+      ];
+    case 'trace':
+      return [
+        ...getKnownTraceContextData({data: contextValue, event, meta, organization}),
+        ...getUnknownTraceContextData({data: contextValue, meta}),
+      ];
+    case 'threadpool_info': // Current
+    case 'ThreadPool Info': // Legacy
+      return [
+        ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
+        ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
+      ];
+    case 'redux.state':
+      return getReduxContextData({data: contextValue});
+    case 'state':
+      return [
+        ...getKnownStateContextData({data: contextValue, meta}),
+        ...getUnknownStateContextData({data: contextValue, meta}),
+      ];
+    case 'profile':
+      return [
+        ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
+        ...getUnknownProfileContextData({data: contextValue, meta}),
+      ];
+    case 'replay':
+      return [
+        ...getKnownReplayContextData({data: contextValue, meta, organization}),
+        ...getUnknownReplayContextData({data: contextValue, meta}),
+      ];
+    default:
+      return getDefaultContextData(contextValue);
+  }
+}
+
 const RelativeTime = styled('span')`
   color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
 `;
+
+export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;

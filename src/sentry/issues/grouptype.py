@@ -31,7 +31,11 @@ class GroupCategory(Enum):
     FEEDBACK = 6
 
 
-GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+GROUP_CATEGORIES_CUSTOM_EMAIL = (
+    GroupCategory.ERROR,
+    GroupCategory.PERFORMANCE,
+    GroupCategory.FEEDBACK,
+)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 DEFAULT_IGNORE_LIMIT: int = 3
@@ -179,11 +183,9 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def should_detect_escalation(cls, organization: Organization) -> bool:
+    def should_detect_escalation(cls) -> bool:
         """
-        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
-
-        When the feature flag is removed, we can remove the organization parameter from this method.
+        If enable_escalation_detection=True, then escalation detection is enabled.
         """
         return cls.enable_escalation_detection
 
@@ -241,10 +243,6 @@ class ErrorGroupType(GroupType):
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
-
-
-class CronGroupTypeDefaults:
-    notification_config = NotificationConfig(context=[])
 
 
 class ReplayGroupTypeDefaults:
@@ -514,36 +512,32 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
-class MonitorCheckInFailure(CronGroupTypeDefaults, GroupType):
+class MonitorIncidentType(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
-    description = "Monitor Check In Failed"
+    description = "Crons Monitor Failed"
     category = GroupCategory.CRON.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
+    notification_config = NotificationConfig(context=[])
+
+
+# XXX(epurkhiser): We renamed this group type but we keep the alias since we
+# store group type in pickles
+MonitorCheckInFailure = MonitorIncidentType
 
 
 @dataclass(frozen=True)
-class MonitorCheckInTimeout(CronGroupTypeDefaults, GroupType):
+class MonitorCheckInTimeout(MonitorIncidentType):
+    # This is deprecated, only kept around for it's type_id
     type_id = 4002
-    slug = "monitor_check_in_timeout"
-    description = "Monitor Check In Timeout"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissed(CronGroupTypeDefaults, GroupType):
+class MonitorCheckInMissed(MonitorIncidentType):
+    # This is deprecated, only kept around for it's type_id
     type_id = 4003
-    slug = "monitor_check_in_missed"
-    description = "Monitor Check In Missed"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
@@ -567,6 +561,16 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
 
 
 @dataclass(frozen=True)
+class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
+    type_id = 5003
+    slug = "replay_hydration_error"
+    description = "Hydration Error Detected"
+    category = GroupCategory.REPLAY.value
+    default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
+
+
+@dataclass(frozen=True)
 class FeedbackGroup(GroupType):
     type_id = 6001
     slug = "feedback"
@@ -577,7 +581,6 @@ class FeedbackGroup(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
-@metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,

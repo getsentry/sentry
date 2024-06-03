@@ -123,7 +123,7 @@ def handle_replication(
     source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
     destination: BaseModel,
     fk: str | None = None,
-):
+) -> None:
     category: OutboxCategory = source_model.category
     destination_model: type[BaseModel] = type(destination)
     fk = fk or get_foreign_key_column(destination, source_model)
@@ -160,6 +160,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             organization=organization,
             application_is_active=api_token.application_is_active,
             token=api_token.token,
+            hashed_token=api_token.hashed_token,
             expires_at=api_token.expires_at,
             apitoken_id=api_token.id,
             scope_list=api_token.scope_list,

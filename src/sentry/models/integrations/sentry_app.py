@@ -2,13 +2,15 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 from rest_framework.request import Request
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     SENTRY_APP_SLUG_MAX_LENGTH,
@@ -22,7 +24,7 @@ from sentry.db.models import (
     Model,
     ParanoidManager,
     ParanoidModel,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -41,6 +43,7 @@ EVENT_EXPANSION = {
         "issue.resolved",
         "issue.ignored",
         "issue.assigned",
+        "issue.unresolved",
     ],
     "error": ["error.created"],
     "comment": ["comment.created", "comment.updated", "comment.deleted"],
@@ -101,7 +104,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
         return self.filter(status=SentryAppStatus.PUBLISHED)
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryApp(ParanoidModel, HasApiScopes, Model):
     __relocation_scope__ = RelocationScope.Global
 
@@ -233,3 +236,17 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     def _disable(self):
         self.events = []
         self.save(update_fields=["events"])
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "author"))
+        sanitizer.set_string(json, SanitizableField(model_name, "creator_label"))
+        sanitizer.set_json(json, SanitizableField(model_name, "metadata"), {})
+        sanitizer.set_string(json, SanitizableField(model_name, "overview"))
+        sanitizer.set_json(json, SanitizableField(model_name, "schema"), {})
+        json["fields"]["events"] = "[]"

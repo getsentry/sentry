@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
+from sentry.types.misc import KeyedList
 
 
 class BaseVariant:
@@ -10,7 +11,7 @@ class BaseVariant:
     # This is true if `get_hash` does not return `None`.
     contributes = True
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return None
 
     @property
@@ -28,6 +29,14 @@ class BaseVariant:
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BaseVariant):
+            return NotImplemented
+        return self.as_dict() == other.as_dict()
+
+
+KeyedVariants = KeyedList[BaseVariant]
+
 
 class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
@@ -44,7 +53,7 @@ class ChecksumVariant(BaseVariant):
             return "hashed legacy checksum"
         return "legacy checksum"
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return self.hash
 
 
@@ -52,7 +61,7 @@ class FallbackVariant(BaseVariant):
     id = "fallback"
     contributes = True
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return hash_from_values([])
 
 
@@ -75,7 +84,7 @@ class PerformanceProblemVariant(BaseVariant):
         self.event_performance_problem = event_performance_problem
         self.problem = event_performance_problem.problem
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return self.problem.fingerprint
 
     def _get_metadata_as_dict(self):
@@ -104,7 +113,7 @@ class ComponentVariant(BaseVariant):
     def contributes(self):
         return self.component.contributes
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return self.component.get_hash()
 
     def _get_metadata_as_dict(self):
@@ -146,7 +155,7 @@ class CustomFingerprintVariant(BaseVariant):
     def description(self):
         return "custom fingerprint"
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return hash_from_values(self.values)
 
     def _get_metadata_as_dict(self):
@@ -177,7 +186,7 @@ class SaltedComponentVariant(ComponentVariant):
     def description(self):
         return "modified " + self.component.description
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         if not self.component.contributes:
             return None
         final_values = []

@@ -25,13 +25,13 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  Project,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
@@ -262,6 +262,7 @@ class TriggersChart extends PureComponent<Props, State> {
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+    const queryOverride = (queryExtras.query as string | undefined) ?? query;
 
     if (shouldUseErrorsDiscoverDataset(query, dataset)) {
       queryDataset = DiscoverDatasets.ERRORS;
@@ -271,7 +272,7 @@ class TriggersChart extends PureComponent<Props, State> {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
         project: projects.map(({id}) => id),
-        query,
+        query: queryOverride,
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,

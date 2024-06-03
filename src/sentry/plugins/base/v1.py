@@ -34,9 +34,7 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not hasattr(new_cls, "slug"):
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
-        if not hasattr(new_cls, "logger") or new_cls.logger in [
-            getattr(b, "logger", None) for b in bases
-        ]:
+        if "logger" not in attrs:
             new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
         return new_cls
 

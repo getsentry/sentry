@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Final, TypedDict, cast
 
+import orjson
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
@@ -24,6 +25,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
@@ -40,7 +42,6 @@ from sentry.processing import realtime_metrics
 from sentry.roles import organization_roles
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
-from sentry.utils import json
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -69,12 +70,9 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
-    "span-metrics-extraction-resource",
-    "span-metrics-extraction-all-modules",
     "race-free-group-creation",
     "first-event-severity-new-escalation",
     "first-event-severity-calculation",
-    "first-event-severity-alerting",
     "alert-filters",
     "servicehooks",
 }
@@ -906,6 +904,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
                     "processing_issues": processing_issues_by_project.get(item.id, 0),
+                    "highlight_preset": get_highlight_preset_for_project(item),
                 }
             )
         return attrs
@@ -945,6 +944,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
                 "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
+                "highlightTags": attrs["options"].get(
+                    "sentry:highlight_tags",
+                    attrs["highlight_preset"].get("tags", []),
+                ),
+                "highlightContext": attrs["options"].get(
+                    "sentry:highlight_context",
+                    attrs["highlight_preset"].get("context", {}),
+                ),
+                "highlightPreset": attrs["highlight_preset"],
                 "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
                 "groupingEnhancements": self.get_value_with_default(
                     attrs, "sentry:grouping_enhancements"
@@ -978,6 +986,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "processingIssues": attrs["processing_issues"],
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
+                "relayCustomMetricCardinalityLimit": self.get_custom_metric_cardinality_limit(
+                    attrs
+                ),
                 "builtinSymbolSources": self.get_value_with_default(
                     attrs, "sentry:builtin_symbol_sources"
                 ),
@@ -999,7 +1010,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = "[]"
         else:
             redacted_sources = redact_source_secrets(sources)
-            serialized_sources = json.dumps(redacted_sources)
+            serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         data.update(
             {
@@ -1008,6 +1019,14 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         )
 
         return data
+
+    def get_custom_metric_cardinality_limit(self, attrs):
+        cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
+        for limit in cardinalityLimits or ():
+            if limit.get("limit", {}).get("id") == "project-override-custom":
+                return limit.get("limit", {}).get("limit", None)
+
+        return None
 
     def get_audit_log_data(self):
         return {
@@ -1021,14 +1040,13 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def format_options(self, attrs: dict[str, Any]) -> dict[str, Any]:
         options = attrs["options"]
 
-        return {
+        formatted_options = {
             "sentry:csp_ignored_sources_defaults": bool(
                 options.get("sentry:csp_ignored_sources_defaults", True)
             ),
             "sentry:csp_ignored_sources": "\n".join(
                 options.get("sentry:csp_ignored_sources", []) or []
             ),
-            "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
             "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
             # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
             # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
@@ -1047,11 +1065,22 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
             ),
             "sentry:feedback_ai_spam_detection": bool(
-                options.get("sentry:feedback_ai_spam_detection")
+                self.get_value_with_default(attrs, "sentry:feedback_ai_spam_detection")
             ),
-            "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
+            "sentry:replay_rage_click_issues": self.get_value_with_default(
+                attrs, "sentry:replay_rage_click_issues"
+            ),
+            "sentry:replay_hydration_error_issues": self.get_value_with_default(
+                attrs, "sentry:replay_hydration_error_issues"
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
+
+        reprocessing_active = options.get("sentry:reprocessing_active")
+        if reprocessing_active is not None:
+            formatted_options["sentry:reprocessing_active"] = reprocessing_active
+
+        return formatted_options
 
     def get_value_with_default(self, attrs, key):
         value = attrs["options"].get(key)

@@ -6,18 +6,18 @@ from django.utils import timezone
 
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, control_silo_only_model, sane_repr
+from sentry.db.models import ArrayField, control_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import find_all_region_names
 
 MAX_USER_ROLE_NAME_LENGTH = 32
 
 
-@control_silo_only_model
+@control_silo_model
 class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
@@ -63,7 +63,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
         )
 
 
-@control_silo_only_model
+@control_silo_model
 class UserRoleUser(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.Config
 

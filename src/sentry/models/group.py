@@ -33,7 +33,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
@@ -43,11 +43,13 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
+from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
@@ -66,8 +68,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
-
+_short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
@@ -212,7 +213,7 @@ class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
     MOST_HELPFUL = [
-        "-replayId",
+        "-replay.id",
         "-profile.id",
         "num_processing_errors",
         "-trace.sampled",
@@ -354,19 +355,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
@@ -402,7 +390,7 @@ class GroupManager(BaseManager["Group"]):
         integration: RpcIntegration,
         organizations: Sequence[Organization],
         external_issue_key: str,
-    ) -> QuerySet:
+    ) -> QuerySet[Group]:
         from sentry.models.grouplink import GroupLink
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.services.hybrid_cloud.integration import integration_service
@@ -449,15 +437,6 @@ class GroupManager(BaseManager["Group"]):
             from_substatus == GroupSubStatus.ESCALATING
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
-        logger.info(
-            "group.update_group_status.should_update_priority",
-            extra={
-                "should_update_priority": should_update_priority,
-                "from_substatus": from_substatus,
-                "activity_type": activity_type,
-                "new_substatus": substatus,
-            },
-        )
 
         updated_priority = {}
         for group in selected_groups:
@@ -468,29 +447,6 @@ class GroupManager(BaseManager["Group"]):
                 if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
-
-                    logger.info(
-                        "group.update_group_status.priority_updated",
-                        extra={
-                            "group_id": group.id,
-                            "from_substatus": from_substatus,
-                            "activity_type": activity_type,
-                            "new_substatus": substatus,
-                            "priority": priority,
-                        },
-                    )
-                else:
-                    logger.info(
-                        "group.update_group_status.priority_not_updated",
-                        extra={
-                            "group_id": group.id,
-                            "from_substatus": from_substatus,
-                            "activity_type": activity_type,
-                            "new_substatus": substatus,
-                            "new_priority": priority,
-                            "current_priority": group.priority,
-                        },
-                    )
 
             modified_groups_list.append(group)
 
@@ -507,14 +463,6 @@ class GroupManager(BaseManager["Group"]):
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
-                logger.info(
-                    "group.update_group_status.priority_updated_activity",
-                    extra={
-                        "group_id": group.id,
-                        "priority": updated_priority[group.id],
-                        "group_priority": group.priority,
-                    },
-                )
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_PRIORITY,
@@ -562,7 +510,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_only_model
+@region_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -856,6 +804,30 @@ class Group(Model):
             else self.get_latest_event_for_environments([env.name for env in environments])
         )
 
+    def get_suspect_commit(self) -> Commit | None:
+        from sentry.models.groupowner import GroupOwner, GroupOwnerType
+
+        suspect_commit_owner = (
+            GroupOwner.objects.filter(
+                group_id=self.id,
+                project_id=self.project_id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                context__isnull=False,
+            )
+            .order_by("-date_added")
+            .first()
+        )
+
+        if not suspect_commit_owner:
+            return None
+
+        commit_id = suspect_commit_owner.context.get("commitId")
+        if not commit_id:
+            return None
+
+        commit = Commit.objects.filter(id=commit_id)
+        return commit.first()
+
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
 
@@ -892,8 +864,15 @@ class Group(Model):
 
     @property
     def title(self) -> str:
-        et = eventtypes.get(self.get_event_type())()
-        return et.get_title(self.get_event_metadata())
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return event_type_instance.get_title(self.get_event_metadata())
 
     def location(self):
         et = eventtypes.get(self.get_event_type())()
@@ -925,13 +904,14 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self):
+    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
+            referrer=referrer,
         )[self.id]
 
     @classmethod
@@ -946,7 +926,7 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor: RpcActor = group_assignee.assigned_actor()
+        assigned_actor: Actor = group_assignee.assigned_actor()
 
         return assigned_actor.resolve()
 

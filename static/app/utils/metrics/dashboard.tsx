@@ -1,15 +1,11 @@
 import {urlEncode} from '@sentry/utils';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {
-  DashboardWidgetSource,
-  DisplayType,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 interface QueryParams extends MetricsQuery {
   id?: number;
@@ -90,7 +86,6 @@ export function getWidgetAsQueryParams(
   const {projects} = selection;
 
   return {
-    source: DashboardWidgetSource.DDM,
     start,
     end,
     statsPeriod: period,

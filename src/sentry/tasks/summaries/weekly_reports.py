@@ -12,7 +12,7 @@ from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -20,7 +20,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
@@ -76,6 +76,9 @@ def schedule_organizations(
         organizations, step=10000, result_value_getter=lambda item: item.id
     ):
         # Create a celery task per organization
+        logger.info(
+            "weekly_reports.schedule_organizations", extra={"organization": organization.id}
+        )
         prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
@@ -164,12 +167,7 @@ def prepare_organization_report(
 
             project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
-                group_id_alias = (
-                    "events.group_id"
-                    if features.has("organizations:snql-join-reports", project.organization)
-                    else "group_id"
-                )
-                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
+                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
 
                 if ctx.organization.slug == "sentry":
                     logger.info(
@@ -219,6 +217,7 @@ def prepare_organization_report(
 
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+        logger.info("weekly_reports.deliver_reports", extra={"organization": organization_id})
         deliver_reports(
             ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
         )
@@ -692,5 +691,12 @@ def send_email(
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
         )
+
+        # TODO see if we can use the UUID to track if the email was sent or not
+        logger.info(
+            "weekly_report.send_email",
+            extra={"organization": ctx.organization.id, "uuid": template_ctx["notification_uuid"]},
+        )
+
         message.add_users((user_id,))
         message.send_async()

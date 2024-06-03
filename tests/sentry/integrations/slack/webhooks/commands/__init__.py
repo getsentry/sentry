@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+import orjson
 from django.http.response import HttpResponse
 from django.urls import reverse
 from rest_framework import status
@@ -12,12 +13,11 @@ from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.models.identity import Identity
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import json
 
 
 class SlackCommandsTest(APITestCase, TestCase):
@@ -52,7 +52,7 @@ class SlackCommandsTest(APITestCase, TestCase):
                 **kwargs,
             }
         )
-        return json.loads(str(response.content.decode("utf-8")))
+        return orjson.loads(response.content)
 
     def find_identity(self) -> Identity | None:
         return find_identity(idp=self.idp, user=self.user)

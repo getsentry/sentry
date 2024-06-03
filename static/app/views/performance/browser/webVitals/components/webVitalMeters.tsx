@@ -9,7 +9,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
@@ -19,7 +20,6 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -70,15 +70,12 @@ export default function WebVitalMeters({
   showTooltip = true,
 }: Props) {
   const theme = useTheme();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   if (!projectScore) {
     return null;
   }
 
-  const webVitalsConfig = shouldReplaceFidWithInp
-    ? WEB_VITALS_METERS_CONFIG_WITH_INP
-    : WEB_VITALS_METERS_CONFIG;
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG_WITH_INP;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.charts.getColorPalette(3);
@@ -113,7 +110,7 @@ export default function WebVitalMeters({
                           }
                         )}
                         <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                        <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                           {t('Find out how performance scores are calculated here.')}
                         </ExternalLink>
                       </span>
@@ -223,7 +220,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;

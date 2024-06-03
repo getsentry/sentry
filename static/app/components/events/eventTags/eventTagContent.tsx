@@ -8,9 +8,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconOpen} from 'sentry/icons';
-import type {Organization} from 'sentry/types';
 import type {EventTag} from 'sentry/types/event';
-import {isUrl} from 'sentry/utils';
+import type {Organization} from 'sentry/types/organization';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 const iconStyle = css`
   position: relative;

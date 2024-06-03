@@ -867,6 +867,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time-Consuming Queries'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/database/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -894,8 +898,52 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time consuming resources widget', async function () {
+  it('Most time consuming domains widget', async function () {
     const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Time-Consuming Domains'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/http/'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: [
+            'project.id',
+            'span.domain',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'span.module:http',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Most time consuming resources widget', async function () {
+    const data = initializeData(undefined, {features: ['performance-insights']});
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
@@ -907,7 +955,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Time Consuming Resources'
+      'Most Time-Consuming Assets'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/insights/browser/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -937,6 +989,50 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
+  it('Highest cache miss rate transactions widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+          }
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Highest Cache Miss Rates'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/caches/'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          noPagination: true,
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'span.op:[cache.get_item,cache.get]',
+          statsPeriod: '7d',
+          referrer:
+            'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
+          sort: '-cache_miss_rate()',
+        }),
+      })
+    );
+  });
+
   it('Best Page Opportunities widget', async function () {
     const data = initializeData();
 
@@ -954,31 +1050,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'metrics',
-          field: [
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.fid)',
-            'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.fid, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count()',
-          ],
-          query: 'transaction.op:[pageload,""] span.op:[ui.interaction.click,""]',
-        }),
-      })
-    );
-    expect(eventsMock).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
       expect.objectContaining({
@@ -986,22 +1057,24 @@ describe('Performance > Widgets > WidgetContainer', function () {
           dataset: 'metrics',
           field: [
             'transaction',
-            'transaction.op',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.fid)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.fid, any)',
+            'p75(measurements.inp)',
+            'opportunity_score(measurements.score.total)',
+            'avg(measurements.score.total)',
             'count()',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.fid)',
+            'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.ttfb)',
           ],
-          per_page: 4,
-          query: 'transaction.op:pageload',
-          sort: '-count()',
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,""] avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -1215,7 +1288,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // Open context menu
     await userEvent.click(await screen.findByLabelText('More'));
 
-    // Check that the the "User Misery" option is disabled by clicking on it,
+    // Check that the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
     const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
     await userEvent.click(userMiseryOption);

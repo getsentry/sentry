@@ -8,7 +8,7 @@ from sentry.runner.decorators import configuration
 
 @click.group()
 @configuration
-def migrations():
+def migrations() -> None:
     from sentry.runner.initializer import monkeypatch_django_migrations
 
     # Include our monkeypatches for migrations.
@@ -21,11 +21,8 @@ def migrations():
 @migrations.command()
 @click.argument("app_name")
 @click.argument("migration_name")
-@click.pass_context
-def run(ctx, app_name: str, migration_name: str) -> None:
+def run(app_name: str, migration_name: str) -> None:
     "Manually run a single data migration. Will error if migration is not post-deploy/dangerous"
-    del ctx  # assertion: unused argument
-
     for connection_name in settings.DATABASES.keys():
         if settings.DATABASES[connection_name].get("REPLICA_OF", False):
             continue
@@ -39,7 +36,9 @@ def run_for_connection(app_name: str, migration_name: str, connection_name: str)
     connection = connections[connection_name]
     executor = MigrationExecutor(connection)
     migration = executor.loader.get_migration_by_prefix(app_name, migration_name)
-    if not getattr(migration, "is_dangerous", None):
+    if not getattr(migration, "is_dangerous", None) and not getattr(
+        migration, "is_post_deployment", None
+    ):
         raise click.ClickException(
             f"This is not a post-deployment migration: {migration.name}\n"
             f"To apply this migration, please run: make apply-migrations"

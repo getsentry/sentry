@@ -48,20 +48,23 @@ class MonitorEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        monitor_slug: str,
+        organization_id_or_slug: int | str,
+        monitor_id_or_slug: str,
         environment: str | None = None,
         checkin_id: str | None = None,
         *args,
         **kwargs,
     ):
         try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
+            if str(organization_id_or_slug).isdigit():
+                organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
+            else:
+                organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
         try:
-            monitor = get_monitor_by_org_slug(organization, monitor_slug)
+            monitor = get_monitor_by_org_id_or_slug(organization, monitor_id_or_slug)
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
         project = Project.objects.get_from_cache(id=monitor.project_id)
@@ -111,19 +114,33 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_slug: str,
+        monitor_id_or_slug: str,
         *args,
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
+
+        # Try lookup by slug
         try:
             kwargs["monitor"] = Monitor.objects.get(
-                project_id=kwargs["project"].id, slug=monitor_slug
+                project_id=kwargs["project"].id, slug=monitor_id_or_slug
             )
+            return args, kwargs
         except Monitor.DoesNotExist:
-            raise ResourceDoesNotExist
+            pass
 
-        return args, kwargs
+        # Try lookup by GUID if the monitor_id_or_slug looks like a UUID
+        try:
+            UUID(monitor_id_or_slug, version=4)
+            kwargs["monitor"] = Monitor.objects.get(
+                project_id=kwargs["project"].id, guid=monitor_id_or_slug
+            )
+            return args, kwargs
+        except (ValueError, Monitor.DoesNotExist):
+            # ValueError when the provided ID isn't a UUID
+            pass
+
+        raise ResourceDoesNotExist
 
 
 class ProjectMonitorCheckinEndpoint(ProjectMonitorEndpoint):
@@ -181,16 +198,32 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
         return args, kwargs
 
 
-def get_monitor_by_org_slug(organization: Organization, monitor_slug: str) -> Monitor:
+def get_monitor_by_org_id_or_slug(organization: Organization, monitor_id_or_slug: str) -> Monitor:
     # Since we have changed our unique constraints to be on unique on (project, slug) we can
     # end up with multiple monitors here. Since we have no idea which project the user wants,
     # we just get the oldest monitor and use that.
     # This is a temporary measure until we remove these org level endpoints
-    monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
-    if not monitors:
-        raise Monitor.DoesNotExist
 
-    return min(monitors, key=lambda m: m.id)
+    # Try lookup by slug
+    monitors = list(
+        Monitor.objects.filter(organization_id=organization.id, slug=monitor_id_or_slug)
+    )
+
+    if monitors:
+        return min(monitors, key=lambda m: m.id)
+
+    # Try lookup by GUID if the monitor_id_or_slug looks like a UUID
+    try:
+        UUID(monitor_id_or_slug, version=4)
+        monitors = list(
+            Monitor.objects.filter(organization_id=organization.id, guid=monitor_id_or_slug)
+        )
+        if monitors:
+            return min(monitors, key=lambda m: m.id)
+    except ValueError:
+        pass
+
+    raise Monitor.DoesNotExist
 
 
 def try_checkin_lookup(monitor: Monitor, checkin_id: str):

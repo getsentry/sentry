@@ -62,7 +62,9 @@ def base36_decode(s: str) -> int:
 DEFAULT_UNITS = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 
 
-def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
+def format_bytes(
+    number: float, units: tuple[str, ...] = DEFAULT_UNITS, decimal_places: int = 2
+) -> str:
     block = 1024.0
     if number < block:
         return f"{number} {units[0]}"
@@ -72,7 +74,7 @@ def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
     while number >= block and u < max_unit:
         number /= block
         u += 1
-    return ("{:.%df} {}" % (decimal_places,)).format(number, units[u])
+    return f"{number:.{decimal_places}f} {units[u]}"
 
 
 def format_grouped_length(length: int, steps: list[int] | None = None) -> str:
@@ -92,5 +94,11 @@ def format_grouped_length(length: int, steps: list[int] | None = None) -> str:
     return f">{steps[-1]}"
 
 
-def validate_bigint(value):
+def validate_bigint(value: object) -> bool:
     return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
+
+
+def clip(val: int, left: int, right: int) -> int:
+    val = max(left, val)
+    val = min(val, right)
+    return val

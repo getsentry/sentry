@@ -3,17 +3,20 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from collections.abc import Callable, Sequence
-from typing import Any, ClassVar
+from collections.abc import Callable, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
+
+if TYPE_CHECKING:
+    from sentry.models.rule import Rule
 
 """
 Rules apply either before an event gets stored, or immediately after.
@@ -59,13 +62,15 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
-        data: dict[str, Any] | None = None,
+        data: MutableMapping[str, Any] | None = None,
         rule: Rule | None = None,
+        rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
         self.project = project
         self.data = data or {}
         self.had_data = data is not None
         self.rule = rule
+        self.rule_fire_history = rule_fire_history
 
     id: ClassVar[str]
     label: ClassVar[str]
@@ -78,10 +83,7 @@ class RuleBase(abc.ABC):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
-        data: dict[str, Any] | None = None
-        if self.had_data:
-            data = self.data
-        return self.form_cls(data)
+        return self.form_cls(self.data if self.had_data else None)
 
     def render_label(self) -> str:
         return self.label.format(**self.data)

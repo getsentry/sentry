@@ -49,6 +49,8 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         """
         Tests that the num_samples function returns the correct number of samples
         """
+        # We cannot query the discover_transactions entity without a project being defined for the org
+        self.create_project()
         num_samples = get_num_samples(self.rule)
         assert num_samples == 0
         self.create_transaction()

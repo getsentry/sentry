@@ -9,8 +9,6 @@ from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.notifications.utils.actions import MessageAction
 
-MAX_BLOCK_TEXT_LENGTH = 256
-
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
@@ -40,9 +38,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_markdown_quote_block(text: str) -> SlackBlock:
-        if len(text) > MAX_BLOCK_TEXT_LENGTH:
-            text = text[: MAX_BLOCK_TEXT_LENGTH - 3] + "..."
+    def get_markdown_quote_block(text: str, max_block_text_length: int) -> SlackBlock:
+        if len(text) > max_block_text_length:
+            text = text[: max_block_text_length - 3] + "..."
 
         markdown_text = "```" + text + "```"
 
@@ -54,6 +52,8 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
+            # remove backticks from value, otherwise it will break the markdown
+            value = value.replace("`", "")
             text += f"{title}: `{value}`  "
         return {
             "type": "section",

@@ -63,6 +63,7 @@ def handle_status_update(
                     transition_type="manual",
                     sender=sender,
                 )
+
     elif new_status == GroupStatus.IGNORED:
         ignore_duration = (
             status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)

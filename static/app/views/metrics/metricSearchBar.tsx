@@ -3,23 +3,18 @@ import styled from '@emotion/styled';
 import {useId} from '@react-aria/utils';
 import memoize from 'lodash/memoize';
 
-import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {
-  FilterType,
-  joinQuery,
-  parseSearch,
-  Token,
-} from 'sentry/components/searchSyntax/parser';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
-import type {MRI, TagCollection} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import type {MRI} from 'sentry/types/metrics';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ensureQuotedTextFilters} from 'sentry/views/metrics/utils';
+import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
 interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
   onChange: (value: string) => void;
@@ -32,42 +27,6 @@ interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
 
 const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
-
-export function ensureQuotedTextFilters(
-  query: string,
-  configOverrides?: Partial<SearchConfig>
-) {
-  const parsedSearch = parseSearch(query, configOverrides);
-
-  if (!parsedSearch) {
-    return query;
-  }
-
-  for (let i = 0; i < parsedSearch.length; i++) {
-    const token = parsedSearch[i];
-    if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
-      // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of it's value
-      if (!token.value.quoted) {
-        token.text = `${token.key.text}:"${token.value.text}"`;
-      }
-
-      const spaceToken = parsedSearch[i + 1];
-      const afterSpaceToken = parsedSearch[i + 2];
-      if (
-        spaceToken &&
-        afterSpaceToken &&
-        spaceToken.type === Token.SPACES &&
-        spaceToken.text === '' &&
-        afterSpaceToken.type === Token.FILTER
-      ) {
-        // Ensure there is a space between two filters
-        spaceToken.text = ' ';
-      }
-    }
-  }
-
-  return joinQuery(parsedSearch);
-}
 
 export function MetricSearchBar({
   mri,
@@ -82,6 +41,7 @@ export function MetricSearchBar({
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const selectedProjects = useSelectedProjects();
   const id = useId(idProp);
   const projectIdNumbers = useMemo(
     () => projectIds?.map(projectId => parseInt(projectId, 10)),
@@ -137,6 +97,11 @@ export function MetricSearchBar({
 
   const getTagValues = useCallback(
     async (tag: any, search: string) => {
+      // The tag endpoint cannot provide values for the project tag
+      if (tag.key === 'project') {
+        return selectedProjects.map(project => project.slug);
+      }
+
       const tagsValues = await fetchTagValues(tag.key);
 
       return tagsValues
@@ -147,7 +112,7 @@ export function MetricSearchBar({
         )
         .map(tv => tv.value);
     },
-    [fetchTagValues]
+    [fetchTagValues, selectedProjects]
   );
 
   const handleChange = useCallback(
@@ -174,6 +139,7 @@ export function MetricSearchBar({
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
+      disallowWildcard
       {...searchConfig}
       {...props}
     />

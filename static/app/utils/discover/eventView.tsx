@@ -20,6 +20,7 @@ import type {
   SelectValue,
   User,
 } from 'sentry/types';
+import toArray from 'sentry/utils/array/toArray';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -37,10 +38,10 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
+  type SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import toArray from 'sentry/utils/toArray';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -160,48 +161,6 @@ const decodeFields = (location: Location): Array<Field> => {
   return parsed;
 };
 
-const parseSort = (sort: string): Sort => {
-  sort = sort.trim();
-
-  if (sort.startsWith('-')) {
-    return {
-      kind: 'desc',
-      field: sort.substring(1),
-    };
-  }
-
-  return {
-    kind: 'asc',
-    field: sort,
-  };
-};
-
-export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
-  if (sorts === undefined) {
-    return [];
-  }
-
-  sorts = typeof sorts === 'string' ? [sorts] : sorts;
-
-  // NOTE: sets are iterated in insertion order
-  const uniqueSorts = [...new Set(sorts)];
-
-  return uniqueSorts.reduce((acc: Array<Sort>, sort: string) => {
-    acc.push(parseSort(sort));
-    return acc;
-  }, []);
-};
-
-export const decodeSorts = (location: Location): Array<Sort> => {
-  const {query} = location;
-
-  if (!query || !query.sort) {
-    return [];
-  }
-  const sorts = decodeList(query.sort);
-  return fromSorts(sorts);
-};
-
 export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
     case 'desc': {
@@ -299,6 +258,7 @@ export type EventViewOptions = {
   dataset?: DiscoverDatasets;
   expired?: boolean;
   interval?: string;
+  queryDataset?: SavedQueryDatasets;
   utc?: string | boolean | undefined;
   yAxis?: string | string[] | undefined;
 };
@@ -324,6 +284,7 @@ class EventView {
   createdBy: User | undefined;
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
+  queryDataset?: SavedQueryDatasets;
 
   constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -368,6 +329,7 @@ class EventView {
     this.environment = environment;
     this.yAxis = props.yAxis;
     this.dataset = props.dataset;
+    this.queryDataset = props.queryDataset;
     this.display = props.display;
     this.topEvents = props.topEvents;
     this.interval = props.interval;
@@ -385,7 +347,7 @@ class EventView {
       id: decodeScalar(location.query.id),
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
-      sorts: decodeSorts(location),
+      sorts: decodeSorts(location.query.sort),
       query: decodeQuery(location),
       team: decodeTeams(location),
       project: decodeProjects(location),
@@ -400,6 +362,7 @@ class EventView {
       createdBy: undefined,
       additionalConditions: new MutableSearch([]),
       dataset: decodeScalar(location.query.dataset) as DiscoverDatasets,
+      queryDataset: decodeScalar(location.query.queryDataset) as SavedQueryDatasets,
     });
   }
 
@@ -473,7 +436,7 @@ class EventView {
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
       utc,
-      sorts: fromSorts(saved.orderby),
+      sorts: decodeSorts(saved.orderby),
       environment: collectQueryStringByKey(
         {
           environment: saved.environment as string[],
@@ -491,6 +454,7 @@ class EventView {
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
       dataset: saved.dataset,
+      queryDataset: saved.queryDataset,
     });
   }
 
@@ -502,7 +466,7 @@ class EventView {
     const id = decodeScalar(location.query.id);
     const teams = decodeTeams(location);
     const projects = decodeProjects(location);
-    const sorts = decodeSorts(location);
+    const sorts = decodeSorts(location.query.sort);
     const environments = collectQueryStringByKey(location.query, 'environment');
 
     if (saved) {
@@ -531,7 +495,7 @@ class EventView {
           'query' in location.query
             ? decodeQuery(location)
             : queryStringFromSavedQuery(saved),
-        sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
+        sorts: sorts.length === 0 ? decodeSorts(saved.orderby) : sorts,
         yAxis:
           decodeScalar(location.query.yAxis) ||
           // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
@@ -559,6 +523,9 @@ class EventView {
         utc,
         dataset:
           (decodeScalar(location.query.dataset) as DiscoverDatasets) ?? saved.dataset,
+        queryDataset:
+          (decodeScalar(location.query.queryDataset) as SavedQueryDatasets) ??
+          saved.queryDataset,
       });
     }
     return EventView.fromLocation(location);
@@ -579,6 +546,7 @@ class EventView {
       display: DisplayModes.DEFAULT,
       topEvents: '5',
       dataset: DiscoverDatasets.DISCOVER,
+      queryDataset: undefined,
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
@@ -629,6 +597,7 @@ class EventView {
       environment: this.environment,
       yAxis: typeof this.yAxis === 'string' ? [this.yAxis] : this.yAxis,
       dataset: this.dataset,
+      queryDataset: this.queryDataset,
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,
@@ -715,6 +684,7 @@ class EventView {
       query: this.query,
       yAxis: this.yAxis || this.getYAxis(),
       dataset: this.dataset,
+      queryDataset: this.queryDataset,
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,
@@ -806,6 +776,7 @@ class EventView {
       environment: this.environment,
       yAxis: this.yAxis,
       dataset: this.dataset,
+      queryDataset: this.queryDataset,
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,

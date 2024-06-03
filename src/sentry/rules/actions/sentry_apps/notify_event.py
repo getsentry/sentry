@@ -7,7 +7,6 @@ from rest_framework import serializers
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
-from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.app import (
@@ -142,7 +141,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             )
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(

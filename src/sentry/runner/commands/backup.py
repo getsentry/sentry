@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
+from datetime import timedelta
 from io import BytesIO
-from typing import TextIO
+from threading import Event, Thread
+from time import sleep, time
+from typing import IO, Any
 
 import click
+
+# We have to use the default JSON interface to enable pretty-printing on export. When loading JSON,
+# we still use the one from `sentry.utils`, imported as `json` below.
+import orjson  # noqa: S003
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.crypto import (
@@ -21,9 +28,12 @@ from sentry.backup.crypto import (
 )
 from sentry.backup.findings import Finding, FindingJSONEncoder
 from sentry.backup.helpers import ImportFlags, Printer, Side
+from sentry.backup.sanitize import sanitize
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
+from sentry.silo.base import SiloMode
 from sentry.utils import json
+from sentry.utils.env import is_split_db
 
 DEFAULT_INDENT = 2
 
@@ -175,6 +185,20 @@ def get_printer(silent: bool, no_prompt: bool) -> Printer:
     return InputOutputPrinter()
 
 
+def get_filter_arg(name: str, from_cmd_line: str, from_file: IO[str] | None) -> str:
+    """
+    Helper function to load `--filter-...`-style arguments from a file or the command line.
+    """
+
+    if from_cmd_line and from_file is not None:
+        raise click.UsageError(
+            f"""`--{name}` and `--{name}--file` are mutually exclusive options - you
+            may use one or the other, but not both."""
+        )
+
+    return from_file.read() if from_file is not None else from_cmd_line
+
+
 def parse_filter_arg(filter_arg: str) -> set[str] | None:
     filter_by = None
     if filter_arg:
@@ -184,7 +208,7 @@ def parse_filter_arg(filter_arg: str) -> set[str] | None:
 
 
 def get_decryptor_from_flags(
-    decrypt_with: BytesIO | None, decrypt_with_gcp_kms: BytesIO | None
+    decrypt_with: IO[bytes] | None, decrypt_with_gcp_kms: IO[bytes] | None
 ) -> Decryptor | None:
     """
     Helper function to select the right decryptor class based on the supplied flag: use GCP KMS, use
@@ -205,7 +229,7 @@ def get_decryptor_from_flags(
 
 
 def get_encryptor_from_flags(
-    encrypt_with: BytesIO | None, encrypt_with_gcp_kms: BytesIO | None
+    encrypt_with: IO[bytes] | None, encrypt_with_gcp_kms: IO[bytes] | None
 ) -> Encryptor | None:
     """
     Helper function to select the right encryptor class based on the supplied flag: use GCP KMS, use
@@ -225,9 +249,11 @@ def get_encryptor_from_flags(
     return None
 
 
-def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], echo: Callable):
+def write_findings(
+    findings_file: IO[str] | None, findings: Sequence[Finding], printer: Printer
+) -> None:
     for f in findings:
-        echo(f"\n\n{f.pretty()}", err=True)
+        printer.echo(f"\n\n{f.pretty()}", err=True)
 
     if findings_file:
         findings_encoder = FindingJSONEncoder(
@@ -244,9 +270,28 @@ def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], ec
             file.write(encoded)
 
 
+def print_elapsed_time(kind: str, interval_ms: int, done_event: Event, printer: Printer) -> None:
+    """
+    Prints an update every `interval_ms` seconds. Intended to be run on a separate thread. When that
+    thread is done with its work, it should `done_event.set()` to indicate to this thread to finish
+    as well.
+    """
+    start_time = time()
+    last_print_time = start_time
+    check_interval = 1  # Check every second if we should exit
+
+    while not done_event.is_set():
+        current_time = time()
+        diff_ms = (current_time - last_print_time) * 1000
+        if diff_ms >= interval_ms:
+            printer.echo(f"{kind}: {(current_time - start_time):.2f} seconds elapsed.")
+            last_print_time = current_time
+        sleep(check_interval)
+
+
 @contextmanager
 def write_import_findings(
-    findings_file: TextIO | None, printer: Printer
+    findings_file: IO[str] | None, printer: Printer
 ) -> Generator[None, None, None]:
     """
     Helper that ensures that we write findings for the `import ...` command regardless of outcome.
@@ -254,19 +299,28 @@ def write_import_findings(
 
     from sentry.backup.imports import ImportingError
 
+    done_event = Event()
+    updater_thread = Thread(
+        target=print_elapsed_time, args=("Still importing", 5000, done_event, printer)
+    )
+
     try:
+        updater_thread.start()
         yield
     except ImportingError as e:
         if e.context:
-            write_findings(findings_file, [e.context], printer.echo)
+            write_findings(findings_file, [e.context], printer)
         raise
     else:
-        write_findings(findings_file, [], printer.echo)
+        write_findings(findings_file, [], printer)
+    finally:
+        done_event.set()
+        updater_thread.join()
 
 
 @contextmanager
 def write_export_findings(
-    findings_file: TextIO | None, printer: Printer
+    findings_file: IO[str] | None, printer: Printer
 ) -> Generator[None, None, None]:
     """
     Helper that ensures that we write findings for the `export ...` command regardless of outcome.
@@ -274,18 +328,27 @@ def write_export_findings(
 
     from sentry.backup.exports import ExportingError
 
+    done_event = Event()
+    updater_thread = Thread(
+        target=print_elapsed_time, args=("Still exporting", 5000, done_event, printer)
+    )
+
     try:
+        updater_thread.start()
         yield
     except ExportingError as e:
         if e.context:
-            write_findings(findings_file, [e.context], printer.echo)
+            write_findings(findings_file, [e.context], printer)
         raise
     else:
-        write_findings(findings_file, [], printer.echo)
+        write_findings(findings_file, [], printer)
+    finally:
+        done_event.set()
+        updater_thread.join()
 
 
 @click.group(name="backup")
-def backup():
+def backup() -> None:
     """Helper tools for operating on Sentry backup imports/exports."""
 
 
@@ -320,14 +383,14 @@ def backup():
 )
 @configuration
 def compare(
-    left,
-    right,
-    decrypt_left_with,
-    decrypt_left_with_gcp_kms,
-    decrypt_right_with,
-    decrypt_right_with_gcp_kms,
-    findings_file,
-):
+    left: IO[bytes],
+    right: IO[bytes],
+    decrypt_left_with: IO[bytes],
+    decrypt_left_with_gcp_kms: IO[bytes],
+    decrypt_right_with: IO[bytes],
+    decrypt_right_with_gcp_kms: IO[bytes],
+    findings_file: IO[str],
+) -> None:
     """
     Compare two exports generated by the `export` command for equality, modulo certain necessary
     expected differences like `date_updated` timestamps, unique tokens, and the like.
@@ -336,40 +399,49 @@ def compare(
     # Helper function that loads data from one of the two sides, decrypting it if necessary along
     # the way.
     def load_data(
-        side: Side, src: BytesIO, decrypt_with: BytesIO, decrypt_with_gcp_kms: BytesIO
-    ) -> json.JSONData:
+        side: Side, src: IO[bytes], decrypt_with: IO[bytes], decrypt_with_gcp_kms: IO[bytes]
+    ) -> dict[str, Any]:
         decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
 
         # Decrypt the tarball, if the user has indicated that this is one by using either of the
         # `--decrypt...` flags.
         if decryptor is not None:
             try:
-                input = BytesIO(decrypt_encrypted_tarball(src, decryptor))
+                input: IO[bytes] = BytesIO(decrypt_encrypted_tarball(src, decryptor))
             except DecryptionError as e:
                 click.echo(f"Invalid {side.name} side tarball: {str(e)}", err=True)
+                raise
         else:
             input = src
 
-        # Now read the input string into memory as JSONData.
+        # Now read the input string into memory as json data.
         try:
             data = json.load(input)
         except json.JSONDecodeError:
             click.echo(f"Invalid {side.name} JSON", err=True)
+            raise
 
         return data
 
-    with left:
-        left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
-    with right:
-        right_data = load_data(Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms)
+    try:
+        with left:
+            left_data = load_data(Side.left, left, decrypt_left_with, decrypt_left_with_gcp_kms)
+        with right:
+            right_data = load_data(
+                Side.right, right, decrypt_right_with, decrypt_right_with_gcp_kms
+            )
 
-    res = validate(left_data, right_data, get_default_comparators())
-    if res:
-        click.echo(f"\n\nDone, found {len(res.findings)} differences:")
-        write_findings(findings_file, res.findings, click.echo)
-    else:
-        click.echo("\n\nDone, found 0 differences!")
-        write_findings(findings_file, [], click.echo)
+        printer = InputOutputPrinter()
+        res = validate(left_data, right_data, get_default_comparators())
+        if res:
+            click.echo(f"\n\nDone, found {len(res.findings)} differences:")
+            write_findings(findings_file, res.findings, printer)
+        else:
+            click.echo("\n\nDone, found 0 differences!")
+            write_findings(findings_file, [], printer)
+    except (DecryptionError, json.JSONDecodeError):
+        # Already reported to the user from the `load_data` function.
+        pass
 
 
 @backup.command(name="decrypt")
@@ -391,7 +463,9 @@ def compare(
     help="The output tarball file that needs to be decrypted.",
 )
 @configuration
-def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
+def decrypt(
+    dest: IO[bytes], decrypt_with: IO[bytes], decrypt_with_gcp_kms: IO[bytes], src: IO[bytes]
+) -> None:
     """
     Decrypt an encrypted tarball export into an unencrypted JSON file.
     """
@@ -408,9 +482,9 @@ def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
         decrypted = decrypt_encrypted_tarball(src, decryptor)
     except DecryptionError as e:
         click.echo(f"Invalid tarball: {str(e)}", err=True)
-
-    with dest:
-        dest.write(decrypted)
+    else:
+        with dest:
+            dest.write(decrypted)
 
 
 @backup.command(name="encrypt")
@@ -432,7 +506,9 @@ def decrypt(dest, decrypt_with, decrypt_with_gcp_kms, src):
     help="The input JSON file that needs to be encrypted.",
 )
 @configuration
-def encrypt(dest, encrypt_with, encrypt_with_gcp_kms, src):
+def encrypt(
+    dest: IO[bytes], encrypt_with: IO[bytes], encrypt_with_gcp_kms: IO[bytes], src: IO[bytes]
+) -> None:
     """
     Encrypt an unencrypted raw JSON export into an encrypted tarball.
     """
@@ -449,14 +525,97 @@ def encrypt(dest, encrypt_with, encrypt_with_gcp_kms, src):
         data = json.load(src)
     except json.JSONDecodeError:
         click.echo("Invalid input JSON", err=True)
+    else:
+        encrypted = create_encrypted_export_tarball(data, encryptor)
+        with dest:
+            dest.write(encrypted.getbuffer())
 
-    encrypted = create_encrypted_export_tarball(data, encryptor)
-    with dest:
-        dest.write(encrypted.getbuffer())
+
+@backup.command(name="sanitize")
+@click.argument("dest", type=click.File("wb"))
+@click.option(
+    "--decrypt-with",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_HELP,
+)
+@click.option(
+    "--decrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=DECRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--encrypt-with",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_HELP,
+)
+@click.option(
+    "--encrypt-with-gcp-kms",
+    type=click.File("rb"),
+    help=ENCRYPT_WITH_GCP_KMS_HELP,
+)
+@click.option(
+    "--days-offset",
+    type=int,
+    help="The number of days to adjust the date range seen in the JSON being sanitized.",
+)
+@click.option(
+    "--src",
+    required=True,
+    type=click.File("rb"),
+    help="The input JSON file that needs to be sanitized.",
+)
+@configuration
+def sanitize_(
+    dest: IO[bytes],
+    decrypt_with: IO[bytes],
+    decrypt_with_gcp_kms: IO[bytes],
+    encrypt_with: IO[bytes],
+    encrypt_with_gcp_kms: IO[bytes],
+    days_offset: int | None,
+    src: IO[bytes],
+) -> None:
+    """
+    Sanitize PII from a backup.
+    """
+
+    decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
+
+    # Decrypt the tarball, if the user has indicated that this is one via the use of one of the
+    # `--decrypt...` flags.
+    if decryptor is not None:
+        try:
+            input: IO[bytes] = BytesIO(decrypt_encrypted_tarball(src, decryptor))
+        except DecryptionError as e:
+            click.echo(f"Invalid tarball: {str(e)}", err=True)
+            raise
+    else:
+        input = src
+
+    # Now read the input string into memory as json data.
+    try:
+        unsanitized_json = json.load(input)
+    except json.JSONDecodeError:
+        click.echo("Invalid JSON", err=True)
+        raise
+
+    # Perform the sanitization.
+    datetime_offset = timedelta(days=days_offset) if days_offset is not None else None
+    sanitized_json = sanitize(unsanitized_json, datetime_offset)
+
+    # Encrypt the raw JSON file, if the user has indicated that this is desired by using either of
+    # the `--encrypt...` flags.
+    encryptor = get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms)
+
+    # If no `encryptor` was passed in, this is an unencrypted write, so we can just dump the JSON
+    # into the `dest` file directly.
+    if encryptor is None:
+        dest.write(orjson.dumps(sanitized_json, option=orjson.OPT_INDENT_2 | orjson.OPT_UTC_Z))
+    else:
+        dest.write(create_encrypted_export_tarball(sanitized_json, encryptor).getbuffer())
 
 
 @click.group(name="import")
-def import_():
+def import_() -> None:
     """Imports core data for a Sentry installation."""
 
 
@@ -486,6 +645,11 @@ def import_():
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
+    "--filter-usernames-file",
+    type=click.File("r"),
+    help="Like `--filter-usernames`, except it pulls from a comma-separated file.",
+)
+@click.option(
     "--merge-users",
     default=False,
     is_flag=True,
@@ -505,15 +669,16 @@ def import_():
 )
 @configuration
 def import_users(
-    src,
-    decrypt_with,
-    decrypt_with_gcp_kms,
-    filter_usernames,
-    findings_file,
-    merge_users,
-    no_prompt,
-    silent,
-):
+    src: IO[bytes],
+    decrypt_with: IO[bytes],
+    decrypt_with_gcp_kms: IO[bytes],
+    filter_usernames: str,
+    filter_usernames_file: IO[str],
+    findings_file: IO[str],
+    merge_users: bool,
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Import the Sentry users from an exported JSON file.
     """
@@ -526,7 +691,9 @@ def import_users(
             src,
             decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
             flags=ImportFlags(merge_users=merge_users),
-            user_filter=parse_filter_arg(filter_usernames),
+            user_filter=parse_filter_arg(
+                get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
+            ),
             printer=printer,
         )
 
@@ -577,15 +744,15 @@ def import_users(
 )
 @configuration
 def import_organizations(
-    src,
-    decrypt_with,
-    decrypt_with_gcp_kms,
-    filter_org_slugs,
-    findings_file,
-    merge_users,
-    no_prompt,
-    silent,
-):
+    src: IO[bytes],
+    decrypt_with: IO[bytes],
+    decrypt_with_gcp_kms: IO[bytes],
+    filter_org_slugs: str,
+    findings_file: IO[str],
+    merge_users: bool,
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Import the Sentry organizations, and all constituent Sentry users, from an exported JSON file.
     """
@@ -647,15 +814,15 @@ def import_organizations(
 )
 @configuration
 def import_config(
-    src,
-    decrypt_with,
-    decrypt_with_gcp_kms,
-    findings_file,
-    merge_users,
-    no_prompt,
-    overwrite_configs,
-    silent,
-):
+    src: IO[bytes],
+    decrypt_with: IO[bytes],
+    decrypt_with_gcp_kms: IO[bytes],
+    findings_file: IO[str],
+    merge_users: bool,
+    no_prompt: bool,
+    overwrite_configs: bool,
+    silent: bool,
+) -> None:
     """
     Import all configuration and administrator accounts needed to set up this Sentry instance.
     """
@@ -704,13 +871,13 @@ def import_config(
 )
 @configuration
 def import_global(
-    src,
-    decrypt_with,
-    decrypt_with_gcp_kms,
-    findings_file,
-    no_prompt,
-    silent,
-):
+    src: IO[bytes],
+    decrypt_with: IO[bytes],
+    decrypt_with_gcp_kms: IO[bytes],
+    findings_file: IO[str],
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Import all Sentry data from an exported JSON file.
     """
@@ -718,6 +885,15 @@ def import_global(
     from sentry.backup.imports import import_in_global_scope
 
     printer = get_printer(silent=silent, no_prompt=no_prompt)
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
+        confirmed = printer.confirm(
+            """Proceeding with this operation will irrecoverably delete all existing
+            low-volume data - are you sure want to continue?"""
+        )
+        if not confirmed:
+            printer.echo("Import cancelled.")
+            return
+
     with write_import_findings(findings_file, printer):
         import_in_global_scope(
             src,
@@ -728,7 +904,7 @@ def import_global(
 
 
 @click.group(name="export")
-def export():
+def export() -> None:
     """Exports core data for the Sentry installation."""
 
 
@@ -750,6 +926,11 @@ def export():
     type=str,
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
+)
+@click.option(
+    "--filter-usernames-file",
+    type=click.File("r"),
+    help="Like `--filter-usernames`, except it pulls from a comma-separated file.",
 )
 @click.option(
     "--findings-file",
@@ -777,15 +958,16 @@ def export():
 )
 @configuration
 def export_users(
-    dest,
-    encrypt_with,
-    encrypt_with_gcp_kms,
-    filter_usernames,
-    findings_file,
-    indent,
-    no_prompt,
-    silent,
-):
+    dest: IO[bytes],
+    encrypt_with: IO[bytes],
+    encrypt_with_gcp_kms: IO[bytes],
+    filter_usernames: str,
+    filter_usernames_file: IO[str],
+    findings_file: IO[str],
+    indent: int,
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Export all Sentry users in the JSON format.
     """
@@ -798,7 +980,9 @@ def export_users(
             dest,
             encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
-            user_filter=parse_filter_arg(filter_usernames),
+            user_filter=parse_filter_arg(
+                get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
+            ),
             printer=printer,
         )
 
@@ -849,15 +1033,15 @@ def export_users(
 )
 @configuration
 def export_organizations(
-    dest,
-    encrypt_with,
-    encrypt_with_gcp_kms,
-    filter_org_slugs,
-    findings_file,
-    indent,
-    no_prompt,
-    silent,
-):
+    dest: IO[bytes],
+    encrypt_with: IO[bytes],
+    encrypt_with_gcp_kms: IO[bytes],
+    filter_org_slugs: str,
+    findings_file: IO[str],
+    indent: int,
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Export all Sentry organizations, and their constituent users, in the JSON format.
     """
@@ -913,14 +1097,14 @@ def export_organizations(
 )
 @configuration
 def export_config(
-    dest,
-    encrypt_with,
-    encrypt_with_gcp_kms,
-    findings_file,
-    indent,
-    no_prompt,
-    silent,
-):
+    dest: IO[bytes],
+    encrypt_with: IO[bytes],
+    encrypt_with_gcp_kms: IO[bytes],
+    findings_file: IO[str],
+    indent: int,
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Export all configuration and administrator accounts needed to set up this Sentry instance.
     """
@@ -975,14 +1159,14 @@ def export_config(
 )
 @configuration
 def export_global(
-    dest,
-    encrypt_with,
-    encrypt_with_gcp_kms,
-    findings_file,
-    indent,
-    no_prompt,
-    silent,
-):
+    dest: IO[bytes],
+    encrypt_with: IO[bytes],
+    encrypt_with_gcp_kms: IO[bytes],
+    findings_file: IO[str],
+    indent: int,
+    no_prompt: bool,
+    silent: bool,
+) -> None:
     """
     Export all Sentry data in the JSON format.
     """

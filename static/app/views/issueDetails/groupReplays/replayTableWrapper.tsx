@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayColumn} from 'sentry/views/replays/replayTable/types';

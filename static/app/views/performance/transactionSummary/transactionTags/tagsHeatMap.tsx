@@ -24,10 +24,12 @@ import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles'
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
@@ -39,7 +41,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
-import {generateTransactionLink} from '../utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -348,11 +349,15 @@ function TagsHeatMap(
                   <div>
                     {!transactionTableData?.data.length ? <Placeholder /> : null}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
-                      const target = generateTransactionLink(transactionName)(
+                      const target = generateLinkToEventInTraceView({
+                        eventId: row.id,
+                        traceSlug: row.trace?.toString(),
+                        projectSlug: (row.project || row['project.name']).toString(),
+                        timestamp: row.timestamp,
+                        location,
                         organization,
-                        row,
-                        location.query
-                      );
+                        transactionName,
+                      });
 
                       return (
                         <DropdownItem width="small" key={row.id} to={target}>

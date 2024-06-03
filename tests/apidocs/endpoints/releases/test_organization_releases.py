@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 
+import pytest
 from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models.release import Release
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationReleasesDocsTest(APIDocsTestCase):
@@ -39,7 +42,7 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         release2.add_project(self.project2)
 
         self.url = reverse(
-            "sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
         )
 
     def test_get(self):

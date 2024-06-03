@@ -25,16 +25,23 @@ class GlobalParams:
         type=str,
         location="path",
     )
-    PROJECT_SLUG = OpenApiParameter(
-        name="project_slug",
-        description="The slug of the project the resource belongs to.",
+    ORG_ID_OR_SLUG = OpenApiParameter(
+        name="organization_id_or_slug",
+        description="The id or slug of the organization the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
-    TEAM_SLUG = OpenApiParameter(
-        name="team_slug",
-        description="The slug of the team the resource belongs to.",
+    PROJECT_ID_OR_SLUG = OpenApiParameter(
+        name="project_id_or_slug",
+        description="The id or slug of the project the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
+    TEAM_ID_OR_SLUG = OpenApiParameter(
+        name="team_id_or_slug",
+        description="The id or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -87,9 +94,19 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
+class EnvironmentParams:
+    VISIBILITY = OpenApiParameter(
+        name="visibility",
+        location="query",
+        required=False,
+        type=str,
+        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+    )
+
+
 class OrganizationParams:
-    PROJECT_SLUG = OpenApiParameter(
-        name="project_slug",
+    PROJECT_ID_OR_SLUG = OpenApiParameter(
+        name="project_id_or_slug",
         location="query",
         required=False,
         many=True,
@@ -109,6 +126,44 @@ class OrganizationParams:
 For example the following are valid parameters:
 - `/?project=1234&project=56789`
 - `/?project=-1`
+""",
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `true` to restrict results to organizations in which you are an owner.""",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
+
+Valid query fields include:
+- `id`: The organization ID
+- `slug`: The organization slug
+- `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
+- `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
+- `platform`: Filter your organizations to those with at least one project using this platform
+- `query`: Filter your organizations by name, slug, and members that contain this substring
+
+Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
+""",
+    )
+    SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by, in descending order. If not specified the results are sorted by the date they were created.
+
+Valid fields include:
+- `members`: By number of members
+- `projects`: By number of projects
+- `events`: By number of events in the past 24 hours
 """,
     )
 
@@ -149,7 +204,7 @@ class VisibilityParams:
         location="query",
         required=False,
         type=str,
-        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/).
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
@@ -168,7 +223,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 - A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/).
+- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
 """,
     )
@@ -196,12 +251,12 @@ class CursorQueryParam(serializers.Serializer):
 
 
 class MonitorParams:
-    MONITOR_SLUG = OpenApiParameter(
-        name="monitor_slug",
+    MONITOR_ID_OR_SLUG = OpenApiParameter(
+        name="monitor_id_or_slug",
         location="path",
         required=True,
         type=str,
-        description="The slug of the monitor.",
+        description="The id or slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
@@ -216,6 +271,20 @@ class MonitorParams:
         required=False,
         type=str,
         description="The name of environment for the monitor environment.",
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
+    PROCESSING_ERROR_ID = OpenApiParameter(
+        name="processing_error_id",
+        location="path",
+        required=False,
+        type=OpenApiTypes.UUID,
+        description="The id of the processing error.",
     )
 
 
@@ -304,6 +373,25 @@ class TeamParams:
         type=str,
         description="""
 Specify `"0"` to return team details that do not include projects.
+""",
+    )
+    COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt out of certain pieces of data. Supports `organization`.
+""",
+    )
+
+    EXPAND = OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt in to additional data. Supports `projects`, `externalTeams`.
 """,
     )
 

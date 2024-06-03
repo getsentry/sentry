@@ -98,6 +98,8 @@ class Referrer(Enum):
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
+    API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
+    API_METRICS_TOTALS = "api.metrics.totals"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
@@ -164,6 +166,7 @@ class Referrer(Enum):
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
+    API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -344,11 +347,15 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS = (
+        "api.performance.transactions.statistical-detector-root-cause-analysis"
+    )
     API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
         "api.performance.transactions.statistical-detector-stats"
     )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
+    API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
@@ -421,6 +428,7 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
     API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
     API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY = "api.starfish.mobile-platform-compatibility"
     API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
     API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
     API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
@@ -430,7 +438,110 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
-    API_TRACE_EXPLORER_TABLE = "api.trace-explorer.table"
+    API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
+    API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
+    API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+    API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+
+    # Performance Mobile UI Module
+    API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
+    API_PERFORMANCE_MOBILE_UI_EVENT_SAMPLES = "api.performance.mobile.ui.event-samples"
+    API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON = "api.performance.mobile.ui.metrics-ribbon"
+    API_PERFORMANCE_MOBILE_UI_SCREEN_TABLE = "api.performance.mobile.ui.screen-table"
+    API_PERFORMANCE_MOBILE_UI_SERIES = "api.performance.mobile.ui.series"
+    API_PERFORMANCE_MOBILE_UI_SPAN_TABLE = "api.performance.mobile.ui.span-table"
+
+    # Performance Cache Module
+    API_PERFORMANCE_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
+        "api.performance.cache.landing-cache-throughput-chart",
+    )
+    API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
+        "api.performance.cache.landing-cache-transaction-list",
+    )
+    API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
+        "api.performance.cache.landing-cache-transaction-duration",
+    )
+
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
+        "api.performance.cache.samples-cache-metrics-ribbon",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
+        "api.performance.cache.samples-cache-transaction-duration-chart",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
+        "api.performance.cache.samples-cache-transaction-duration",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = (
+        "api.performance.cache.samples-cache-span-samples",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
+        "api.performance.cache.samples-cache-span-samples-transaction-duration",
+    )
+    API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
+        "api.performance.cache.samples-cache-hit-miss-chart",
+    )
+
+    # Performance Queues Module
+    API_PERFORMANCE_QUEUES_DEFAULT_REFERRER = "api.performance.queues"
+    API_PERFORMANCE_QUEUES_LANDING_ONBOARDING = "api.performance.queues.landing-onboarding"
+    API_PERFORMANCE_QUEUES_LANDING_CHARTS = "api.performance.queues.landing-charts"
+    API_PERFORMANCE_QUEUES_LANDING_DESTINATIONS_TABLE = (
+        "api.performance.queues.landing-destinations-table"
+    )
+    API_PERFORMANCE_QUEUES_SUMMARY = "api.performance.queues.summary"
+    API_PERFORMANCE_QUEUES_SUMMARY_CHARTS = "api.performance.queues.summary-charts"
+    API_PERFORMANCE_QUEUES_SUMMARY_TRANSACTIONS_TABLE = (
+        "api.performance.queues.summary-transactions-table"
+    )
+    API_PERFORMANCE_QUEUES_SAMPLES_PANEL = "api.performance.queues.samples-panel"
+    API_PERFORMANCE_QUEUES_SAMPLES_PANEL_TABLE = "api.performance.queues.samples-panel-table"
+
+    # Performance Requests Module
+    API_PERFORMANCE_HTTP_LANDING_DOMAINS_LIST = "api.performance.http.landing-domains-list"
+    API_PERFORMANCE_HTTP_LANDING_DURATION_CHART = "api.performance.http.landing-duration-chart"
+    API_PERFORMANCE_HTTP_LANDING_RESPONSE_CODE_CHART = (
+        "api.performance.http.landing-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_LANDING_THROUGHPUT_CHART = "api.performance.http.landing-throughput-chart"
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_DURATION_CHART = (
+        "api.performance.http.domain-summary-duration-chart"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON = (
+        "api.performance.http.domain-summary-metrics-ribbon"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART = (
+        "api.performance.http.domain-summary-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART = (
+        "api.performance.http.domain-summary-throughput-chart"
+    )
+    API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST = (
+        "api.performance.http.domain-summary-transactions-list"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_CHART = (
+        "api.performance.http.samples-panel-duration-chart"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_SAMPLES = (
+        "api.performance.http.samples-panel-duration-samples"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_METRICS_RIBBON = (
+        "api.performance.http.samples-panel-metrics-ribbon"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART = (
+        "api.performance.http.samples-panel-response-code-chart"
+    )
+    API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = (
+        "api.performance.http.samples-panel-response-code-samples"
+    )
+
+    # Performance Span Summary Page and Span Metrics
+    API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA = "api.performance.span-summary-header-data"
+    API_PERFORMANCE_SPAN_SUMMARY_TABLE = "api.performance.span-summary-table"
+    API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART = "api.performance.span-summary-duration-chart"
+    API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART = "api.performance.span-summary-throughput-chart"
+    API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART = (
+        "api.performance.span-summary-transaction-throughput-chart"
+    )
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -439,6 +550,7 @@ class Referrer(Enum):
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
+    API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
@@ -520,6 +632,7 @@ class Referrer(Enum):
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
+    GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
@@ -683,6 +796,14 @@ class Referrer(Enum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT = (
+        "tagstore.get_groups_user_counts.open_pr_comment"
+    )
+    TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED = "tagstore.get_groups_user_counts.ignored"
+    TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION = (
+        "tagstore.get_groups_user_counts.slack_issue_notification"
+    )
     TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
     TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"

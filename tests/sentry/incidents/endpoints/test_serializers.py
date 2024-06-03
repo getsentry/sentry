@@ -13,7 +13,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
-    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
@@ -33,14 +33,13 @@ from sentry.incidents.serializers import (
 )
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
-from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
@@ -662,8 +661,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-        assert alert_rule.owner == self.team.actor
-        assert alert_rule.owner.type == ACTOR_TYPES["team"]
+        assert alert_rule.team_id == self.team.id
+        assert alert_rule.user_id is None
 
         base_params.update({"name": "another_test", "owner": f"user:{self.user.id}"})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -672,8 +671,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         # Reload user for actor
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
-        assert alert_rule.owner == get_actor_for_user(self.user)
-        assert alert_rule.owner.type == ACTOR_TYPES["user"]
+        assert alert_rule.user_id == self.user.id
+        assert alert_rule.team_id is None
 
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()
@@ -689,7 +688,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 150
         assert triggers["warning"].alert_threshold == 140
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
     def test_comparison_delta_below(self):
         params = self.valid_params.copy()
@@ -706,7 +707,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
         assert triggers["critical"].alert_threshold == 50
         assert triggers["warning"].alert_threshold == 60
-        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+        assert (
+            alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
+        )
 
         params["comparison_delta"] = None
         params["resolveThreshold"] = 100

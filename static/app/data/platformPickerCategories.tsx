@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
   'android',
@@ -17,6 +17,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript-vue',
   'node',
   'node-express',
+  'node-nestjs',
   'php',
   'php-laravel',
   'python',
@@ -47,6 +48,7 @@ const browser: Set<PlatformKey> = new Set([
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -69,7 +71,10 @@ const server: Set<PlatformKey> = new Set([
   'node',
   'node-connect',
   'node-express',
+  'node-fastify',
+  'node-hapi',
   'node-koa',
+  'node-nestjs',
   'php',
   'php-laravel',
   'php-symfony',

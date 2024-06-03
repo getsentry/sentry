@@ -1,4 +1,5 @@
 from .advanced_search_feature_gated import *  # noqa: F401,F403
+from .ai_autofix_pr_events import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403
 from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
@@ -9,12 +10,14 @@ from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
 from .codeowners_updated import *  # noqa: F401,F403
 from .comment_webhooks import *  # noqa: F401,F403
+from .cron_monitor_broken_status_recovery import *  # noqa: F401,F403
 from .cron_monitor_created import *  # noqa: F401,F403
 from .eventuser_endpoint_request import *  # noqa: F401,F403
 from .eventuser_equality_check import *  # noqa: F401,F403
 from .eventuser_snuba_for_projects import *  # noqa: F401,F403
 from .eventuser_snuba_query import *  # noqa: F401,F403
 from .first_cron_checkin_sent import *  # noqa: F401,F403
+from .first_custom_metric_sent import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_feedback_sent import *  # noqa: F401,F403
 from .first_new_feedback_sent import *  # noqa: F401,F403
@@ -42,6 +45,7 @@ from .issue_ignored import *  # noqa: F401,F403
 from .issue_mark_reviewed import *  # noqa: F401,F403
 from .issue_priority import *  # noqa: F401,F403
 from .issue_resolved import *  # noqa: F401,F403
+from .issue_search_endpoint_queried import *  # noqa: F401,F403
 from .issue_tracker_used import *  # noqa: F401,F403
 from .issue_unignored import *  # noqa: F401,F403
 from .issue_unresolved import *  # noqa: F401,F403

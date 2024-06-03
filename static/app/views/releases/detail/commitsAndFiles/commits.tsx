@@ -15,12 +15,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Commit, Project, Repository} from 'sentry/types';
-import {formatVersion} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -49,7 +49,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
     getResponseHeader,
   } = useApiQuery<Commit[]>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(
+      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
         params.release
       )}/commits/`,
       {query},
@@ -58,7 +58,6 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
       staleTime: Infinity,
     }
   );
-
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
   const activeRepoName: string | undefined = activeReleaseRepo

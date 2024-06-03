@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
-from typing import Literal
+from typing import Any, Literal
 
 from django.db import models
 
@@ -15,12 +15,9 @@ from sentry.backup.dependencies import (
     sorted_dependencies,
 )
 from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder
-from sentry.utils.json import JSONData
 
 
-def verify_models_in_output(
-    expected_models: list[type[models.Model]], actual_json: JSONData
-) -> None:
+def verify_models_in_output(expected_models: list[type[models.Model]], actual_json: Any) -> None:
     """
     A helper context manager that checks that every model that a test "targeted" was actually seen
     in the output, ensuring that we're actually testing the thing we think we are. Additionally,

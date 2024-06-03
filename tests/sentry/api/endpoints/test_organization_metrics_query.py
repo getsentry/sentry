@@ -44,7 +44,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
             },
         )
         assert len(response.data["intervals"]) == 3
-        assert response.data["data"] == [[{"by": {}, "series": [3.0, 5.0, 10.0], "totals": 18.0}]]
+        assert response.data["data"] == [
+            [{"by": {}, "series": [3000000.0, 5000000.0, 10000000.0], "totals": 18000000.0}]
+        ]
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},
@@ -53,9 +55,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "limit": 3334,
                     "has_more": False,
                     "order": "DESC",
-                    "scaling_factor": None,
-                    "unit": None,
-                    "unit_family": None,
+                    "scaling_factor": 1000000.0,
+                    "unit": "nanosecond",
+                    "unit_family": "duration",
                 },
             ]
         ]
@@ -74,8 +76,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "includeSeries": "false",
             },
         )
-        assert "intervals" not in response.data
-        assert response.data["data"] == [[{"by": {}, "totals": 18.0}]]
+        assert response.data["data"] == [[{"by": {}, "totals": 18000000.0}]]
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},
@@ -84,12 +85,13 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "limit": 3334,
                     "has_more": False,
                     "order": "DESC",
-                    "scaling_factor": None,
-                    "unit": None,
-                    "unit_family": None,
+                    "scaling_factor": 1000000.0,
+                    "unit": "nanosecond",
+                    "unit_family": "duration",
                 },
             ]
         ]
+        assert response.data["intervals"] == []
 
     def test_query_with_disabled_org(self):
         with self.options({"custom-metrics-querying-disabled-orgs": [self.organization.id]}):
@@ -106,3 +108,21 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                     "includeSeries": "false",
                 },
             )
+
+    @pytest.mark.skip("When a formula is used, the query times out")
+    def test_recursion_error_query(self):
+        conds = " OR ".join([f'transaction:"{e}"' for e in range(500)])
+        error_mql = f"avg(d:transactions/duration@millisecond) by (transaction){{({conds})}}"
+        self.get_success_response(
+            self.project.organization.slug,
+            status_code=200,
+            queries=[{"name": "query_1", "mql": error_mql}],
+            formulas=[{"mql": "$query_1"}],
+            qs_params={
+                "statsPeriod": "3h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+                "includeSeries": "false",
+            },
+        )

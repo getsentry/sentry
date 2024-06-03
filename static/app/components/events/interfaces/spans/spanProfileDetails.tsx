@@ -1,10 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
+import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -167,7 +168,7 @@ export function SpanProfileDetails({
   const percentage = formatPercentage(nodes[index].count / totalWeight);
 
   return (
-    <Fragment>
+    <SpanContainer>
       <SpanDetails>
         <SpanDetailsItem grow>
           <SectionHeading>{t('Most Frequent Stacks in this Span')}</SectionHeading>
@@ -215,7 +216,7 @@ export function SpanProfileDetails({
         </SpanDetailsItem>
         <SpanDetailsItem>
           <Button icon={<IconProfiling />} to={spanTarget} size="xs">
-            {t('View Profile')}
+            {t('Profile')}
           </Button>
         </SpanDetailsItem>
       </SpanDetails>
@@ -234,7 +235,7 @@ export function SpanProfileDetails({
         inlined
         maxDepth={MAX_STACK_DEPTH}
       />
-    </Fragment>
+    </SpanContainer>
   );
 }
 
@@ -359,15 +360,45 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
   return frames.reverse();
 }
 
+const SpanContainer = styled('div')`
+  container: profiling-container / inline-size;
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+
+  ${StackTraceContentPanel} {
+    margin-bottom: 0;
+    box-shadow: none;
+  }
+`;
 const SpanDetails = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(0.5)} ${space(1)};
   display: flex;
   align-items: center;
   gap: ${space(1)};
 `;
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`
-  ${p => (p.grow ? 'flex: 1 2 auto' : 'flex: 0 1 auto')}
+  flex: ${p => (p.grow ? '1 2 auto' : 'flex: 0 1 auto')};
+
+  &:nth-child(2) {
+    @container profiling-container (width < 680px) {
+      display: none;
+    }
+  }
+
+  &:first-child {
+    flex: 0 1 100%;
+    min-width: 0;
+  }
+
+  h4 {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
 `;
 
 const SectionSubtext = styled('span')`

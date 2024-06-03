@@ -1,5 +1,4 @@
 import type {RouteComponentProps} from 'react-router';
-import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -47,6 +46,19 @@ describe('normalizeUrl', function () {
       [
         '/settings/sentry-organizations/integrations/vercel/12345/?next=something',
         '/settings/integrations/vercel/12345/?next=something',
+      ],
+      // Settings views for orgs with acccount/billing in their slugs.
+      ['/settings/account-on/', '/settings/organization/'],
+      ['/settings/billing-co/', '/settings/organization/'],
+      ['/settings/account-on/integrations/', '/settings/integrations/'],
+      [
+        '/settings/account-on/projects/billing-app/source-maps/',
+        '/settings/projects/billing-app/source-maps/',
+      ],
+      ['/settings/billing-co/integrations/', '/settings/integrations/'],
+      [
+        '/settings/billing-co/projects/billing-app/source-maps/',
+        '/settings/projects/billing-app/source-maps/',
       ],
       // Account settings should stay the same
       ['/settings/account/', '/settings/account/'],
@@ -181,43 +193,6 @@ describe('normalizeUrl', function () {
       }
     );
     expect(result.pathname).toEqual('/issues');
-  });
-
-  it('replaces pathname in function callback', function () {
-    const location = LocationFixture();
-    function objectCallback(_loc: Location): LocationDescriptorObject {
-      return {pathname: '/settings/'};
-    }
-    result = normalizeUrl(objectCallback, location);
-    expect(result.pathname).toEqual('/settings/');
-
-    function stringCallback(_loc: Location): LocationDescriptor {
-      return '/organizations/a-long-slug/discover/';
-    }
-    result = normalizeUrl(stringCallback, location);
-    expect(result).toEqual('/discover/');
-
-    // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
-    window.__initialData.customerDomain = null;
-
-    function objectCallback2(_loc: Location): LocationDescriptorObject {
-      return {pathname: '/settings/'};
-    }
-    result = normalizeUrl(objectCallback2, location, {forceCustomerDomain: true});
-    expect(result.pathname).toEqual('/settings/');
-
-    function stringCallback2(_loc: Location): LocationDescriptor {
-      return '/organizations/a-long-slug/discover/';
-    }
-    result = normalizeUrl(stringCallback2, location, {forceCustomerDomain: true});
-    expect(result).toEqual('/discover/');
-  });
-
-  it('errors on functions without location', function () {
-    function objectCallback(_loc: Location): LocationDescriptorObject {
-      return {pathname: '/settings/organization'};
-    }
-    expect(() => normalizeUrl(objectCallback)).toThrow();
   });
 });
 

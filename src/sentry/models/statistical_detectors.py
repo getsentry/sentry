@@ -9,7 +9,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
@@ -33,7 +33,7 @@ class RegressionType(Enum):
         raise ValueError(f"Unknown regression type: {self}")
 
 
-@region_silo_only_model
+@region_silo_model
 class RegressionGroup(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

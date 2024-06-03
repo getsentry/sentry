@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {
   SessionUserCountByStatus2Fixture,
@@ -9,6 +8,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {

@@ -11,7 +11,10 @@ from typing import Any, Literal, TypedDict
 from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
+from sentry.replays.usecases.ingest.issue_creation import (
+    report_hydration_error_issue_with_replay_event,
+    report_rage_click_issue_with_replay_event,
+)
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -128,7 +131,11 @@ def log_canvas_size(
     events: list[dict[str, Any]],
 ) -> None:
     for event in events:
-        if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
+        if (
+            event.get("type") == 3
+            and event.get("data", {}).get("source") == 9
+            and random.randint(0, 499) < 1
+        ):
             logger.info(
                 # Logging to the sentry.replays.slow_click namespace because
                 # its the only one configured to use BigQuery at the moment.
@@ -194,7 +201,7 @@ def get_user_actions(
             isinstance(payload, dict)
             and tag == "breadcrumb"
             and payload.get("category") == "replay.mutations"
-            and random.randint(0, 99) < 1
+            and random.randint(0, 500) < 1
         ):
             _handle_mutations_event(project_id, replay_id, event)
 
@@ -278,6 +285,19 @@ def create_click_event(
 
 def _parse_classes(classes: str) -> list[str]:
     return list(filter(lambda n: n != "", classes.split(" ")))[:10]
+
+
+def _should_report_hydration_error_issue(project_id: int) -> bool:
+    project = Project.objects.get(id=project_id)
+    """
+    The feature is controlled by Sentry admins for release of the feature,
+    while the project option is controlled by the project owner, and is a
+    permanent setting
+    """
+    return features.has(
+        "organizations:session-replay-hydration-error-issue-creation",
+        project.organization,
+    ) and project.get_option("sentry:replay_hydration_error_issues")
 
 
 def _should_report_rage_click_issue(project_id: int) -> bool:
@@ -420,21 +440,23 @@ def _handle_breadcrumb(
         log["replay_id"] = replay_id
         log["dom_tree"] = log.pop("message")
 
-        logger.info("sentry.replays.slow_click", extra=log)
-
         return click
 
-    elif category == "ui.multiClick":
-        # Log the event for tracking.
-        log = event["data"].get("payload", {}).copy()
-        log["project_id"] = project_id
-        log["replay_id"] = replay_id
-        log["dom_tree"] = log.pop("message")
-        logger.info("sentry.replays.slow_click", extra=log)
     elif category == "ui.click":
         click = create_click_event(
             payload, replay_id, is_dead=False, is_rage=False, project_id=project_id
         )
         if click is not None:
             return click
+
+    elif category == "replay.hydrate-error":
+        if replay_event is not None and _should_report_hydration_error_issue(project_id):
+            report_hydration_error_issue_with_replay_event(
+                project_id,
+                replay_id,
+                payload["timestamp"],
+                payload["data"].get("url"),
+                replay_event,
+            )
+
     return None

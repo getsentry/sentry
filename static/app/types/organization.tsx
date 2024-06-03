@@ -1,6 +1,6 @@
 import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -23,10 +23,12 @@ export interface OrganizationSummary {
   githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
+  issueAlertsThreadFlag: boolean;
   links: {
     organizationUrl: string;
     regionUrl: string;
   };
+  metricAlertsThreadFlag: boolean;
   name: string;
   require2FA: boolean;
   slug: string;
@@ -107,21 +109,20 @@ export interface DetailedTeam extends Team {
   projects: Project[];
 }
 
-// TODO: Rename to BaseRole
-export interface MemberRole {
+export interface BaseRole {
   desc: string;
   id: string;
   name: string;
-  allowed?: boolean; // Deprecated: use isAllowed
   isAllowed?: boolean;
   isRetired?: boolean;
+  isTeamRolesAllowed?: boolean;
 }
-export interface OrgRole extends MemberRole {
+export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
 }
-export interface TeamRole extends MemberRole {
+export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
 }
 
@@ -248,6 +249,7 @@ export interface NewQuery {
   orderby?: string;
   projects?: Readonly<number[]>;
   query?: string;
+  queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;

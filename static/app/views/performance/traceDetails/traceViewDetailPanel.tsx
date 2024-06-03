@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
@@ -52,10 +52,10 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
-import {EntryType} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import {EntryType} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -442,7 +442,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           hideBreadCrumbs
         />
       )}
-      {!objectIsEmpty(feedback) && (
+      {!isEmptyObject(feedback) && (
         <Chunk
           key="feedback"
           type="feedback"
@@ -452,7 +452,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           value={feedback}
         />
       )}
-      {user && !objectIsEmpty(user) && (
+      {user && !isEmptyObject(user) && (
         <Chunk
           key="user"
           type="user"
@@ -466,6 +466,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
       {detail.event._metrics_summary ? (
         <CustomMetricsEventData
+          projectId={detail.event.projectID}
           metricsSummary={detail.event._metrics_summary}
           startTimestamp={detail.event.startTimestamp}
         />
@@ -507,7 +508,7 @@ function SpanDetailsBody({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
         </div>
       </Title>
       {detail.event.projectSlug && (
@@ -597,7 +598,7 @@ const Title = styled(FlexBox)`
 
 const TransactionOp = styled('div')`
   font-size: 25px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;

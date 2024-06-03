@@ -1,9 +1,11 @@
 import type {Location} from 'history';
 
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const NULL_SPAN_CATEGORY = t('custom');
 
 const {SPAN_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
   SpanMetricsField;

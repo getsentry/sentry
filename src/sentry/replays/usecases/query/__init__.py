@@ -43,6 +43,48 @@ from sentry.replays.lib.new_query.fields import ColumnField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
+VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
+NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
+
+
+def handle_viewed_by_me_filters(
+    search_filters: Sequence[SearchFilter | str | ParenExpression], request_user_id: int | None
+) -> Sequence[SearchFilter | str | ParenExpression]:
+    """Translate "viewed_by_me" as it's not a valid Snuba field, but a convenience alias for the frontend"""
+    new_filters = []
+    for search_filter in search_filters:
+        if (
+            not isinstance(search_filter, SearchFilter)
+            or search_filter.key.name not in VIEWED_BY_ME_KEY_ALIASES
+        ):
+            new_filters.append(search_filter)
+            continue
+
+        # since the value is boolean, negations (!) are not supported
+        if search_filter.operator != "=":
+            raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
+
+        value = search_filter.value.value
+        if not isinstance(value, str) or value.lower() not in ["true", "false"]:
+            raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+        value = value.lower() == "true"
+
+        if request_user_id is None:
+            # This case will only occur from programmer error.
+            # Note the replay index endpoint returns 401 automatically for unauthorized and anonymous users.
+            raise ValueError("Invalid user id")
+
+        operator = "=" if value else "!="
+        new_filters.append(
+            SearchFilter(
+                SearchKey("viewed_by_id"),
+                operator,
+                SearchValue(request_user_id),
+            )
+        )
+
+    return new_filters
+
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
@@ -151,6 +193,7 @@ def query_using_optimized_search(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
+    request_user_id: int | None = None,
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -161,6 +204,9 @@ def query_using_optimized_search(
             *search_filters,
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
+
+    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
@@ -212,6 +258,7 @@ def query_using_optimized_search(
             project_ids=project_ids,
             period_start=period_start,
             period_end=period_stop,
+            request_user_id=request_user_id,
         ),
         tenant_id,
         referrer="replays.query.browse_query",
@@ -285,15 +332,20 @@ def make_full_aggregation_query(
     project_ids: list[int],
     period_start: datetime,
     period_end: datetime,
+    request_user_id: int | None,
 ) -> Query:
-    """Return a query to fetch every replay in the set."""
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
+    """Return a query to fetch every replay in the set.
+
+    Arguments:
+        fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
+    """
+    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
 
     def _select_from_fields() -> list[Column | Function]:
         if fields:
-            return select_from_fields(list(set(fields)))
+            return select_from_fields(list(set(fields)), user_id=request_user_id)
         else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values())
+            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
 
     return Query(
         match=Entity("replays"),
@@ -313,7 +365,7 @@ def make_full_aggregation_query(
         #
         # This condition ensures that every replay shown to the user is valid.
         having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
-        groupby=[Column("project_id"), Column("replay_id")],
+        groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
 

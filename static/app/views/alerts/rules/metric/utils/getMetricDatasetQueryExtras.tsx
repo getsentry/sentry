@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
@@ -26,10 +26,14 @@ export function getMetricDatasetQueryExtras({
   const disableMetricDataset =
     decodeScalar(location?.query?.disableMetricDataset) === 'true';
 
-  const queryExtras: Record<string, string> =
-    hasMetricDataset && !disableMetricDataset
-      ? {dataset: getMEPAlertsDataset(dataset, newAlertOrQuery)}
-      : {};
+  const queryExtras: Record<string, string> = {};
+  if (hasMetricDataset && !disableMetricDataset) {
+    queryExtras.dataset = getMEPAlertsDataset(dataset, newAlertOrQuery);
+  }
+  if (location?.query?.aggregate?.includes('ai.total')) {
+    queryExtras.dataset = 'spansMetrics';
+    queryExtras.query = '';
+  }
 
   if (useOnDemandMetrics) {
     queryExtras.useOnDemandMetrics = 'true';

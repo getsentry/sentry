@@ -10,7 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import UserMisery from 'sentry/components/userMisery';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {WebVital} from 'sentry/utils/fields';
@@ -44,6 +44,10 @@ function UserStats({
   transactionName,
   eventView,
 }: Props) {
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
+
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
@@ -117,17 +121,22 @@ function UserStats({
           <SidebarSpacer />
         </Fragment>
       )}
-      <GuideAnchor target="user_misery" position="left">
-        <SectionHeading>
-          {t('User Misery')}
-          <QuestionTooltip
-            position="top"
-            title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
-            size="sm"
-          />
-        </SectionHeading>
-      </GuideAnchor>
-      {userMisery}
+      {!hasTransactionSummaryCleanupFlag && (
+        <Fragment>
+          <GuideAnchor target="user_misery" position="left">
+            <SectionHeading>
+              {t('User Misery')}
+              <QuestionTooltip
+                position="top"
+                title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+                size="sm"
+              />
+            </SectionHeading>
+          </GuideAnchor>
+          {userMisery}
+        </Fragment>
+      )}
+
       <SidebarSpacer />
     </Fragment>
   );

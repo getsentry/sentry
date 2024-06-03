@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 import {createStore} from 'reflux';
 
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 
 import type {CommonStoreDefinition} from './types';
 

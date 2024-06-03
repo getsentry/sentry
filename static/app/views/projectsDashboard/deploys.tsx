@@ -8,7 +8,8 @@ import Version from 'sentry/components/version';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Deploy as DeployType, Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import type {Deploy as DeployType} from 'sentry/types/release';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;

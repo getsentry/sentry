@@ -6,7 +6,6 @@ from .base import Analytics
 from .event import Event
 from .event_manager import default_manager
 from .map import Map
-from .utils import get_backend_path
 
 __all__ = (
     "Analytics",
@@ -18,10 +17,20 @@ __all__ = (
     "setup",
 )
 
+_SENTRY_ANALYTICS_ALIASES = {
+    "noop": "sentry.analytics.Analytics",
+    "pubsub": "sentry.analytics.pubsub.PubSubAnalytics",
+}
+
+
+def _get_backend_path(path: str) -> str:
+    return _SENTRY_ANALYTICS_ALIASES.get(path, path)
+
+
 backend = LazyServiceWrapper(
     backend_base=Analytics,
-    backend_path=get_backend_path(options.get("analytics.backend")),  # type: ignore[has-type]  # mypy is confused by a circular import
-    options=options.get("analytics.options"),  # type: ignore[has-type]  # mypy is confused by a circular import
+    backend_path=_get_backend_path(options.get("analytics.backend")),
+    options=options.get("analytics.options"),
 )
 
 record = backend.record

@@ -14,8 +14,12 @@ from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
+from sentry.sentry_metrics.querying.stats import run_metric_stats_query
 from sentry.snuba.sessions_v2 import (
     InvalidField,
     SimpleGroupBy,
@@ -133,7 +137,7 @@ class CategoryDimension(Dimension[DataCategory]):
             # combine DEFAULT, ERROR, and SECURITY as errors.
             # see relay: py/sentry_relay/consts.py and relay-cabi/include/relay.h
             parsed_category = DataCategory.parse(category)
-            if parsed_category is None:
+            if parsed_category is None and parsed_category != "metrics":
                 raise InvalidField(f'Invalid category: "{category}"')
             elif parsed_category == DataCategory.ERROR:
                 resolved_categories.update(DataCategory.error_categories())
@@ -460,3 +464,23 @@ def massage_outcomes_result(
         del result["intervals"]
     del result["query"]
     return result
+
+
+def run_metrics_outcomes_query(
+    query: QueryDict,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+) -> dict[str, list]:
+    rows = run_metric_stats_query(
+        query=query, organization=organization, projects=projects, environments=environments
+    )
+    # Dummy query definition to pass to the massage_outcomes_result, as it expects a QueryDefinition object
+    # TODO(metrics): add a `metrics` category or refactor _format_rows
+    copied = query.copy()
+    copied["category"] = "error"
+    query_def = QueryDefinition.from_query_dict(copied, {"organization_id": organization.id})
+
+    return massage_outcomes_result(
+        query=query_def, result_totals=rows["totals"], result_timeseries=rows["series"]
+    )

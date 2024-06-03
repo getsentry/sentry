@@ -50,6 +50,7 @@ class MetricAlertExamples:
                     "dateCreated": "2023-09-25T22:15:26.375126Z",
                     "createdBy": {"id": 983948, "name": "John Doe", "email": "john.doe@sentry.io"},
                     "monitorType": 0,
+                    "activations": [],
                 }
             ],
             status_codes=["200"],
@@ -118,6 +119,7 @@ class MetricAlertExamples:
                     "email": "jane.doe@sentry.io",
                 },
                 "monitorType": 0,
+                "activations": [],
             },
             status_codes=["201"],
             response_only=True,
@@ -162,6 +164,7 @@ class MetricAlertExamples:
                 },
                 "eventTypes": ["default", "error"],
                 "monitorType": 0,
+                "activations": [],
             },
             status_codes=["200"],
             response_only=True,
@@ -207,8 +210,28 @@ class MetricAlertExamples:
                     "email": "spongebob.s@example.com",
                 },
                 "monitorType": 0,
+                "activations": [],
             },
             status_codes=["200"],
             response_only=True,
+        )
+    ]
+
+    GET_METRIC_ALERT_ACTIVATIONS = [
+        OpenApiExample(
+            "Fetch a list of activations for a metric alert rule",
+            value=[
+                {
+                    "id": "1",
+                    "alertRuleId": "1",
+                    "dateCreated": "2023-09-25T23:35:31.787875Z",
+                    "finishedAt": "2023-09-25T23:35:31.787866Z",
+                    "metricValue": 100,
+                    "querySubscriptionId": "1",
+                    "isComplete": True,
+                    "activator": "1",
+                    "conditionType": "0",
+                }
+            ],
         )
     ]

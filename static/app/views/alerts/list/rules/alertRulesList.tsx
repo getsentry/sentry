@@ -18,8 +18,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import {MonitorType} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -39,6 +39,7 @@ import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
+import ActivatedRuleRow from './activatedRuleRow';
 import RuleListRow from './row';
 
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
@@ -75,6 +76,7 @@ function AlertRulesList() {
       : location.query.sort,
   });
 
+  // Fetch alert rules
   const {
     data: ruleListResponse = [],
     refetch,
@@ -253,7 +255,19 @@ function AlertRulesList() {
                         !isIssueAlertInstance &&
                         rule.monitorType === MonitorType.ACTIVATED
                       ) {
-                        return null;
+                        return (
+                          <ActivatedRuleRow
+                            // Metric and issue alerts can have the same id
+                            key={`${keyPrefix}-${rule.id}`}
+                            projectsLoaded={initiallyLoaded}
+                            projects={projects as Project[]}
+                            rule={rule}
+                            orgId={organization.slug}
+                            onOwnerChange={handleOwnerChange}
+                            onDelete={handleDeleteRule}
+                            hasEditAccess={hasEditAccess}
+                          />
+                        );
                       }
 
                       return (

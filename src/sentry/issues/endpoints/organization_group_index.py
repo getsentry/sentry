@@ -3,13 +3,14 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import features, search
+from sentry import analytics, features, search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -47,6 +48,15 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 
+# these filters are currently not supported in the snuba only search
+# and will use PostgresSnubaQueryExecutor instead of GroupAttributesPostgresSnubaQueryExecutor
+UNSUPPORTED_SNUBA_FILTERS = [
+    "issue.priority",  # coming soon
+    "firstRelease",  # coming soon
+    "first_release",  # coming soon
+]
+
+
 def inbox_search(
     projects: Sequence[Project],
     environments: Sequence[Environment] | None = None,
@@ -80,9 +90,11 @@ def inbox_search(
         return Paginator(Group.objects.none()).get_result()
 
     # Make sure search terms are valid
-    invalid_search_terms = [
-        str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms
-    ]
+    invalid_search_terms = (
+        [str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms]
+        if search_filters
+        else []
+    )
     if invalid_search_terms:
         raise InvalidSearchQuery(f"Invalid search terms for 'inbox' search: {invalid_search_terms}")
 
@@ -165,12 +177,34 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
-                # optional argument to use the group snuba dataset
-                if request.GET.get("useGroupSnubaDataset"):
-                    query_kwargs["use_group_snuba_dataset"] = True
 
-                result = search.query(**query_kwargs)
+                def use_group_snuba_dataset() -> bool:
+                    # if useGroupSnubaDataset we consider using the snuba dataset
+                    if not request.GET.get("useGroupSnubaDataset"):
+                        return False
+                    # haven't migrated trends
+                    if query_kwargs["sort_by"] == "trends":
+                        return False
+                    # check for unsupported snuba filters
+                    return (
+                        len(
+                            list(
+                                filter(
+                                    lambda x: x.key.name in UNSUPPORTED_SNUBA_FILTERS,
+                                    query_kwargs.get("search_filters", []),
+                                )
+                            )
+                        )
+                        == 0
+                    )
+
+                query_kwargs["referrer"] = "search.group_index"
+                query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()
+                sentry_sdk.set_tag(
+                    "search.use_group_snuba_dataset", query_kwargs["use_group_snuba_dataset"]
+                )
+
+                result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
     @track_slo_response("workflow")
@@ -214,7 +248,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         :qparam bool savedSearch:  if this is set to False, then we are making the request without
                                    a saved search and will look for the default search from this endpoint.
         :qparam string searchId:   if passed in, this is the selected search
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :auth: required
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
@@ -266,6 +300,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         # we ignore date range for both short id and event ids
         query = request.GET.get("query", "").strip()
+
+        # record analytics for search query
+        if request.user:
+            analytics.record(
+                "issue_search.endpoint_queried",
+                user_id=request.user.id,
+                organization_id=organization.id,
+                project_ids=",".join(map(str, project_ids)),
+                full_query_params=",".join(f"{key}={value}" for key, value in request.GET.items()),
+                query=query,
+            )
+
         if query:
             # check to see if we've got an event ID
             event_id = normalize_event_id(query)
@@ -298,7 +344,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 if groups:
                     return Response(serialize(groups, request.user, serializer(), request=request))
 
-            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
+            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
@@ -396,7 +442,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"ignored"``.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
@@ -450,9 +496,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        return update_groups(
-            request, request.GET.getlist("id"), projects, organization.id, search_fn
-        )
+        ids = [int(id) for id in request.GET.getlist("id")]
+        return update_groups(request, ids, projects, organization.id, search_fn)
 
     @track_slo_response("workflow")
     def delete(self, request: Request, organization) -> Response:
@@ -473,7 +518,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                         parameter shall be repeated for each issue, e.g.
                         `?id=1&id=2&id=3`. If this parameter is not provided,
                         it will attempt to remove the first 1000 issues.
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :auth: required
         """

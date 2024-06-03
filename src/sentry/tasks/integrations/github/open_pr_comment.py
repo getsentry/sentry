@@ -21,7 +21,6 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import features
 from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
@@ -41,7 +40,7 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.language_parsers import BETA_PATCH_PARSERS, PATCH_PARSERS
+from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
@@ -90,7 +89,7 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
-MAX_RECENT_ISSUES = 10000
+MAX_RECENT_ISSUES = 5000
 
 
 def format_open_pr_comment(issue_tables: list[str]) -> str:
@@ -150,7 +149,9 @@ def get_issue_table_contents(issue_list: list[dict[str, Any]]) -> list[PullReque
             title=issue.title,
             subtitle=issue.culprit,
             url=issue.get_absolute_url(),
-            affected_users=issue.count_users_seen(),
+            affected_users=issue.count_users_seen(
+                referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT.value
+            ),
             event_count=group_id_to_info[issue.id]["event_count"],
             function_name=group_id_to_info[issue.id]["function_name"],
         )
@@ -194,17 +195,8 @@ def safe_for_comment(
     changed_lines_count = 0
     filtered_pr_files = []
 
-    try:
-        organization = Organization.objects.get_from_cache(id=repository.organization_id)
-    except Organization.DoesNotExist:
-        logger.exception("github.open_pr_comment.org_missing")
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
-        return []
-
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
-    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
-        patch_parsers = BETA_PATCH_PARSERS
 
     for file in pr_files:
         filename = file["filename"]
@@ -285,12 +277,8 @@ def get_top_5_issues_by_count_for_file(
     if not len(projects):
         return []
 
-    organization = projects[0].organization
-
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
-    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
-        patch_parsers = BETA_PATCH_PARSERS
 
     # fetches the appropriate parser for formatting the snuba query given the file extension
     # the extension is never replaced in reverse codemapping
@@ -374,39 +362,48 @@ def get_top_5_issues_by_count_for_file(
 
     # filter on the subquery to squash group_ids with the same title and culprit
     # return the group_id with the greatest count of events
+    query = (
+        Query(subquery)
+        .set_select(
+            [
+                Column("function_name"),
+                Function(
+                    "arrayElement",
+                    (Function("groupArray", [Column("group_id")]), 1),
+                    "group_id",
+                ),
+                Function(
+                    "arrayElement",
+                    (Function("groupArray", [Column("event_count")]), 1),
+                    "event_count",
+                ),
+            ]
+        )
+        .set_groupby(
+            [
+                Column("title"),
+                Column("culprit"),
+                Column("function_name"),
+            ]
+        )
+        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+        .set_limit(5)
+    )
+
     request = SnubaRequest(
         dataset=Dataset.Events.value,
         app_id="default",
         tenant_ids={"organization_id": projects[0].organization_id},
-        query=(
-            Query(subquery)
-            .set_select(
-                [
-                    Column("function_name"),
-                    Function(
-                        "arrayElement",
-                        (Function("groupArray", [Column("group_id")]), 1),
-                        "group_id",
-                    ),
-                    Function(
-                        "arrayElement",
-                        (Function("groupArray", [Column("event_count")]), 1),
-                        "event_count",
-                    ),
-                ]
-            )
-            .set_groupby(
-                [
-                    Column("title"),
-                    Column("culprit"),
-                    Column("function_name"),
-                ]
-            )
-            .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-            .set_limit(5)
-        ),
+        query=query,
     )
-    return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
+
+    try:
+        return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
+    except Exception:
+        logger.exception(
+            "github.open_pr_comment.snuba_query_error", extra={"query": request.to_dict()["query"]}
+        )
+        return []
 
 
 @instrumented_task(
@@ -427,7 +424,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     # check org option
     org_id = pull_request.organization_id
     try:
-        organization = Organization.objects.get_from_cache(id=org_id)
+        Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
         logger.exception("github.open_pr_comment.org_missing")
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
@@ -474,8 +471,6 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
-    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
-        patch_parsers = BETA_PATCH_PARSERS
 
     file_extensions = set()
     # fetch issues related to the files
@@ -520,7 +515,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 },
             )
 
-        if file_extension in ["php"]:
+        if file_extension == ["php"]:
             logger.info(
                 "github.open_pr_comment.php",
                 extra={
@@ -530,6 +525,18 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                     "has_function_names": bool(function_names),
                 },
             )
+
+        if file_extension == ["rb"]:
+            logger.info(
+                "github.open_pr_comment.ruby",
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
+
         if not len(function_names):
             continue
 

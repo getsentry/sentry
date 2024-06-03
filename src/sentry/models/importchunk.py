@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, control_silo_only_model, region_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, control_silo_model, region_silo_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.uuid import UUIDField
 
@@ -53,7 +53,8 @@ class BaseImportChunk(DefaultFieldsModel):
     # existing database data that was kept in their stead).
     existing_map = models.JSONField(default=dict)
 
-    # A JSON object map from original pks in the source blob to the pks they "overwrote" (ie, the data from the model was imported into an existing model, and that model's pk was retained).
+    # A JSON object map from original pks in the source blob to the pks they "overwrote" (ie, the
+    # data from the model was imported into an existing model, and that model's pk was retained).
     overwrite_map = models.JSONField(default=dict)
 
     # If the inserted model has a "slug" field, or some other similar globally unique string
@@ -66,7 +67,7 @@ class BaseImportChunk(DefaultFieldsModel):
         abstract = True
 
 
-@region_silo_only_model
+@region_silo_model
 class RegionImportChunk(BaseImportChunk):
     """
     Records the pk mapping for the successful import of instances of a model that lives in the
@@ -81,7 +82,7 @@ class RegionImportChunk(BaseImportChunk):
         unique_together = (("import_uuid", "model", "min_ordinal"),)
 
 
-@control_silo_only_model
+@control_silo_model
 class ControlImportChunk(BaseImportChunk):
     """
     Records the pk mapping for the successful import of instances of a model that lives in the
@@ -96,7 +97,7 @@ class ControlImportChunk(BaseImportChunk):
         unique_together = (("import_uuid", "model", "min_ordinal"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class ControlImportChunkReplica(BaseImportChunk):
     """
     A duplicate of a `ControlImportChunk` saved on the control silo. Unlike other `*Replica` models,

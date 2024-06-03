@@ -31,7 +31,7 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  fetchError: undefined | Error;
+  fetchError: null | undefined | Error;
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
@@ -107,6 +107,7 @@ const ReplayTable = memo(
         emptyMessage={emptyMessage}
         gridRows={isFetching ? undefined : gridRows}
         loader={<LoadingIndicator style={{margin: '54px auto'}} />}
+        disableHeaderBorderBottom
       >
         {replays?.map(
           (replay: ReplayListRecord | ReplayListRecordWithTx, index: number) => {
@@ -116,6 +117,7 @@ const ReplayTable = memo(
                 isPlaying={index === selectedReplayIndex && referrerLocation !== 'replay'}
                 onClick={() => onClickPlay?.(index)}
                 showCursor={onClickPlay !== undefined}
+                referrerLocation={referrerLocation}
               >
                 {visibleColumns.map(column => {
                   switch (column) {
@@ -248,16 +250,30 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-const Row = styled('div')<{isPlaying?: boolean; showCursor?: boolean}>`
-  display: contents;
+const Row = styled('div')<{
+  isPlaying?: boolean;
+  referrerLocation?: string;
+  showCursor?: boolean;
+}>`
+  ${p =>
+    p.referrerLocation === 'replay'
+      ? `display: contents;
+         & > * {
+          border-top: 1px solid ${p.theme.border};
+          }`
+      : `display: contents;
   & > * {
-    background-color: ${p => (p.isPlaying ? p.theme.translucentInnerBorder : 'inherit')};
-    border-bottom: 1px solid ${p => p.theme.border};
-    cursor: ${p => (p.showCursor ? 'pointer' : 'default')};
+    background-color: ${p.isPlaying ? p.theme.translucentGray200 : 'inherit'};
+    border-top: 1px solid ${p.theme.border};
+    cursor: ${p.showCursor ? 'pointer' : 'default'};
   }
   :hover {
-    background-color: ${p => (p.showCursor ? p.theme.translucentInnerBorder : 'inherit')};
+    background-color: ${p.showCursor ? p.theme.translucentInnerBorder : 'inherit'};
   }
+  :active {
+    background-color: ${p.theme.translucentGray200};
+  }
+  `}
 `;
 
 export default ReplayTable;

@@ -17,19 +17,55 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+// TODO: more types get added here
+type MobileBreadcrumbTypes =
+  | {
+      category: 'ui.tap';
+      data: any;
+      message: string;
+      timestamp: number;
+      type: string;
+    }
+  | {
+      category: 'device.battery';
+      data: {charging: boolean; level: number};
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'device.connectivity';
+      data: {state: 'offline' | 'wifi' | 'cellular' | 'ethernet'};
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'device.orientation';
+      data: {position: 'landscape' | 'portrait'};
+      timestamp: number;
+      type: string;
+      message?: string;
+    };
+
 /**
- * Extra breadcrumb types not included in `@sentry/replay`
+ * Extra breadcrumb types not included in `@sentry/replay`.
+ * Also includes mobile types.
+ * The navigation breadcrumb has data['from'] marked as optional
+ * because the mobile SDK does not send that property currently.
  */
-type ExtraBreadcrumbTypes = {
-  category: 'navigation';
-  data: {
-    from: string;
-    to: string;
-  };
-  message: string;
-  timestamp: number;
-  type: string; // For compatibility reasons
-};
+type ExtraBreadcrumbTypes =
+  | MobileBreadcrumbTypes
+  | {
+      category: 'navigation';
+      data: {
+        to: string;
+        from?: string;
+      };
+      message: string;
+      timestamp: number;
+      type: string; // For compatibility reasons
+    };
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -75,9 +111,7 @@ export function isBreadcrumbFrame(
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
 }
 
-export function isFeedbackFrame(
-  frame: ReplayFrame | undefined
-): frame is BreadcrumbFrame {
+export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
   return Boolean(frame && 'category' in frame && frame.category === 'feedback');
 }
 
@@ -150,6 +184,7 @@ type HydratedTimestamp = {
    */
   timestampMs: number;
 };
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
@@ -209,8 +244,11 @@ export type FeedbackFrame = {
   type: string;
 };
 
+export type ForegroundFrame = HydratedBreadcrumb<'app.foreground'>;
+export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
+export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -219,21 +257,31 @@ export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
+export type DeviceConnectivityFrame = HydratedBreadcrumb<'device.connectivity'>;
+export type DeviceOrientationFrame = HydratedBreadcrumb<'device.orientation'>;
 
 // This list must match each of the categories used in `HydratedBreadcrumb` above
 // and any app-specific types that we hydrate (ie: replay.init).
 export const BreadcrumbCategories = [
   'console',
+  'device.battery',
+  'device.connectivity',
+  'device.orientation',
   'navigation',
   'replay.init',
   'replay.mutations',
+  'replay.hydrate-error',
   'ui.blur',
   'ui.click',
+  'ui.tap',
   'ui.focus',
   'ui.input',
   'ui.keyDown',
   'ui.multiClick',
   'ui.slowClickDetected',
+  'app.foreground',
+  'app.background',
 ];
 
 // Spans
@@ -245,7 +293,9 @@ export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
 export type PaintFrame = HydratedSpan<'paint'>;
-export type RequestFrame = HydratedSpan<'resource.fetch' | 'resource.xhr'>;
+export type RequestFrame = HydratedSpan<
+  'resource.fetch' | 'resource.xhr' | 'resource.http'
+>;
 export type ResourceFrame = HydratedSpan<
   | 'resource.css'
   | 'resource.iframe'
@@ -275,6 +325,7 @@ export const SpanOps = [
   'resource.other',
   'resource.script',
   'resource.xhr',
+  'resource.http',
 ];
 
 /**
@@ -336,4 +387,9 @@ export interface VideoEvent {
   duration: number;
   id: number;
   timestamp: number;
+}
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
 }

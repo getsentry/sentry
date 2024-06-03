@@ -261,5 +261,5 @@ const TeamInput = styled(TeamSelector)`
 const Subtitle = styled('p')`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

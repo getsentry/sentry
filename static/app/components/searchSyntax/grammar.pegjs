@@ -11,7 +11,10 @@ search
     }
 
 term
-  = (boolean_operator / paren_group / filter / free_text) spaces
+  = (boolean_operator / paren_group / open_paren / closed_paren / filter / free_text) spaces
+
+term_no_paren
+  = (boolean_operator / paren_group /  filter / free_text) spaces
 
 boolean_operator
   = (or_operator / and_operator) {
@@ -19,7 +22,9 @@ boolean_operator
     }
 
 paren_group
-  = open_paren spaces:spaces inner:term+ closed_paren {
+  = open_paren spaces:spaces inner:term_no_paren* closed_paren &{
+    return tc.predicateParenGroup();
+  } {
       return tc.tokenLogicGroup([spaces, ...inner].flat());
     }
 
@@ -283,7 +288,7 @@ search_value
   = quoted_value / value
 
 numeric_value
-  = value:("-"? numeric) unit:[kmb]? &(end_value / comma / closed_bracket) {
+  = value:("-"? numeric) unit:(number_unit)? &(end_value / comma / closed_bracket) {
       return tc.tokenValueNumber(value.join(''), unit);
     }
 
@@ -345,14 +350,14 @@ rel_date_format
 
 duration_format
   = value:numeric
-    unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
+    unit:(duration_unit)
     &end_value {
       return tc.tokenValueDuration(value, unit);
     }
 
 size_format
   = value:numeric
-    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib")
+    unit:(size_unit)
     &end_value {
       return tc.tokenValueSize(value, unit);
     }
@@ -362,14 +367,23 @@ percentage_format
       return tc.tokenValuePercentage(value);
     }
 
+// Units for special values
+number_unit = "k"i/"m"i/"b"i
+
+duration_unit = "ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w"
+size_unit     = bit_unit / byte_unit
+
+bit_unit      = "bit"i / "kib"i / "mib"i / "gib"i / "tib"i / "pib"i / "eib"i / "zib"i / "yib"i
+byte_unit     = "bytes"i / "nb"i / "kb"i / "mb"i / "gb"i / "tb"i / "pb"i / "eb"i / "zb"i / "yb"i
+
 // NOTE: the order in which these operators are listed matters because for
 // example, if < comes before <= it will match that even if the operator is <=
 operator       = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator    = "OR"i  &end_value
 and_operator   = "AND"i &end_value
 numeric        = [0-9]+ ("." [0-9]*)? { return text(); }
-open_paren     = "("
-closed_paren   = ")"
+open_paren     = "(" { return tc.tokenLParen(text()); }
+closed_paren   = ")" { return tc.tokenRParen(text()); }
 open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"

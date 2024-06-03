@@ -16,7 +16,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
-  MetricsOperation,
+  MetricsAggregate,
   MetricType,
   MRI,
   Organization,
@@ -38,7 +38,7 @@ import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
 
-function getSettingsOperationForType(type: MetricType): MetricsOperation {
+function getSettingsOperationForType(type: MetricType): MetricsAggregate {
   switch (type) {
     case 'c':
       return 'sum';
@@ -135,7 +135,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               disabled={blockMetricMutation.isLoading}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
-              aria-label={t('Block Metric')}
+              blockTarget="metric"
             />
             <LinkButton
               to={getMetricsUrl(organization.slug, {
@@ -235,14 +235,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                   disabled={blockMetricMutation.isLoading || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}
-                  aria-label={t('Block tag')}
-                  message={
-                    isBlockedTag
-                      ? t('Are you sure you want to unblock this tag?')
-                      : t(
-                          'Are you sure you want to block this tag? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
-                        )
-                  }
+                  blockTarget="tag"
                 />
               </TextAlignRight>
             </Fragment>

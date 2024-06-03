@@ -1,7 +1,7 @@
 import {unix} from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import type {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';

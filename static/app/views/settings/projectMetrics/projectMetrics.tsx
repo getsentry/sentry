@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -12,11 +12,11 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {Tag} from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, Organization, Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
@@ -31,6 +31,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
+import {CardinalityLimit} from 'sentry/views/settings/projectMetrics/cardinalityLimit';
 
 type Props = {
   organization: Organization;
@@ -39,7 +40,7 @@ type Props = {
 
 enum BlockingStatusTab {
   ACTIVE = 'active',
-  BLOCKED = 'blocked',
+  DISABLED = 'disabled',
 }
 
 function ProjectMetrics({project, location}: Props) {
@@ -106,18 +107,22 @@ function ProjectMetrics({project, location}: Props) {
 
       <PermissionAlert project={project} />
 
+      <CardinalityLimit project={project} />
+
       <SearchWrapper>
+        <h6>{t('Emitted Metrics')}</h6>
         <SearchBar
           placeholder={t('Search Metrics')}
           onChange={debouncedSearch}
           query={query}
+          size="sm"
         />
       </SearchWrapper>
 
       <Tabs value={selectedTab} onChange={setSelectedTab}>
         <TabList>
           <TabList.Item key={BlockingStatusTab.ACTIVE}>{t('Active')}</TabList.Item>
-          <TabList.Item key={BlockingStatusTab.BLOCKED}>{t('Blocked')}</TabList.Item>
+          <TabList.Item key={BlockingStatusTab.DISABLED}>{t('Disabled')}</TabList.Item>
         </TabList>
         <TabPanelsWrapper>
           <TabPanels.Item key={BlockingStatusTab.ACTIVE}>
@@ -130,7 +135,7 @@ function ProjectMetrics({project, location}: Props) {
               project={project}
             />
           </TabPanels.Item>
-          <TabPanels.Item key={BlockingStatusTab.BLOCKED}>
+          <TabPanels.Item key={BlockingStatusTab.DISABLED}>
             <MetricsTable
               metrics={metrics.filter(({blockingStatus}) => blockingStatus[0]?.isBlocked)}
               isLoading={isLoading}
@@ -203,14 +208,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
                 hasAccess={hasAccess}
                 disabled={blockMetricMutation.isLoading}
                 isBlocked={isBlocked}
-                aria-label={t('Block Metric')}
-                message={
-                  isBlocked
-                    ? t('Are you sure you want to unblock this metric?')
-                    : t(
-                        'Are you sure you want to block this metric? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
-                      )
-                }
+                blockTarget="metric"
                 onConfirm={() => {
                   blockMetricMutation.mutate({
                     mri,
@@ -231,7 +229,15 @@ const TabPanelsWrapper = styled(TabPanels)`
 `;
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: ${space(4)};
+  margin-bottom: ${space(0)};
+
+  & > h6 {
+    margin: 0;
+  }
 `;
 
 const StyledPanelTable = styled(PanelTable)`

@@ -1,7 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import type {Location} from 'history';
@@ -53,6 +52,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -125,7 +125,7 @@ export class NewTraceDetailsSpanBar extends Component<
     this.updateHighlightedState();
     this.connectObservers();
 
-    // If span is anchored scroll to span bar and open it's detail panel
+    // If span is anchored scroll to span bar and open its detail panel
     if (this.isHighlighted && this.props.onRowClick) {
       this.props.onRowClick(undefined);
 
@@ -577,7 +577,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const observer = new IntersectionObserver(([entry]) =>
       this.setState({isIntersecting: entry.isIntersecting}, () => {
         // Scrolls the next(invisible) bar from the virtualized list,
-        // by it's height. Allows us to look for anchored span bars occuring
+        // by its height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
         if (
           this.hashSpanId &&

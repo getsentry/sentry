@@ -32,14 +32,13 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
-        has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
         has_latest_adopted_release = features.has(
             "organizations:latest-adopted-release-filter", project.organization
         )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
-            node = rule_cls(project)
+            node = rule_cls(project=project)
             # skip over conditions if they are not in the migrated set for a project with alert-filters
             if project_has_filters and node.id in MIGRATED_CONDITIONS:
                 continue
@@ -76,19 +75,13 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                if (
-                    not has_high_priority_issue_alerts(project=project)
-                    and context["id"]
-                    == "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"
+                if not has_high_priority_issue_alerts(project=project) and context["id"] in (
+                    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
+                    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
                 ):
                     continue
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
-                if (
-                    context["id"] == "sentry.rules.filters.issue_severity.IssueSeverityFilter"
-                    and not has_issue_severity_alerts
-                ):
-                    continue
                 if (
                     context["id"]
                     == "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"

@@ -1,13 +1,9 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event, MemoryInfoContext} from 'sentry/types/event';
 import {MemoryInfoContextKey} from 'sentry/types/event';
 
 export const memoryInfoKnownDataValues = Object.values(MemoryInfoContextKey);
-
-type Output = {
-  subject: string;
-  value: React.ReactNode | null;
-};
 
 type Props = {
   data: MemoryInfoContext;
@@ -15,7 +11,7 @@ type Props = {
   type: (typeof memoryInfoKnownDataValues)[number];
 };
 
-export function getMemoryInfoKnownDataDetails({data, type}: Props): Output | undefined {
+export function getMemoryInfoKnownDataDetails({data, type}: Props): KnownDataDetails {
   switch (type) {
     case MemoryInfoContextKey.ALLOCATED_BYTES:
       return {

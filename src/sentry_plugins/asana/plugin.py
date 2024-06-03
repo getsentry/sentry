@@ -232,8 +232,8 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def view_autocomplete(self, request: Request, group, **kwargs):
-        field = request.GET.get("autocomplete_field")
-        query = request.GET.get("autocomplete_query")
+        field = request.GET["autocomplete_field"]
+        query = request.GET["autocomplete_query"]
 
         client = self.get_client(request.user)
         workspace = self.get_option("workspace", group.project)

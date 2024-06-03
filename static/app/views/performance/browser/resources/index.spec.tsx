@@ -4,7 +4,6 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import type {DetailedOrganization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ResourcesLandingPage from 'sentry/views/performance/browser/resources';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -23,21 +22,16 @@ const {SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
   const organization = OrganizationFixture({
-    features: [
-      'starfish-browser-resource-module-ui',
-      'starfish-view',
-      'performance-database-view',
-    ],
+    features: ['spans-first-ui', 'starfish-view'],
   });
 
   beforeEach(() => {
-    setupMocks(organization);
+    setupMocks();
     setupMockRequests(organization);
   });
 
@@ -46,7 +40,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('renders a list of resources', async () => {
-    render(<ResourcesLandingPage />);
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
@@ -59,7 +53,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('contains correct query in charts', async () => {
-    render(<ResourcesLandingPage />);
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.mainTable.mock.calls).toMatchInlineSnapshot(`
@@ -100,7 +94,7 @@ describe('ResourcesLandingPage', function () {
   });
 });
 
-const setupMocks = (organization: DetailedOrganization) => {
+const setupMocks = () => {
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
@@ -127,8 +121,6 @@ const setupMocks = (organization: DetailedOrganization) => {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 };
 
 const setupMockRequests = (organization: DetailedOrganization) => {

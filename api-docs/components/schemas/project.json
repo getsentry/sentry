@@ -69,12 +69,7 @@
       },
       "status": {
         "type": "string",
-        "enum": [
-          "active",
-          "disabled",
-          "pending_deletion",
-          "deletion_in_progress"
-        ]
+        "enum": ["active", "disabled", "pending_deletion", "deletion_in_progress"]
       }
     }
   },
@@ -462,9 +457,6 @@
             "type": "string"
           },
           "sentry:csp_ignored_sources_defaults": {
-            "type": "boolean"
-          },
-          "sentry:reprocessing_active": {
             "type": "boolean"
           }
         }

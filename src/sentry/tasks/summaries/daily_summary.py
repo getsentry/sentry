@@ -18,11 +18,10 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.notifications.notifications.daily_summary import DailySummaryNotification
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
@@ -39,6 +38,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -189,12 +189,7 @@ def build_summary_data(
                 ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
             )
             if key_errors:
-                group_id_alias = (
-                    "events.group_id"
-                    if features.has("organizations:snql-join-reports", project.organization)
-                    else "group_id"
-                )
-                project_ctx.key_errors = [(e[group_id_alias], e["count()"]) for e in key_errors]
+                project_ctx.key_errors = [(e["events.group_id"], e["count()"]) for e in key_errors]
 
             # Today's Top 3 Performance Issues
             key_performance_issues = project_key_performance_issues(
@@ -304,7 +299,7 @@ def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
     )
     for user_id in user_ids:
         top_projects_context_map = build_top_projects_map(ctx, user_id)
-        user = cast(RpcActor, user_service.get_user(user_id=user_id))
+        user = cast(Actor, user_service.get_user(user_id=user_id))
         logger.info(
             "daily_summary.delivering_summary",
             extra={"user": user_id, "organization": ctx.organization.id},

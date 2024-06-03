@@ -67,5 +67,5 @@ RedisCache = RbCache
 class RedisClusterCache(CommonRedisCache):
     def __init__(self, cluster_id: str, **options: object) -> None:
         client = redis_clusters.get(cluster_id)
-        raw_client = redis_clusters.get(cluster_id, decode_responses=False)
+        raw_client = redis_clusters.get_binary(cluster_id)
         super().__init__(client=client, raw_client=raw_client, **options)

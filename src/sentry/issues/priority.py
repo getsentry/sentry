@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.actor import get_actor_id_for_user
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -17,6 +16,8 @@ from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
+
+logger = logging.getLogger(__name__)
 
 
 class PriorityChangeReason(Enum):
@@ -30,7 +31,9 @@ PRIORITY_TO_GROUP_HISTORY_STATUS = {
     PriorityLevel.LOW: GroupHistoryStatus.PRIORITY_LOW,
 }
 
-logger = logging.getLogger(__name__)
+GROUP_HISTORY_STATUS_TO_PRIORITY = {
+    value: key for key, value in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
+}
 
 
 def update_priority(
@@ -66,7 +69,7 @@ def update_priority(
         project=project,
         new_priority=priority.to_str(),
         previous_priority=previous_priority.to_str() if previous_priority else None,
-        user_id=get_actor_id_for_user(actor) if actor else None,
+        user_id=actor.id if actor else None,
         reason=reason.value if reason else None,
         sender=sender,
     )
@@ -93,32 +96,16 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
     if not features.has("projects:issue-priority", group.project, actor=None):
         return None
 
-    previous_priority_history = (
-        GroupHistory.objects.filter(
-            group_id=group.id, status__in=PRIORITY_TO_GROUP_HISTORY_STATUS.values()
-        )
-        .order_by("-date_added")
-        .first()
-    )
-
-    new_priority = (
-        [
-            priority
-            for priority, status in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
-            if status == previous_priority_history.status
-        ][0]
-        if previous_priority_history
-        else get_initial_priority(group)
-    )
-
+    # Fall back to the initial priority
+    new_priority = get_initial_priority(group)
     if not new_priority:
         logger.error(
-            "Unable to determine previous priority value after transitioning group to ongoing",
+            "get_priority_for_ongoing_group.initial_priority_not_found",
             extra={"group": group.id},
         )
         return None
 
-    return PriorityLevel(new_priority)
+    return new_priority
 
 
 def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:

@@ -14,7 +14,6 @@ from sentry.auth.staff import (
     COOKIE_PATH,
     COOKIE_SALT,
     COOKIE_SECURE,
-    IDLE_MAX_AGE,
     MAX_AGE,
     SESSION_KEY,
     Staff,
@@ -32,11 +31,9 @@ UNSET = object()
 
 BASETIME = datetime(2022, 3, 21, 0, 0, tzinfo=UTC)
 
-EXPIRE_TIME = timedelta(hours=4, minutes=1)
+EXPIRED_TIME = BASETIME - timedelta(minutes=1)
 
-INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
-
-IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
+VALID_TIME = BASETIME + timedelta(minutes=1)
 
 
 @contextmanager
@@ -68,7 +65,6 @@ class StaffTestCase(TestCase):
         cookie_token=UNSET,
         session_token=UNSET,
         expires=UNSET,
-        idle_expires=UNSET,
         uid=UNSET,
         session_data=True,
         user=None,
@@ -82,14 +78,9 @@ class StaffTestCase(TestCase):
             ).sign(self.default_token if cookie_token is UNSET else cookie_token)
         if session_data:
             request.session[SESSION_KEY] = {
-                "exp": (
-                    self.current_datetime + timedelta(hours=4) if expires is UNSET else expires
-                ).strftime("%s"),
-                "idl": (
-                    self.current_datetime + timedelta(minutes=15)
-                    if idle_expires is UNSET
-                    else idle_expires
-                ).strftime("%s"),
+                "exp": (self.current_datetime + MAX_AGE if expires is UNSET else expires).strftime(
+                    "%s"
+                ),
                 "tok": self.default_token if session_token is UNSET else session_token,
                 "uid": str(user.id) if uid is UNSET else uid,
             }
@@ -161,21 +152,17 @@ class StaffTestCase(TestCase):
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    @freeze_time(BASETIME + EXPIRE_TIME)
+    @freeze_time(BASETIME)
     def test_expired(self):
-        # Set idle time to the current time so we fail on checking expire time
-        # and not idle time.
-        request = self.build_request(
-            idle_expires=BASETIME + EXPIRE_TIME, expires=self.current_datetime
-        )
+        request = self.build_request(expires=EXPIRED_TIME)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    @freeze_time(BASETIME + IDLE_EXPIRE_TIME)
-    def test_idle_expired(self):
-        request = self.build_request(idle_expires=self.current_datetime)
+    @freeze_time(BASETIME)
+    def test_not_expired(self):
+        request = self.build_request(expires=VALID_TIME)
         staff = Staff(request, allowed_ips=())
-        assert staff.is_active is False
+        assert staff.is_active is True
 
     def test_login_saves_session(self):
         request = self.make_request()
@@ -192,7 +179,31 @@ class StaffTestCase(TestCase):
         data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
-        assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
+        assert len(data["tok"]) == 12
+        assert data["uid"] == str(self.staff_user.id)
+
+    def test_staff_from_request_does_not_modify_session(self):
+        # Active staff in request
+        request = self.make_request(user=self.staff_user, is_staff=True)
+        request.session.modified = False
+        request_staff = getattr(request, "staff")
+        assert request_staff.is_active
+
+        # Mock the signed cookie in the request to match the token in the session
+        request.get_signed_cookie = Mock(return_value=request_staff.token)  # type: ignore[method-assign]
+
+        activated_staff = Staff(request)
+
+        # Staff should still be active
+        assert activated_staff.is_active
+        # The session should not be modified because the staff key in the
+        # session wasn't replaced
+        assert request.session.modified is False
+
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)
+        assert data
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(self.staff_user.id)
 

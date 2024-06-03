@@ -1,7 +1,7 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
-import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
 import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
@@ -11,11 +11,11 @@ import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
+import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
+import domId from 'sentry/utils/domId';
 import type {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
-import toArray from 'sentry/utils/toArray';
 
 interface Props
   extends Pick<
@@ -24,7 +24,6 @@ interface Props
   > {
   datapoints: DomNodeChartDatapoint[];
   durationMs: number;
-  startOffsetMs: number;
   startTimestampMs: number;
 }
 
@@ -35,101 +34,124 @@ export default function DomNodesChart({
   datapoints,
   setCurrentHoverTime,
   setCurrentTime,
-  startOffsetMs,
   startTimestampMs,
 }: Props) {
   const theme = useTheme();
+  const idRef = useRef(domId('replay-dom-nodes-chart-'));
 
-  const chartOptions: Omit<AreaChartProps, 'series'> = {
-    autoHeightResize: true,
-    height: 'auto',
-    grid: Grid({
-      top: '40px',
-      left: space(1),
-      right: space(1),
-    }),
-    tooltip: computeChartTooltip(
-      {
-        appendToBody: true,
-        trigger: 'axis',
-        renderMode: 'html',
-        chartId: 'replay-dom-nodes-chart',
-        formatter: values => {
-          const firstValue = Array.isArray(values) ? values[0] : values;
-          const seriesTooltips = toArray(values).map(
-            value => `
+  const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
+    () => ({
+      autoHeightResize: true,
+      height: 'auto',
+      grid: Grid({
+        left: space(1),
+        right: space(1),
+      }),
+      tooltip: computeChartTooltip(
+        {
+          appendToBody: true,
+          trigger: 'axis',
+          renderMode: 'html',
+          chartId: idRef.current,
+          formatter: values => {
+            const firstValue = Array.isArray(values) ? values[0] : values;
+            const seriesTooltips = toArray(values).map(
+              value => `
             <div>
               <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
               ${value.data[1]}
             </div>
           `
-          );
+            );
 
-          return `
+            return `
           <div class="tooltip-series">${seriesTooltips.join('')}</div>
             <div class="tooltip-footer">
-              ${t('Date: %s', getFormattedDate(startOffsetMs + firstValue.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
+              ${t('Date: %s', getFormattedDate(startTimestampMs + firstValue.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
             </div>
             <div class="tooltip-footer" style="border: none;">
               ${t('Time within replay: %s', formatTime(firstValue.axisValue))}
             </div>
           <div class="tooltip-arrow"></div>
         `;
+          },
         },
+        theme
+      ),
+      xAxis: XAxis({
+        type: 'time',
+        axisLabel: {
+          formatter: (time: number) => formatTime(startTimestampMs + time, false),
+        },
+        theme,
+      }),
+      yAxis: YAxis({
+        type: 'value',
+        theme,
+        minInterval: 100,
+        maxInterval: 10_000,
+        axisLabel: {
+          formatter: (value: number) => axisLabelFormatter(value, 'number', true),
+        },
+      }),
+      onMouseOver: ({data}) => {
+        if (data[0]) {
+          setCurrentHoverTime(data[0]);
+        }
       },
-      theme
-    ),
-    xAxis: XAxis({
-      type: 'time',
-      axisLabel: {
-        formatter: (time: number) => formatTime(time, false),
+      onMouseOut: () => {
+        setCurrentHoverTime(undefined);
       },
-      theme,
+      onClick: ({data}) => {
+        if (data.value) {
+          setCurrentTime(data.value);
+        }
+      },
     }),
-    yAxis: YAxis({
-      type: 'value',
-      name: t('DOM Nodes'),
-      theme,
-      nameTextStyle: {
-        padding: [8, 8, 8, 48],
-        fontSize: theme.fontSizeLarge,
-        fontWeight: 600,
-        lineHeight: 1.2,
-        fontFamily: theme.text.family,
-        color: theme.gray300,
-      },
-      minInterval: 100,
-      maxInterval: Math.pow(1024, 4),
-      axisLabel: {
-        formatter: (value: number) => axisLabelFormatter(value, 'number', true),
-      },
-    }),
-    onMouseOver: ({data}) => {
-      if (data[0]) {
-        setCurrentHoverTime(data[0]);
-      }
-    },
-    onMouseOut: () => {
-      setCurrentHoverTime(undefined);
-    },
-    onClick: ({data}) => {
-      if (data.value) {
-        setCurrentTime(data.value);
-      }
-    },
-  };
+    [setCurrentHoverTime, setCurrentTime, startTimestampMs, theme]
+  );
 
-  const staticSeries: Series[] = useMemo(
+  const staticSeries = useMemo<AreaChartSeries[]>(
     () => [
       {
         id: 'nodeCount',
-        seriesName: t('Number of DOM nodes'),
+        seriesName: t('Total DOM nodes'),
         data: datapoints.map(d => ({
           value: d.count,
           name: d.endTimestampMs - startTimestampMs,
         })),
-        stack: 'dom-nodes',
-        lineStyle: {opacity: 0, width: 2},
+        stack: 'node-count',
+        lineStyle: {opacity: 1, width: 2},
+      },
+      {
+        id: 'addedCount',
+        seriesName: t('DOM Nodes added'),
+        data: datapoints.map(d => ({
+          value: d.added,
+          name: d.endTimestampMs - startTimestampMs,
+        })),
+        stack: 'added-count',
+        emphasis: {
+          focus: 'series',
+        },
+        color: theme.green300,
+        lineStyle: {opacity: 1, color: theme.green300, width: 2},
+        areaStyle: {opacity: 0, color: 'transparent'},
+      },
+      {
+        id: 'removedCount',
+        seriesName: t('DOM Nodes removed'),
+        data: datapoints.map(d => ({
+          value: d.removed,
+          name: d.endTimestampMs - startTimestampMs,
+        })),
+        stack: 'removed-count',
+        emphasis: {
+          focus: 'series',
+        },
+        color: theme.red300,
+        lineStyle: {opacity: 1, color: theme.red300, width: 2},
+        areaStyle: {opacity: 0, color: 'transparent'},
       },
       {
         id: 'replayStart',
@@ -144,11 +166,11 @@ export default function DomNodesChart({
         lineStyle: {opacity: 0, width: 0},
       },
     ],
-    [datapoints, durationMs, startTimestampMs]
+    [datapoints, durationMs, startTimestampMs, theme]
   );
 
-  const dynamicSeries = useMemo(
-    (): Series[] => [
+  const dynamicSeries = useMemo<AreaChartSeries[]>(
+    () => [
       {
         id: 'hoverTime',
         seriesName: t('Hover player time'),
@@ -180,5 +202,9 @@ export default function DomNodesChart({
     [dynamicSeries, staticSeries]
   );
 
-  return <AreaChart series={series} {...chartOptions} />;
+  return (
+    <div id={idRef.current}>
+      <AreaChart series={series} {...chartOptions} />
+    </div>
+  );
 }

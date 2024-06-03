@@ -241,7 +241,9 @@ describe('WidgetBuilder', function () {
       // Selector "sortDirection"
       expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
-      expect(screen.getAllByText('count()')).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(3);
+      });
     });
 
     it('sortBy defaults to the first field value when changing display type to table', async function () {
@@ -378,10 +380,12 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(await screen.findByText('Low to high')).toBeInTheDocument();
 
       // Selector "sortBy"
-      expect(screen.getAllByText('title')).toHaveLength(2);
+      await waitFor(() => {
+        expect(screen.getAllByText('title')).toHaveLength(2);
+      });
 
       // Saves the widget
       await userEvent.click(screen.getByText('Add Widget'));

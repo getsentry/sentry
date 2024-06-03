@@ -7,13 +7,6 @@ pytestmark = requires_snuba
 
 
 class SentryManagerTest(TestCase):
-    def test_valid_only_message(self):
-        proj = self.create_project()
-        event = Group.objects.from_kwargs(proj.id, message="foo")
-        self.assertEqual(event.group.last_seen, event.datetime)
-        self.assertEqual(event.message, "foo")
-        self.assertEqual(event.project_id, proj.id)
-
     def test_get_groups_by_external_issue(self):
         external_issue_key = "api-123"
         group = self.create_group()

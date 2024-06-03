@@ -7,7 +7,6 @@ import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {MetricsFeatureBadge} from 'sentry/views/metrics/metricFeatureBadge';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
@@ -67,7 +67,7 @@ function AddWidget({onAddWidget}: Props) {
         <InnerWrapper>
           <AddWidgetButton
             onAddWidget={onAddWidget}
-            aria-label="Add Widget"
+            aria-label={t('Add Widget')}
             data-test-id="widget-add"
           />
         </InnerWrapper>
@@ -139,7 +139,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
         key: DataSet.METRICS,
         label: t('Custom Metrics'),
         onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: <FeatureBadge type="beta" />,
+        trailingItems: <MetricsFeatureBadge />,
       });
     }
 
@@ -188,6 +188,6 @@ const MenuTitle = styled('span')`
   gap: ${space(1)};
 
   & > a {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;

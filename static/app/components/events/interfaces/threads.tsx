@@ -64,7 +64,7 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
   }
   switch (state) {
     case ThreadStates.BLOCKED:
-      return <IconLock isSolid />;
+      return <IconLock locked />;
     case ThreadStates.TIMED_WAITING:
       return <IconTimer />;
     case ThreadStates.WAITING:
@@ -389,11 +389,11 @@ const ThreadStateWrapper = styled('div')`
 const ThreadState = styled(TextOverflow)`
   max-width: 100%;
   text-align: left;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const LockReason = styled(TextOverflow)`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
 `;
 

@@ -2,7 +2,9 @@ import moment from 'moment';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import ConfigStore from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+
+import type {TableDataRow} from './discover/discoverQuery';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
@@ -32,6 +34,31 @@ export function isValidTime(str: string): boolean {
  */
 export function getUtcDateString(dateObj: moment.MomentInput): string {
   return moment.utc(dateObj).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
+}
+
+/**
+ * Given a date field from a table row, return a timestamp
+ * given: '2024-04-01T20:15:18+00:00'
+ * returns: 1712002518
+ */
+export function getTimeStampFromTableDateField(
+  date: keyof TableDataRow | undefined
+): number | undefined {
+  if (!date) {
+    return undefined;
+  }
+
+  if (typeof date === 'number') {
+    return date;
+  }
+
+  const timestamp = new Date(date).getTime();
+
+  if (isNaN(timestamp)) {
+    throw new Error('Invalid timestamp: NaN');
+  }
+
+  return timestamp / 1000;
 }
 
 export function getFormattedDate(
@@ -156,30 +183,6 @@ export function getStartOfPeriodAgo(
   unit: number
 ): Date {
   return getStartOfDay(getPeriodAgo(period, unit));
-}
-
-/**
- * Convert an interval string into a number of seconds.
- * This allows us to create end timestamps from starting ones
- * enabling us to find events in narrow windows.
- *
- * @param {String} interval The interval to convert.
- * @return {Integer}
- */
-export function intervalToMilliseconds(interval: string): number {
-  const pattern = /^(\d+)(w|d|h|m)$/;
-  const matches = pattern.exec(interval);
-  if (!matches) {
-    return 0;
-  }
-  const [, value, unit] = matches;
-  const multipliers = {
-    w: 60 * 60 * 24 * 7,
-    d: 60 * 60 * 24,
-    h: 60 * 60,
-    m: 60,
-  };
-  return parseInt(value, 10) * multipliers[unit] * 1000;
 }
 
 /**

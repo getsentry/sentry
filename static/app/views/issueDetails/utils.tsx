@@ -109,9 +109,13 @@ export function getSubscriptionReason(group: Group) {
   );
 }
 
-export function getGroupMostRecentActivity(activities: GroupActivity[]) {
+export function getGroupMostRecentActivity(
+  activities: GroupActivity[] | undefined
+): GroupActivity | undefined {
   // Most recent activity
-  return orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0];
+  return activities
+    ? orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0]
+    : undefined;
 }
 
 export enum ReprocessingStatus {

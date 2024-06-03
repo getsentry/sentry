@@ -13,7 +13,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
 
-@patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
 class IntegrationRepositoryTestCase(TestCase):
     @responses.activate
     def setUp(self):

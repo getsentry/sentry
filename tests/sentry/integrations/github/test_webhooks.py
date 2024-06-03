@@ -25,7 +25,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -78,7 +78,7 @@ class InstallationEventWebhookTest(APITestCase):
         options.set("github-app.webhook-secret", self.secret)
 
     @responses.activate
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def test_installation_created(self, get_jwt):
         responses.add(
             method=responses.GET,
@@ -115,7 +115,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def test_installation_deleted(self, get_jwt):
         project = self.project  # force creation
 
@@ -156,7 +156,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DISABLED
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def test_installation_deleted_no_org_integration(self, get_jwt):
         project = self.project  # force creation
 
@@ -221,6 +221,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
+    @responses.activate
     def test_simple(self):
         project = self.project  # force creation
 
@@ -267,6 +268,7 @@ class PushEventWebhookTest(APITestCase):
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
 
+    @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
@@ -349,6 +351,7 @@ class PushEventWebhookTest(APITestCase):
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
 
+    @responses.activate
     def test_multiple_orgs(self):
         project = self.project  # force creation
 
@@ -414,6 +417,7 @@ class PushEventWebhookTest(APITestCase):
         )
         assert len(commit_list) == 0
 
+    @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
     def test_multiple_orgs_creates_missing_repos(self, mock_metrics):
         project = self.project  # force creation

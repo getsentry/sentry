@@ -35,7 +35,6 @@ from sentry.models.team import Team
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 
 from . import can_admin_team, can_set_team_role
 
@@ -50,7 +49,7 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 class OrganizationMemberTeamDetailsSerializer(Serializer):
     def serialize(
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         return {
             "isActive": obj.is_active,
             "teamRole": obj.role,
@@ -96,6 +95,41 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        team_id_or_slug = kwargs.pop("team_id_or_slug")
+        organization = kwargs["organization"]
+        member = kwargs["member"]
+
+        if request.method == "GET":
+            try:
+                omt = OrganizationMemberTeam.objects.get(
+                    team__slug__id_or_slug=team_id_or_slug, organizationmember=member
+                )
+            except OrganizationMemberTeam.DoesNotExist:
+                raise ResourceDoesNotExist
+
+            kwargs["omt"] = omt
+
+        else:
+            try:
+                team = Team.objects.get(
+                    organization__slug__id_or_slug=organization.slug,
+                    slug__id_or_slug=team_id_or_slug,
+                )
+            except Team.DoesNotExist:
+                raise ResourceDoesNotExist
+            kwargs["team"] = team
+
+        return (args, kwargs)
+
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -171,15 +205,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-        team_slug: str,
+        omt: OrganizationMemberTeam,
     ) -> Response:
-        omt = None
-        try:
-            omt = OrganizationMemberTeam.objects.get(
-                team__slug=team_slug, organizationmember=member
-            )
-        except OrganizationMemberTeam.DoesNotExist:
-            raise ResourceDoesNotExist
 
         return Response(
             serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
@@ -188,9 +215,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Add an Organization Member to a Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=None,
         responses={
@@ -210,7 +237,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-        team_slug: str,
+        team: Team,
     ) -> Response:
         # NOTE: Required to use HTML for table b/c this markdown version doesn't support colspan.
         r"""
@@ -284,11 +311,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        try:
-            team = Team.objects.get(organization=organization, slug=team_slug)
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist
-
         if not organization_roles.get(member.role).is_team_roles_allowed:
             return Response(
                 {
@@ -328,12 +350,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-        team_slug: str,
+        team: Team,
     ) -> Response:
-        try:
-            team = Team.objects.get(organization=organization, slug=team_slug)
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist
 
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
@@ -387,9 +405,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member from a Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         responses={
             200: BaseTeamSerializer,
@@ -406,7 +424,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-        team_slug: str,
+        team: Team,
     ) -> Response:
         r"""
         Delete an organization member from a team.
@@ -445,10 +463,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         \*\*Team Admins must have both **`org:read`** and **`team:admin`** scopes in their user
         authorization token to delete members from their teams.
         """
-        try:
-            team = Team.objects.get(organization=organization, slug=team_slug)
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist
 
         if not self._can_delete(request, member, team):
             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)

@@ -18,11 +18,10 @@ from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
-from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go"]
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
 def process_error(error: ApiError, extra: dict[str, str]) -> None:
     """Log known issues and report unknown ones"""
     if error.json:
-        json_data: JSONData = error.json
+        json_data: Any = error.json
         msg = json_data.get("message")
     else:
         msg = error.text
@@ -100,12 +99,6 @@ def derive_code_mappings(
         and data.get("platform") in SUPPORTED_LANGUAGES
     ):
         logger.info("Event should not be processed.", extra=extra)
-        return
-
-    # php automatic code mappings currently in LA
-    if data["platform"].startswith("php") and not features.has(
-        "organizations:derive-code-mappings-php", org
-    ):
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)

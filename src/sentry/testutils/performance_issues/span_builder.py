@@ -5,13 +5,13 @@ from sentry.spans.grouping.strategy.base import Span
 
 class SpanBuilder:
     def __init__(self) -> None:
-        self.trace_id: str = "a" * 32
-        self.parent_span_id: str | None = "a" * 16
-        self.span_id: str = "b" * 16
+        self.trace_id = "a" * 32
+        self.parent_span_id = "a" * 16
+        self.span_id = "b" * 16
         self.start_timestamp: float = 0
         self.timestamp: float = 1
-        self.same_process_as_parent: bool = True
-        self.op: str = "default"
+        self.same_process_as_parent = True
+        self.op = "default"
         self.description: str | None = None
         self.fingerprint: list[str] | None = None
         self.tags: Any | None = None
@@ -43,7 +43,7 @@ class SpanBuilder:
         return self
 
     def build(self) -> Span:
-        span = {
+        span: Span = {
             "trace_id": self.trace_id,
             "parent_span_id": self.parent_span_id,
             "span_id": self.span_id,

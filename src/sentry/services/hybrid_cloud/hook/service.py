@@ -8,7 +8,7 @@ import abc
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class HookService(RpcService):

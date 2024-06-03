@@ -43,7 +43,7 @@ const onboarding: OnboardingConfig = {
     tct('The Falcon integration adds support for the [link:Falcon Web Framework].', {
       link: <ExternalLink href="https://falconframework.org/" />,
     }),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -55,6 +55,15 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                {
+                  codeVersion: <code />,
+                  codePackage: <code />,
+                }
+              )
+            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },

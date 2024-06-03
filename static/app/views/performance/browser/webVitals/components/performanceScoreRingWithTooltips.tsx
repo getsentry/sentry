@@ -6,7 +6,6 @@ import type {Location} from '@sentry/react/types/types';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,9 +16,9 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
-import {ORDER, ORDER_WITH_INP} from '../performanceScoreChart';
+import {ORDER_WITH_INP} from '../performanceScoreChart';
 
 import {getFormattedDuration} from './webVitalMeters';
 
@@ -70,14 +69,12 @@ type WebVitalLabelProps = {
   location: Location;
   onHover: (webVital: WebVitals) => void;
   onUnHover: () => void;
-  organization: Organization;
   webVital: WebVitals;
   projectData?: TableData;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
 };
 
 function WebVitalLabel({
-  organization,
   location,
   webVital,
   coordinates,
@@ -87,6 +84,7 @@ function WebVitalLabel({
   inPerformanceWidget,
   projectData,
 }: WebVitalLabelProps) {
+  const moduleURL = useModuleURL('vital');
   const xOffset = webVitalLabelCoordinates?.[webVital]?.x ?? 0;
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
@@ -100,7 +98,7 @@ function WebVitalLabel({
   return (
     <Link
       to={{
-        pathname: `/organizations/${organization.slug}/performance/browser/pageloads/`,
+        pathname: moduleURL,
         query: {
           ...location.query,
           webVital,
@@ -174,8 +172,7 @@ function PerformanceScoreRingWithTooltips({
   const [webVitalTooltip, setWebVitalTooltip] = useState<WebVitals | null>(null);
   const [labelHovered, setLabelHovered] = useState<WebVitals | null>(null);
 
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
-  const ringSegmentOrder = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+  const ringSegmentOrder = ORDER_WITH_INP;
 
   if (labelHovered && inPerformanceWidget) {
     const index = ringSegmentOrder.indexOf(labelHovered);
@@ -267,14 +264,10 @@ function PerformanceScoreRingWithTooltips({
               onHoverActions: () => setWebVitalTooltip('fcp'),
             },
             {
-              value: shouldReplaceFidWithInp
-                ? (projectScore.inpScore ?? 0) * weights.inp * 0.01
-                : (projectScore.fidScore ?? 0) * weights.fid * 0.01,
-              maxValue: shouldReplaceFidWithInp ? weights.inp : weights.fid,
-              key: shouldReplaceFidWithInp ? 'inp' : 'fid',
-              onHoverActions: shouldReplaceFidWithInp
-                ? () => setWebVitalTooltip('inp')
-                : () => setWebVitalTooltip('fid'),
+              value: (projectScore.inpScore ?? 0) * weights.inp * 0.01,
+              maxValue: weights.inp,
+              key: 'inp',
+              onHoverActions: () => setWebVitalTooltip('inp'),
             },
             {
               value: (projectScore.clsScore ?? 0) * weights.cls * 0.01,
@@ -294,7 +287,7 @@ function PerformanceScoreRingWithTooltips({
           barWidth={barWidth}
           textCss={() => css`
             font-size: 32px;
-            font-weight: bold;
+            font-weight: ${theme.fontWeightBold};
             color: ${theme.textColor};
           `}
           segmentColors={ringSegmentColors}
@@ -356,7 +349,7 @@ const ProgressRingContainer = styled('div')``;
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   fill: ${p => (p.isLink ? p.theme.blue300 : p.theme.textColor)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
 `;
 

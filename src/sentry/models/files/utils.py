@@ -4,12 +4,18 @@ import os
 import time
 from datetime import timedelta
 from hashlib import sha1
-from typing import Any
+from typing import IO, TYPE_CHECKING, TypeVar
 
 from django.conf import settings
+from django.core.files.storage import Storage
 from django.utils import timezone
 
 from sentry.utils.imports import import_string
+
+if TYPE_CHECKING:
+    from sentry.models.files.abstractfileblob import AbstractFileBlob
+
+FileModelT = TypeVar("FileModelT", bound="AbstractFileBlob")
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
@@ -29,8 +35,7 @@ class nooplogger:
     exception = staticmethod(lambda *a, **kw: None)
 
 
-def get_size_and_checksum(fileobj, logger=nooplogger):
-    logger.debug("get_size_and_checksum.start")
+def get_size_and_checksum(fileobj: IO[bytes]) -> tuple[int, str]:
     size = 0
     checksum = sha1()
     while True:
@@ -41,11 +46,12 @@ def get_size_and_checksum(fileobj, logger=nooplogger):
         checksum.update(chunk)
     fileobj.seek(0)
 
-    logger.debug("get_size_and_checksum.end")
     return size, checksum.hexdigest()
 
 
-def get_and_optionally_update_blob(file_blob_model: Any, checksum: str):
+def get_and_optionally_update_blob(
+    file_blob_model: type[FileModelT], checksum: str
+) -> FileModelT | None:
     """
     Returns the `FileBlob` (actually generic `file_blob_model`) identified by its `checksum`.
     This will also bump its `timestamp` in a debounced fashion,
@@ -87,7 +93,7 @@ def get_storage(config=None):
     return storage(**options)
 
 
-def get_relocation_storage(config=None):
+def get_relocation_storage(config=None) -> Storage:
     from sentry import options as options_store
 
     backend = options_store.get("filestore.relocation-backend")

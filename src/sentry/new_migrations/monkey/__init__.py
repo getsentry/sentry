@@ -8,9 +8,10 @@ LAST_VERIFIED_DJANGO_VERSION = (5, 0)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 Django in several places, please verify that we have the latest code, and that the
 monkeypatching still works as expected. Currently the main things to check are:
- - `django.db.migrations.executor.MigrationExecutor`. The `is_dangerous` flag should
-   continue to work here when we set `MIGRATION_SKIP_DANGEROUS=1` as an environment
-   variable. Confirm that the structure of the class hasn't drastically changed.
+ - `django.db.migrations.executor.MigrationExecutor`. The `is_post_deployment` flag
+   should continue to work here when we set `MIGRATION_SKIP_DANGEROUS=1` as an
+   environment variable. Confirm that the structure of the class hasn't drastically
+   changed.
  - `django.db.migrations.writer.MIGRATION_TEMPLATE`. Verify that the template hasn't
   significantly changed. Details on what we've changed are in a comment on
   `sentry.migrations.monkey.writer.SENTRY_MIGRATION_TEMPLATE`
@@ -29,7 +30,7 @@ if VERSION[:2] > LAST_VERIFIED_DJANGO_VERSION:
 
 
 # This should be exactly the same as MIGRATION_TEMPLATE in `django.db.migrations.writer.py`,
-# except that we add our own `is_dangerous = False` to the class definition,
+# except that we add our own `is_post_deployment = False` to the class definition,
 # and set django's `atomic = True`.
 # Compare this template after each Django version bump to make
 # sure we're not missing any important changes.
@@ -39,17 +40,19 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 
 class Migration(CheckedMigration):
-    # This flag is used to mark that a migration shouldn't be automatically run in production. For
-    # the most part, this should only be used for operations where it's safe to run the migration
-    # after your code has deployed. So this should not be used for most operations that alter the
-    # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
-    # - Large data migrations. Typically we want these to be run manually by ops so that they can
-    #   be monitored and not block the deploy for a long period of time while they run.
+    # This flag is used to mark that a migration shouldn't be automatically run in production.
+    # This should only be used for operations where it's safe to run the migration after your
+    # code has deployed. So this should not be used for most operations that alter the schema
+    # of a table.
+    # Here are some things that make sense to mark as post deployment:
+    # - Large data migrations. Typically we want these to be run manually so that they can be
+    #   monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
-    #   have ops run this and not block the deploy. Note that while adding an index is a schema
-    #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = False
+    #   run this outside deployments so that we don't block them. Note that while adding an index
+    #   is a schema change, it's completely safe to run the operation after the code has deployed.
+    # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
+
+    is_post_deployment = False
 
 %(replaces_str)s%(initial_str)s
     dependencies = [

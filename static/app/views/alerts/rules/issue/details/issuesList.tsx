@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Group, Project} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -80,23 +81,25 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
         {groupHistory?.map(({group: issue, count, lastTriggered, eventId}) => {
           const message = getMessage(issue);
           const {title} = getTitle(issue);
+          const path =
+            (issue as unknown as FeedbackIssue).issueType === 'feedback'
+              ? {
+                  pathname: `/organizations/${organization.slug}/feedback/?feedbackSlug=${issue.project.slug}%3A${issue.id}`,
+                }
+              : {
+                  pathname: `/organizations/${organization.slug}/issues/${issue.id}/${
+                    eventId ? `events/${eventId}` : ''
+                  }`,
+                  query: {
+                    referrer: 'alert-rule-issue-list',
+                    ...(rule.environment ? {environment: rule.environment} : {}),
+                  },
+                };
 
           return (
             <Fragment key={issue.id}>
               <TitleWrapper>
-                <Link
-                  to={{
-                    pathname: `/organizations/${organization.slug}/issues/${issue.id}/${
-                      eventId ? `events/${eventId}` : ''
-                    }`,
-                    query: {
-                      referrer: 'alert-rule-issue-list',
-                      ...(rule.environment ? {environment: rule.environment} : {}),
-                    },
-                  }}
-                >
-                  {title}:
-                </Link>
+                <Link to={path}>{title}:</Link>
                 <MessageWrapper>{message}</MessageWrapper>
               </TitleWrapper>
               <AlignRight>

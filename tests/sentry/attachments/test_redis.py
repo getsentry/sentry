@@ -3,8 +3,9 @@ from unittest import mock
 
 import pytest
 
+from sentry.attachments.redis import RedisClusterAttachmentCache
 from sentry.cache.redis import RedisClusterCache
-from sentry.utils.imports import import_string
+from sentry.utils.redis import redis_clusters
 
 KEY_FMT = "c:1:%s"
 
@@ -24,12 +25,16 @@ def mock_client():
 
 @pytest.fixture
 def mocked_attachment_cache(request, mock_client):
-    with mock.patch(
-        "sentry.utils.redis.redis_clusters.get", return_value=mock_client
-    ) as cluster_get:
-        attachment_cache = import_string("sentry.attachments.redis.RedisClusterAttachmentCache")()
-        cluster_get.assert_any_call("rc-short")
-        assert isinstance(attachment_cache.inner, RedisClusterCache)
+    with (
+        mock.patch.object(redis_clusters, "get", return_value=mock_client) as cluster_get,
+        mock.patch.object(
+            redis_clusters, "get_binary", return_value=mock_client
+        ) as cluster_get_binary,
+    ):
+        attachment_cache = RedisClusterAttachmentCache()
+    cluster_get.assert_called_once_with("rc-short")
+    cluster_get_binary.assert_called_once_with("rc-short")
+    assert isinstance(attachment_cache.inner, RedisClusterCache)
 
     assert attachment_cache.inner._text_client is mock_client
     yield attachment_cache

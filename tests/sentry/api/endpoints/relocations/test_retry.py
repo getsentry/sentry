@@ -4,6 +4,8 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
+import orjson
+
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.endpoints.relocations.index import (
     ERR_DUPLICATE_RELOCATION,
@@ -24,7 +26,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_FILE_TYPE, OrderedTask
 
 FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -35,8 +36,8 @@ TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 @lru_cache(maxsize=1)
 def get_test_tarball() -> BytesIO:
     (_, pub_key_pem) = generate_rsa_key_pair()
-    with open(FRESH_INSTALL_PATH) as f:
-        data = json.load(f)
+    with open(FRESH_INSTALL_PATH, "rb") as f:
+        data = orjson.loads(f.read())
         return create_encrypted_export_tarball(data, LocalFileEncryptor(BytesIO(pub_key_pem)))
 
 
@@ -110,6 +111,8 @@ class RetryRelocationTest(APITestCase):
         assert response.data["latestUnclaimedEmailsSentAt"] is None
         assert response.data["scheduledPauseAtStep"] is None
         assert response.data["wantUsernames"] is None
+        assert response.data["importedUserIds"] == []
+        assert response.data["importedOrgIds"] == []
 
         assert (
             Relocation.objects.filter(owner_id=self.owner.id)

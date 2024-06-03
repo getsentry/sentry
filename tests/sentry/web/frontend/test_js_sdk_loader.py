@@ -315,7 +315,7 @@ class JavaScriptSdkLoaderTest(TestCase):
             for key in expected_options:
                 # Convert to e.g. "option_name": 0.1
                 single_option = {key: expected_options[key]}
-                assert bytes(json.dumps(single_option)[1:-1], "utf-8") in resp.content
+                assert json.dumps(single_option)[1:-1].encode() in resp.content
 
             self.projectkey.data = {}
             self.projectkey.save()

@@ -8,6 +8,9 @@ TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
 """
+TIMEOUT_SPAN_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or filtering on transaction or tag fields when filtering span data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -51,6 +54,7 @@ UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
 SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
 SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
+SPAN_STATUS = "span.status"
 
 
 class ThresholdDict(TypedDict):
@@ -191,6 +195,8 @@ HTTP_SERVER_ERROR_STATUS = {
     "511",
 }
 
+CACHE_HIT_STATUS = {"true", "false"}
+
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
@@ -311,6 +317,7 @@ DEFAULT_METRIC_TAGS = {
     "query_hash",
     "release",
     "resource.render_blocking_status",
+    "cache.hit",
     "satisfaction",
     "sdk",
     "session.status",
@@ -319,16 +326,30 @@ DEFAULT_METRIC_TAGS = {
     "transaction.op",
     "transaction.status",
     "span.op",
+    "trace.status",
+    "messaging.destination.name",
 }
+SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
+    "ai.total_tokens.used": "c:spans/ai.total_tokens.used@none",
+    "ai.total_cost": "c:spans/ai.total_cost@usd",
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
+    "cache.item_size": "d:spans/cache.item_size@byte",
+    "mobile.slow_frames": "g:spans/mobile.slow_frames@none",
+    "mobile.frozen_frames": "g:spans/mobile.frozen_frames@none",
+    "mobile.total_frames": "g:spans/mobile.total_frames@none",
+    "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
+    "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
 }
-SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+PROFILE_METRICS_MAP = {
+    "function.duration": "d:profiles/function.duration@millisecond",
+}
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 
@@ -348,7 +369,15 @@ METRIC_DURATION_COLUMNS = {
 SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
-    if value.endswith("@millisecond") and value.startswith("d:")
+    if value.endswith("@millisecond") or value.endswith("@second")
+}
+SPAN_METRIC_SUMMABLE_COLUMNS = SPAN_METRIC_DURATION_COLUMNS.union(
+    {"ai.total_tokens.used", "ai.total_cost"}
+)
+SPAN_METRIC_COUNT_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@none") and value.startswith("g:")
 }
 SPAN_METRIC_BYTES_COLUMNS = {
     key

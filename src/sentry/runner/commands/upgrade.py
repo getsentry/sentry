@@ -5,10 +5,10 @@ from django.db.utils import ProgrammingError
 
 from sentry.runner.decorators import configuration
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
-def _check_history():
+def _check_history() -> None:
     connection = connections["default"]
     cursor = connection.cursor()
     try:
@@ -43,7 +43,14 @@ def _check_history():
         )
 
 
-def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_nodestore):
+def _upgrade(
+    interactive: bool,
+    traceback: bool,
+    verbosity: int,
+    repair: bool,
+    run_post_upgrade: bool,
+    with_nodestore: bool,
+) -> None:
     from django.core.management import call_command as dj_call_command
 
     _check_history()
@@ -96,17 +103,24 @@ def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_n
 )
 @click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
 @configuration
-@click.pass_context
-def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, no_post_upgrade, with_nodestore):
+def upgrade(
+    verbosity: int,
+    traceback: bool,
+    noinput: bool,
+    lock: bool,
+    no_repair: bool,
+    no_post_upgrade: bool,
+    with_nodestore: bool,
+) -> None:
     "Perform any pending database migrations and upgrades."
 
     if lock:
         from sentry.locks import locks
         from sentry.utils.locking import UnableToAcquireLock
 
-        lock = locks.get("upgrade", duration=0, name="command_upgrade")
+        lock_inst = locks.get("upgrade", duration=0, name="command_upgrade")
         try:
-            with lock.acquire():
+            with lock_inst.acquire():
                 _upgrade(
                     not noinput,
                     traceback,

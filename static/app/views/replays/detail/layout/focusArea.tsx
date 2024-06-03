@@ -5,25 +5,11 @@ import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import MemoryPanel from 'sentry/views/replays/detail/memoryPanel/index';
 import NetworkList from 'sentry/views/replays/detail/network';
-import PerfTable from 'sentry/views/replays/detail/perfTable/index';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
 export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});
-
-  if (isVideoReplay) {
-    switch (getActiveTab()) {
-      case TabKey.ERRORS:
-        return <ErrorList />;
-      case TabKey.BREADCRUMBS:
-        return <Breadcrumbs />;
-      case TabKey.TAGS:
-      default: {
-        return <TagPanel />;
-      }
-    }
-  }
 
   switch (getActiveTab()) {
     case TabKey.A11Y:
@@ -32,8 +18,6 @@ export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
       return <NetworkList />;
     case TabKey.TRACE:
       return <Trace />;
-    case TabKey.PERF:
-      return <PerfTable />;
     case TabKey.ERRORS:
       return <ErrorList />;
     case TabKey.MEMORY:

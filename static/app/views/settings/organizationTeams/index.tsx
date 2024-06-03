@@ -3,7 +3,7 @@ import type {RouteComponentProps} from 'react-router';
 import {loadStats} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
 import TeamStore from 'sentry/stores/teamStore';
-import type {AccessRequest, Organization, Team} from 'sentry/types';
+import type {AccessRequest, Organization, Team} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

@@ -2,7 +2,6 @@ from collections.abc import Generator, Sequence
 
 from sentry.eventstore.models import GroupEvent
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
 from sentry.rules.base import CallbackFuture
@@ -33,7 +32,7 @@ class NotifyEventAction(EventAction):
         return results
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         group = event.group
 

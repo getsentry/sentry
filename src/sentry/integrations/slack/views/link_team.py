@@ -167,7 +167,7 @@ class SlackLinkTeamView(BaseView):
         analytics.record(
             "integrations.identity_linked",
             provider="slack",
-            actor_id=team.actor_id,
+            actor_id=team.id,
             actor_type="team",
         )
 

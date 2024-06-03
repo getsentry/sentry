@@ -4,11 +4,12 @@ from unittest import mock
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry import buffer, tsdb
+from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -23,10 +24,12 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -274,8 +277,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
         ):
             event = self.store_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -547,6 +551,28 @@ class GroupUpdateTest(APITestCase):
 
         assert not GroupSeen.objects.filter(group=group, user_id=self.user.id).exists()
 
+    def test_seen_by_deleted_user(self):
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+        self.login_as(user=self.user)
+        # Create a stale GroupSeen referencing a user that no longer exists
+        GroupSeen.objects.create(group=group, user_id=424242, project_id=self.project.id)
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        # Assert empty set for single invalid GroupSeen
+        assert response.data["seenBy"] == []
+
+        has_seen_response = self.client.put(url, data={"hasSeen": "1"}, format="json")
+        assert has_seen_response.status_code == 200
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        # Assert only valid GroupSeens are serialized
+        last_seen_data = response.data["seenBy"]
+        assert len(last_seen_data) == 1
+        assert last_seen_data[0]["id"] == str(self.user.id)
+
     def test_subscription(self):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -660,7 +686,7 @@ class GroupUpdateTest(APITestCase):
 
 
 class GroupDeleteTest(APITestCase):
-    def test_delete(self):
+    def test_delete_deferred(self):
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -679,6 +705,13 @@ class GroupDeleteTest(APITestCase):
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
+    def test_delete_and_tasks_run(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        hash = "x" * 32
+        GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
         url = f"/api/0/issues/{group.id}/"
 
         with self.tasks():
@@ -689,6 +722,15 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+        with self.tasks(), outbox_runner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.get(
+                    event=audit_log.get_event_id("ISSUE_DELETE"),
+                ).data["issue_id"]
+                == group.id
+            )
 
     def test_delete_performance_issue(self):
         """Test that a performance issue cannot be deleted"""

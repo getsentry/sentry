@@ -68,7 +68,7 @@ describe('Commits', () => {
       body: repos,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/${encodeURIComponent(
+      url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
         release.version
       )}/commits/`,
       body: [],
@@ -85,7 +85,7 @@ describe('Commits', () => {
       body: repos,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/${encodeURIComponent(
+      url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
         release.version
       )}/commits/`,
       body: [CommitFixture()],
@@ -112,7 +112,7 @@ describe('Commits', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/${encodeURIComponent(
+      url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
         release.version
       )}/commits/`,
       body: [CommitFixture()],
@@ -146,7 +146,7 @@ describe('Commits', () => {
       body: [repos[0]!, otherRepo],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/${encodeURIComponent(
+      url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
         release.version
       )}/commits/`,
       body: [

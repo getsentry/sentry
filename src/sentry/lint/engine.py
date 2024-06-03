@@ -72,9 +72,9 @@ def get_files_for_list(file_list):
 
 def get_js_files(file_list=None, snapshots=False):
     if snapshots:
-        extensions: tuple[str, ...] = (".js", ".jsx", ".ts", ".tsx", ".jsx.snap", ".js.snap")
+        extensions: tuple[str, ...] = (".js", ".ts", ".tsx", ".js.snap")
     else:
-        extensions = (".js", ".jsx", ".ts", ".tsx")
+        extensions = (".js", ".ts", ".tsx")
 
     if file_list is None:
         file_list = ["tests/js", "static/app"]
@@ -100,7 +100,7 @@ def js_lint(file_list=None, parseable=False, format=False):
 
     has_errors = False
     if js_file_list:
-        cmd = [eslint_path, "--ext", ".js,.jsx,.ts,.tsx"]
+        cmd = [eslint_path, "--ext", ".js,.ts,.tsx"]
 
         if format:
             cmd.append("--fix")

@@ -1,7 +1,7 @@
-import {useCallback} from 'react';
+import {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 interface Props {
@@ -15,18 +15,16 @@ const CLIP_OFFSETS = {
   durationBeforeMs: 20_000,
 };
 
+const LazyReplayClipPreviewComponent = lazy(
+  () => import('sentry/components/events/eventReplay/replayClipPreview')
+);
+const LazyReplayPreviewComponent = lazy(
+  () => import('sentry/components/events/eventReplay/replayPreview')
+);
+
 export default function ReplaySection({eventTimestampMs, organization, replayId}: Props) {
   const hasUserFeedbackReplayClip = organization.features.includes(
     'user-feedback-replay-clip'
-  );
-
-  const replayPreview = useCallback(
-    () => import('sentry/components/events/eventReplay/replayPreview'),
-    []
-  );
-  const replayClipPreview = useCallback(
-    () => import('sentry/components/events/eventReplay/replayClipPreview'),
-    []
   );
 
   const props = {
@@ -45,8 +43,12 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
   };
 
   return hasUserFeedbackReplayClip ? (
-    <LazyLoad {...props} component={replayClipPreview} clipOffsets={CLIP_OFFSETS} />
+    <LazyLoad
+      {...props}
+      LazyComponent={LazyReplayClipPreviewComponent}
+      clipOffsets={CLIP_OFFSETS}
+    />
   ) : (
-    <LazyLoad {...props} component={replayPreview} />
+    <LazyLoad {...props} LazyComponent={LazyReplayPreviewComponent} />
   );
 }

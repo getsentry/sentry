@@ -3,17 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import WebVitalsLandingPage from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
-    features: ['starfish-browser-webvitals', 'performance-database-view'],
+    features: ['spans-first-ui'],
   });
 
   beforeEach(function () {
@@ -42,7 +40,6 @@ describe('WebVitalsLandingPage', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -70,7 +67,7 @@ describe('WebVitalsLandingPage', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<WebVitalsLandingPage />);
+    render(<WebVitalsLandingPage />, {organization});
     await screen.findByText(/\(Interaction to Next Paint\) will replace/);
     await screen.findByText(
       /\(First Input Delay\) in our performance score calculation./

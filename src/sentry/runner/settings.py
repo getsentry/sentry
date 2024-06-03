@@ -1,4 +1,3 @@
-import importlib.resources
 import os
 import warnings
 
@@ -10,35 +9,7 @@ DEFAULT_SETTINGS_CONF = "config.yml"
 DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 
 
-def generate_secret_key():
-    from django.utils.crypto import get_random_string
-
-    chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
-    return get_random_string(50, chars)
-
-
-def load_config_template(path: str, version: str = "default") -> str:
-    return importlib.resources.files("sentry").joinpath(f"data/config/{path}.{version}").read_text()
-
-
-def generate_settings(dev=False):
-    """
-    This command is run when ``default_path`` doesn't exist, or ``init`` is
-    run and returns a string representing the default data to put into their
-    settings file.
-    """
-    context = {
-        "secret_key": generate_secret_key(),
-        "debug_flag": dev,
-        "mail.backend": "console" if dev else "smtp",
-    }
-
-    py = load_config_template(DEFAULT_SETTINGS_OVERRIDE, "default") % context
-    yaml = load_config_template(DEFAULT_SETTINGS_CONF, "default") % context
-    return py, yaml
-
-
-def get_sentry_conf():
+def get_sentry_conf() -> str:
     """
     Fetch the SENTRY_CONF value, either from the click context
     if available, or SENTRY_CONF environment variable.
@@ -79,7 +50,9 @@ def discover_configs() -> tuple[str, str, str | None]:
     )
 
 
-def configure(ctx, py, yaml, skip_service_validation=False):
+def configure(
+    ctx: click.Context | None, py: str, yaml: str | None, skip_service_validation: bool = False
+) -> None:
     """
     Given the two different config files, set up the environment.
 

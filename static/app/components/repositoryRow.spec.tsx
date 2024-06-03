@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import RepositoryRow from 'sentry/components/repositoryRow';
-import {RepositoryStatus} from 'sentry/types';
+import {RepositoryStatus} from 'sentry/types/integrations';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {

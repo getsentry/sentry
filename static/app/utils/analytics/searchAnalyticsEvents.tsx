@@ -35,6 +35,7 @@ export type SearchEventParameters = {
     count: number;
     multi: boolean;
   };
+  'search.docs_opened': SearchEventBase;
   'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
   'search.key_autocompleted': Omit<SearchEventBase, 'query'> & {
     item_name: string | undefined;
@@ -79,6 +80,7 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
   'search.key_autocompleted': 'Search: Key Autocompleted',
   'search.shortcut_used': 'Search: Shortcut Used',
+  'search.docs_opened': 'Search: Docs Opened',
   'search.search_with_invalid': 'Search: Attempted Invalid Search',
   'search.invalid_field': 'Search: Unsupported Field Warning Shown',
   'search.operator_autocompleted': 'Search: Operator Autocompleted',

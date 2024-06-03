@@ -6,13 +6,13 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import organization_roles
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationMemberMapping(Model):
     """
     This model resides exclusively in the control silo, and will

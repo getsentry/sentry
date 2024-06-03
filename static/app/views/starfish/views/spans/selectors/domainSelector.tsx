@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -8,6 +7,7 @@ import omit from 'lodash/omit';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {uniq} from 'sentry/utils/array/uniq';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -170,8 +170,15 @@ const LIMIT = 100;
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
   db: t('Table'),
+  cache: t('Domain'),
+  vital: t('Domain'),
+  queue: t('Domain'),
+  screen_load: t('Domain'),
+  app_start: t('Domain'),
   resource: t('Resource'),
   other: t('Domain'),
+  ai: t('Domain'),
+  'mobile-ui': t('Domain'),
   '': t('Domain'),
 };
 

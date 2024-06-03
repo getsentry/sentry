@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import Mock
 
+import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
@@ -30,7 +31,6 @@ from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.usage_accountant import accountant
-from sentry.utils import json
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
@@ -87,7 +87,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
     for _ in range(2):
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -137,7 +137,7 @@ def test_transactions_spawn_save_event_transaction(
     start_time = time.time() - 3600
     process_event(
         {
-            "payload": json.dumps(payload),
+            "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
             "event_id": event_id,
             "project_id": project_id,
@@ -186,7 +186,7 @@ def test_accountant_transaction(default_project):
         },
     }
     payload = get_normalized_event(event, default_project)
-    serialized = json.dumps(payload)
+    serialized = orjson.dumps(payload).decode()
     process_event(
         {
             "payload": serialized,
@@ -239,7 +239,7 @@ def test_feedbacks_spawn_save_event_feedback(
     start_time = time.time() - 3600
     process_event(
         {
-            "payload": json.dumps(payload),
+            "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
             "event_id": event_id,
             "project_id": project_id,
@@ -291,7 +291,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
     with task_runner():
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -361,7 +361,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
 
     process_attachment_chunk(
         {
-            "payload": json.dumps_htmlsafe(obfuscated_view_hierarchy).encode(),
+            "payload": orjson.dumps(obfuscated_view_hierarchy),
             "event_id": event_id,
             "project_id": project_id,
             "id": attachment_id,
@@ -372,7 +372,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     with task_runner():
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -401,28 +401,27 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
 
 
 @django_db_all
+@pytest.mark.parametrize("feature_enabled", [True, False], ids=["with_feature", "without_feature"])
 @pytest.mark.parametrize(
-    "event_attachments", [True, False], ids=["with_feature", "without_feature"]
-)
-@pytest.mark.parametrize(
-    "chunks",
+    "attachment",
     [
-        ((b"Hello ", b"World!"), "event.attachment", "application/octet-stream"),
-        ((b"",), "event.attachment", "application/octet-stream"),
-        ((), "event.attachment", "application/octet-stream"),
+        ([b"Hello ", b"World!"], "event.attachment", "application/octet-stream"),
+        ([b""], "event.attachment", "application/octet-stream"),
+        ([], "event.attachment", "application/octet-stream"),
         (
-            (b'{"rendering_system":"flutter","windows":[]}',),
+            [b'{"rendering_system":"flutter","windows":[]}'],
             "event.view_hierarchy",
             "application/json",
         ),
+        (b"inline attachment", "event.attachment", "application/octet-stream"),
     ],
-    ids=["basic", "zerolen", "nochunks", "view_hierarchy"],
+    ids=["basic", "zerolen", "nochunks", "view_hierarchy", "inline"],
 )
 @pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
 def test_individual_attachments(
-    default_project, factories, monkeypatch, event_attachments, chunks, with_group, django_cache
+    default_project, factories, monkeypatch, feature_enabled, attachment, with_group, django_cache
 ):
-    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: event_attachments)
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: feature_enabled)
 
     event_id = uuid.uuid4().hex
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
@@ -437,27 +436,34 @@ def test_individual_attachments(
         group_id = event.group.id
         assert group_id, "this test requires a group to work"
 
-    for i, chunk in enumerate(chunks[0]):
-        process_attachment_chunk(
-            {
-                "payload": chunk,
-                "event_id": event_id,
-                "project_id": project_id,
-                "id": attachment_id,
-                "chunk_index": i,
-            }
-        )
+    chunks, attachment_type, content_type = attachment
+    attachment_meta = {
+        "attachment_type": attachment_type,
+        "chunks": len(chunks),
+        "content_type": content_type,
+        "id": attachment_id,
+        "name": "foo.txt",
+    }
+    if isinstance(chunks, bytes):
+        attachment_meta["data"] = chunks
+        expected_content = chunks
+    else:
+        for i, chunk in enumerate(chunks):
+            process_attachment_chunk(
+                {
+                    "payload": chunk,
+                    "event_id": event_id,
+                    "project_id": project_id,
+                    "id": attachment_id,
+                    "chunk_index": i,
+                }
+            )
+        expected_content = b"".join(chunks)
 
     process_individual_attachment(
         {
             "type": "attachment",
-            "attachment": {
-                "attachment_type": chunks[1],
-                "chunks": len(chunks[0]),
-                "content_type": chunks[2],
-                "id": attachment_id,
-                "name": "foo.txt",
-            },
+            "attachment": attachment_meta,
             "event_id": event_id,
             "project_id": project_id,
         },
@@ -466,16 +472,16 @@ def test_individual_attachments(
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
-    if not event_attachments:
+    if not feature_enabled:
         assert not attachments
     else:
         (attachment,) = attachments
         assert attachment.name == "foo.txt"
         assert attachment.group_id == group_id
-        assert attachment.content_type == chunks[2]
+        assert attachment.content_type == content_type
 
         with attachment.getfile() as file_contents:
-            assert file_contents.read() == b"".join(chunks[0])
+            assert file_contents.read() == expected_content
 
 
 @django_db_all
@@ -499,14 +505,14 @@ def test_userreport(django_cache, default_project, monkeypatch):
         {
             "type": "user_report",
             "start_time": start_time,
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {
                     "name": "Hans Gans",
                     "event_id": event_id,
                     "comments": "hello world",
                     "email": "markus+dontatme@sentry.io",
                 }
-            ),
+            ).decode(),
             "project_id": default_project.id,
         },
         project=default_project,
@@ -530,14 +536,14 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
         {
             "type": "user_report",
             "start_time": start_time,
-            "payload": json.dumps(
+            "payload": orjson.dumps(
                 {
                     "name": "Hans Gans",
                     "event_id": event_id,
                     "comments": "hello world",
                     "email": "markus+dontatme@sentry.io",
                 }
-            ),
+            ).decode(),
             "project_id": default_project.id,
         },
         project=default_project,

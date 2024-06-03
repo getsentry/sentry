@@ -1,13 +1,17 @@
 import {t} from 'sentry/locale';
-import type {MonitorType} from 'sentry/types/alerts';
+import type {
+  ActivationConditionType,
+  AlertRuleActivation,
+  MonitorType,
+} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 import type {Incident} from '../../types';
 
 export enum AlertRuleThresholdType {
-  ABOVE,
-  BELOW,
+  ABOVE = 0,
+  BELOW = 1,
 }
 
 export enum AlertRuleTriggerType {
@@ -85,6 +89,7 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
+// Form values for creating a new metric alert rule
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
@@ -96,14 +101,18 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
+  activationCondition?: ActivationConditionType;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
   monitorType?: MonitorType;
+  monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
 };
 
+// Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
+  activations: AlertRuleActivation[];
   dateCreated: string;
   dateModified: string;
   id: string;

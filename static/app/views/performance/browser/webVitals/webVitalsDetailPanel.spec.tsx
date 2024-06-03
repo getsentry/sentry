@@ -3,13 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('WebVitalsDetailPanel', function () {
   const organization = OrganizationFixture();
@@ -41,7 +39,6 @@ describe('WebVitalsDetailPanel', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -60,10 +57,12 @@ describe('WebVitalsDetailPanel', function () {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />);
+    render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />, {
+      organization,
+    });
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     // Once for project web vitals and once for samples
-    expect(eventsMock).toHaveBeenCalledTimes(2);
+    expect(eventsMock).toHaveBeenCalledTimes(3);
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Largest Contentful Paint (P75)')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();

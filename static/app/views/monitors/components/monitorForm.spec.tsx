@@ -19,7 +19,10 @@ jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
-  const organization = OrganizationFixture({features: ['issue-platform']});
+  const organization = OrganizationFixture({
+    features: ['issue-platform'],
+  });
+
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
   const {project, routerContext} = initializeOrg({organization});
@@ -116,6 +119,9 @@ describe('MonitorForm', function () {
       '2'
     );
 
+    const ownerSelect = screen.getByRole('textbox', {name: 'Owner'});
+    await selectEvent.select(ownerSelect, 'John Smith');
+
     const notifySelect = screen.getByRole('textbox', {name: 'Notify'});
 
     await selectEvent.openMenu(notifySelect);
@@ -136,12 +142,12 @@ describe('MonitorForm', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Monitor'}));
 
     const config = {
-      checkin_margin: '5',
-      max_runtime: '20',
-      failure_issue_threshold: '4',
-      recovery_threshold: '2',
+      checkinMargin: '5',
+      maxRuntime: '20',
+      failureIssueThreshold: '4',
+      recoveryThreshold: '2',
       schedule: '5 * * * *',
-      schedule_type: 'crontab',
+      scheduleType: 'crontab',
       timezone: 'America/Los_Angeles',
     };
 
@@ -156,6 +162,7 @@ describe('MonitorForm', function () {
         data: {
           name: 'My Monitor',
           project: 'project-slug',
+          owner: `user:${member.user?.id}`,
           type: 'cron_job',
           config,
           alertRule,
@@ -219,6 +226,12 @@ describe('MonitorForm', function () {
     expect(screen.getByRole('spinbutton', {name: 'Failure Tolerance'})).toHaveValue(2);
     expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(2);
 
+    // Ownership
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Owner'}));
+    const ownerOption = screen.getByRole('menuitemradio', {name: member.user?.name});
+    expect(ownerOption).toBeChecked();
+    await userEvent.keyboard('{Escape}');
+
     // Alert rule configuration
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
     const memberOption = screen.getByRole('menuitemcheckbox', {name: member.user?.name});
@@ -247,13 +260,13 @@ describe('MonitorForm', function () {
     // monitor they come in as numbers, when changed via the toggles they
     // are translated to strings :(
     const config = {
-      max_runtime: monitor.config.max_runtime,
-      checkin_margin: monitor.config.checkin_margin,
-      recovery_threshold: monitor.config.recovery_threshold,
+      maxRuntime: monitor.config.max_runtime,
+      checkinMargin: monitor.config.checkin_margin,
+      recoveryThreshold: monitor.config.recovery_threshold,
       schedule: monitor.config.schedule,
-      schedule_type: monitor.config.schedule_type,
+      scheduleType: monitor.config.schedule_type,
       timezone: monitor.config.timezone,
-      failure_issue_threshold: '10',
+      failureIssueThreshold: '10',
     };
 
     const alertRule = {
@@ -268,6 +281,7 @@ describe('MonitorForm', function () {
           name: monitor.name,
           slug: monitor.slug,
           project: monitor.project.slug,
+          owner: `user:${member.user?.id}`,
           type: 'cron_job',
           config,
           alertRule,

@@ -1,13 +1,21 @@
 import {useMemo} from 'react';
 
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 import useOrganization from 'sentry/utils/useOrganization';
+
+interface Props {
+  bufferLimit?: number;
+  statsPeriod?: string;
+}
 
 /**
  * Query results for whether an Issue/Group has replays associated.
  */
-export default function useReplayCountForIssues() {
+export default function useReplayCountForIssues({
+  bufferLimit = 25,
+  statsPeriod = '14d',
+}: Props = {}) {
   const organization = useOrganization();
   const {
     getOne: getOneError,
@@ -15,11 +23,11 @@ export default function useReplayCountForIssues() {
     hasOne: hasOneError,
     hasMany: hasManyError,
   } = useReplayCount({
-    bufferLimit: 25,
+    bufferLimit,
     dataSource: 'discover',
     fieldName: 'issue.id',
     organization,
-    statsPeriod: '14d',
+    statsPeriod,
   });
   const {
     getOne: getOneIssue,
@@ -27,11 +35,11 @@ export default function useReplayCountForIssues() {
     hasOne: hasOneIssue,
     hasMany: hasManyIssue,
   } = useReplayCount({
-    bufferLimit: 25,
+    bufferLimit,
     dataSource: 'search_issues',
     fieldName: 'issue.id',
     organization,
-    statsPeriod: '14d',
+    statsPeriod,
   });
 
   return useMemo(

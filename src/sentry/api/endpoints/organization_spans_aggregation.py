@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional, TypedDict
 
 import sentry_sdk
@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Function
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -22,6 +22,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
+CUTOVER_DATE = datetime(2024, 3, 22, tzinfo=timezone.utc)
 
 EventSpan = namedtuple(
     "EventSpan",
@@ -45,6 +46,13 @@ class EventSpans(TypedDict):
     spans: list[EventSpan]
 
 
+class SpanSample(TypedDict):
+    transaction: str | None
+    trace: str | None
+    timestamp: int
+    span: str
+
+
 AggregateSpanRow = TypedDict(
     "AggregateSpanRow",
     {
@@ -61,7 +69,9 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
+        # samples is deprecated in favour of sample_spans
         "samples": set[tuple[Optional[str], str]],
+        "sample_spans": list[SpanSample],
     },
 )
 
@@ -72,6 +82,7 @@ class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: dict[str, AggregateSpanRow] = {}
         self.current_transaction: str | None = None
+        self.current_trace: str | None = None
 
     def fingerprint_nodes(
         self,
@@ -142,10 +153,31 @@ class BaseAggregateSpans:
                 else node["avg(relative_offset)"]
             )
             node["count()"] += 1
+            # TODO: will need a better way to check we don't add dupes once samples is gone
             if len(node["samples"]) < 5:
                 node["samples"].add((self.current_transaction, span_tree["span_id"]))
+                node["sample_spans"].append(
+                    SpanSample(
+                        {
+                            "transaction": self.current_transaction,
+                            "timestamp": start_timestamp / 1000,
+                            "span": span_tree["span_id"],
+                            "trace": self.current_trace,
+                        }
+                    )
+                )
         else:
             sample = {(self.current_transaction, span_tree["span_id"])}
+            span_sample = [
+                SpanSample(
+                    {
+                        "transaction": self.current_transaction,
+                        "timestamp": start_timestamp / 1000,
+                        "span": span_tree["span_id"],
+                        "trace": self.current_trace,
+                    }
+                )
+            ]
             self.aggregated_tree[node_fingerprint] = {
                 "node_fingerprint": node_fingerprint,
                 "parent_node_fingerprint": parent_node_fingerprint,
@@ -165,6 +197,7 @@ class BaseAggregateSpans:
                 ),
                 "count()": 1,
                 "samples": sample,
+                "sample_spans": span_sample,
             }
 
         # Handles sibling spans that have the same group
@@ -191,6 +224,8 @@ class AggregateIndexedSpans(BaseAggregateSpans):
             spans = event["spans"]
 
             self.current_transaction = event["transaction_id"]
+            self.current_trace = event["trace_id"]
+
             for span_ in spans:
                 span = EventSpan(*span_)
                 span_id = getattr(span, "span_id")
@@ -233,6 +268,8 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
             span_tree = {}
 
             self.current_transaction = event["event_id"]
+            self.current_trace = event["contexts"]["trace"]["trace_id"]
+
             root_span_id = event["contexts"]["trace"]["span_id"]
             span_tree[root_span_id] = {
                 "span_id": root_span_id,
@@ -300,15 +337,21 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:starfish-aggregate-span-waterfall", organization, actor=request.user
-        ):
+        if not features.has("organizations:spans-first-ui", organization, actor=request.user):
             return Response(status=404)
 
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        enable_indexed_spans = options.get("indexed-spans.agg-span-waterfall.enable")
+
+        start = params["start"]
+        if start and start >= CUTOVER_DATE and enable_indexed_spans:
+            backend = "indexedSpans"
+        else:
+            backend = "nodestore"
 
         transaction = request.query_params.get("transaction", None)
         http_method = request.query_params.get("http.method", None)
@@ -317,13 +360,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
             )
 
-        backend = request.query_params.get("backend", "nodestore")
         sentry_sdk.set_tag("aggregate_spans.backend", backend)
-
-        if backend not in ALLOWED_BACKENDS:
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
-            )
 
         query = f"transaction:{transaction}"
         if http_method is not None:
@@ -334,7 +371,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 builder = SpansIndexedQueryBuilder(
                     dataset=Dataset.SpansIndexed,
                     params=params,
-                    selected_columns=["transaction_id", "count()"],
+                    selected_columns=["transaction_id", "trace_id", "count()", "any(timestamp)"],
                     query=query,
                     limit=100,
                 )

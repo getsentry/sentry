@@ -14,7 +14,7 @@ DEFAULT_RULE_ACTIONS = [
     }
 ]
 DEFAULT_RULE_DATA = {
-    "match": "all",
+    "action_match": "all",
     "conditions": [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
     "actions": DEFAULT_RULE_ACTIONS,
 }
@@ -29,9 +29,10 @@ DEFAULT_RULE_ACTIONS_NEW = [
     }
 ]
 DEFAULT_RULE_DATA_NEW = {
-    "match": "all",
+    "action_match": "all",
     "conditions": [
-        {"id": "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"}
+        {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+        {"id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"},
     ],
     "actions": DEFAULT_RULE_ACTIONS_NEW,
 }

@@ -12,7 +12,7 @@ type Props = {
 
 export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
   display: grid;
-  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  grid-template-columns: 50% 50%;
   ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
@@ -28,7 +28,7 @@ export function KeyValueTableRow({keyName, value, type}: Props) {
 const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => `
   font-size: ${theme.fontSizeMedium};
   padding: ${space(0.5)} ${space(1)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   line-height: inherit;
   ${p => p.theme.overflowEllipsis};
 
@@ -46,6 +46,8 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
 
 const Key = styled('dt')<{type: Props['type']}>`
   ${commonStyles};
+  display: flex;
+  align-items: center;
   color: ${p => p.theme.textColor};
 `;
 

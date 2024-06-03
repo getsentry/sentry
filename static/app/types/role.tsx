@@ -1,6 +1,6 @@
-import type {MemberRole, OrgRole, TeamRole} from 'sentry/types/organization';
+import type {BaseRole, OrgRole, TeamRole} from 'sentry/types/organization';
 
-export function RoleFixture(params: Partial<MemberRole> = {}): MemberRole {
+export function RoleFixture(params: Partial<BaseRole> = {}): BaseRole {
   return {
     id: 'member',
     name: 'Member',

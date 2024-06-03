@@ -1,13 +1,9 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event, ThreadPoolInfoContext} from 'sentry/types/event';
 import {ThreadPoolInfoContextKey} from 'sentry/types/event';
 
 export const threadPoolInfoKnownDataValues = Object.values(ThreadPoolInfoContextKey);
-
-type Output = {
-  subject: string;
-  value: React.ReactNode | null;
-};
 
 type Props = {
   data: ThreadPoolInfoContext;
@@ -15,10 +11,7 @@ type Props = {
   type: (typeof threadPoolInfoKnownDataValues)[number];
 };
 
-export function getThreadPoolInfoKnownDataDetails({
-  data,
-  type,
-}: Props): Output | undefined {
+export function getThreadPoolInfoKnownDataDetails({data, type}: Props): KnownDataDetails {
   switch (type) {
     case ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS:
       return {

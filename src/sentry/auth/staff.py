@@ -33,10 +33,7 @@ COOKIE_PATH = getattr(settings, "STAFF_COOKIE_PATH", settings.SESSION_COOKIE_PAT
 COOKIE_HTTPONLY = getattr(settings, "STAFF_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = timedelta(hours=4)
-
-# the maximum time the session can stay alive without making another request
-IDLE_MAX_AGE = timedelta(minutes=15)
+MAX_AGE = timedelta(hours=2)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
@@ -65,6 +62,10 @@ def has_staff_option(user) -> bool:
     if (email := getattr(user, "email", None)) is None:
         return False
     return email in options.get("staff.user-email-allowlist")
+
+
+def _seconds_to_timestamp(seconds: str) -> datetime:
+    return datetime.fromtimestamp(float(seconds), timezone.utc)
 
 
 class Staff(ElevatedMode):
@@ -179,24 +180,7 @@ class Staff(ElevatedMode):
             current_datetime = django_timezone.now()
 
         try:
-            data["idl"] = datetime.fromtimestamp(float(data["idl"]), timezone.utc)
-        except (TypeError, ValueError):
-            logger.warning(
-                "staff.invalid-idle-expiration",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
-                exc_info=True,
-            )
-            return
-
-        if data["idl"] < current_datetime:
-            logger.info(
-                "staff.session-expired",
-                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
-            )
-            return
-
-        try:
-            data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
+            expires_date = _seconds_to_timestamp(data["exp"])
         except (TypeError, ValueError):
             logger.warning(
                 "staff.invalid-expiration",
@@ -205,7 +189,7 @@ class Staff(ElevatedMode):
             )
             return
 
-        if data["exp"] < current_datetime:
+        if expires_date < current_datetime:
             logger.info(
                 "staff.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
@@ -229,7 +213,9 @@ class Staff(ElevatedMode):
         if not data:
             self._set_logged_out()
         else:
-            self._set_logged_in(expires=data["exp"], token=data["tok"], user=user)
+            self._set_logged_in(
+                expires=_seconds_to_timestamp(data["exp"]), token=data["tok"], user=user
+            )
 
             if not self.is_active:
                 if self._inactive_reason:
@@ -250,32 +236,35 @@ class Staff(ElevatedMode):
                         },
                     )
 
-    def _set_logged_in(self, expires, token, user, current_datetime=None):
+    def _set_logged_in(self, expires: datetime, token: str, user, current_datetime=None):
         # we bind uid here, as if you change users in the same request
         # we wouldn't want to still support staff auth (given
         # the staff check happens right here)
         assert user.is_staff
         if current_datetime is None:
             current_datetime = django_timezone.now()
-        self.token = token
+        self.token: str | None = token
         self.uid = str(user.id)
-        # the absolute maximum age of this session
-        self.expires = expires
         # do we have a valid staff session?
         self.is_valid = True
         # is the session active? (it could be valid, but inactive)
         self._is_active, self._inactive_reason = self.is_privileged_request()
-        self.request.session[SESSION_KEY] = {
-            "exp": self.expires.strftime("%s"),
-            "idl": (current_datetime + IDLE_MAX_AGE).strftime("%s"),
+
+        session_info = {
+            "exp": expires.strftime("%s"),
             "tok": self.token,
             # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,
         }
+        # Only update the staff key in the session if it doesn't exist or has changed
+        if (
+            SESSION_KEY not in self.request.session
+            or self.request.session[SESSION_KEY] != session_info
+        ):
+            self.request.session[SESSION_KEY] = session_info
 
     def _set_logged_out(self) -> None:
         self.uid = None
-        self.expires = None
         self.token = None
         self._is_active = False
         self._inactive_reason = InactiveReason.NONE
@@ -315,7 +304,7 @@ class Staff(ElevatedMode):
     def on_response(self, response) -> None:
         request = self.request
 
-        # always re-bind the cookie to update the idle expiration window
+        # Re-bind the cookie
         if self.is_active:
             response.set_signed_cookie(
                 COOKIE_NAME,
@@ -328,6 +317,6 @@ class Staff(ElevatedMode):
                 path=COOKIE_PATH,
                 domain=COOKIE_DOMAIN,
             )
-        # otherwise, if the session is invalid and there's a cookie set, clear it
+        # otherwise if the session is invalid and there's a cookie set, clear it
         elif not self.is_valid and request.COOKIES.get(COOKIE_NAME):
             response.delete_cookie(COOKIE_NAME)

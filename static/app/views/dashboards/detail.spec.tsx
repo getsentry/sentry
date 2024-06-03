@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -19,6 +18,7 @@ import {
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
@@ -453,7 +453,8 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'event.type:transaction transaction:/api/cats release:"abc@1.2.0" ',
+              query:
+                '(event.type:transaction transaction:/api/cats) release:"abc@1.2.0" ',
             }),
           })
         )

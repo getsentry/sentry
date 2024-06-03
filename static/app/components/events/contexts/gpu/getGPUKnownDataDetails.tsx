@@ -1,20 +1,16 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 
 import formatMemory from './formatMemory';
 import type {GPUData} from './types';
 import {GPUKnownDataType} from './types';
 
-type Output = {
-  subject: string;
-  value?: React.ReactNode;
-};
-
 type Props = {
   data: GPUData;
   type: GPUKnownDataType;
 };
 
-export function getGPUKnownDataDetails({data, type}: Props): Output | undefined {
+export function getGPUKnownDataDetails({data, type}: Props): KnownDataDetails {
   switch (type) {
     case GPUKnownDataType.NAME:
       return {

@@ -69,7 +69,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {}
 
@@ -221,7 +221,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-organization-events-stats", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-events-stats", kwargs={"organization_id_or_slug": org.slug}
         )
         response = self.do_request({}, url)
 
@@ -822,7 +822,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         assert mock_query.call_count == 1
 
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": []}])
     def test_invalid_interval(self, mock_query):
         self.do_request(
             data={
@@ -1205,7 +1205,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def test_no_top_events_with_project_field(self):
@@ -1963,7 +1963,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         project = self.create_project()
         prototype = load_data("android-ndk")
         prototype["event_id"] = "f" * 32
-        prototype["message"] = "not handled"
+        prototype["logentry"] = {"formatted": "not handled"}
         prototype["exception"]["values"][0]["value"] = "not handled"
         prototype["exception"]["values"][0]["mechanism"]["handled"] = False
         prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
@@ -2367,7 +2367,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": [], "meta": []}])
     @mock.patch(
         "sentry.search.events.builder.discover.raw_snql_query",
         return_value={"data": [], "meta": []},
@@ -2640,7 +2640,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def test_functions_dataset_simple(self):
@@ -2705,7 +2705,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def test_functions_dataset_simple(self):

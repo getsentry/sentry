@@ -11,7 +11,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.models.release import Release
@@ -125,7 +125,7 @@ class ProcessingIssueManager(BaseManager["ProcessingIssue"]):
         EventProcessingIssue.objects.get_or_create(raw_event=raw_event, processing_issue=issue)
 
 
-@region_silo_only_model
+@region_silo_model
 class ProcessingIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -133,7 +133,7 @@ class ProcessingIssue(Model):
     checksum = models.CharField(max_length=40, db_index=True)
     type = models.CharField(max_length=30)
     data = GzippedDictField()
-    datetime = models.DateTimeField(default=timezone.now)
+    datetime = models.DateTimeField(default=timezone.now, db_index=True)
 
     objects: ClassVar[ProcessingIssueManager] = ProcessingIssueManager()
 
@@ -153,7 +153,7 @@ class ProcessingIssue(Model):
         return self.data["_object"]
 
 
-@region_silo_only_model
+@region_silo_model
 class EventProcessingIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

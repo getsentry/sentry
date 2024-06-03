@@ -1,11 +1,11 @@
 import {Fragment, useRef} from 'react';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -16,23 +16,25 @@ import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {MockTimelineVisualization} from 'sentry/views/monitors/components/mockTimelineVisualization';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {ScheduleType} from 'sentry/views/monitors/types';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
+
+import {MockTimelineVisualization} from './mockTimelineVisualization';
 import {
   DEFAULT_CRONTAB,
   DEFAULT_MONITOR_TYPE,
   mapMonitorFormErrors,
   transformMonitorFormData,
-} from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {ScheduleType} from 'sentry/views/monitors/types';
-import {getScheduleIntervals} from 'sentry/views/monitors/utils';
-import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
+} from './monitorForm';
 
 const DEFAULT_SCHEDULE_CONFIG = {
   scheduleType: 'crontab',
@@ -79,7 +81,7 @@ export default function MonitorCreateForm() {
   }
 
   function changeScheduleType(type: ScheduleType) {
-    form.current.setValue('config.schedule_type', type);
+    form.current.setValue('config.scheduleType', type);
   }
 
   return (
@@ -92,13 +94,13 @@ export default function MonitorCreateForm() {
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,
-        'config.schedule_type': DEFAULT_SCHEDULE_CONFIG.scheduleType,
+        'config.scheduleType': DEFAULT_SCHEDULE_CONFIG.scheduleType,
       }}
       onSubmitSuccess={onCreateMonitor}
       submitLabel={t('Create')}
     >
       <FieldContainer>
-        <MultiColumnInput columns="250px 1fr">
+        <ProjectOwnerNameInputs>
           <StyledSentryProjectSelectorField
             name="project"
             projects={filteredProjects}
@@ -109,6 +111,13 @@ export default function MonitorCreateForm() {
             stacked
             inline={false}
           />
+          <StyledSentryMemberTeamSelectorField
+            name="owner"
+            placeholder={t('Assign Ownership')}
+            stacked
+            inline={false}
+            menuPlacement="auto"
+          />
           <StyledTextField
             name="name"
             placeholder={t('My Cron Job')}
@@ -116,15 +125,15 @@ export default function MonitorCreateForm() {
             stacked
             inline={false}
           />
-        </MultiColumnInput>
+        </ProjectOwnerNameInputs>
         <LabelText>{t('SCHEDULE')}</LabelText>
         <ScheduleOptions>
           <Observer>
             {() => {
-              const currScheduleType = form.current.getValue('config.schedule_type');
+              const currScheduleType = form.current.getValue('config.scheduleType');
               const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
               const parsedSchedule = form.current.getError('config.schedule')
-                ? ''
+                ? null
                 : crontabAsText(
                     form.current.getValue('config.schedule')?.toString() ?? ''
                   );
@@ -137,7 +146,7 @@ export default function MonitorCreateForm() {
                   >
                     <PanelBody withPadding>
                       <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
-                      <MultiColumnInput columns="1fr 1fr">
+                      <CrontabInputs>
                         <StyledTextField
                           name="config.schedule"
                           placeholder="* * * * *"
@@ -156,8 +165,10 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
-                        <CronstrueText>{parsedSchedule}</CronstrueText>
-                      </MultiColumnInput>
+                        <CronstrueText>
+                          {parsedSchedule ?? t('(invalid schedule)')}
+                        </CronstrueText>
+                      </CrontabInputs>
                     </PanelBody>
                   </SchedulePanel>
                   <SchedulePanel
@@ -166,7 +177,7 @@ export default function MonitorCreateForm() {
                   >
                     <PanelBody withPadding>
                       <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
-                      <MultiColumnInput columns="auto 1fr 2fr">
+                      <IntervalInputs>
                         <Label>{t('Every')}</Label>
                         <StyledNumberField
                           name="config.schedule.frequency"
@@ -189,7 +200,7 @@ export default function MonitorCreateForm() {
                           stacked
                           inline={false}
                         />
-                      </MultiColumnInput>
+                      </IntervalInputs>
                     </PanelBody>
                   </SchedulePanel>
                 </Fragment>
@@ -199,13 +210,15 @@ export default function MonitorCreateForm() {
         </ScheduleOptions>
         <Observer>
           {() => {
-            const scheduleType = form.current.getValue('config.schedule_type');
+            const scheduleType = form.current.getValue('config.scheduleType');
             const cronSchedule = form.current.getValue('config.schedule');
+            const timezone = form.current.getValue('config.timezone');
             const intervalFrequency = form.current.getValue('config.schedule.frequency');
             const intervalUnit = form.current.getValue('config.schedule.interval');
 
             const schedule = {
               scheduleType,
+              timezone,
               cronSchedule,
               intervalFrequency,
               intervalUnit,
@@ -220,7 +233,7 @@ export default function MonitorCreateForm() {
 }
 
 const FieldContainer = styled('div')`
-  width: 800px;
+  max-width: 800px;
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
@@ -241,12 +254,12 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
 `;
 
 const ScheduleLabel = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(2)};
 `;
 
 const Label = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 
@@ -260,15 +273,26 @@ const ScheduleOptions = styled('div')`
   grid-template-columns: 1fr 1fr;
 `;
 
-const MultiColumnInput = styled('div')<{columns?: string}>`
+const MultiColumnInput = styled('div')`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  grid-template-columns: ${p => p.columns};
+`;
+
+const ProjectOwnerNameInputs = styled(MultiColumnInput)`
+  grid-template-columns: 230px 230px 1fr;
+`;
+
+const CrontabInputs = styled(MultiColumnInput)`
+  grid-template-columns: 1fr 1fr;
+`;
+
+const IntervalInputs = styled(MultiColumnInput)`
+  grid-template-columns: auto 1fr 2fr;
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;
@@ -279,6 +303,10 @@ const StyledNumberField = styled(NumberField)`
 `;
 
 const StyledSelectField = styled(SelectField)`
+  padding: 0;
+`;
+
+const StyledSentryMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
   padding: 0;
 `;
 

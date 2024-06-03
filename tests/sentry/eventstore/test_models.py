@@ -6,8 +6,11 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfig
+from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.utils import hash_from_values
+from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
@@ -20,6 +23,8 @@ from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+NEWSTYLE_GROUPING_CONFIG = "newstyle:2023-01-11"
 
 
 class EventTest(TestCase, PerformanceIssueTestCase):
@@ -394,6 +399,45 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             v.as_dict()["hash"] for v in variants2.values()
         )
 
+    def test_get_hashes_pulls_existing_hashes(self):
+        hashes = ["04e89719410791836f0a0bbf03bf0d2e"]
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={
+                "message": "Dogs are great!",
+                "hashes": hashes,
+            },
+            project_id=self.project.id,
+        )
+
+        assert event.get_hashes() == CalculatedHashes(hashes, [], [], None)
+
+    def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
+        self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={"message": "Dogs are great!"},
+            project_id=self.project.id,
+        )
+
+        calculated_hashes = event.get_hashes()
+        expected_hash_values = [hash_from_values(["Dogs are great!"])]
+        expected_variants = get_grouping_variants_for_event(event)
+
+        assert calculated_hashes.hashes == expected_hash_values
+        assert calculated_hashes.variants == expected_variants
+
+        # Since the `variants` dictionaries are equal, it suffices to only check the values in one
+        assert "default" in calculated_hashes.variants
+        default_variant = calculated_hashes.variants["default"]
+
+        assert isinstance(default_variant, ComponentVariant)
+        assert default_variant.config.id == NEWSTYLE_GROUPING_CONFIG
+        assert default_variant.component.id == "default"
+        assert len(default_variant.component.values) == 1
+        assert default_variant.component.values[0].id == "message"
+        assert default_variant.component.values[0].values == ["Dogs are great!"]
+
 
 class EventGroupsTest(TestCase):
     def test_none(self):
@@ -469,57 +513,6 @@ class EventGroupsTest(TestCase):
             project_id=self.project.id,
         )
         assert event.groups == [self.group]
-
-
-class EventBuildGroupEventsTest(TestCase):
-    def test_none(self):
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-        )
-        assert list(event.build_group_events()) == []
-
-    def test(self):
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-            groups=[self.group],
-        )
-        assert list(event.build_group_events()) == [GroupEvent.from_event(event, self.group)]
-
-    def test_multiple(self):
-        self.group_2 = self.create_group()
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-            groups=[self.group, self.group_2],
-        )
-        sort_key = lambda group_event: (group_event.event_id, group_event.group_id)
-        assert sorted(event.build_group_events(), key=sort_key) == sorted(
-            [GroupEvent.from_event(event, self.group), GroupEvent.from_event(event, self.group_2)],
-            key=sort_key,
-        )
 
 
 class EventForGroupTest(TestCase):

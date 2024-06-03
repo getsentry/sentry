@@ -23,7 +23,8 @@ import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -408,7 +409,7 @@ const DeploysWrapper = styled('div')`
 
 const ReleaseTitle = styled('span')`
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -431,7 +432,7 @@ const SummaryLinks = styled('div')`
   position: relative;
   top: -${space(2)};
   align-items: center;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -463,7 +464,7 @@ const TransactionsLink = styled(Link)`
 
 const NotAvailable = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   display: grid;
   grid-template-columns: auto auto;
   gap: ${space(0.5)};

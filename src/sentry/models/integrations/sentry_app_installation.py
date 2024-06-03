@@ -16,7 +16,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     ParanoidManager,
     ParanoidModel,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
@@ -102,7 +102,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstalla
         return grouped_sentry_app_installations
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE

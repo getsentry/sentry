@@ -1,7 +1,7 @@
 import type {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
 import PlatformList from 'sentry/components/platformList';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {AvatarProject} from 'sentry/types';
+import type {AvatarProject} from 'sentry/types/project';
 
 interface Props extends BaseAvatarProps {
   project: AvatarProject;

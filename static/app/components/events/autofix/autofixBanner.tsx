@@ -8,6 +8,10 @@ import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AutofixInstructionsModal} from 'sentry/components/events/autofix/autofixInstructionsModal';
+import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
+import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAutofixCodebaseIndexing';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {AutofixSetupModal} from 'sentry/components/modals/autofixSetupModal';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -15,16 +19,97 @@ import {space} from 'sentry/styles/space';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 type Props = {
+  groupId: string;
+  hasSuccessfulSetup: boolean;
+  projectId: string;
   triggerAutofix: (value: string) => void;
 };
 
-export function AutofixBanner({triggerAutofix}: Props) {
-  const isSentryEmployee = useIsSentryEmployee();
+function SuccessfulSetup({
+  groupId,
+  triggerAutofix,
+}: Pick<Props, 'groupId' | 'triggerAutofix'>) {
   const onClickGiveInstructions = () => {
     openModal(deps => (
-      <AutofixInstructionsModal {...deps} triggerAutofix={triggerAutofix} />
+      <AutofixInstructionsModal
+        {...deps}
+        triggerAutofix={triggerAutofix}
+        groupId={groupId}
+      />
     ));
   };
+
+  return (
+    <Fragment>
+      <Button
+        onClick={() => triggerAutofix('')}
+        size="sm"
+        analyticsEventKey="autofix.start_fix_clicked"
+        analyticsEventName="Autofix: Start Fix Clicked"
+        analyticsParams={{group_id: groupId}}
+      >
+        {t('Get root causes')}
+      </Button>
+      <Button
+        onClick={onClickGiveInstructions}
+        size="sm"
+        analyticsEventKey="autofix.give_instructions_clicked"
+        analyticsEventName="Autofix: Give Instructions Clicked"
+        analyticsParams={{group_id: groupId}}
+      >
+        {t('Provide context first')}
+      </Button>
+    </Fragment>
+  );
+}
+
+function AutofixBannerContent({
+  groupId,
+  triggerAutofix,
+  hasSuccessfulSetup,
+  projectId,
+}: Props) {
+  const {status: indexingStatus} = useAutofixCodebaseIndexing({projectId, groupId});
+
+  if (hasSuccessfulSetup) {
+    return <SuccessfulSetup groupId={groupId} triggerAutofix={triggerAutofix} />;
+  }
+
+  if (indexingStatus === AutofixCodebaseIndexingStatus.INDEXING) {
+    return (
+      <RowStack>
+        <LoadingIndicator mini />
+        <LoadingMessage>
+          Indexing your repositories, hold tight this may take up to 30 minutes...
+        </LoadingMessage>
+      </RowStack>
+    );
+  }
+
+  return (
+    <Button
+      analyticsEventKey="autofix.setup_clicked"
+      analyticsEventName="Autofix: Setup Clicked"
+      analyticsParams={{group_id: groupId}}
+      onClick={() => {
+        openModal(deps => (
+          <AutofixSetupModal {...deps} groupId={groupId} projectId={projectId} />
+        ));
+      }}
+      size="sm"
+    >
+      Set up Autofix
+    </Button>
+  );
+}
+
+export function AutofixBanner({
+  groupId,
+  projectId,
+  triggerAutofix,
+  hasSuccessfulSetup,
+}: Props) {
+  const isSentryEmployee = useIsSentryEmployee();
 
   return (
     <Wrapper>
@@ -36,17 +121,19 @@ export function AutofixBanner({triggerAutofix}: Props) {
       <Body>
         <div>
           <Title>{t('Try Autofix')}</Title>
-          <SubTitle>{t('You might get lucky, but then again, maybe not...')}</SubTitle>
+          <SubTitle>
+            {t('Sit back and let Autofix find potential root causes and fixes')}
+          </SubTitle>
         </div>
         <ContextArea>
-          <Button onClick={() => triggerAutofix('')} size="sm">
-            {t('Gimme Fix')}
-          </Button>
-          <Button onClick={onClickGiveInstructions} size="sm">
-            {t('Give Instructions')}
-          </Button>
+          <AutofixBannerContent
+            groupId={groupId}
+            projectId={projectId}
+            triggerAutofix={triggerAutofix}
+            hasSuccessfulSetup={hasSuccessfulSetup}
+          />
         </ContextArea>
-        {isSentryEmployee && (
+        {isSentryEmployee && hasSuccessfulSetup && (
           <Fragment>
             <Separator />
             <PiiMessage>
@@ -80,7 +167,7 @@ const Body = styled(PanelBody)`
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
 `;
 
@@ -96,6 +183,7 @@ const ContextArea = styled('div')`
 
 const IllustrationContainer = styled('div')`
   display: none;
+  pointer-events: none;
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: block;
@@ -110,12 +198,11 @@ const IllustrationContainer = styled('div')`
 `;
 
 const Sentaur = styled('img')`
-  height: 125px;
+  height: 110px;
   position: absolute;
   bottom: 0;
   right: 185px;
   z-index: 1;
-  pointer-events: none;
 `;
 
 const Background = styled('img')`
@@ -128,9 +215,9 @@ const Background = styled('img')`
 const Stars = styled('img')`
   pointer-events: none;
   position: absolute;
-  right: -140px;
+  right: -120px;
   bottom: 40px;
-  height: 120px;
+  height: 90px;
 `;
 
 const Separator = styled('hr')`
@@ -140,6 +227,17 @@ const Separator = styled('hr')`
 `;
 
 const PiiMessage = styled('p')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const RowStack = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+const LoadingMessage = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;

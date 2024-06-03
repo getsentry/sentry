@@ -1,10 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  // biome-ignore lint/style/useLiteralEnumMembers: Disable for maintenance cost.
   PRIORITIZED = NEW_DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
@@ -123,7 +124,7 @@ export function getTabs(organization: Organization) {
         name: t('Reprocessing'),
         analyticsName: 'reprocessing',
         count: true,
-        enabled: organization.features.includes('reprocessing-v2'),
+        enabled: true,
         tooltipTitle: tct(
           `These [link:reprocessing issues] will take some time to complete.
         Any new issues that are created during reprocessing will be flagged for review.`,

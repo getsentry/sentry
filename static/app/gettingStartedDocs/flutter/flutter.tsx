@@ -1,10 +1,13 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -22,10 +25,21 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 Future<void> main() async {
   await SentryFlutter.init(
     (options) {
-      options.dsn = '${params.dsn}';
+      options.dsn = '${params.dsn}';${
+        params.isPerformanceSelected
+          ? `
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
       // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
+      options.tracesSampleRate = 1.0;`
+          : ''
+      }${
+        params.isProfilingSelected
+          ? `
+      // The sampling rate for profiling is relative to tracesSampleRate
+      // Setting to 1.0 will profile 100% of sampled transactions:
+      options.profilesSampleRate = 1.0;`
+          : ''
+      }
     },
     appRunner: () => runApp(MyApp()),
   );
@@ -74,6 +88,126 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }`;
 
+const getConfigureMetricsSnippet = (params: Params) => `
+import 'package:sentry_flutter/sentry_flutter.dart';
+
+Future<void> main() async {
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = '${params.dsn}';
+      options.enableMetrics = true;
+    },
+    appRunner: initApp, // Init your App.
+  );
+};`;
+
+const metricsOnboarding: OnboardingConfig = {
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need Sentry Flutter SDK version [codeVersion:7.19.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
+        {
+          package: <code />,
+          codeVersion: <code />,
+          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'yml',
+          partialLoading: params.sourcePackageRegistries?.isLoading,
+          code: getInstallSnippet(params),
+        },
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'To enable capturing metrics, you need to enable the metrics feature.'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: getConfigureMetricsSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
+            {
+              label: 'Counter',
+              value: 'counter',
+              language: 'dart',
+              code: exampleSnippets.dart.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'dart',
+              code: exampleSnippets.dart.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'dart',
+              code: exampleSnippets.dart.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'dart',
+              code: exampleSnippets.dart.gauge,
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/flutter/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const onboarding: OnboardingConfig = {
   install: params => [
     {
@@ -100,6 +234,15 @@ const onboarding: OnboardingConfig = {
         sentryFlutter: <code />,
       }),
       configurations: [
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: t(
+                  'Flutter Profiling alpha is available for iOS and macOS since SDK version 7.12.0.'
+                ),
+              },
+            ]
+          : []),
         {
           language: 'dart',
           code: getConfigureSnippet(params),
@@ -117,7 +260,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -136,26 +279,30 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance'),
-      description: t(
-        "You'll be able to monitor the performance of your app using the SDK. For example:"
-      ),
-      configurations: [
-        {
-          language: 'dart',
-          code: getPerformanceSnippet(),
-          additionalInfo: tct(
-            'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
-            {
-              perfDocs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/flutter/performance/instrumentation/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance'),
+            description: t(
+              "You'll be able to monitor the performance of your app using the SDK. For example:"
+            ),
+            configurations: [
+              {
+                language: 'dart',
+                code: getPerformanceSnippet(),
+                additionalInfo: tct(
+                  'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
+                  {
+                    perfDocs: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/performance/instrumentation/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ]
+      : []),
   ],
   nextSteps: () => [
     {
@@ -179,6 +326,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
+  customMetricsOnboarding: metricsOnboarding,
 };
 
 export default docs;

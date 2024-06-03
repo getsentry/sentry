@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
@@ -16,10 +16,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.groupreference import find_referenced_groups
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
@@ -50,7 +53,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
         return affected, created
 
 
-@region_silo_only_model
+@region_silo_model
 class PullRequest(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -79,12 +82,25 @@ class PullRequest(Model):
 
     __repr__ = sane_repr("organization_id", "repository_id", "key")
 
-    def find_referenced_groups(self):
+    def find_referenced_groups(self) -> set[Group]:
         text = f"{self.message} {self.title}"
         return find_referenced_groups(text, self.organization_id)
 
+    def get_external_url(self) -> str | None:
+        from sentry.models.repository import Repository
+        from sentry.plugins.base import bindings
 
-@region_silo_only_model
+        repository = Repository.objects.get(id=self.repository_id)
+
+        provider_id = repository.provider
+        if not provider_id or not provider_id.startswith("integrations:"):
+            return None
+        provider_cls = bindings.get("integration-repository.provider").get(provider_id)
+        provider = provider_cls(provider_id)
+        return provider.pull_request_url(repository, self)
+
+
+@region_silo_model
 class PullRequestCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
     pull_request = FlexibleForeignKey("sentry.PullRequest")
@@ -105,7 +121,7 @@ class CommentType:
         return ((cls.MERGED_PR, "merged_pr"), (cls.OPEN_PR, "open_pr"))
 
 
-@region_silo_only_model
+@region_silo_model
 class PullRequestComment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

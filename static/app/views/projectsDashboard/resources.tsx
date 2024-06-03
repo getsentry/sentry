@@ -8,7 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ResourceCard from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   organization: Organization;

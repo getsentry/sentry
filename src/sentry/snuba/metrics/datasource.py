@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 import sentry_sdk
+from rest_framework.exceptions import NotFound
 
 """
 Module that gets both metadata and time series from Snuba.
@@ -13,7 +14,6 @@ efficient, we only look at the past 24 hours.
 """
 
 __all__ = (
-    "get_metrics_meta",
     "get_all_tags",
     "get_tag_values",
     "get_series",
@@ -27,7 +27,7 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, cast
+from typing import Any
 
 from snuba_sdk import And, Column, Condition, Function, Op, Or, Query, Request
 from snuba_sdk.conditions import ConditionGroup
@@ -54,13 +54,7 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import (
-    ParsedMRI,
-    get_available_operations,
-    is_custom_measurement,
-    is_mri,
-    parse_mri,
-)
+from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, is_mri, parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -73,14 +67,11 @@ from sentry.snuba.metrics.utils import (
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
-    BlockedMetric,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
     MetricMeta,
     MetricMetaWithTagKeys,
-    MetricOperationType,
     MetricType,
-    MetricUnit,
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
@@ -89,7 +80,7 @@ from sentry.snuba.metrics.utils import (
     get_intervals,
     to_intervals,
 )
-from sentry.utils.snuba import bulk_snql_query, raw_snql_query
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -309,78 +300,6 @@ def get_metrics_blocking_state_of_projects(
     return metrics_blocking_state_by_mri
 
 
-def _build_metric_meta(
-    parsed_mri: ParsedMRI, project_ids: Sequence[int], blocking_status: Sequence[BlockedMetric]
-) -> MetricMeta:
-    return MetricMeta(
-        type=parsed_mri.entity,
-        name=parsed_mri.name,
-        unit=cast(MetricUnit, parsed_mri.unit),
-        mri=parsed_mri.mri_string,
-        operations=cast(Sequence[MetricOperationType], get_available_operations(parsed_mri)),
-        projectIds=project_ids,
-        blockingStatus=blocking_status,
-    )
-
-
-def get_metrics_meta(
-    projects: Sequence[Project],
-    use_case_ids: Sequence[UseCaseID],
-    start: datetime | None = None,
-    end: datetime | None = None,
-) -> Sequence[MetricMeta]:
-    if not projects:
-        return []
-
-    stored_metrics = get_stored_metrics_of_projects(projects, use_case_ids, start, end)
-    metrics_blocking_state = (
-        get_metrics_blocking_state_of_projects(projects) if UseCaseID.CUSTOM in use_case_ids else {}
-    )
-
-    metrics_metas = []
-    for metric_mri, project_ids in stored_metrics.items():
-        parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is None:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_extra("project_ids", project_ids)
-                scope.set_extra("metric_mri", metric_mri)
-                sentry_sdk.capture_message("Invalid metric MRI detected")
-
-            continue
-
-        blocking_status = []
-        if (metric_blocking := metrics_blocking_state.get(metric_mri)) is not None:
-            blocking_status = [
-                BlockedMetric(isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id)
-                for is_blocked, blocked_tags, project_id in metric_blocking
-            ]
-            # We delete the metric so that in the next steps we can just merge the remaining blocked metrics that are
-            # not stored.
-            del metrics_blocking_state[metric_mri]
-
-        metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
-
-    for metric_mri, metric_blocking in metrics_blocking_state.items():
-        parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is None:
-            continue
-
-        metrics_metas.append(
-            _build_metric_meta(
-                parsed_mri,
-                [],
-                [
-                    BlockedMetric(
-                        isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
-                    )
-                    for is_blocked, blocked_tags, project_id in metric_blocking
-                ],
-            )
-        )
-
-    return metrics_metas
-
-
 def get_stored_metrics_of_projects(
     projects: Sequence[Project],
     use_case_ids: Sequence[UseCaseID],
@@ -409,7 +328,7 @@ def get_stored_metrics_of_projects(
             use_case_id_to_index[use_case_id].append(len(requests) - 1)
 
     # We run the queries all in parallel.
-    results = bulk_snql_query(
+    results = bulk_snuba_queries(
         requests=requests,
         referrer="snuba.metrics.datasource.get_stored_metrics_of_projects",
         use_cache=True,
@@ -648,7 +567,7 @@ def _fetch_tags_or_values_for_mri(
             error_str = f"The following metrics {metric_mris} do not exist in the dataset"
         else:
             error_str = "Dataset contains no metric data for your project selection"
-        raise InvalidParams(error_str)
+        raise NotFound(error_str)
 
     tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
     tag_or_value_ids: set[int | str | None]
@@ -764,6 +683,15 @@ def get_all_tags(
             start=start,
             end=end,
         )
+        # Manually add the project key to enable grouping by project in the Metrics UI.
+        # There is a need to group metrics by project, cf. this PR:
+        # https://github.com/getsentry/sentry/commit/778000463605258a122be5de907513a8cc73f584
+        # The retrieval logic for tags will soon be changed, therefore this quick insertion should
+        # not live for long.
+        extended_tags = list(copy(tags))
+        extended_tags.append(Tag(key="project"))
+        tags = extended_tags
+
     except InvalidParams as e:
         sentry_sdk.capture_exception(e)
         return []
@@ -1219,11 +1147,13 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(
-            meta=meta,
-            alias_to_metric_field=converter._alias_to_metric_field,
-            alias_to_metric_group_by_field=groupby_aliases,
-        )
-        if include_meta
-        else [],
+        "meta": (
+            translate_meta_results(
+                meta=meta,
+                alias_to_metric_field=converter._alias_to_metric_field,
+                alias_to_metric_group_by_field=groupby_aliases,
+            )
+            if include_meta
+            else []
+        ),
     }

@@ -1,13 +1,12 @@
 import type {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import type {LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor, Query} from 'history';
 
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -125,39 +124,34 @@ export function generateTraceLink(dateSelection) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query
+    _location: Location
   ): LocationDescriptor => {
     const traceId = `${tableRow.trace}`;
     if (!traceId) {
       return {};
     }
 
-    return getTraceDetailsUrl(
-      organization,
-      traceId,
-      dateSelection,
-      {},
-      tableRow.timestamp,
-      tableRow.id
-    );
+    return getTraceDetailsUrl(organization, traceId, dateSelection, tableRow.timestamp);
   };
 }
 
-export function generateTransactionLink(transactionName: string) {
+export function generateTransactionIdLink(transactionName?: string) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    query: Query,
+    location: Location,
     spanId?: string
   ): LocationDescriptor => {
-    const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(
-      organization.slug,
-      eventSlug,
+    return generateLinkToEventInTraceView({
+      eventId: tableRow.id,
+      timestamp: tableRow.timestamp,
+      traceSlug: tableRow.trace?.toString(),
+      projectSlug: tableRow['project.name']?.toString(),
+      location,
+      organization,
+      spanId,
       transactionName,
-      query,
-      spanId
-    );
+    });
   };
 }
 
@@ -165,7 +159,7 @@ export function generateProfileLink() {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query | undefined
+    _location: Location | undefined
   ) => {
     const profileId = tableRow['profile.id'];
     if (!profileId) {
@@ -185,7 +179,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query | undefined
+    _location: Location | undefined
   ): LocationDescriptor => {
     const replayId = tableRow.replayId;
     if (!replayId) {

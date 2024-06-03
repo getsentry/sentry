@@ -151,7 +151,8 @@ export function OrganizationAuthTokensAuthTokenRow({
             disabled={!revokeToken || isRevoking}
             onConfirm={revokeToken ? () => revokeToken(token) : undefined}
             message={t(
-              'Are you sure you want to revoke this token? The token will not be usable anymore, and this cannot be undone.'
+              'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
+              tokenPreview(token.tokenLastCharacters || '', 'sntrys_')
             )}
           >
             <Button

@@ -5,18 +5,18 @@
     "operationId": "List a Project's Debug Information Files",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the file belongs to.",
+        "description": "The id or slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project to list the DIFs of.",
+        "description": "The id or slug of the project to list the DIFs of.",
         "required": true,
         "schema": {
           "type": "string"
@@ -49,18 +49,18 @@
     "operationId": "Upload a New File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the project belongs to.",
+        "description": "The id or slug of the organization the project belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project to upload a file to.",
+        "description": "The id or slug of the project to upload a file to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -117,18 +117,18 @@
     "operationId": "Delete a Specific Project's Debug Information File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the file belongs to.",
+        "description": "The id or slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project to delete the DIF.",
+        "description": "The id or slug of the project to delete the DIF.",
         "required": true,
         "schema": {
           "type": "string"

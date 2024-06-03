@@ -29,8 +29,8 @@ class WebhookPresenter(OptionsPresenter):
         self.invalid_type_options: list[tuple[str, type, type]] = []
 
     @staticmethod
-    def is_webhook_enabled():
-        return (
+    def is_webhook_enabled() -> bool:
+        return bool(
             options.get("options_automator_slack_webhook_enabled")
             and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
         )
@@ -123,7 +123,7 @@ class WebhookPresenter(OptionsPresenter):
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
 
-    def _send_to_webhook(self, json_data: dict) -> None:
+    def _send_to_webhook(self, json_data: dict[str, Any]) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
             headers = {"Content-Type": "application/json"}
             requests.post(

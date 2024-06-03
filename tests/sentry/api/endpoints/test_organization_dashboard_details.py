@@ -79,7 +79,10 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self, dashboard_id):
         return reverse(
             "sentry-api-0-organization-dashboard-details",
-            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
         )
 
     def assert_serialized_dashboard(self, data, dashboard):
@@ -231,6 +234,25 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         self.create_user_member_role()
         self.test_delete()
 
+    def test_disallow_delete_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_dashboard_does_not_exist(self):
         response = self.do_request("delete", self.url(1234567890))
         assert response.status_code == 404
@@ -334,6 +356,27 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 409, response.data
         assert list(response.data) == ["Dashboard with that title already exists."]
+
+    def test_disallow_put_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+        )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_add_widget(self):
         data: dict[str, Any] = {
@@ -1864,12 +1907,47 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert current_version is not None
             assert current_version.extraction_state == "disabled:high-cardinality"
 
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
+    def test_cardinality_skips_non_discover_widget_types(self, mock_get_specs):
+        widget = {
+            "title": "issues widget",
+            "displayType": "table",
+            "interval": "5m",
+            "widgetType": "issue",
+            "queries": [
+                {
+                    "name": "errors",
+                    "fields": ["count()", "sometag"],
+                    "columns": ["sometag"],
+                    "aggregates": ["count()"],
+                    "conditions": "event.type:transaction",
+                }
+            ],
+        }
+        data: dict[str, Any] = {
+            "title": "first dashboard",
+            "widgets": [
+                {**widget, "widgetType": "issue"},
+                {**widget, "widgetType": "metrics"},
+                {**widget, "widgetType": "custom-metrics"},
+            ],
+        }
+
+        with self.feature(["organizations:on-demand-metrics-extraction-widgets"]):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert mock_get_specs.call_count == 0
+
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
         return reverse(
             "sentry-api-0-organization-dashboard-visit",
-            kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
         )
 
     def test_visit_dashboard(self):

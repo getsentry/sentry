@@ -5,7 +5,7 @@ import {
   SiblingAutogroupNode,
   type TraceTree,
   type TraceTreeNode,
-} from './traceTree';
+} from './traceModels/traceTree';
 
 export function isMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
@@ -18,14 +18,14 @@ export function isSpanNode(
 ): node is TraceTreeNode<TraceTree.Span> {
   return (
     !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
-    !('autogrouped_by' in node.value)
+    !isAutogroupedNode(node)
   );
 }
 
 export function isTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Transaction> {
-  return !!(node.value && 'transaction' in node.value);
+  return !!(node.value && 'transaction' in node.value) && !isAutogroupedNode(node);
 }
 
 export function isParentAutogroupedNode(

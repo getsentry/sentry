@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -8,15 +9,14 @@ import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedback
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
-import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -49,19 +49,26 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
         </Section>
 
-        {eventData && (
-          <ScreenshotSection
-            event={eventData}
-            organization={organization}
-            projectSlug={feedbackItem.project.slug}
-          />
-        )}
-
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
-            <TextCopyInput size="sm">
-              {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
-            </TextCopyInput>
+            <UrlWrapper>
+              {eventData?.tags ? (
+                url ? (
+                  <ExternalLink
+                    onClick={e => {
+                      e.preventDefault();
+                      openNavigateToExternalLinkModal({linkText: url.value});
+                    }}
+                  >
+                    {url.value}
+                  </ExternalLink>
+                ) : (
+                  t('URL not found')
+                )
+              ) : (
+                ''
+              )}
+            </UrlWrapper>
           </Section>
         ) : null}
 
@@ -110,10 +117,17 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
 // 0 padding-bottom because <ActivitySection> has space(2) built-in.
 const OverflowPanelItem = styled(PanelItem)`
-  overflow: scroll;
+  overflow: auto;
 
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(2)};
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+`;
+
+const UrlWrapper = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  padding: ${space(0.75)} ${space(1.5)};
+  line-height: 1.3em;
 `;

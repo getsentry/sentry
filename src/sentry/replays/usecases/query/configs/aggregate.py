@@ -10,6 +10,7 @@ exceptions being thrown by ClickHouse and 500 errors being returned to our custo
 must parse to the data type of its source even if its later transformed into another type.  This
 acts as a validation step as must as a type coercion step.
 """
+
 from __future__ import annotations
 
 from sentry.replays.lib.new_query.conditions import IntegerScalar, UUIDScalar
@@ -17,12 +18,13 @@ from sentry.replays.lib.new_query.fields import (
     ColumnField,
     CountField,
     FieldProtocol,
+    IntegerColumnField,
     StringColumnField,
     SumField,
     SumLengthField,
     UUIDColumnField,
 )
-from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import parse_int, parse_ipv4, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     AggregateActivityScalar,
@@ -31,6 +33,7 @@ from sentry.replays.usecases.query.conditions import (
     SumOfClickScalar,
     SumOfClickSelectorComposite,
     SumOfDeadClickSelectorComposite,
+    SumOfIntegerIdScalar,
     SumOfIPv4Scalar,
     SumOfRageClickSelectorComposite,
     SumOfStringArray,
@@ -86,12 +89,12 @@ search_config: dict[str, FieldProtocol] = {
     "click.textContent": click_field("click_text"),
     "click.title": click_field("click_title"),
     "count_dead_clicks": sum_field("click_is_dead"),
-    "count_infos": sum_field("count_info_events"),
-    "count_warnings": sum_field("count_warning_events"),
     "count_errors": sum_field("count_error_events"),
+    "count_infos": sum_field("count_info_events"),
     "count_rage_clicks": sum_field("click_is_rage"),
     "count_segments": count_field("segment_id"),
     "count_urls": sum_field("count_urls"),
+    "count_warnings": sum_field("count_warning_events"),
     "dead.selector": ComputedField(parse_selector, SumOfDeadClickSelectorComposite),
     "device.brand": string_field("device_brand"),
     "device.family": string_field("device_family"),
@@ -101,11 +104,10 @@ search_config: dict[str, FieldProtocol] = {
     "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
     "error_ids": ComputedField(parse_uuid, SumOfErrorIdScalar),
-    "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
-    "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
     # do not understand the UUID type.
     "id": ColumnField("replay_id", parse_uuid, UUIDScalar),
+    "info_ids": ComputedField(parse_uuid, SumOfInfoIdScalar),
     "os.name": string_field("os_name"),
     "os.version": string_field("os_version"),
     "platform": string_field("platform"),
@@ -118,8 +120,10 @@ search_config: dict[str, FieldProtocol] = {
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
-    "user.ip_address": StringColumnField("ip_address_v4", parse_str, SumOfIPv4Scalar),
+    "user.ip_address": StringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
     "user.username": string_field("user_name"),
+    "viewed_by_id": IntegerColumnField("viewed_by_id", parse_int, SumOfIntegerIdScalar),
+    "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
 }
 
 
@@ -136,11 +140,12 @@ search_config["user"] = search_config["user.username"]
 # Fields which have multiple names that represent the same search operation are defined here.
 # QQ:JFERG: why dont we have these on the scalar search
 search_config["error_id"] = search_config["error_ids"]
-search_config["warning_id"] = search_config["warning_ids"]
 search_config["info_id"] = search_config["info_ids"]
+search_config["warning_id"] = search_config["warning_ids"]
 
 
 search_config["release"] = search_config["releases"]
+search_config["seen_by_id"] = search_config["viewed_by_id"]
 search_config["trace_id"] = search_config["trace_ids"]
 search_config["trace"] = search_config["trace_ids"]
 search_config["url"] = search_config["urls"]

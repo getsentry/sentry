@@ -15,6 +15,7 @@ from sentry.models.eventerror import EventError
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
+from sentry.utils.safe import get_path
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -169,6 +170,12 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         for archive in self._archives:
             archive.close()
 
+        # Symbolicator/Python A/B testing
+        try:
+            self.perform_ab_test()
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
     def handles_frame(self, frame, stacktrace_info):
         key = self._deep_freeze(frame)
         self._proguard_processor_handles_frame[key] = self.proguard_processor.handles_frame(
@@ -281,6 +288,63 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                     pass
 
         return new_frames, raw_frames, processing_errors
+
+    def perform_ab_test(self):
+        symbolicator_stacktraces = self.data.pop("symbolicator_stacktraces", None)
+
+        if symbolicator_stacktraces is None:
+            return
+
+        # This should always be set if symbolicator_stacktraces is, but better safe than sorry
+        symbolicator_exceptions = self.data.pop("symbolicator_exceptions", ())
+
+        def frames_differ(a, b):
+            return (
+                a.get("lineno", 0) != b.get("lineno", 0)
+                or a.get("abs_path") != b.get("abs_path")
+                or a.get("function") != b.get("function")
+                or a.get("filename") != b.get("filename")
+                or a.get("module") != b.get("module")
+                or a.get("in_app") != b.get("in_app")
+                or a.get("context_line") != b.get("context_line")
+            )
+
+        def exceptions_differ(a, b):
+            return a.get("type") != b.get("type") or a.get("module") != b.get("module")
+
+        # During symbolication, empty stacktrace_infos are disregarded. We need to do that here as well or results
+        # won't line up.
+        python_stacktraces = [
+            sinfo.stacktrace for sinfo in self.stacktrace_infos if sinfo.stacktrace is not None
+        ]
+
+        different_frames = []
+        for symbolicator_stacktrace, python_stacktrace in zip(
+            symbolicator_stacktraces, python_stacktraces
+        ):
+            for symbolicator_frame, python_frame in zip(
+                symbolicator_stacktrace, python_stacktrace["frames"]
+            ):
+                if frames_differ(symbolicator_frame, python_frame):
+                    different_frames.append((symbolicator_frame, python_frame))
+
+        different_exceptions = []
+        for symbolicator_exception, python_exception in zip(
+            symbolicator_exceptions,
+            get_path(self.data, "exception", "values", filter=True, default=()),
+        ):
+            if exceptions_differ(symbolicator_exception, python_exception):
+                different_exceptions.append((symbolicator_exception, python_exception))
+
+        if different_frames or different_exceptions:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("different_frames", different_frames)
+                scope.set_extra("different_exceptions", different_exceptions)
+                scope.set_extra("event_id", self.data.get("event_id"))
+                scope.set_tag("project_id", self.project.id)
+                sentry_sdk.capture_message(
+                    "JVM symbolication differences between symbolicator and python."
+                )
 
 
 class JavaPlugin(Plugin2):

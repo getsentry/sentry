@@ -4,6 +4,7 @@ import logging
 import os
 import signal
 from multiprocessing import cpu_count
+from typing import Any
 
 import click
 
@@ -15,8 +16,8 @@ DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
 
 def _address_validate(
-    ctx: click.Context, param: click.Parameter, value: str | None
-) -> tuple[str | None, int | None]:
+    ctx: object, param: object, value: str | None
+) -> tuple[None, None] | tuple[str, int | None]:
     if value is None:
         return (None, None)
 
@@ -32,7 +33,7 @@ def _address_validate(
 class QueueSetType(click.ParamType):
     name = "text"
 
-    def convert(self, value, param, ctx):
+    def convert(self, value: str | None, param: object, ctx: object) -> frozenset[str] | None:
         if value is None:
             return None
         # Providing a compatibility with splitting
@@ -66,7 +67,7 @@ QueueSet = QueueSetType()
 
 
 @click.group()
-def run():
+def run() -> None:
     "Run a service."
 
 
@@ -91,7 +92,13 @@ def run():
 )
 @log_options()
 @configuration
-def web(bind, workers, upgrade, with_lock, noinput):
+def web(
+    bind: tuple[None, None] | tuple[str, int | None],
+    workers: int,
+    upgrade: bool,
+    with_lock: bool,
+    noinput: bool,
+) -> None:
     "Run web service."
     if upgrade:
         click.echo("Performing upgrade before service startup...")
@@ -116,7 +123,7 @@ def web(bind, workers, upgrade, with_lock, noinput):
         SentryHTTPServer(host=bind[0], port=bind[1], workers=workers).run()
 
 
-def run_worker(**options):
+def run_worker(**options: Any) -> None:
     """
     This is the inner function to actually start worker.
     """
@@ -193,7 +200,7 @@ def run_worker(**options):
 @click.option("--ignore-unknown-queues", is_flag=True, default=False)
 @log_options()
 @configuration
-def worker(ignore_unknown_queues, **options):
+def worker(ignore_unknown_queues: bool, **options: Any) -> None:
     """Run background worker instance and autoreload if necessary."""
 
     from sentry.celery import app
@@ -250,7 +257,7 @@ def worker(ignore_unknown_queues, **options):
 @click.option("--without-heartbeat", is_flag=True, default=False)
 @log_options()
 @configuration
-def cron(**options):
+def cron(**options: Any) -> None:
     "Run periodic task dispatcher."
     from django.conf import settings
 
@@ -293,7 +300,7 @@ def cron(**options):
 @click.option(
     "--auto-offset-reset",
     "auto_offset_reset",
-    default="latest",
+    default="earliest",
     type=click.Choice(["earliest", "latest", "error"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
@@ -321,10 +328,10 @@ def cron(**options):
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
 )
 @click.option(
-    "--enable-dlq",
+    "--enable-dlq/--disable-dlq",
     help="Enable dlq to route invalid messages to. See https://getsentry.github.io/arroyo/dlqs.html#arroyo.dlq.DlqPolicy for more information.",
     is_flag=True,
-    default=False,
+    default=True,
 )
 @click.option(
     "--log-level",
@@ -343,7 +350,9 @@ def cron(**options):
     ),
 )
 @configuration
-def basic_consumer(consumer_name, consumer_args, topic, **options):
+def basic_consumer(
+    consumer_name: str, consumer_args: tuple[str, ...], topic: str | None, **options: Any
+) -> None:
     """
     Launch a "new-style" consumer based on its "consumer name".
 
@@ -381,7 +390,7 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
 @click.argument("consumer_names", nargs=-1)
 @log_options()
 @configuration
-def dev_consumer(consumer_names):
+def dev_consumer(consumer_names: tuple[str, ...]) -> None:
     """
     Launch multiple "new-style" consumers in the same thread.
 
@@ -414,7 +423,7 @@ def dev_consumer(consumer_names):
         for consumer_name in consumer_names
     ]
 
-    def handler(signum, frame):
+    def handler(signum: object, frame: object) -> None:
         for processor in processors:
             processor.signal_shutdown()
 
@@ -429,7 +438,7 @@ def dev_consumer(consumer_names):
 @run.command("backpressure-monitor")
 @log_options()
 @configuration
-def backpressure_monitor():
+def backpressure_monitor() -> None:
     from sentry.processing.backpressure.monitor import start_service_monitoring
 
     start_service_monitoring()

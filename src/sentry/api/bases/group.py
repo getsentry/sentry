@@ -4,7 +4,6 @@ import logging
 
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -40,7 +39,9 @@ class GroupEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)
 
-    def convert_args(self, request: Request, issue_id, organization_slug=None, *args, **kwargs):
+    def convert_args(
+        self, request: Request, issue_id, organization_id_or_slug=None, *args, **kwargs
+    ):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
@@ -51,12 +52,12 @@ class GroupEndpoint(Endpoint):
         # string replacement, or making the endpoint aware of the URL pattern
         # that caused it to be dispatched, and reversing it with the correct
         # `issue_id` keyword argument.
-        if organization_slug:
+        if organization_id_or_slug:
             try:
-                if options.get("api.id-or-slug-enabled") and str(organization_slug).isnumeric():
-                    organization = Organization.objects.get_from_cache(id=organization_slug)
+                if str(organization_id_or_slug).isdecimal():
+                    organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
                 else:
-                    organization = Organization.objects.get_from_cache(slug=organization_slug)
+                    organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
             except Organization.DoesNotExist:
                 raise ResourceDoesNotExist
 

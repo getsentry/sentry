@@ -11,11 +11,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {
   AppStoreConnectStatusData,
   CustomRepoAppStoreConnect,
 } from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {unexpectedErrorMessage} from 'sentry/utils/appStoreValidationErrorMessage';
 import withApi from 'sentry/utils/withApi';
 
@@ -360,13 +361,13 @@ const NumericSymbol = styled('div')`
   justify-content: center;
   width: 24px;
   height: 24px;
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   background-color: ${p => p.theme.yellow300};
 `;
 
 const HeaderContentTitle = styled('div')`
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 

@@ -197,7 +197,10 @@ function useReplayData({
   const links = parseLinkHeader(linkHeader);
   const {pages: extraErrorPages, isFetching: isFetchingExtraErrors} =
     useFetchSequentialPages<{data: ReplayError[]}>({
-      enabled: !fetchReplayError && !isFetchingErrors && Boolean(links.next?.results),
+      enabled:
+        !fetchReplayError &&
+        !isFetchingErrors &&
+        (!replayRecord?.count_errors || Boolean(links.next?.results)),
       initialCursor: links.next?.cursor,
       getQueryKey: getErrorsQueryKey,
       perPage: errorsPerPage,
@@ -211,21 +214,19 @@ function useReplayData({
     });
 
   const clearQueryCache = useCallback(() => {
-    () => {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [
-          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
-        ],
-      });
-      // The next one isn't optimized
-      // This statement will invalidate the cache of fetched error events for all replayIds
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
-      });
-    };
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+    });
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+      ],
+    });
+    // The next one isn't optimized
+    // This statement will invalidate the cache of fetched error events for all replayIds
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
+    });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   return useMemo(() => {

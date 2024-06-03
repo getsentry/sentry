@@ -1,13 +1,13 @@
-import {AutofixResultFixture} from 'sentry-fixture/autofixResult';
+import {AutofixDiffFilePatch} from 'sentry-fixture/autofixDiffFilePatch';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 
 describe('AutofixDiff', function () {
   const defaultProps = {
-    fix: AutofixResultFixture(),
+    diff: [AutofixDiffFilePatch()],
   };
 
   it('displays a modified file diff correctly', function () {
@@ -17,6 +17,10 @@ describe('AutofixDiff', function () {
     expect(
       screen.getByText('src/sentry/processing/backpressure/memory.py')
     ).toBeInTheDocument();
+
+    // Lines changed
+    expect(screen.getByText('+1')).toBeInTheDocument();
+    expect(screen.getByText('-1')).toBeInTheDocument();
 
     // Hunk section header
     expect(
@@ -48,6 +52,20 @@ describe('AutofixDiff', function () {
     ).toBeInTheDocument();
 
     // 6 context lines
+    expect(screen.getAllByTestId('line-context')).toHaveLength(6);
+  });
+
+  it('can collapse a file diff', async function () {
+    render(<AutofixDiff {...defaultProps} />);
+
+    expect(screen.getAllByTestId('line-context')).toHaveLength(6);
+
+    // Clicking toggle hides file context
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle file diff'}));
+    expect(screen.queryByTestId('line-context')).not.toBeInTheDocument();
+
+    // Clicking again shows file context
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle file diff'}));
     expect(screen.getAllByTestId('line-context')).toHaveLength(6);
   });
 });

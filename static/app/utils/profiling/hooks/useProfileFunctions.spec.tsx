@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -31,7 +31,7 @@ describe('useProfileFunctions', function () {
       body: {data: []},
     });
 
-    const hook = reactHooks.renderHook(
+    const hook = renderHook(
       () =>
         useProfileFunctions({
           fields: ['count()'],
@@ -56,7 +56,7 @@ describe('useProfileFunctions', function () {
       body: {data: []},
     });
 
-    const hook = reactHooks.renderHook(
+    const hook = renderHook(
       () =>
         useProfileFunctions({
           fields: ['count()'],
@@ -70,7 +70,7 @@ describe('useProfileFunctions', function () {
     );
     expect(hook.result.current.isLoading).toEqual(true);
     expect(hook.result.current.isFetched).toEqual(false);
-    await hook.waitFor(() =>
+    await waitFor(() =>
       expect(hook.result.current).toMatchObject(
         expect.objectContaining({
           isLoading: false,

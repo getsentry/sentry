@@ -1,4 +1,13 @@
+from typing import Literal, TypedDict
+
 from sentry.api.serializers import Serializer
+
+
+class ActorSerializerResponse(TypedDict):
+    type: Literal["user", "team"]
+    id: str
+    name: str
+    email: str | None
 
 
 class ActorSerializer(Serializer):

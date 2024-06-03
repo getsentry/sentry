@@ -1,14 +1,25 @@
+import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
+
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
-import {TraceType} from '../traceDetails/newTraceDetailsContent';
+import {TraceType} from './traceType';
 
 type TraceWarningsProps = {
   type: TraceType;
 };
 
-export default function TraceWarnings({type}: TraceWarningsProps) {
+export function TraceWarnings({type}: TraceWarningsProps) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    traceAnalytics.trackTraceWarningType(type, organization);
+  }, [type, organization]);
+
   switch (type) {
     case TraceType.NO_ROOT:
       return (
@@ -30,6 +41,10 @@ export default function TraceWarnings({type}: TraceWarningsProps) {
           </ExternalLink>
         </Alert>
       );
+    // Multiple roots are an edge case in browser SDKs and should be handled by the SDK.
+    // The user should not see a warning as they cannot do anything about it.
+    case TraceType.BROWSER_MULTIPLE_ROOTS:
+      return null;
     case TraceType.MULTIPLE_ROOTS:
       return (
         <Alert type="info" showIcon>
@@ -55,6 +70,7 @@ export default function TraceWarnings({type}: TraceWarningsProps) {
     case TraceType.EMPTY_TRACE:
       return null;
     default:
-      throw new TypeError('Invalid trace type');
+      Sentry.captureMessage(`Unhandled trace type - ${type}`);
+      return null;
   }
 }

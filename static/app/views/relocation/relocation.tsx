@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
@@ -15,19 +14,20 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
-import {RelocationOnboardingContextProvider} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
 import InProgress from './inProgress';
 import PublicKey from './publicKey';
-import type {StepDescriptor} from './types';
+import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
 import UploadBackup from './uploadBackup';
 
 type RouteParams = {
@@ -72,9 +72,9 @@ function getRelocationOnboardingSteps(): StepDescriptor[] {
 }
 
 enum LoadingState {
-  FETCHED,
-  FETCHING,
-  ERROR,
+  FETCHED = 0,
+  FETCHING = 1,
+  ERROR = 2,
 }
 
 function RelocationOnboarding(props: Props) {
@@ -86,16 +86,20 @@ function RelocationOnboarding(props: Props) {
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
   const regions = ConfigStore.get('regions');
-
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
   const [existingRelocation, setExistingRelocation] = useState('');
-
-  // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
-  // change during a single run through this workflow.
-  const [publicKey, setPublicKey] = useState('');
-  const [publicKeyState, setPublicKeyState] = useState(LoadingState.FETCHING);
+  const [publicKeys, setPublicKeys] = useState(new Map<string, string>());
+  const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
+  const [relocationState, setRelocationState] = useSessionStorage<RelocationState>(
+    'relocationOnboarding',
+    {
+      orgSlugs: '',
+      regionUrl: '',
+      promoCode: '',
+    }
+  );
 
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
@@ -120,42 +124,66 @@ function RelocationOnboarding(props: Props) {
               candidate.status === 'IN_PROGRESS' || candidate.status === 'PAUSE'
           )?.uuid || '';
 
-        setExistingRelocation(existingRelocationUUID);
-        setExistingRelocationState(LoadingState.FETCHED);
+        // The user has a relocation already in flight - whatever page they asked for, show them the
+        // progress of that relocation instead, since they can only have one relocation in flight at
+        // a time.
         if (existingRelocationUUID !== '' && stepId !== 'in-progress') {
           browserHistory.push('/relocation/in-progress/');
         }
+
+        // The user does not have a relocation in-flight, but tried to view the in progress screen.
+        // Since we have nothing to show them, take them back to the start of the flow.
         if (existingRelocationUUID === '' && stepId === 'in-progress') {
           browserHistory.push('/relocation/get-started/');
         }
+
+        // The user tried to view a later step, but at least one bit of required data was missing in
+        // their local storage. Take them back to the first screen.
+        const {orgSlugs, regionUrl} = relocationState;
+        if (stepId !== 'get-started' && (!orgSlugs || !regionUrl)) {
+          browserHistory.push('/relocation/get-started/');
+        }
+
+        setExistingRelocation(existingRelocationUUID);
+        setExistingRelocationState(LoadingState.FETCHED);
       })
       .catch(_error => {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, regions, stepId]);
+  }, [api, regions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
-  }, [fetchExistingRelocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fetchPublicKey = useCallback(() => {
-    const endpoint = `/publickeys/relocations/`;
-    setPublicKeyState(LoadingState.FETCHING);
-
-    return api
-      .requestPromise(endpoint)
-      .then(response => {
-        setPublicKey(response.public_key);
-        setPublicKeyState(LoadingState.FETCHED);
+  const fetchPublicKeys = useCallback(() => {
+    setPublicKeysState(LoadingState.FETCHING);
+    return Promise.all(
+      regions.map(region =>
+        api.requestPromise(`/publickeys/relocations/`, {
+          method: 'GET',
+          host: region.url,
+        })
+      )
+    )
+      .then(responses => {
+        setPublicKeys(
+          new Map<string, string>(
+            regions.map((region, index) => [region.url, responses[index].public_key])
+          )
+        );
+        setPublicKeysState(LoadingState.FETCHED);
       })
       .catch(_error => {
-        setPublicKey('');
-        setPublicKeyState(LoadingState.ERROR);
+        setPublicKeys(new Map<string, string>());
+        setPublicKeysState(LoadingState.ERROR);
       });
-  }, [api]);
+  }, [api, regions]);
   useEffect(() => {
-    fetchPublicKey();
-  }, [fetchPublicKey]);
+    fetchPublicKeys();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -238,11 +266,11 @@ function RelocationOnboarding(props: Props) {
 
   const isLoading =
     existingRelocationState !== LoadingState.FETCHED ||
-    publicKeyState !== LoadingState.FETCHED;
+    publicKeysState !== LoadingState.FETCHED;
   const contentView = isLoading ? (
     <LoadingIndicator />
   ) : (
-    <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+    <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
       <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
         {stepObj.Component && (
           <stepObj.Component
@@ -250,6 +278,19 @@ function RelocationOnboarding(props: Props) {
             data-test-id={`onboarding-step-${stepObj.id}`}
             existingRelocationUUID={existingRelocation}
             stepIndex={stepIndex}
+            onUpdateRelocationState={({
+              orgSlugs,
+              regionUrl,
+              promoCode,
+            }: MaybeUpdateRelocationState) => {
+              setRelocationState({
+                orgSlugs: orgSlugs === undefined ? relocationState.orgSlugs : orgSlugs,
+                regionUrl:
+                  regionUrl === undefined ? relocationState.regionUrl : regionUrl,
+                promoCode:
+                  promoCode === undefined ? relocationState.promoCode : promoCode,
+              });
+            }}
             onComplete={(uuid?) => {
               if (uuid) {
                 setExistingRelocation(uuid);
@@ -258,7 +299,8 @@ function RelocationOnboarding(props: Props) {
                 goNextStep(stepObj);
               }
             }}
-            publicKey={publicKey}
+            publicKeys={publicKeys}
+            relocationState={relocationState}
             route={props.route}
             router={props.router}
             location={props.location}
@@ -270,17 +312,17 @@ function RelocationOnboarding(props: Props) {
 
   const hasErr =
     existingRelocationState === LoadingState.ERROR ||
-    publicKeyState === LoadingState.ERROR;
+    publicKeysState === LoadingState.ERROR;
   const errView = hasErr ? (
     <LoadingError
       data-test-id="loading-error"
       message={t('Failed to load information from server - check your connection?')}
       onRetry={() => {
-        if (existingRelocationState) {
+        if (existingRelocationState === LoadingState.ERROR) {
           fetchExistingRelocation();
         }
-        if (publicKeyState) {
-          fetchPublicKey();
+        if (publicKeysState === LoadingState.ERROR) {
+          fetchPublicKeys();
         }
       }}
     />
@@ -288,16 +330,14 @@ function RelocationOnboarding(props: Props) {
 
   return (
     <OnboardingWrapper data-test-id="relocation-onboarding">
-      <RelocationOnboardingContextProvider>
-        <SentryDocumentTitle title={stepObj.title} />
-        {headerView}
-        <Container>
-          {backButtonView}
-          {contentView}
-          <AdaptivePageCorners animateVariant={cornerVariantControl} />
-          {errView}
-        </Container>
-      </RelocationOnboardingContextProvider>
+      <SentryDocumentTitle title={stepObj.title} />
+      {headerView}
+      <Container>
+        {backButtonView}
+        {contentView}
+        <AdaptivePageCorners animateVariant={cornerVariantControl} />
+        {errView}
+      </Container>
     </OnboardingWrapper>
   );
 }
@@ -311,6 +351,11 @@ const Container = styled('div')`
   padding: 120px ${space(3)};
   width: 100%;
   margin: 0 auto;
+
+  p,
+  a {
+    line-height: 1.6;
+  }
 `;
 
 const Header = styled('header')`

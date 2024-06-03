@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 import jsonschema
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
@@ -16,7 +17,7 @@ from rediscluster import RedisCluster
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.models.project import Project
-from sentry.utils import json, metrics, redis, safe
+from sentry.utils import metrics, redis, safe
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
@@ -229,7 +230,10 @@ def get_internal_source(project: Project):
         get_internal_url_prefix(),
         reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         ),
     )
 
@@ -257,8 +261,8 @@ def get_internal_artifact_lookup_source_url(project: Project):
         reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         ),
     )
@@ -268,6 +272,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+    verify_ssl = project.get_option("sentry:verify_ssl", True)
 
     allowed_origins = []
     scraping_headers = {}
@@ -283,6 +288,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
         "enabled": allow_scraping,
         "headers": scraping_headers,
         "allowed_origins": allowed_origins,
+        "verify_ssl": verify_ssl,
     }
 
 
@@ -369,7 +375,7 @@ def parse_sources(config, filter_appconnect=True):
         return []
 
     try:
-        sources = json.loads(config)
+        sources = orjson.loads(config)
     except Exception as e:
         raise InvalidSourcesError(f"{e}")
 
@@ -392,7 +398,7 @@ def parse_backfill_sources(sources_json, original_sources):
         return []
 
     try:
-        sources = json.loads(sources_json)
+        sources = orjson.loads(sources_json)
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
@@ -426,9 +432,9 @@ def backfill_source(source, original_sources_by_id):
                 source[secret] = secret_value
 
 
-def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
+def redact_source_secrets(config_sources: Any) -> Any:
     """
-    Returns a JSONData with all of the secrets redacted from every source.
+    Returns a json data with all of the secrets redacted from every source.
 
     The original value is not mutated in the process; A clone is created
     and returned by this function.

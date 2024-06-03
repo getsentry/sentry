@@ -13,11 +13,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import marked from 'sentry/utils/marked';
+import {limitedMarked} from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -182,7 +183,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
         ) : (
           <Content
             dangerouslySetInnerHTML={{
-              __html: marked(data.suggestion, {
+              __html: limitedMarked(data.suggestion, {
                 gfm: true,
                 breaks: true,
               }),

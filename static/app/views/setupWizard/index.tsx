@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 
@@ -103,16 +103,16 @@ function SetupWizard({hash = false, organizations}: Props) {
           <div className="row">
             <h5>{t('Return to your terminal to complete your setup')}</h5>
             <MinWidthButtonBar gap={1}>
-              <Button
+              <LinkButton
                 priority="primary"
-                to="/"
+                href="/"
                 onClick={() =>
                   trackAnalytics('setup_wizard.clicked_viewed_issues', analyticsParams)
                 }
               >
                 {t('View Issues')}
-              </Button>
-              <Button
+              </LinkButton>
+              <LinkButton
                 href={docsLink}
                 external
                 onClick={() =>
@@ -120,7 +120,7 @@ function SetupWizard({hash = false, organizations}: Props) {
                 }
               >
                 {t('See Docs')}
-              </Button>
+              </LinkButton>
             </MinWidthButtonBar>
           </div>
         )}
@@ -132,6 +132,7 @@ function SetupWizard({hash = false, organizations}: Props) {
 const MinWidthButtonBar = styled(ButtonBar)`
   width: min-content;
   margin-top: 20px;
+  margin-bottom: 20px;
 `;
 
 export default SetupWizard;

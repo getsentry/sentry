@@ -37,16 +37,14 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
 
-  if (props.organization.features.includes('starfish-browser-resource-module-ui')) {
+  if (props.organization.features.includes('spans-first-ui')) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
   }
 
-  if (
-    props.organization.features.includes('starfish-browser-webvitals-pageoverview-v2')
-  ) {
+  if (props.organization.features.includes('starfish-browser-webvitals')) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
-
   return (
     <PerformanceDisplayProvider
       value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}

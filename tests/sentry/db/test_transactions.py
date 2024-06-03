@@ -14,7 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import silo_mode_delegation
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import collect_transaction_queries

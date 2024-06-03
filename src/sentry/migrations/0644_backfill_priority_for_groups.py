@@ -4,7 +4,9 @@ import logging
 from enum import Enum
 
 from django.conf import settings
-from django.db import connection, migrations
+from django.db import connection
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 from psycopg2.extras import execute_values
 
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -66,7 +68,7 @@ UPDATE_QUERY = """
 REDIS_KEY = "priority_backfill.last_processed_id"
 
 
-def _get_priority_level(group_id, level, type_id, substatus):
+def _get_priority_level(group_id: int, level: int, type_id: int, substatus: GroupSubStatus) -> int:
     group_type = get_group_type_by_type_id(type_id)
 
     # Replay and Feedback issues are medium priority
@@ -108,7 +110,7 @@ def _get_priority_level(group_id, level, type_id, substatus):
     return PriorityLevel.MEDIUM
 
 
-def update_group_priority(apps, schema_editor):
+def update_group_priority(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -157,22 +159,16 @@ class Migration(CheckedMigration):
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the
     # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
+    # Here are some things that make sense to mark as post deployment:
     # - Large data migrations. Typically we want these to be run manually by ops so that they can
     #   be monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0643_add_date_modified_col_dashboard_widget_query"),
     ]
 
-    operations = [
-        migrations.RunPython(
-            update_group_priority,
-            reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_groupedmessage"]},
-        ),
-    ]
+    operations = []

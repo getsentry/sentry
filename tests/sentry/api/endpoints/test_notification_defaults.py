@@ -25,6 +25,8 @@ class NotificationDefaultTest(APITestCase):
                 "quotaTransactions": "always",
                 "quotaWarnings": "always",
                 "quotaMonitorSeats": "always",
+                "quotaSpans": "always",
+                "quotaProfileDuration": "always",
                 "reports": "always",
                 "spikeProtection": "always",
                 "workflow": "subscribe_only",

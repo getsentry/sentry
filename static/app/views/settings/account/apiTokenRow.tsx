@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import Confirm from 'sentry/components/confirm';
+import {DateTime} from 'sentry/components/dateTime';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,13 +23,20 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
       <Controls>
         {token.name ? token.name : ''}
         <ButtonWrapper>
-          <Button
-            data-test-id="token-delete"
-            onClick={() => onRemove(token)}
-            icon={<IconSubtract isCircled size="xs" />}
+          <Confirm
+            onConfirm={() => onRemove(token)}
+            message={t(
+              'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
+              tokenPreview(token.tokenLastCharacters, tokenPrefix)
+            )}
           >
-            {t('Remove')}
-          </Button>
+            <Button
+              data-test-id="token-delete"
+              icon={<IconSubtract isCircled size="xs" />}
+            >
+              {t('Remove')}
+            </Button>
+          </Confirm>
         </ButtonWrapper>
       </Controls>
 

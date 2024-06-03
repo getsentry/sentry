@@ -1,5 +1,4 @@
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -17,7 +16,8 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -565,9 +565,11 @@ describe('Performance > TransactionSummary', function () {
       // It renders the web vitals widget
       await screen.findByRole('heading', {name: 'Web Vitals'});
 
-      const vitalStatues = screen.getAllByTestId('vital-status');
-      expect(vitalStatues).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getAllByTestId('vital-status')).toHaveLength(3);
+      });
 
+      const vitalStatues = screen.getAllByTestId('vital-status');
       expect(vitalStatues[0]).toHaveTextContent('31%');
       expect(vitalStatues[1]).toHaveTextContent('65%');
       expect(vitalStatues[2]).toHaveTextContent('3%');
@@ -595,14 +597,6 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
-      );
     });
 
     it('renders project picker modal when no url does not have project id', async function () {
@@ -1138,14 +1132,6 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
 
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
-      );
-
       expect(
         screen.queryByTestId('search-metrics-fallback-warning')
       ).not.toBeInTheDocument();
@@ -1195,14 +1181,6 @@ describe('Performance > TransactionSummary', function () {
               'transaction.op:pageload event.type:transaction transaction:/performance',
           }),
         })
-      );
-
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
       );
     });
 
@@ -1292,15 +1270,6 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-
-      // Renders TPM widget
-      expect(
-        screen.getByRole('heading', {name: 'Percentage of Total Transactions'})
-      ).toBeInTheDocument();
-      expect(screen.getByTestId('count-percentage-summary-value')).toHaveTextContent(
-        '100%'
-      );
-
       expect(screen.getByTestId('search-metrics-fallback-warning')).toBeInTheDocument();
     });
   });

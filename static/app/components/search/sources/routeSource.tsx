@@ -2,7 +2,8 @@ import {Component} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import HookStore from 'sentry/stores/hookStore';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';

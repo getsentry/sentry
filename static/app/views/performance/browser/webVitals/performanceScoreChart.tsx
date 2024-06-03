@@ -9,11 +9,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
@@ -36,8 +36,7 @@ export function PerformanceScoreChart({
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
-  const order = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+  const order = ORDER_WITH_INP;
 
   const score = projectScore
     ? webVital
@@ -66,8 +65,8 @@ export function PerformanceScoreChart({
     ? {
         lcp: projectScore.lcpWeight,
         fcp: projectScore.fcpWeight,
-        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
-        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        fid: 0,
+        inp: projectScore.inpWeight,
         cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       }
@@ -85,7 +84,7 @@ export function PerformanceScoreChart({
               <span>
                 {t('The overall performance rating of this page.')}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -142,7 +141,7 @@ const PerformanceScoreLabel = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`

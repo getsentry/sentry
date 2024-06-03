@@ -85,12 +85,21 @@ def process_attachments_and_events(
         logger.exception("Project for ingested event does not exist: %s", project_id)
         return None
 
-    if message_type == "attachment":
-        if not reprocess_only_stuck_events:
-            process_individual_attachment(message, project)
-    elif message_type == "event":
-        process_event(message, project, reprocess_only_stuck_events)
-    elif message_type == "user_report":
-        process_userreport(message, project)
-    else:
-        raise ValueError(f"Unsupported message type: {message_type}")
+    try:
+        if message_type == "attachment":
+            if not reprocess_only_stuck_events:
+                process_individual_attachment(message, project)
+        elif message_type == "event":
+            process_event(message, project, reprocess_only_stuck_events)
+        elif message_type == "user_report":
+            process_userreport(message, project)
+        else:
+            raise ValueError(f"Unsupported message type: {message_type}")
+    except Exception as exc:
+        # If the retriable exception was raised, we should not DLQ
+        if isinstance(exc, Retriable):
+            raise
+
+        raw_value = raw_message.value
+        assert isinstance(raw_value, BrokerValue)
+        raise InvalidMessage(raw_value.partition, raw_value.offset) from exc

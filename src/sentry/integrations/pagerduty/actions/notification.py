@@ -57,7 +57,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(self, event, state, notification_uuid: str | None = None):
+    def after(self, event, notification_uuid: str | None = None):
         integration = self.get_integration()
         log_context = {
             "organization_id": self.project.organization_id,

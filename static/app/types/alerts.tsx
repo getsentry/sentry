@@ -39,7 +39,8 @@ export const enum IssueAlertConditionType {
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
   EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
-  HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition',
+  NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewIssueCondition',
+  EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingIssueCondition',
 }
 
 export const enum IssueAlertFilterType {
@@ -291,3 +292,32 @@ export enum MonitorType {
   CONTINUOUS = 0,
   ACTIVATED = 1,
 }
+
+export enum ActivationConditionType {
+  RELEASE_CREATION = 0,
+  DEPLOY_CREATION = 1,
+}
+
+export type AlertRuleActivation = {
+  activator: string;
+  alertRuleId: string;
+  conditionType: string;
+  dateCreated: string;
+  finishedAt: string;
+  id: string;
+  isComplete: boolean;
+  querySubscriptionId: string;
+  metricValue?: number;
+};
+
+export enum ActivationTrigger {
+  ACTIVATED = 'activated',
+  FINISHED = 'finished',
+}
+
+export type ActivationTriggerActivity = {
+  activator: string;
+  conditionType: string;
+  dateCreated: string;
+  type: ActivationTrigger;
+};

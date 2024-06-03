@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedProjectProps = {

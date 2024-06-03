@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setMockDate} from 'sentry-test/utils';
 
 import localStorage from 'sentry/utils/localStorage';
@@ -21,7 +21,7 @@ describe('useDismissAlert', () => {
   });
 
   it('should return a stable ref for the dismiss() function', () => {
-    const {result, rerender} = reactHooks.renderHook(useDismissAlert, {
+    const {result, rerender} = renderHook(useDismissAlert, {
       initialProps: {key},
     });
 
@@ -35,7 +35,7 @@ describe('useDismissAlert', () => {
   it('should not be dismissed if there is no value in localstorage', () => {
     mockGetItem.mockReturnValue(null);
 
-    const hook = reactHooks.renderHook(useDismissAlert, {
+    const hook = renderHook(useDismissAlert, {
       initialProps: {key},
     });
     const {result} = hook;
@@ -46,7 +46,7 @@ describe('useDismissAlert', () => {
   it('should be dismissed if there is any value in localstorage and no expiration', () => {
     mockGetItem.mockReturnValue(JSON.stringify('some value'));
 
-    const {result} = reactHooks.renderHook(useDismissAlert, {
+    const {result} = renderHook(useDismissAlert, {
       initialProps: {key},
     });
 
@@ -54,11 +54,11 @@ describe('useDismissAlert', () => {
   });
 
   it('should set the current timestamp into localstorage when an alert is dismissed', async () => {
-    const {result, waitFor} = reactHooks.renderHook(useDismissAlert, {
+    const {result} = renderHook(useDismissAlert, {
       initialProps: {key},
     });
 
-    reactHooks.act(() => {
+    act(() => {
       result.current.dismiss();
     });
 
@@ -79,7 +79,7 @@ describe('useDismissAlert', () => {
     mockGetItem.mockReturnValue(JSON.stringify(christmas));
 
     // Expires after 2 days
-    const {result} = reactHooks.renderHook(useDismissAlert, {
+    const {result} = renderHook(useDismissAlert, {
       initialProps: {key, expirationDays: 2},
     });
 
@@ -93,7 +93,7 @@ describe('useDismissAlert', () => {
     mockGetItem.mockReturnValue(JSON.stringify(christmas));
 
     // Expires after 30 days
-    const {result} = reactHooks.renderHook(useDismissAlert, {
+    const {result} = renderHook(useDismissAlert, {
       initialProps: {key, expirationDays: 30},
     });
 
@@ -104,7 +104,7 @@ describe('useDismissAlert', () => {
   it('should not be dismissed if the value in localstorage is not a number/timestamp', () => {
     mockGetItem.mockReturnValue(JSON.stringify('foobar'));
 
-    const {result} = reactHooks.renderHook(useDismissAlert, {
+    const {result} = renderHook(useDismissAlert, {
       initialProps: {key, expirationDays: 30},
     });
 

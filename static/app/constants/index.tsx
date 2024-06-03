@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategoryExact} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types/core';
 
 /**
  * Common constants here
@@ -80,30 +80,34 @@ export const ORG_ROLES: OrgRole[] = [
   {
     id: 'member',
     name: 'Member',
-    allowed: true,
+    isAllowed: true,
     desc: 'Members can view and act on events, as well as view most other data within the organization.',
     minimumTeamRole: 'contributor',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'admin',
     name: 'Admin',
-    allowed: true,
+    isAllowed: true,
     desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'manager',
     name: 'Manager',
-    allowed: true,
+    isAllowed: true,
     desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'owner',
     name: 'Organization Owner',
-    allowed: true,
+    isAllowed: true,
     desc: 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
 ];
 
@@ -306,6 +310,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span',
+    plural: 'spans',
+    displayName: 'spans',
+    titleName: t('Spans'),
+    uid: 12,
+  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -313,6 +325,34 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
+  },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profile_duration',
+    plural: 'profileDuration',
+    displayName: 'profile hours',
+    titleName: t('Profile Hours'),
+    uid: 17,
+  },
+  /**
+   * Used to display metrics on the stats page
+   */
+  [DataCategoryExact.METRICS]: {
+    name: DataCategoryExact.METRICS,
+    apiName: 'metricOutcomes',
+    plural: 'metrics',
+    displayName: 'metrics',
+    titleName: t('Metrics'),
+    // Metrics has no uid, is only used on stats page
+    uid: -1,
+  },
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
+    plural: 'metricSeconds',
+    displayName: 'metric hours',
+    titleName: t('Metrics Hours'),
+    uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

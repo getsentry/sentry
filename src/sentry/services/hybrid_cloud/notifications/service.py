@@ -10,9 +10,10 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
+from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
@@ -45,7 +46,7 @@ class NotificationsService(RpcService):
     def update_notification_options(
         self,
         *,
-        actor: RpcActor,
+        actor: Actor,
         type: NotificationSettingEnum,
         scope_type: NotificationScopeEnum,
         scope_identifier: int,
@@ -72,13 +73,16 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_subscriptions_for_projects(
+    def subscriptions_for_projects(
         self,
         *,
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
+    ) -> Mapping[int, RpcSubscriptionStatus]:
+        """
+        Returns a mapping of project_id to the subscription status for the provided user_id
+        """
         pass
 
     @rpc_method
@@ -86,7 +90,7 @@ class NotificationsService(RpcService):
     def get_participants(
         self,
         *,
-        recipients: list[RpcActor],
+        recipients: list[Actor],
         type: NotificationSettingEnum,
         project_ids: list[int] | None = None,
         organization_id: int | None = None,
@@ -105,12 +109,12 @@ class NotificationsService(RpcService):
     def get_notification_recipients(
         self,
         *,
-        recipients: list[RpcActor],
+        recipients: list[Actor],
         type: NotificationSettingEnum,
         organization_id: int | None = None,
         project_ids: list[int] | None = None,
         actor_type: ActorType | None = None,
-    ) -> Mapping[str, set[RpcActor]]:
+    ) -> Mapping[str, set[Actor]]:
         pass
 
 

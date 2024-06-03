@@ -30,7 +30,7 @@ describe('DropdownMenu', function () {
     // Open the mneu
     await userEvent.click(screen.getByRole('button', {name: 'This is a Menu'}));
 
-    // The mneu is open
+    // The menu is open
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
     // There are two menu items
@@ -147,7 +147,7 @@ describe('DropdownMenu', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
-    // Sub item won't be visible until we hover over it's parent
+    // Sub item won't be visible until we hover over its parent
     expect(
       screen.queryByRole('menuitemradio', {name: 'Sub Item'})
     ).not.toBeInTheDocument();

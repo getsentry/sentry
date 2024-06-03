@@ -81,8 +81,8 @@ class JiraRequestParser(BaseRequestParser):
                 return self.get_response_from_control_silo()
 
         if self.view_class in self.outbox_response_region_classes:
-            return self.get_response_from_webhookpayload_for_integration(
-                regions=regions, integration=integration
+            return self.get_response_from_webhookpayload(
+                regions=regions, identifier=integration.id, integration_id=integration.id
             )
 
         return self.get_response_from_control_silo()

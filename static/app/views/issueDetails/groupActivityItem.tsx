@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -20,9 +20,9 @@ import type {
   Project,
   User,
 } from 'sentry/types';
-import {GroupActivityType} from 'sentry/types';
-import {isSemverRelease} from 'sentry/utils/formatters';
+import {GroupActivityType} from 'sentry/types/group';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 interface AssignedMessageProps {
   activity: GroupActivityAssigned;
@@ -597,6 +597,8 @@ function GroupActivityItem({
             );
         }
       }
+      case GroupActivityType.DELETED_ATTACHMENT:
+        return tct('[author] deleted an attachment', {author});
       default:
         return ''; // should never hit (?)
     }

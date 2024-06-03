@@ -21,7 +21,7 @@ from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderC
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ def bulk_timeseries_query(
                 metrics_queries.append(snql_query[0])
 
             metrics_referrer = referrer + ".metrics-enhanced"
-            bulk_result = bulk_snql_query(metrics_queries, metrics_referrer)
+            bulk_result = bulk_snuba_queries(metrics_queries, metrics_referrer)
             _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
@@ -221,9 +221,11 @@ def bulk_timeseries_query(
             )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else [],
+            "data": (
+                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else []
+            ),
         },
         params["start"],
         params["end"],
@@ -360,9 +362,11 @@ def timeseries_query(
     # In case the query was not compatible with metrics we return empty data.
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else [],
+            "data": (
+                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else []
+            ),
         },
         params["start"],
         params["end"],
@@ -435,7 +439,7 @@ def top_events_timeseries(
             ),
         )
 
-        # TODO: use bulk_snql_query
+        # TODO: use bulk_snuba_queries
         other_result = other_events_builder.run_query(referrer)
         result = top_events_builder.run_query(referrer)
     else:
@@ -448,9 +452,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -482,11 +488,11 @@ def top_events_timeseries(
     for key, item in results.items():
         results[key] = SnubaTSResult(
             {
-                "data": discover.zerofill(
-                    item["data"], params["start"], params["end"], rollup, "time"
-                )
-                if zerofill_results
-                else item["data"],
+                "data": (
+                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else item["data"]
+                ),
                 "order": item["order"],
                 # One of the queries in the builder has required, thus, we mark all of them
                 # This could mislead downstream consumers of the meta data

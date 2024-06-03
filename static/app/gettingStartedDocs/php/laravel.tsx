@@ -10,6 +10,8 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -56,37 +58,6 @@ composer install sentry/sentry-laravel
 
 composer update sentry/sentry-laravel -W`;
 
-const getMetricsVerifySnippet = () => `
-use function \\Sentry\\metrics;
-
-// Add 4 to a counter named 'hits'
-metrics()->increment('hits', 4);
-metrics()->flush();
-
-// We recommend registering the flush call in a shutdown function
-register_shutdown_function(static fn () => metrics()->flush());
-
-// Or call flush in a Terminable Middleware
-
-use Closure;
-use Illuminate\\Http\\Request;
-use Symfony\\Component\\HttpFoundation\\Response;
-
-use function \\Sentry\\metrics;
-
-class SentryMetricsMiddleware
-{
-		public function handle(Request $request, Closure $next): Response
-    {
-        return $next($request);
-    }
-
-    public function terminate(Request $request, Response $response): void
-    {
-        metrics()->flush();
-    }
-}`;
-
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
@@ -117,6 +88,16 @@ const onboarding: OnboardingConfig = {
                 description: t('Install the Excimer extension via PECL:'),
                 language: 'bash',
                 code: 'pecl install excimer',
+              },
+              {
+                description: tct(
+                  "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+                  {
+                    sentryPhpDocumentationLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+                    ),
+                  }
+                ),
               },
             ]
           : []),
@@ -178,7 +159,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersionLaravel:4.0.0] of the Laravel SDK and a minimum version [codeVersion:4.3.0] of the PHP SDK installed',
+        'You need a minimum version [codeVersionLaravel:4.2.0] of the Laravel SDK and a minimum version [codeVersion:4.3.0] of the PHP SDK installed',
         {
           codeVersionLaravel: <code />,
           codeVersion: <code />,
@@ -219,7 +200,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -230,12 +211,34 @@ const customMetricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
-              label: 'PHP',
-              value: 'php',
+              label: 'Counter',
+              value: 'counter',
               language: 'php',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.php.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'php',
+              code: exampleSnippets.php.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'php',
+              code: exampleSnippets.php.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'php',
+              code: exampleSnippets.php.gauge,
             },
           ],
         },

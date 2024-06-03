@@ -11,7 +11,7 @@ from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType

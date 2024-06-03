@@ -22,10 +22,23 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn}",${
+    params.isPerformanceSelected
+      ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
   // We recommend adjusting this value in production.
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  _experiments: {
+    // profilesSampleRate is relative to tracesSampleRate.
+    // Here, we'll capture profiles for 100% of transactions.
+    profilesSampleRate: 1.0,
+  },`
+      : ''
+  }
 });`;
 
 const getPerformanceSnippet = () => `
@@ -114,6 +127,15 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       configurations: [
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: t(
+                  'React Native Profiling beta is available since SDK version 5.8.0.'
+                ),
+              },
+            ]
+          : []),
         {
           language: 'javascript',
           code: getConfigureSnippet(params),
@@ -145,7 +167,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -173,49 +195,55 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance'),
-      description: (
-        <Fragment>
-          {t(
-            'Sentry can measure the performance of your app automatically when instrumented with the following routers:'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation">
-                {t('React Navigation')}
-              </ExternalLink>
-            </ListItem>
-            <ListItem>
-              <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation-v4">
-                {t('React Navigation V4 and prior')}
-              </ExternalLink>
-            </ListItem>
-            <ListItem>
-              <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-native-navigation">
-                {t('React Native Navigation')}
-              </ExternalLink>
-            </ListItem>
-          </List>
-          {t('Additionally, you can create transactions and spans programatically:')}
-        </Fragment>
-      ),
-      configurations: [
-        {
-          description: t('For example:'),
-          language: 'javascript',
-          code: getPerformanceSnippet(),
-          additionalInfo: tct(
-            'For more information, please refer to the [docLink: Sentry React Native documentation].',
-            {
-              docLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Performance'),
+            description: (
+              <Fragment>
+                {t(
+                  'Sentry can measure the performance of your app automatically when instrumented with the following routers:'
+                )}
+                <List symbol="bullet">
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation">
+                      {t('React Navigation')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation-v4">
+                      {t('React Navigation V4 and prior')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-native-navigation">
+                      {t('React Native Navigation')}
+                    </ExternalLink>
+                  </ListItem>
+                </List>
+                {t(
+                  'Additionally, you can create transactions and spans programatically:'
+                )}
+              </Fragment>
+            ),
+            configurations: [
+              {
+                description: t('For example:'),
+                language: 'javascript',
+                code: getPerformanceSnippet(),
+                additionalInfo: tct(
+                  'For more information, please refer to the [docLink: Sentry React Native documentation].',
+                  {
+                    docLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: t('Debug Symbols'),
       description: (

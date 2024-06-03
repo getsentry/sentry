@@ -8,6 +8,7 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types';
+import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/formatters';
 import Histogram from 'sentry/utils/performance/histogram';
@@ -18,7 +19,6 @@ import {
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
 
 import type {ViewProps} from '../../../types';
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';

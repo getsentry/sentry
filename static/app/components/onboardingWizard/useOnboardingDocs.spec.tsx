@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {
@@ -41,7 +41,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -94,7 +94,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -143,7 +143,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,

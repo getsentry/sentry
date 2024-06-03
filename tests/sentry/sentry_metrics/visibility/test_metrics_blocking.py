@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.sentry_metrics.visibility import (
@@ -17,8 +19,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
+@mock.patch("sentry.sentry_metrics.visibility.metrics_blocking.metrics")
 @django_db_all
-def test_apply_multiple_operations(default_project):
+def test_apply_multiple_operations(mock_metrics, default_project):
     mri_1 = "c:custom/page_click@none"
     mri_2 = "g:custom/page_load@millisecond"
 
@@ -33,6 +36,7 @@ def test_apply_multiple_operations(default_project):
     assert metrics_blocking_state[0]["metric_mri"] == mri_1
     assert metrics_blocking_state[0]["is_blocked"] is True
     assert metrics_blocking_state[0]["blocked_tags"] == []
+    assert mock_metrics.incr.call_args.args == ("ddm.metrics_api.blocked_metrics_count",)
 
     # We block tags of a blocked metric.
     block_tags_of_metric(mri_1, {"release", "transaction", "release"}, [default_project])
@@ -44,6 +48,7 @@ def test_apply_multiple_operations(default_project):
     assert metrics_blocking_state[0]["metric_mri"] == mri_1
     assert metrics_blocking_state[0]["is_blocked"] is True
     assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release", "transaction"]
+    assert mock_metrics.incr.call_args.args == ("ddm.metrics_api.blocked_metric_tags_count",)
 
     # We unblock a tag of a blocked metric.
     unblock_tags_of_metric(mri_1, {"transaction"}, [default_project])
@@ -55,6 +60,7 @@ def test_apply_multiple_operations(default_project):
     assert metrics_blocking_state[0]["metric_mri"] == mri_1
     assert metrics_blocking_state[0]["is_blocked"]
     assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release"]
+    assert mock_metrics.incr.call_args.args == ("ddm.metrics_api.unblocked_metric_tags_count",)
 
     # We block tags of an unblocked metric.
     block_tags_of_metric(mri_2, {"environment", "transaction"}, [default_project])
@@ -91,6 +97,7 @@ def test_apply_multiple_operations(default_project):
     assert metrics_blocking_state[0]["metric_mri"] == mri_1
     assert metrics_blocking_state[0]["is_blocked"] is False
     assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release"]
+    assert mock_metrics.incr.call_args.args == ("ddm.metrics_api.unblocked_metrics_count",)
 
     # We unblock all the tags of an unblocked metric.
     unblock_tags_of_metric(mri_1, {"release", "transaction"}, [default_project])

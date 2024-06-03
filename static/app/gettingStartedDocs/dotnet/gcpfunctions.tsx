@@ -65,10 +65,14 @@ const getConfigureJsonSnippet = (params: Params) => `
     // When configuring for the first time, to see what the SDK is doing:
     "Debug": true,
     // Opt-in for payload submission.
-    "MaxRequestBodySize": "Always",
+    "MaxRequestBodySize": "Always"${
+      params.isPerformanceSelected
+        ? `,
     // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
     // We recommend adjusting this value in production.
-    "TracesSampleRate": 1
+    "TracesSampleRate": 1`
+        : ''
+    }
   }
 }`;
 

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -25,6 +25,7 @@ from sentry.signals import (
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
+    first_custom_metric_received,
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
@@ -83,6 +84,9 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
+        updated_empty_state=features.has(
+            "organizations:issue-stream-empty-state", project.organization
+        ),
     )
 
     success = OrganizationOnboardingTask.objects.record(
@@ -312,6 +316,19 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         monitor_id=monitor_id,
+    )
+
+
+@first_custom_metric_received.connect(weak=False)
+def record_first_custom_metric(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
+
+    analytics.record(
+        "first_custom_metric.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
     )
 
 
@@ -555,7 +572,9 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+    # NOTE: This intentionally does not fire for the default issue alert rule
+    # that gets created on new project creation.
     task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,

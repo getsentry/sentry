@@ -2,7 +2,7 @@ import {type ElementType, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import type {Props as SizingWindowProps} from 'sentry/components/stories/sizingWindow';
+import type {SizingWindowProps} from 'sentry/components/stories/sizingWindow';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 

@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {GroupFixture} from 'sentry-fixture/group';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
@@ -13,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
 const group = GroupFixture();

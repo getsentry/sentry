@@ -1,10 +1,8 @@
 import * as React from 'react';
-import {findDOMNode, render} from 'react-dom';
-// eslint-disable-next-line no-restricted-imports
-import * as ReactRouter from 'react-router';
+import {findDOMNode} from 'react-dom';
+import {createRoot} from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
-import * as Reflux from 'reflux';
 
 import plugins from 'sentry/plugins';
 
@@ -12,11 +10,9 @@ const globals = {
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
   React,
-  Reflux,
   Sentry,
   moment,
-  Router: ReactRouter,
-  ReactDOM: {findDOMNode, render},
+  ReactDOM: {findDOMNode, createRoot},
 
   // django templates make use of these globals
   SentryApp: {},

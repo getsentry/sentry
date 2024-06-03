@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import dataclass
 from logging import Logger, getLogger
+
+from django.db.models import Q
 
 from sentry.integrations.repository.base import (
     BaseNewNotificationMessage,
@@ -65,7 +68,7 @@ class NewIssueAlertNotificationMessage(BaseNewNotificationMessage):
                 return RuleFireHistoryAndRuleActionUuidActionValidationError()
 
         # We can create a NotificationMessage if it has both, or neither, of rule fire history and action.
-        # The following is an XNOR check for incident and trigger
+        # The following is an XNOR check for rule fire history and action
         if (self.rule_fire_history_id is not None) != (self.rule_action_uuid is not None):
             return RuleFireHistoryAndRuleActionUuidActionValidationError()
 
@@ -87,6 +90,15 @@ class IssueAlertNotificationMessageRepository:
     def default(cls) -> IssueAlertNotificationMessageRepository:
         return cls(logger=_default_logger)
 
+    @classmethod
+    def _parent_notification_message_base_filter(cls) -> Q:
+        """
+        Returns the query used to filter the notification messages for parent notification messages.
+        Parent notification messages are notification message instances without a parent notification message itself,
+        and where the error code is null.
+        """
+        return Q(parent_notification_message__isnull=True, error_code__isnull=True)
+
     def get_parent_notification_message(
         self, rule_id: int, group_id: int, rule_action_uuid: str
     ) -> IssueAlertNotificationMessage | None:
@@ -95,12 +107,11 @@ class IssueAlertNotificationMessageRepository:
         Will raise an exception if the query fails and logs the error with associated data.
         """
         try:
-            instance: NotificationMessage = self._model.objects.get(
+            base_filter = self._parent_notification_message_base_filter()
+            instance: NotificationMessage = self._model.objects.filter(base_filter).get(
                 rule_fire_history__rule__id=rule_id,
                 rule_fire_history__group__id=group_id,
                 rule_action_uuid=rule_action_uuid,
-                parent_notification_message__isnull=True,
-                error_code__isnull=True,
             )
             return IssueAlertNotificationMessage.from_model(instance=instance)
         except NotificationMessage.DoesNotExist:
@@ -138,5 +149,33 @@ class IssueAlertNotificationMessageRepository:
                 "failed to create new issue alert notification alert",
                 exc_info=e,
                 extra=data.__dict__,
+            )
+            raise
+
+    def get_all_parent_notification_messages_by_filters(
+        self, group_ids: list[int] | None = None, project_ids: list[int] | None = None
+    ) -> Generator[IssueAlertNotificationMessage, None, None]:
+        """
+        If no filters are passed, then all parent notification objects are returned.
+
+        Because an unbounded amount of parent notification objects can be returned, this method leverages generator to
+        control the usage of memory in the application.
+        It is up to the caller to iterate over all the data, or store in memory if they need all objects concurrently.
+        """
+        group_id_filter = Q(rule_fire_history__group__id__in=group_ids) if group_ids else Q()
+        project_id_filter = Q(rule_fire_history__project_id__in=project_ids) if project_ids else Q()
+
+        query = self._model.objects.filter(group_id_filter & project_id_filter).filter(
+            self._parent_notification_message_base_filter()
+        )
+
+        try:
+            for instance in query:
+                yield IssueAlertNotificationMessage.from_model(instance=instance)
+        except Exception as e:
+            self._logger.exception(
+                "Failed to get parent notifications on filters",
+                exc_info=e,
+                extra=filter.__dict__,
             )
             raise

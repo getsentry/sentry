@@ -8,7 +8,7 @@ import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Member, Organization, Project, User} from 'sentry/types';
+import type {Member, Organization, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
@@ -34,7 +34,6 @@ type Props = {
   disabled?: boolean;
   onInputChange?: (value: any) => any;
   placeholder?: string;
-  project?: Project;
   styles?: {control?: (provided: any) => any};
 };
 
@@ -78,7 +77,7 @@ class SelectMembers extends Component<Props, State> {
   ];
 
   renderUserBadge = (user: User) => (
-    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+    <IdBadge avatarSize={24} user={user} hideEmail disableLink />
   );
 
   createMentionableUser = (user: User): MentionableUser => ({

@@ -1,6 +1,7 @@
 import time
 from datetime import datetime, timedelta
 
+import orjson
 import pytest
 import responses
 from django.core import mail
@@ -13,13 +14,12 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -59,7 +59,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
 
@@ -108,14 +108,14 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         self.resp.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         with pytest.raises(ApiError):
@@ -138,7 +138,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
@@ -166,7 +166,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
@@ -191,7 +191,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())

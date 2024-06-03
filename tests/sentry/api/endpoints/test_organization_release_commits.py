@@ -27,7 +27,10 @@ class ReleaseCommitsListTest(APITestCase):
         )
         url = reverse(
             "sentry-api-0-organization-release-commits",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)

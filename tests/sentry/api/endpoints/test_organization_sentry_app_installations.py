@@ -7,6 +7,7 @@ from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -74,7 +75,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             response = self.get_success_response(self.super_org.slug, status_code=200)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_and_write_sees_all_installs(self):
         # test SaaS only
         self.login_as(user=self.superuser, superuser=True)
@@ -109,14 +110,20 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "post"
 
+    def get_expected_response(self, app, org):
+        return {
+            "app": {"slug": app.slug, "uuid": app.uuid},
+            "organization": {"slug": org.slug},
+            "code": SentryAppInstallation.objects.get(
+                sentry_app=app, organization_id=org.id
+            ).api_grant.code,
+        }
+
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org)
         response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
-        expected = {
-            "app": {"slug": app.slug, "uuid": app.uuid},
-            "organization": {"slug": self.org.slug},
-        }
+        expected = self.get_expected_response(app, self.org)
 
         assert expected.items() <= response.data.items()
 
@@ -124,10 +131,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
         response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
-        expected = {
-            "app": {"slug": app.slug, "uuid": app.uuid},
-            "organization": {"slug": self.org.slug},
-        }
+        expected = self.get_expected_response(app, self.org)
 
         assert expected.items() <= response.data.items()
 
@@ -139,11 +143,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         response = self.get_success_response(
             org2.slug, slug=self.published_app.slug, status_code=200
         )
-
-        expected = {
-            "app": {"slug": self.published_app.slug, "uuid": self.published_app.uuid},
-            "organization": {"slug": org2.slug},
-        }
+        expected = self.get_expected_response(self.published_app, org2)
 
         assert expected.items() <= response.data.items()
 
@@ -165,7 +165,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.get_success_response(self.org.slug, slug=app2.slug, status_code=200)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_install_superuser_read(self):
         self.login_as(user=self.superuser, superuser=True)
 
@@ -173,7 +173,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.get_error_response(self.org.slug, slug=app.slug, status_code=404)
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_install_superuser_write(self):
         self.login_as(user=self.superuser, superuser=True)
         self.add_user_permission(self.superuser, "superuser.write")

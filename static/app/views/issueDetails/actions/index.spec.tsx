@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -18,6 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
 const project = ProjectFixture({
@@ -37,7 +37,6 @@ const group = GroupFixture({
 const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
-  features: ['reprocessing-v2'],
 });
 
 describe('GroupActions', function () {
@@ -132,7 +131,7 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
+    it('renders ReprocessAction component if org has native exception event', async function () {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });

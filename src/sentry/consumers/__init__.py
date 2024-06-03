@@ -40,7 +40,7 @@ def convert_max_batch_time(ctx, param, value):
 
 def multiprocessing_options(
     default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
-):
+) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
         click.Option(["--input-block-size"], type=int, default=None),
@@ -57,6 +57,19 @@ def multiprocessing_options(
             callback=convert_max_batch_time,
             type=int,
             help="Maximum time (in milliseconds) to wait before flushing a batch.",
+        ),
+    ]
+
+
+def issue_occurrence_options() -> list[click.Option]:
+    """Return a list of issue-occurrence options."""
+    return [
+        *multiprocessing_options(default_max_batch_size=100),
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["batched-parallel", "parallel"]),
+            default="parallel",
+            help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
         ),
     ]
 
@@ -96,7 +109,7 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--mode", "mode"],
             type=click.Choice(["serial", "parallel"]),
-            default="serial",
+            default="parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
@@ -108,8 +121,14 @@ def ingest_monitors_options() -> list[click.Option]:
         click.Option(
             ["--max-batch-time", "max_batch_time"],
             type=int,
-            default=10,
+            default=1,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
         ),
     ]
     return options
@@ -208,6 +227,14 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
     },
+    "monitors-clock-tick": {
+        "topic": Topic.MONITORS_CLOCK_TICK,
+        "strategy_factory": "sentry.monitors.consumers.clock_tick_consumer.MonitorClockTickStrategyFactory",
+    },
+    "monitors-clock-tasks": {
+        "topic": Topic.MONITORS_CLOCK_TASKS,
+        "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+    },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
@@ -218,7 +245,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-occurrences": {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=20),
+        "click_options": issue_occurrence_options(),
     },
     "events-subscription-results": {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -238,14 +265,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "generic_metrics"},
-    },
-    "sessions-subscription-results": {
-        "topic": Topic.SESSIONS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(),
-        "static_args": {
-            "dataset": "events",
-        },
     },
     "metrics-subscription-results": {
         "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
@@ -357,6 +376,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
+        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -384,7 +404,7 @@ def get_stream_processor(
     synchronize_commit_log_topic: str | None = None,
     synchronize_commit_group: str | None = None,
     healthcheck_file_path: str | None = None,
-    enable_dlq: bool = False,
+    enable_dlq: bool = True,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
@@ -410,10 +430,13 @@ def get_stream_processor(
 
     topic_defn = get_topic_definition(consumer_topic)
     real_topic = topic_defn["real_topic_name"]
-    cluster = topic_defn["cluster"]
+    cluster_from_config = topic_defn["cluster"]
 
     if topic is None:
         topic = real_topic
+
+    if cluster is None:
+        cluster = cluster_from_config
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -496,7 +519,7 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
-    if enable_dlq:
+    if enable_dlq and consumer_definition.get("dlq_topic"):
         try:
             dlq_topic = consumer_definition["dlq_topic"]
         except KeyError as e:
@@ -517,8 +540,8 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
             DlqLimit(
-                max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
-                max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
+                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
+                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
             ),
             None,
         )

@@ -1,5 +1,4 @@
 import logging
-import re
 from concurrent.futures import ThreadPoolExecutor
 
 import sentry_sdk
@@ -15,13 +14,14 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.constants import METRICS_GRANULARITIES
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
+from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -86,14 +86,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         trend_function = request.GET.get("trendFunction", "p50()")
 
-        selected_columns = self.get_field_list(organization, request)
+        selected_columns = ["project_id", "transaction"]
 
         query = request.GET.get("query")
 
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
-            top_event_columns.append("project_id")
 
             # Granularity is set to 1d - the highest granularity possible
             # in order to optimize the top event query since we don't care
@@ -112,7 +111,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
         def generate_top_transaction_query(events):
             pairs = [
-                (event["project_id"], re.sub(r'"', '\\"', event["transaction"])) for event in events
+                (event["project_id"], escape_transaction(event["transaction"])) for event in events
             ]
             conditions = [
                 f'(project_id:{project_id} transaction:"{transaction}")'
@@ -169,11 +168,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     "project_id": item["project_id"],
                 }
 
+            discarded = 0
+
             for row in result.get("data", []):
                 result_key = create_result_key(row, translated_groupby, {})
                 if result_key in results:
                     results[result_key]["data"].append(row)
                 else:
+                    discarded += 1
                     # TODO filter out entries that don't have transaction or trend_function
                     logger.warning(
                         "trends.top-events.timeseries.key-mismatch",
@@ -182,6 +184,22 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                             "top_event_keys": list(results.keys()),
                         },
                     )
+
+            # If we discard any rows, there's a chance we have a bad query and it'll
+            # most likely be a transaction name being parsed in an unexpected way in
+            # the search.
+            # A common side effect of this is that we return data for the same series
+            # in more than 1 query which can lead to a validation error in seer.
+            if discarded > 0:
+                logger.warning(
+                    "trends.top-events.timeseries.discarded-rows",
+                    extra={
+                        "discarded": discarded,
+                        "transactions": [event["transaction"] for event in data],
+                    },
+                )
+                sentry_sdk.capture_message("Possibility of bad trends query")
+
             for key, item in results.items():
                 formatted_results[key] = SnubaTSResult(
                     {

@@ -1,4 +1,4 @@
-import importlib.resources
+import binascii
 import itertools
 import logging
 import random
@@ -16,12 +16,12 @@ from django.utils.encoding import force_bytes
 from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBModel
-from sentry.utils.compat import crc32
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import (
     check_cluster_versions,
     get_cluster_from_options,
     is_instance_rb_cluster,
+    load_redis_script,
 )
 from sentry.utils.versioning import Version
 
@@ -31,9 +31,13 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = Script(
-    None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
-)
+CountMinScript = load_redis_script("tsdb/cmsketch.lua")
+
+
+def _crc32(data: bytes) -> int:
+    # python 2 equivalent crc32 to return signed
+    rv = binascii.crc32(data)
+    return rv - ((rv & 0x80000000) << 1)
 
 
 class SuppressionWrapper(Generic[T]):
@@ -121,10 +125,7 @@ class RedisTSDB(BaseTSDB):
 
     def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
         cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
-        if is_instance_rb_cluster(cluster, False):
-            self.cluster = cluster
-        else:
-            raise AssertionError("unreachable")
+        self.cluster = cluster
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)
@@ -201,7 +202,7 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, int):
             vnode = model_key % self.vnodes
         else:
-            vnode = crc32(force_bytes(model_key)) % self.vnodes
+            vnode = _crc32(force_bytes(model_key)) % self.vnodes
 
         return (
             "{prefix}{model}:{epoch}:{vnode}".format(

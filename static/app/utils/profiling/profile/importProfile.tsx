@@ -71,7 +71,7 @@ export function importProfile(
 
       throw new Error('Unsupported trace format');
     } catch (error) {
-      span?.setStatus('internal_error');
+      span?.setStatus({code: 2, message: 'internal_error'});
       throw error;
     } finally {
       span?.end();

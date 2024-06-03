@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -12,6 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -174,6 +174,16 @@ function TransactionSummaryCharts({
     organization
   );
 
+  const hasTransactionSummaryCleanupFlag = organization.features.includes(
+    'performance-transaction-summary-cleanup'
+  );
+
+  const displayOptions = generateDisplayOptions(currentFilter).filter(
+    option =>
+      (hasTransactionSummaryCleanupFlag && option.value !== DisplayModes.USER_MISERY) ||
+      !hasTransactionSummaryCleanupFlag
+  );
+
   return (
     <Panel>
       <ChartContainer data-test-id="transaction-summary-charts">
@@ -291,7 +301,7 @@ function TransactionSummaryCharts({
           <OptionSelector
             title={t('Display')}
             selected={display}
-            options={generateDisplayOptions(currentFilter)}
+            options={displayOptions}
             onChange={handleDisplayChange}
           />
         </InlineContainer>

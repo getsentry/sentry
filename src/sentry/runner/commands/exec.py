@@ -20,7 +20,7 @@ except Exception:
 )
 @click.option("-c", default="", help="Read script from string.")
 @click.argument("file", default=None, required=False)
-def exec_(c, file):
+def exec_(c: str, file: str | None) -> None:
     """
     Execute a script.
 

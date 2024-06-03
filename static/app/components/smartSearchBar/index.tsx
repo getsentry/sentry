@@ -477,7 +477,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
-    this.updateAutoCompleteItems.cancel();
+    this.updateAutoCompleteItems?.cancel();
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
@@ -721,6 +721,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       shortcut_method: shortcutMethod,
       shortcut_type: shortcutType,
       query,
+    });
+  };
+
+  logDocsOpenedEvent = () => {
+    const {searchSource, savedSearchType, organization} = this.props;
+
+    trackAnalytics('search.docs_opened', {
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      query: this.state.query,
     });
   };
 
@@ -2060,7 +2071,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
         {this.shouldShowDatePicker && (
           <SearchBarDatePicker
-            date={this.cursorValueIsoDate?.value}
             dateString={this.cursorValueIsoDate?.text}
             handleSelectDateTime={this.onAutoCompleteIsoDate}
           />
@@ -2089,6 +2099,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             numericKeys={this.props.numericKeys}
             percentageKeys={this.props.percentageKeys}
             sizeKeys={this.props.sizeKeys}
+            onDocsOpen={this.logDocsOpenedEvent}
             textOperatorKeys={this.props.textOperatorKeys}
           />
         )}

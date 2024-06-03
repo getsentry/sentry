@@ -18,7 +18,7 @@ class SDKCrashDetector:
 
     @property
     def fields_containing_paths(self) -> set[str]:
-        return {"package", "module", "abs_path", "filename"}
+        return {"package", "module", "path", "abs_path", "filename"}
 
     def replace_sdk_frame_path(self, path_field: str, path_value: str) -> str | None:
         return self.config.sdk_frame_config.path_replacer.replace_path(path_field, path_value)
@@ -51,10 +51,14 @@ class SDKCrashDetector:
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )
-        if not is_unhandled:
-            return False
+        if is_unhandled:
+            return True
 
-        return True
+        is_fatal = get_path(event_data, "level") == "fatal"
+        if is_fatal and self.config.report_fatal_errors:
+            return True
+
+        return False
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
@@ -111,7 +115,9 @@ class SDKCrashDetector:
         for field in self.fields_containing_paths:
             for pattern in path_patters:
                 field_with_path = frame.get(field)
-                if field_with_path and glob_match(field_with_path, pattern, ignorecase=True):
+                if field_with_path and glob_match(
+                    field_with_path, pattern, ignorecase=True, doublestar=True, path_normalize=True
+                ):
                     return True
 
         return False

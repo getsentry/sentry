@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.http import Http404
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.api.validators.doc_integration import METADATA_PROPERTIES
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.utils.json import JSONData
 from sentry.utils.sdk import configure_scope
 
 
@@ -67,7 +67,7 @@ class DocIntegrationsBaseEndpoint(Endpoint):
 
     permission_classes = (DocIntegrationsAndStaffPermission,)
 
-    def generate_incoming_metadata(self, request: Request) -> JSONData:
+    def generate_incoming_metadata(self, request: Request) -> Any:
         return {k: v for k, v in request.json_body.items() if k in METADATA_PROPERTIES}
 
 
@@ -76,12 +76,13 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
     Base endpoint used for doc integration item endpoints.
     """
 
-    def convert_args(self, request: Request, doc_integration_slug: str, *args, **kwargs):
+    def convert_args(
+        self, request: Request, doc_integration_id_or_slug: int | str, *args, **kwargs
+    ):
         try:
-            if options.get("api.id-or-slug-enabled"):
-                doc_integration = DocIntegration.objects.get(slug__id_or_slug=doc_integration_slug)
-            else:
-                doc_integration = DocIntegration.objects.get(slug=doc_integration_slug)
+            doc_integration = DocIntegration.objects.get(
+                slug__id_or_slug=doc_integration_id_or_slug
+            )
         except DocIntegration.DoesNotExist:
             raise Http404
 

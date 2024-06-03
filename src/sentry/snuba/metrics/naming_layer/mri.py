@@ -24,7 +24,6 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
-    "BundleAnalysisMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -53,24 +52,7 @@ from sentry.snuba.metrics.utils import (
     MetricUnit,
 )
 
-
-def _build_namespace_regex() -> str:
-    """
-    Builds a namespace regex for matching MRIs based on the declared use case ids in the
-    product.
-    """
-    use_case_ids = []
-    for use_case_id in UseCaseID:
-        use_case_ids.append(use_case_id.value)
-
-    return rf"({'|'.join(use_case_ids)})"
-
-
-MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
-MRI_NAMESPACE_REGEX = _build_namespace_regex()
-MRI_NAME_REGEX = r"([a-zA-Z0-9_/.]+)"
-MRI_UNIT_REGEX = r"[\s\S\r\n]*"
-MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
+MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
@@ -151,6 +133,7 @@ class TransactionMRI(Enum):
 
     # Derived
     ALL = "e:transactions/all@none"
+    ALL_DURATION = "e:transactions/all_duration@none"
     FAILURE_COUNT = "e:transactions/failure_count@none"
     FAILURE_RATE = "e:transactions/failure_rate@ratio"
     SATISFIED = "e:transactions/satisfied@none"
@@ -182,9 +165,23 @@ class SpanMRI(Enum):
     DURATION = "d:spans/duration@millisecond"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
-    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
+
+    # Measurement-based metrics
+    AI_TOTAL_TOKENS = "c:spans/ai.total_tokens.used@none"
+    AI_TOTAL_COST = "c:spans/ai.total_cost@usd"
+    CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
+    MOBILE_FRAMES_DELAY = "g:spans/mobile.frames_delay@second"
+    MOBILE_FROZEN_FRAMES = "g:spans/mobile.frozen_frames@none"
+    MOBILE_SLOW_FRAMES = "g:spans/mobile.slow_frames@none"
+    MOBILE_TOTAL_FRAMES = "g:spans/mobile.total_frames@none"
+    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
+    WEB_VITALS_INP = "d:spans/webvital.inp@millisecond"
+    WEB_VITALS_SCORE_INP = "d:spans/webvital.score.inp@ratio"
+    WEB_VITALS_SCORE_TOTAL = "d:spans/webvital.score.total@ratio"
+    WEB_VITALS_SCORE_WEIGHT = "d:spans/webvital.score.weight.inp@ratio"
 
     # Derived
     ALL = "e:spans/all@none"
@@ -197,10 +194,6 @@ class SpanMRI(Enum):
 
 class ErrorsMRI(Enum):
     EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
-
-
-class BundleAnalysisMRI(Enum):
-    BUNDLE_SIZE = "d:bundle_analysis/bundle_size@byte"
 
 
 @dataclass
@@ -271,7 +264,6 @@ def format_mri_field_value(field: str, value: str) -> str:
     it will be returned as 1 minute.
 
     """
-
     try:
         parsed_mri_field = parse_mri_field(field)
         if parsed_mri_field is None:

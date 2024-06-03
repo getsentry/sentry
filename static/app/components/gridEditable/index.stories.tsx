@@ -123,6 +123,39 @@ export default storyBook(GridEditable, story => {
     </SideBySide>
   ));
 
+  story('Row Mouse Events', () => {
+    const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+    const activeRow = activeRowKey !== undefined ? data[activeRowKey] : undefined;
+
+    return (
+      <Fragment>
+        <p>
+          You can provide a <JSXProperty name="onRowMouseOver" value={Function} /> and a{' '}
+          <JSXProperty name="onRowMouseOut" value={Function} /> callback. You can also
+          combine that with the <JSXProperty name="highlightedRowKey" value={Number} />{' '}
+          prop to highlight a row.
+        </p>
+        <p>
+          Hovered Row: {activeRow?.category} {activeRow?.name}
+        </p>
+        <GridEditable
+          data={data}
+          columnOrder={columns}
+          columnSortBy={[]}
+          grid={{}}
+          location={mockLocation}
+          onRowMouseOver={(_dataRow, key) => {
+            setActiveRowKey(key);
+          }}
+          onRowMouseOut={() => {
+            setActiveRowKey(undefined);
+          }}
+          highlightedRowKey={activeRowKey}
+        />
+      </Fragment>
+    );
+  });
+
   function useStatefulColumnWidths() {
     const [columnsWithDynamicWidths, setColumns] =
       useState<GridColumnOrder<keyof ExampleDataItem | 'other'>[]>(columnsWithWidth);

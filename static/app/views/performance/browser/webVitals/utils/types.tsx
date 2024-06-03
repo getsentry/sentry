@@ -18,6 +18,7 @@ export type TransactionSampleRow = {
   projectSlug: string;
   replayId: string;
   timestamp: string;
+  trace: string;
   transaction: string;
   'user.display': string;
   'measurements.cls'?: number;
@@ -48,7 +49,6 @@ export type InteractionSpanSampleRow = {
   projectSlug: string;
   replayId: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
-  [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.TIMESTAMP]: string;
   'user.display': string;

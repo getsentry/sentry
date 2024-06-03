@@ -1,39 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization as TOrganization} from 'sentry/types';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ListPage from 'sentry/views/replays/list/listContent';
 
-jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
+jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
-jest.mock('sentry/utils/replays/hooks/useReplayList', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => {
-      return {
-        fetchError: undefined,
-        isFetching: false,
-        pageLinks: null,
-        replays: [],
-      };
-    }),
-  };
-});
 
-const mockUseReplayList = jest.mocked(useReplayList);
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 
 const mockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
@@ -53,18 +34,12 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
     access: [],
   });
 
-  jest.mocked(useOrganization).mockReturnValue(mockOrg);
-
   return mockOrg;
 }
 
-function getMockContext(mockOrg: TOrganization) {
-  return RouterContextFixture([{organization: mockOrg}]);
-}
-
 describe('ReplayList', () => {
+  let mockFetchReplayListRequest;
   beforeEach(() => {
-    mockUseReplayList.mockClear();
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
@@ -72,6 +47,10 @@ describe('ReplayList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
+    });
+    mockFetchReplayListRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/replays/`,
+      body: {},
     });
   });
 
@@ -88,13 +67,13 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
       expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
     );
-    expect(mockUseReplayList).not.toHaveBeenCalled();
+    expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
   it('should render the onboarding panel when the org is on AM1 and has sent some replays', async () => {
@@ -110,13 +89,13 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
       expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
     );
-    expect(mockUseReplayList).not.toHaveBeenCalled();
+    expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
   it('should render the onboarding panel when the org is on AM2 and has never sent a replay', async () => {
@@ -132,13 +111,13 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
       expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
     );
-    expect(mockUseReplayList).not.toHaveBeenCalled();
+    expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
   it('should render the rage-click sdk update banner when the org is AM2, has sent replays, but the sdk version is low', async () => {
@@ -152,22 +131,16 @@ describe('ReplayList', () => {
       isFetching: false,
       needsUpdate: true,
     });
-    mockUseReplayList.mockReturnValue({
-      replays: [],
-      isFetching: false,
-      fetchError: undefined,
-      pageLinks: null,
-    });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() => {
       expect(screen.queryByText('Introducing Rage and Dead Clicks')).toBeInTheDocument();
       expect(screen.queryByTestId('replay-table')).toBeInTheDocument();
     });
-    expect(mockUseReplayList).toHaveBeenCalled();
+    expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 
   it('should fetch the replay table and show selector tables when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
@@ -181,12 +154,6 @@ describe('ReplayList', () => {
       isFetching: false,
       needsUpdate: false,
     });
-    mockUseReplayList.mockReturnValue({
-      replays: [],
-      isFetching: false,
-      fetchError: undefined,
-      pageLinks: null,
-    });
     mockUseDeadRageSelectors.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -195,13 +162,13 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
     await waitFor(() =>
       expect(screen.queryAllByTestId('selector-widget')).toHaveLength(2)
     );
-    expect(mockUseReplayList).toHaveBeenCalled();
+    expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 });

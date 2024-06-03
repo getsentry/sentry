@@ -29,7 +29,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_query_builder,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -190,6 +189,15 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
 
     def test_subscription_with_query_extra(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_subscription_with_query_extra_but_no_query(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        snuba_query = sub.snuba_query
+        snuba_query.update(query="")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
@@ -594,10 +602,9 @@ class BuildSnqlQueryTest(TestCase):
                 time_window=time_window,
                 extra_fields=entity_extra_fields,
             )
-            query_builder = build_query_builder(
-                entity_subscription,
-                query,
-                [self.project.id],
+            query_builder = entity_subscription.build_query_builder(
+                query=query,
+                project_ids=[self.project.id],
                 environment=environment,
                 params={
                     "organization_id": self.organization.id,
@@ -984,71 +991,6 @@ class BuildSnqlQueryTest(TestCase):
             "count_unique(user)",
             f"issue.id:[{self.group.id}, 2]",
             expected_conditions,
-        )
-
-    def test_simple_sessions(self):
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-        )
-
-    def test_simple_users(self):
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-        )
-
-    def test_query_and_environment_sessions(self):
-        env = self.create_environment(self.project, name="development")
-        expected_conditions = [
-            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="environment"), Op.EQ, "development"),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            environment=env,
-        )
-
-    def test_query_and_environment_users(self):
-        env = self.create_environment(self.project, name="development")
-        expected_conditions = [
-            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="environment"), Op.EQ, "development"),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            environment=env,
         )
 
     def test_simple_sessions_for_metrics(self):

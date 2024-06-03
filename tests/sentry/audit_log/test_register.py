@@ -63,6 +63,7 @@ class AuditLogEventRegisterTest(TestCase):
             "sentry-app.remove",
             "sentry-app.install",
             "sentry-app.uninstall",
+            "integration.rotate-client-secret",
             "sampling_priority.enabled",
             "sampling_priority.disabled",
             "monitor.add",
@@ -88,6 +89,7 @@ class AuditLogEventRegisterTest(TestCase):
             "org-auth-token.remove",
             "project-team.remove",
             "project-team.add",
+            "issue.delete",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)

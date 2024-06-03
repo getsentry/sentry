@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry.utils.safe import get_path
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 def has_stacktrace(event_data: Mapping[str, Any]) -> bool:
@@ -55,7 +58,7 @@ def is_handled(event_data: Mapping[str, Any]) -> bool | None:
 
 
 # Check if an event contains a minified stack trace (source maps for javascript)
-def has_event_minified_stack_trace(event):
+def has_event_minified_stack_trace(event: Event) -> bool:
     exception_values = get_path(event.data, "exception", "values", filter=True)
 
     if exception_values:
@@ -66,7 +69,7 @@ def has_event_minified_stack_trace(event):
     return False
 
 
-def is_event_from_browser_javascript_sdk(event):
+def is_event_from_browser_javascript_sdk(event: dict[str, Any]) -> bool:
     sdk_name = get_path(event, "sdk", "name")
     if sdk_name is None:
         return False

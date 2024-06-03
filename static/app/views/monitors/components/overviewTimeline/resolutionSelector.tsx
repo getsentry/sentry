@@ -5,7 +5,8 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
-import type {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
+
+import type {TimeWindow} from '../timeline/types';
 
 interface Props {
   className?: string;

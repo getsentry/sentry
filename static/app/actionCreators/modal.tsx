@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
@@ -8,18 +10,12 @@ import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBui
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
-import type {
-  Event,
-  Group,
-  IssueOwnership,
-  MissingMember,
-  Organization,
-  OrgRole,
-  Project,
-  SentryApp,
-  Team,
-} from 'sentry/types';
 import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {Event} from 'sentry/types/event';
+import type {Group, IssueOwnership} from 'sentry/types/group';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];
@@ -66,6 +62,7 @@ export async function openEmailVerification({
 
 type OpenDiffModalOptions = {
   baseIssueId: Group['id'];
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   targetIssueId: string;

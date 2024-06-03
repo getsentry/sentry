@@ -1,4 +1,4 @@
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {
   convertToDashboardWidget,
   getWidgetQuery,

@@ -2,6 +2,7 @@ from sentry.tasks.integrations.github.language_parsers import (
     JavascriptParser,
     PHPParser,
     PythonParser,
+    RubyParser,
 )
 from sentry.testutils.cases import TestCase
 
@@ -737,4 +738,71 @@ class PHPParserTestCase(TestCase):
             "eight",
             "nine",
             "ten",
+        }
+
+
+class RubyParserTestCase(TestCase):
+    def test_ruby_simple(self):
+        patch = """
+@@ -152,10 +152,6 @@ def one ()
+
+@@ -152,10 +152,6 @@ def two()
+
+@@ -152,10 +152,6 @@ def self.three()
+
+@@ -152,10 +152,6 @@ def obj.four ()
+
+@@ -152,10 +152,6 @@ define_method :five do
+
+@@ -152,10 +152,6 @@ six = -> { puts "This is a lambda." }
+
+@@ -152,10 +152,6 @@ seven = lambda { puts "This is a lambda."}
+
+"""
+
+        assert RubyParser.extract_functions_from_patch(patch) == {
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+        }
+
+    def test_ruby_example(self):
+        patch = """
+@@ -73,9 +73,7 @@ def for(name)
+
+@@ -73,9 +73,7 @@ def for_2 (name)
+
+@@ -20,6 +20,7 @@ def initialize(detach: true)
+
+@@ -27,7 +27,8 @@ def token
+
+@@ -46,7 +46,7 @@ def on_block(node) # rubocop:disable InternalAffairs/NumblockHandler
+
+@@ -47,7 +47,7 @@ def message_franking
+
+@@ -821,7 +821,7 @@ def to_liquid
+
+@@ -203,4 +207,23 @@ def render_content_with_collection(content, collection_label)
+
+@@ -203,4 +207,23 @@ def render_content_with_collection_2 (content, collection_label)
+
+@@ -36,10 +36,13 @@ def require_gems
+
+"""
+
+        assert RubyParser.extract_functions_from_patch(patch) == {
+            "for",
+            "for_2",
+            "initialize",
+            "token",
+            "on_block",
+            "message_franking",
+            "to_liquid",
+            "render_content_with_collection",
+            "render_content_with_collection_2",
+            "require_gems",
         }

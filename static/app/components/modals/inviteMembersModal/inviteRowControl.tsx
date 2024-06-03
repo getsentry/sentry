@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -63,6 +63,18 @@ function InviteRowControl({
 
   const theme = useTheme();
 
+  const isTeamRolesAllowedForRole = useCallback<(roleId: string) => boolean>(
+    roleId => {
+      const roleOptionsMap = roleOptions.reduce(
+        (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),
+        {}
+      );
+      return roleOptionsMap[roleId]?.isTeamRolesAllowed ?? true;
+    },
+    [roleOptions]
+  );
+  const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
       case 'Enter':
@@ -114,14 +126,19 @@ function InviteRowControl({
         value={role}
         roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}
-        onChange={onChangeRole}
+        onChange={roleOption => {
+          onChangeRole(roleOption);
+          if (!isTeamRolesAllowedForRole(roleOption.value)) {
+            onChangeTeams([]);
+          }
+        }}
       />
       <TeamSelector
         aria-label={t('Add to Team')}
         data-test-id="select-teams"
-        disabled={disabled}
-        placeholder={t('None')}
-        value={teams}
+        disabled={isTeamRolesAllowed ? disabled : true}
+        placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
+        value={isTeamRolesAllowed ? teams : []}
         onChange={onChangeTeams}
         useTeamDefaultIfOnlyOne
         multiple

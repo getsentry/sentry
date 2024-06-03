@@ -2,6 +2,7 @@ import type {ReactText} from 'react';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -14,9 +15,7 @@ import type {
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
-  SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -41,13 +40,8 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
-  const shouldUseStoredScores = useStoredScoresSetting();
 
-  const filteredSortableFields = shouldUseStoredScores
-    ? SORTABLE_INDEXED_FIELDS
-    : SORTABLE_INDEXED_FIELDS.filter(
-        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
-      );
+  const filteredSortableFields = SORTABLE_INDEXED_FIELDS;
 
   const sort = useWebVitalsSort({
     sortName,
@@ -61,6 +55,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
         'id',
         'user.display',
         'transaction',
+        'trace',
         'measurements.lcp',
         'measurements.fcp',
         'measurements.cls',
@@ -73,11 +68,9 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
         'project',
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:pageload',
-        `transaction:"${transaction}"`,
-        ...(query ? [query] : []),
-      ].join(' '),
+      query: new MutableSearch(['transaction.op:pageload', ...(query ? [query] : [])])
+        .addStringFilter(`transaction:"${transaction}"`)
+        .formatString(),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
@@ -104,6 +97,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
       ? data.data
           .map(row => ({
             id: row.id?.toString(),
+            trace: row.trace?.toString(),
             'user.display': row['user.display']?.toString(),
             transaction: row.transaction?.toString(),
             'measurements.lcp': toNumber(row['measurements.lcp']),

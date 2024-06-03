@@ -4,9 +4,8 @@ import datetime
 import logging
 import re
 import sys
-import time
 import traceback
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Mapping, MutableMapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
@@ -14,7 +13,7 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
-from django.http import HttpResponseNotAllowed
+from django.http import HttpRequest, HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import APIException, ParseError
@@ -40,7 +39,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
@@ -311,13 +310,13 @@ _path_patterns: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$"),
+        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^\/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
     (
-        re.compile(r"^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)"),
+        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^\/]+\/(.*)"),
         r"/settings/\1",
     ),
     (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
@@ -342,7 +341,7 @@ def customer_domain_path(path: str) -> str:
 
 def method_dispatch(**dispatch_mapping):
     """
-    Dispatches a incoming request to a different handler based on the HTTP method
+    Dispatches an incoming request to a different handler based on the HTTP method
 
     >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
     """
@@ -353,6 +352,10 @@ def method_dispatch(**dispatch_mapping):
     def dispatcher(request, *args, **kwargs):
         handler = dispatch_mapping.get(request.method, invalid_method)
         return handler(request, *args, **kwargs)
+
+    # This allows us to surface the mapping when iterating through the URL patterns
+    # Check `test_id_or_slug_path_params.py` for usage
+    dispatcher.dispatch_mapping = dispatch_mapping  # type: ignore[attr-defined]
 
     if dispatch_mapping.get("csrf_exempt"):
         return csrf_exempt(dispatcher)
@@ -463,20 +466,23 @@ def handle_query_errors() -> Generator[None, None, None]:
         raise APIException(detail=message)
 
 
-class Timer:
-    def __enter__(self):
-        self._start = time.time()
-        self._duration = None
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._end = time.time()
-        self._duration = self._end - self._start
-
-    @property
-    def duration(self):
-        # If _duration is set, return it; otherwise, calculate ongoing duration
-        if self._duration is not None:
-            return self._duration
-        else:
-            return time.time() - self._start
+def update_snuba_params_with_timestamp(
+    request: HttpRequest, params: MutableMapping[str, Any], timestamp_key: str = "timestamp"
+) -> None:
+    """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
+    send the timestamp of something in that event or trace and we'll query data near that event only which should be
+    faster than the default 7d or 14d queries"""
+    # during the transition this is optional but it will become required for the trace view
+    sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
+    if timestamp_key in request.GET and "start" in params and "end" in params:
+        example_timestamp = parse_datetime_string(request.GET[timestamp_key])
+        # While possible, the majority of traces shouldn't take more than a week
+        # Starting with 3d for now, but potentially something we can increase if this becomes a problem
+        time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
+        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        example_start = example_timestamp - timedelta(days=time_buffer)
+        example_end = example_timestamp + timedelta(days=time_buffer)
+        # If timestamp is being passed it should always overwrite the statsperiod or start & end
+        # the client should just not pass a timestamp if we need to overwrite this logic for any reason
+        params["start"] = max(params["start"], example_start)
+        params["end"] = min(params["end"], example_end)

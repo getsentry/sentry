@@ -5,7 +5,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
-import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
+import {SpanGroupDetailsLink} from 'sentry/views/starfish/components/spanGroupDetailsLink';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
@@ -15,10 +15,8 @@ const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: string;
-  moduleName: ModuleName;
+  moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
-  endpoint?: string;
-  endpointMethod?: string;
   group?: string;
   spanOp?: string;
 }
@@ -28,8 +26,6 @@ export function SpanDescriptionCell({
   group,
   moduleName,
   spanOp,
-  endpoint,
-  endpointMethod,
   projectId,
 }: Props) {
   const formatterDescription = useMemo(() => {
@@ -45,12 +41,11 @@ export function SpanDescriptionCell({
   }
 
   const descriptionLink = (
-    <SpanDescriptionLink
+    <SpanGroupDetailsLink
+      moduleName={moduleName}
       group={group}
       projectId={projectId}
-      endpoint={endpoint}
       spanOp={spanOp}
-      endpointMethod={endpointMethod}
       description={formatterDescription}
     />
   );
@@ -72,7 +67,7 @@ export function SpanDescriptionCell({
     );
   }
 
-  if (moduleName === ModuleName.HTTP) {
+  if (moduleName === ModuleName.RESOURCE) {
     return (
       <WiderHovercard
         position="right"

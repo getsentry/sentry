@@ -3,8 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import os
-import sys
-from typing import Any
+from typing import IO, Any
 
 import click
 from django.conf import settings
@@ -16,7 +15,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 
 class ConfigurationError(ValueError, click.ClickException):
-    def show(self, file=None):
+    def show(self, file: IO[str] | None = None) -> None:
         if file is None:
             from click._compat import get_text_stderr
 
@@ -307,11 +306,6 @@ def show_big_error(message: str | list[str]) -> None:
 def initialize_app(config: dict[str, Any], skip_service_validation: bool = False) -> None:
     settings = config["settings"]
 
-    if settings.DEBUG and hasattr(sys.stderr, "fileno"):
-        # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
-        sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
-        sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 1)
-
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
@@ -409,7 +403,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
             settings.CSRF_TRUSTED_ORIGINS = [system_url_prefix]
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
-            settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000"]
+            settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
@@ -555,8 +549,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("MAILGUN_API_KEY", "mail.mailgun-api-key"),
         ("SENTRY_FILESTORE", "filestore.backend"),
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
-        ("SENTRY_RELOCATION_FILESTORE", "filestore.relocation-backend"),
-        ("SENTRY_RELOCATION_FILESTORE_OPTIONS", "filestore.relocation-options"),
+        ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
+        ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
@@ -732,7 +726,7 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
         )
 
 
-def validate_outbox_config():
+def validate_outbox_config() -> None:
     from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:

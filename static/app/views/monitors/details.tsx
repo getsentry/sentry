@@ -6,6 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -16,8 +17,10 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
+import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -26,7 +29,7 @@ import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {StatusToggleButton} from './components/statusToggleButton';
-import type {Monitor} from './types';
+import type {CheckinProcessingError, Monitor} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
@@ -51,7 +54,7 @@ function MonitorDetails({params, location}: Props) {
     }
   );
 
-  const {data: monitor} = useApiQuery<Monitor>(queryKey, {
+  const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
     refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
@@ -63,6 +66,14 @@ function MonitorDetails({params, location}: Props) {
       return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
     },
   });
+
+  const {data: checkinErrors} = useApiQuery<CheckinProcessingError[]>(
+    makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug),
+    {
+      staleTime: 0,
+      refetchOnWindowFocus: true,
+    }
+  );
 
   function onUpdate(data: Monitor) {
     const updatedMonitor = {
@@ -85,6 +96,12 @@ function MonitorDetails({params, location}: Props) {
       onUpdate(resp);
     }
   };
+
+  if (isError) {
+    return (
+      <LoadingError message={t('The monitor you were looking for was not found.')} />
+    );
+  }
 
   if (!monitor) {
     return (
@@ -127,11 +144,16 @@ function MonitorDetails({params, location}: Props) {
                 {t('This monitor is disabled and is not accepting check-ins.')}
               </Alert>
             )}
+            {!!checkinErrors?.length && (
+              <MonitorProcessingErrors checkinErrors={checkinErrors}>
+                {t('Errors were encountered while ingesting check-ins for this monitor')}
+              </MonitorProcessingErrors>
+            )}
             {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
-                <CronDetailsTimeline organization={organization} monitor={monitor} />
+                <DetailsTimeline organization={organization} monitor={monitor} />
                 <MonitorStats
                   orgSlug={organization.slug}
                   monitor={monitor}

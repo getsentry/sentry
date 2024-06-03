@@ -43,6 +43,16 @@ class SafeRenderer extends marked.Renderer {
   }
 }
 
+class LimitedRenderer extends marked.Renderer {
+  link(href: string) {
+    return href;
+  }
+
+  image(href: string) {
+    return href;
+  }
+}
+
 class NoParagraphRenderer extends SafeRenderer {
   paragraph(text: string) {
     return text;
@@ -81,6 +91,9 @@ marked.setOptions({
   silent: NODE_ENV === 'test',
 });
 
+const limitedMarked = (text: string, options: MarkedOptions = {}) =>
+  sanitizedMarked(text, {...options, renderer: new LimitedRenderer()});
+
 const sanitizedMarked = (src: string, options?: MarkedOptions) => {
   return dompurify.sanitize(marked(src, options));
 };
@@ -88,5 +101,5 @@ const sanitizedMarked = (src: string, options?: MarkedOptions) => {
 const singleLineRenderer = (text: string, options: MarkedOptions = {}) =>
   sanitizedMarked(text, {...options, renderer: new NoParagraphRenderer()});
 
-export {singleLineRenderer};
+export {singleLineRenderer, limitedMarked};
 export default sanitizedMarked;

@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -108,6 +108,13 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
             self.organization.slug, qs_params={"query": f"id:{project_bar.id} id:{project_foo.id}"}
         )
         self.check_valid_response(response, [project_bar, project_foo])
+
+    def test_search_by_ids_invalid(self):
+        response = self.get_error_response(self.organization.slug, qs_params={"query": "id:"})
+        assert response.status_code == 400
+
+        response = self.get_error_response(self.organization.slug, qs_params={"query": "id:bababa"})
+        assert response.status_code == 400
 
     def test_search_by_slugs(self):
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")

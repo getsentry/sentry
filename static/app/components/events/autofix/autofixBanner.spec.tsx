@@ -18,10 +18,16 @@ describe('AutofixBanner', () => {
     jest.resetAllMocks();
   });
 
+  const defaultProps = {
+    groupId: '1',
+    hasSuccessfulSetup: true,
+    triggerAutofix: jest.fn(),
+  };
+
   it('shows PII check for sentry employee users', () => {
     mockIsSentryEmployee(true);
 
-    render(<AutofixBanner triggerAutofix={() => {}} />);
+    render(<AutofixBanner {...defaultProps} projectId="1" />);
     expect(
       screen.getByText(
         'By clicking the button above, you confirm that there is no PII in this event.'
@@ -32,7 +38,7 @@ describe('AutofixBanner', () => {
   it('does not show PII check for non sentry employee users', () => {
     mockIsSentryEmployee(false);
 
-    render(<AutofixBanner triggerAutofix={() => {}} />);
+    render(<AutofixBanner {...defaultProps} projectId="1" />);
     expect(
       screen.queryByText(
         'By clicking the button above, you confirm that there is no PII in this event.'
@@ -43,20 +49,32 @@ describe('AutofixBanner', () => {
   it('can run without instructions', async () => {
     const mockTriggerAutofix = jest.fn();
 
-    render(<AutofixBanner triggerAutofix={mockTriggerAutofix} />);
+    render(
+      <AutofixBanner
+        {...defaultProps}
+        triggerAutofix={mockTriggerAutofix}
+        projectId="1"
+      />
+    );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Gimme Fix'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Get root causes'}));
     expect(mockTriggerAutofix).toHaveBeenCalledWith('');
   });
 
   it('can provide instructions', async () => {
     const mockTriggerAutofix = jest.fn();
 
-    render(<AutofixBanner triggerAutofix={mockTriggerAutofix} />);
+    render(
+      <AutofixBanner
+        {...defaultProps}
+        triggerAutofix={mockTriggerAutofix}
+        projectId="1"
+      />
+    );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Give Instructions'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Provide context first'}));
     await userEvent.type(screen.getByRole('textbox'), 'instruction!');
     await userEvent.click(screen.getByRole('button', {name: "Let's go!"}));
 

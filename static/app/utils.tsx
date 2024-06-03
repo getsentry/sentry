@@ -1,7 +1,5 @@
 import type {Query} from 'history';
 
-import ConfigStore from 'sentry/stores/configStore';
-import type {Project} from 'sentry/types';
 import type {EventTag} from 'sentry/types/event';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -75,50 +73,11 @@ export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-export function lastOfArray<T extends Array<unknown> | ReadonlyArray<unknown>>(
-  t: T
-): T[number] {
-  return t[t.length - 1];
-}
-
-export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Array<T> {
-  arr.sort((a, b) => {
-    const a_score = score_fn(a),
-      b_score = score_fn(b);
-
-    for (let i = 0; i < a_score.length; i++) {
-      if (a_score[i] > b_score[i]) {
-        return 1;
-      }
-      if (a_score[i] < b_score[i]) {
-        return -1;
-      }
-    }
-    return 0;
-  });
-
-  return arr;
-}
-
-export function objectIsEmpty(obj = {}): boolean {
-  for (const prop in obj) {
-    if (obj.hasOwnProperty(prop)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-export function trim(str: string): string {
-  return str.replace(/^\s+|\s+$/g, '');
-}
-
 /**
  * Replaces slug special chars with a space
  */
 export function explodeSlug(slug: string): string {
-  return trim(slug.replace(/[-_]+/g, ' '));
+  return slug.replace(/[-_]+/g, ' ').trim();
 }
 
 export function defined<T>(item: T): item is Exclude<T, null | undefined> {
@@ -127,17 +86,6 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 
 export function nl2br(str: string): string {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
-}
-
-/**
- * This function has a critical security impact, make sure to check all usages before changing this function.
- * In some parts of our code we rely on that this only really is a string starting with http(s).
- */
-export function isUrl(str: any): boolean {
-  return (
-    typeof str === 'string' &&
-    (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
-  );
 }
 
 export function escape(str: string): string {
@@ -151,13 +99,6 @@ export function percent(value: number, totalValue: number): number {
   }
 
   return (value / totalValue) * 100;
-}
-
-export function toTitleCase(str: string): string {
-  return str.replace(
-    /\w\S*/g,
-    txt => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
-  );
 }
 
 /**
@@ -245,7 +186,7 @@ export function parseRepo<T>(repo: T): T {
 export function extractMultilineFields(value: string): string[] {
   return value
     .split('\n')
-    .map(f => trim(f))
+    .map(f => f.trim())
     .filter(f => f !== '');
 }
 
@@ -264,18 +205,6 @@ export function convertMultilineFieldValue<T extends string | string[]>(
   }
 
   return '';
-}
-
-function projectDisplayCompare(a: Project, b: Project): number {
-  if (a.isBookmarked !== b.isBookmarked) {
-    return a.isBookmarked ? -1 : 1;
-  }
-  return a.slug.localeCompare(b.slug);
-}
-
-// Sort a list of projects by bookmarkedness, then by id
-export function sortProjects(projects: Array<Project>): Array<Project> {
-  return projects.sort(projectDisplayCompare);
 }
 
 // build actorIds
@@ -307,19 +236,6 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
   );
 }
 
-export function deepFreeze<T>(object: T) {
-  // Retrieve the property names defined on object
-  const propNames = Object.getOwnPropertyNames(object);
-  // Freeze properties before freezing self
-  for (const name of propNames) {
-    const value = object[name];
-
-    object[name] = value && typeof value === 'object' ? deepFreeze(value) : value;
-  }
-
-  return Object.freeze(object);
-}
-
 export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   const query = {...prevQuery};
 
@@ -339,15 +255,9 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   return query;
 }
 
-export const isFunction = (value: any): value is Function => typeof value === 'function';
-
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
-}
-
-export function generateBaseControlSiloUrl() {
-  return ConfigStore.get('links').sentryUrl || '';
 }
 
 export function generateOrgSlugUrl(orgSlug) {

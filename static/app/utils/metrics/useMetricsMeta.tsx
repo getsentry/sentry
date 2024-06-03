@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQueries} from 'sentry/utils/queryClient';
@@ -8,18 +8,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
-import {getMetaDateTimeParams} from './index';
-
 const DEFAULT_USE_CASES: UseCase[] = ['sessions', 'transactions', 'custom', 'spans'];
 
 export function getMetricsMetaQueryKey(
   orgSlug: string,
-  {projects, datetime}: Partial<PageFilters>,
+  {projects}: Partial<PageFilters>,
   useCase?: UseCase[]
 ): ApiQueryKey {
-  const queryParams = projects?.length
-    ? {useCase, project: projects, ...getMetaDateTimeParams(datetime)}
-    : {useCase, ...getMetaDateTimeParams(datetime)};
+  const queryParams = projects?.length ? {useCase, project: projects} : {useCase};
   return [`/organizations/${orgSlug}/metrics/meta/`, {query: queryParams}];
 }
 
@@ -28,7 +24,7 @@ export function useMetricsMeta(
   useCases: UseCase[] = DEFAULT_USE_CASES,
   filterBlockedMetrics = true,
   enabled: boolean = true
-): {data: MetricMeta[]; isLoading: boolean} {
+): {data: MetricMeta[]; isLoading: boolean; isRefetching: boolean; refetch: () => void} {
   const {slug} = useOrganization();
 
   const queryKeys = useMemo(() => {
@@ -37,18 +33,27 @@ export function useMetricsMeta(
 
   const results = useApiQueries<MetricMeta[]>(queryKeys, {
     enabled,
-    refetchInterval: 60000,
     staleTime: 2000, // 2 seconds to cover page load
   });
 
-  const {data, isLoading} = useMemo(() => {
+  const {data, isLoading, isRefetching, refetch} = useMemo(() => {
     const mergedResult: {
       data: MetricMeta[];
       isLoading: boolean;
-    } = {data: [], isLoading: false};
+      isRefetching: boolean;
+      refetch: () => void;
+    } = {
+      data: [],
+      isLoading: false,
+      isRefetching: false,
+      refetch: () => {
+        results.forEach(result => result.refetch());
+      },
+    };
 
     for (const useCaseResult of results) {
       mergedResult.isLoading ||= useCaseResult.isLoading;
+      mergedResult.isRefetching ||= useCaseResult.isRefetching;
       const useCaseData = useCaseResult.data ?? [];
       mergedResult.data.push(...useCaseData);
     }
@@ -61,7 +66,7 @@ export function useMetricsMeta(
   );
 
   if (!filterBlockedMetrics) {
-    return {data: meta, isLoading};
+    return {data: meta, isLoading, isRefetching, refetch};
   }
 
   return {
@@ -69,6 +74,8 @@ export function useMetricsMeta(
       return entry.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
     }),
     isLoading,
+    isRefetching,
+    refetch,
   };
 }
 

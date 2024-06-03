@@ -17,6 +17,14 @@ from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 
+TRACKED_STATUSES = [
+    CheckInStatus.IN_PROGRESS,
+    CheckInStatus.OK,
+    CheckInStatus.ERROR,
+    CheckInStatus.MISSED,
+    CheckInStatus.TIMEOUT,
+]
+
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
     """
@@ -47,14 +55,6 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         end = normalize_to_epoch(args["end"], args["rollup"])
 
         monitor_guids: list[str] = request.GET.getlist("monitor")
-
-        tracked_statuses = [
-            CheckInStatus.IN_PROGRESS,
-            CheckInStatus.OK,
-            CheckInStatus.ERROR,
-            CheckInStatus.MISSED,
-            CheckInStatus.TIMEOUT,
-        ]
 
         # Pre-fetch the monitor-ids and their guid. This is an
         # optimization to eliminate a join against the monitor table which
@@ -112,14 +112,14 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 environment_map = {env.id: env.name for env in environments}
 
         check_ins = MonitorCheckIn.objects.filter(
-            monitor_id__in=monitor_map.keys(),
-            status__in=tracked_statuses,
-            date_added__gt=args["start"],
-            date_added__lte=args["end"],
+            date_added__gte=args["start"],
+            date_added__lt=args["end"],
         )
 
         if monitor_environment_map:
             check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
+        else:
+            check_ins = check_ins.filter(monitor_id__in=monitor_map.keys())
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
@@ -158,7 +158,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         StatusStats = MutableMapping[str, int]
 
         def status_obj_factory() -> StatusStats:
-            return {status_to_name[status]: 0 for status in tracked_statuses}
+            return {status_to_name[status]: 0 for status in TRACKED_STATUSES}
 
         # Mapping chain of monitor_id -> timestamp[] -> monitor_env_names -> StatusStats
         EnvToStatusMapping = MutableMapping[int, StatusStats]

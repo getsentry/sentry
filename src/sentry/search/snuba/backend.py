@@ -35,6 +35,7 @@ from sentry.models.user import User
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
+    POSTGRES_ONLY_SEARCH_FIELDS,
     AbstractQueryExecutor,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
@@ -492,14 +493,22 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         else:
             retention_window_start = None
 
-        group_queryset = self._build_group_queryset(
-            projects=projects,
-            environments=environments,
-            search_filters=search_filters,
-            retention_window_start=retention_window_start,
-            date_from=date_from,
-            date_to=date_to,
-        )
+        if use_group_snuba_dataset:
+            # we need to handle two cases fo the group queryset:
+            # 1. Limit results to groups that are not pending deletion or merge
+            # 2. Handle queries snuba doesn't support such as bookmarked_by, linked, subscribed_by, etc
+            # For the second case, we hit postgres before Snuba to get the group ids
+            group_queryset = self._build_limited_group_queryset(projects, search_filters)
+
+        else:
+            group_queryset = self._build_group_queryset(
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
 
         query_executor = self._get_query_executor(
             group_queryset=group_queryset,
@@ -579,6 +588,24 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             )
 
         return query_results
+
+    def _build_limited_group_queryset(
+        self, projects: Sequence[Project], search_filters: Sequence[SearchFilter]
+    ) -> QuerySet:
+        """
+        Builds a group queryset to handle joins for data that doesn't exist in Clickhouse on the group_attributes dataset
+        """
+        # Filter search_filters to only include 'bookmarked_by', 'linked', 'subscribed_by'
+        filtered_search_filters = [
+            sf for sf in search_filters if sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS
+        ]
+        # Use the filtered search filters for further processing
+        return self._build_group_queryset(
+            projects=projects,
+            environments=None,
+            search_filters=filtered_search_filters,
+            retention_window_start=None,
+        )
 
     def _build_group_queryset(
         self,

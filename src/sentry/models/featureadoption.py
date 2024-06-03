@@ -15,7 +15,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.redis import (
@@ -45,6 +45,7 @@ manager.add(11, "elixir", "Elixir", "language")
 manager.add(12, "cfml", "CFML", "language")
 manager.add(13, "groovy", "Groovy", "language")
 manager.add(14, "csp", "CSP Reports", "language")
+manager.add(15, "powershell", "PowerShell", "language")
 
 # Frameworks
 manager.add(20, "flask", "Flask", "integration", prerequisite=["python"])
@@ -231,7 +232,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         ).first()
 
 
-@region_silo_only_model
+@region_silo_model
 class FeatureAdoption(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

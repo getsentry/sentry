@@ -1,6 +1,6 @@
 {
   "platform": "python",
-  "message": "",
+  "logentry": {},
   "tags": [
     ["application", "countries"],
     ["browser", "Python Requests 2.22"],

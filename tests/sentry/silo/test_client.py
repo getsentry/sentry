@@ -9,7 +9,7 @@ from pytest import raises
 
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.silo.client import (
     CACHE_TIMEOUT,
     REQUEST_ATTEMPTS_LIMIT,

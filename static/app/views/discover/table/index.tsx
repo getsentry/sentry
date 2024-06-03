@@ -7,7 +7,7 @@ import type {Client} from 'sentry/api';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -116,6 +116,34 @@ class Table extends PureComponent<TableProps, TableState> {
 
     const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
       EventQuery;
+
+    // We are now routing to the trace view on clicking event ids. Therefore, we need the trace slug associated to the event id.
+    // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
+    if (!eventView.hasAggregateField() || apiPayload.field.includes('id')) {
+      apiPayload.field.push('trace');
+
+      // We need to include the event.type field because we want to
+      // route to issue details for error and default event types.
+      apiPayload.field.push('event.type');
+    }
+
+    // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
+    // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
+    // max(timestamp) for the aggregate case as fields, to accomodate this.
+    if (
+      eventView.hasAggregateField() &&
+      apiPayload.field.includes('trace') &&
+      !apiPayload.field.includes('max(timestamp)') &&
+      !apiPayload.field.includes('timestamp')
+    ) {
+      apiPayload.field.push('max(timestamp)');
+    } else if (
+      apiPayload.field.includes('trace') &&
+      !apiPayload.field.includes('timestamp')
+    ) {
+      apiPayload.field.push('timestamp');
+    }
+
     apiPayload.referrer = 'api.discover.query-table';
 
     setError('', 200);

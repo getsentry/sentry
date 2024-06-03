@@ -471,7 +471,7 @@ class PerformanceDetectionTest(TestCase):
             call(
                 "performance.performance_issue.uncompressed_assets",
                 1,
-                tags={"op_resource.script": True},
+                tags={"op_resource.script": True, "is_standalone_spans": False},
             )
             in incr_mock.mock_calls
         )
@@ -519,7 +519,9 @@ class EventPerformanceProblemTest(TestCase):
         )
 
         EventPerformanceProblem(event, problem).save()
-        assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
+        found = EventPerformanceProblem.fetch(event, problem.fingerprint)
+        assert found is not None
+        assert found.problem == problem
 
     def test_fetch_multi(self):
         event_1 = Event(self.project.id, "something")
