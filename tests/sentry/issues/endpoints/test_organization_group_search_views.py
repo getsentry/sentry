@@ -1,6 +1,7 @@
 from sentry.api.serializers.base import serialize
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationGroupSearchViewsTest(APITestCase):
@@ -68,6 +69,7 @@ class OrganizationGroupSearchViewsTest(APITestCase):
             "user_two_views": [first_custom_view_user_two, second_custom_view_user_two],
         }
 
+    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_get_user_one_custom_views(self):
         objs = self.create_base_data()
 
@@ -76,6 +78,7 @@ class OrganizationGroupSearchViewsTest(APITestCase):
 
         assert response.data == serialize(objs["user_one_views"])
 
+    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_get_user_two_custom_views(self):
         objs = self.create_base_data()
 

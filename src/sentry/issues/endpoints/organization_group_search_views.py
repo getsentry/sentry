@@ -1,6 +1,8 @@
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -27,11 +29,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        List a organization member's custom views
+        List the current organization member's custom views
         `````````````````````````````````````````
 
-        Retrieve a list of custom views for a given organization member.
+        Retrieve a list of custom views for the current organization member.
         """
+        if not features.has("organizations:issue-stream-custom-views", organization):
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
 
