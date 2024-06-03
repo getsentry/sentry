@@ -49,6 +49,12 @@ const MOCK_SUPPORTED_KEYS: TagCollection = {
     predefined: true,
     values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
   },
+  [FieldKey.IS]: {
+    key: FieldKey.IS,
+    name: 'is',
+    alias: 'status',
+    predefined: true,
+  },
   custom_tag_name: {key: 'custom_tag_name', name: 'Custom_Tag_Name', kind: FieldKind.TAG},
 };
 
@@ -98,6 +104,33 @@ describe('SearchQueryBuilder', function () {
       await waitFor(() => {
         expect(mockOnBlur).toHaveBeenCalledWith('foo');
       });
+    });
+  });
+
+  describe('filter key aliases', function () {
+    it('displays the key alias instead of the actual value', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
+
+      expect(
+        await screen.findByRole('button', {name: 'Edit filter key: status'})
+      ).toBeInTheDocument();
+    });
+
+    it('when adding a filter by typing, replaces aliases tokens', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="" onChange={mockOnChange} />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('status:');
+
+      // Component should display alias `status`
+      expect(
+        await screen.findByRole('button', {name: 'Edit filter key: status'})
+      ).toBeInTheDocument();
+      // Query should use the actual key `is`
+      expect(mockOnChange).toHaveBeenCalledWith('is:');
     });
   });
 
