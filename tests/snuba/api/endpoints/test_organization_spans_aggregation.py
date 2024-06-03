@@ -185,6 +185,17 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
 
     @override_options({"indexed-spans.agg-span-waterfall.enable": True})
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_without_flag(self, _mock_query):
+
+        response = self.client.get(
+            self.url,
+            data={"transaction": "api/0/foo", "statsPeriod": "1d"},
+            format="json",
+        )
+        assert response.status_code == 404
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
     def test_simple(self, mock_query):
         mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
         with self.feature(self.FEATURES):
@@ -565,6 +576,15 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
             self.url_name,
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
+
+    @django_db_all
+    def test_without_flag(self):
+        response = self.client.get(
+            self.url,
+            data={"transaction": "api/0/foo"},
+            format="json",
+        )
+        assert response.status_code == 404
 
     @django_db_all
     def test_simple(self):
