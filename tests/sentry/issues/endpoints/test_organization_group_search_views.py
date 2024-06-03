@@ -9,9 +9,9 @@ class OrganizationGroupSearchViewsTest(APITestCase):
 
     def create_base_data(self):
         user_1 = self.user
-        user_2 = self.create_user()
+        self.user_2 = self.create_user()
 
-        self.user_2 = self.create_member(organization=self.organization, user=user_2)
+        self.create_member(organization=self.organization, user=self.user_2)
 
         first_custom_view_user_one = GroupSearchView.objects.create(
             name="Custom View One",
@@ -71,7 +71,7 @@ class OrganizationGroupSearchViewsTest(APITestCase):
     def test_get_user_one_custom_views(self):
         objs = self.create_base_data()
 
-        self.login_as(self.user)
+        self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
 
         assert response.data == serialize(objs["user_one_views"])
@@ -79,7 +79,7 @@ class OrganizationGroupSearchViewsTest(APITestCase):
     def test_get_user_two_custom_views(self):
         objs = self.create_base_data()
 
-        self.login_as(self.user_2)
+        self.login_as(user=self.user_2)
         response = self.get_success_response(self.organization.slug)
 
         assert response.data == serialize(objs["user_two_views"])
