@@ -83,7 +83,20 @@ describe('Sidebar', function () {
     const {container} = renderSidebar({organization});
     expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
     const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+    const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
     expect(sidebarItems.length).toEqual(10);
+    expect(sidebarItemIds).toEqual([
+      'sidebar-item-issues',
+      'sidebar-item-projects',
+      'sidebar-item-alerts',
+      'sidebar-item-releases',
+      'sidebar-item-stats',
+      'sidebar-item-settings',
+      'sidebar-item-help',
+      'sidebar-item-broadcasts',
+      'sidebar-item-statusupdate',
+      'sidebar-item-collapse',
+    ]);
     act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
   });
 
