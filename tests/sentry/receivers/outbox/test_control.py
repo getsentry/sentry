@@ -41,6 +41,7 @@ class ProcessControlOutboxTest(TestCase):
         org = self.create_organization()
         sentry_app = self.create_sentry_app()
         install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)
+        install_dupe = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)
 
         org_two = self.create_organization()
         install_two = self.create_sentry_app_installation(
@@ -50,6 +51,9 @@ class ProcessControlOutboxTest(TestCase):
         process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_REGION.name)
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
+        )
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_installation:{install_dupe.id}", region_name=_TEST_REGION.name
         )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install_two.id}", region_name=_TEST_REGION.name

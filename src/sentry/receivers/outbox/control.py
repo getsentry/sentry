@@ -8,6 +8,7 @@ and perform RPC calls to propagate changes to relevant region(s).
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
@@ -54,9 +55,10 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
     install_query = SentryAppInstallation.objects.filter(sentry_app=sentry_app).values(
         "id", "organization_id"
     )
-    install_map: dict[int, int] = {}
+    # There isn't a constraint on org : sentryapp so we have to handle lists
+    install_map: dict[int, list[int]] = defaultdict(list)
     for row in install_query:
-        install_map[row["organization_id"]] = row["id"]
+        install_map[row["organization_id"]].append(row["id"])
 
     # Limit our operations to the region this outbox is for.
     # This could be a single query if we use raw_sql.
@@ -64,10 +66,11 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
         organization_id__in=list(install_map.keys()), region_name=region_name
     ).values("organization_id")
     for row in region_query:
-        install_id = install_map[row["organization_id"]]
-        region_caching_service.clear_key(
-            key=get_installation.key_from(install_id), region_name=region_name
-        )
+        installs = install_map[row["organization_id"]]
+        for install_id in installs:
+            region_caching_service.clear_key(
+                key=get_installation.key_from(install_id), region_name=region_name
+            )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
