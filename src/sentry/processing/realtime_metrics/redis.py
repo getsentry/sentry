@@ -2,6 +2,8 @@ import logging
 from collections.abc import Iterable
 from time import time
 
+from django.conf import settings
+
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
 
@@ -130,7 +132,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
-        member_key = f"{self.member_key_prefix()}:{project_id}"
+        member_key = f"{self._member_key_prefix()}:{project_id}"
         keys.insert(0, member_key)
         results = self.cluster.mget(keys)
         is_lpq = results[0]
@@ -143,7 +145,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         total_sum = sum(int(c) if c else 0 for c in counts)
 
         # the counts in redis are in ms resolution.
-        is_lpq = total_sum / total_time_window / 1000
+        average_used = total_sum / total_time_window / 1000
 
-        self.cluster.set(name=member_key, value=int(is_lpq), ex=self._backoff_timer)
-        return is_lpq
+        new_is_lpq = average_used > settings.SENTRY_LPQ_OPTIONS["project_budget"]
+
+        self.cluster.set(name=member_key, value=int(new_is_lpq), ex=self._backoff_timer)
+        return new_is_lpq
