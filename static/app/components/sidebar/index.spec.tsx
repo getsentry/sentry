@@ -310,12 +310,11 @@ describe('Sidebar', function () {
       expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
       const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
       const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
-      expect(sidebarItems.length).toEqual(13);
+      expect(sidebarItems.length).toEqual(12);
       expect(sidebarItemIds).toEqual([
         'sidebar-item-issues',
         'sidebar-item-projects',
         'sidebar-item-sidebar-accordion-performance-item',
-        'sidebar-item-performance-cache',
         'sidebar-item-crons',
         'sidebar-item-alerts',
         'sidebar-item-releases',
@@ -329,16 +328,25 @@ describe('Sidebar', function () {
     });
 
     it('renders new sidebar hierarchy', async function () {
-      const {container} = renderSidebarWithFeatures(['performance-insights']);
+      const {container} = renderSidebarWithFeatures([
+        'performance-insights',
+        'insights-entry-points',
+      ]);
       expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
       const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
       const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
-      expect(sidebarItems.length).toEqual(15);
+      expect(sidebarItems.length).toEqual(21);
       expect(sidebarItemIds).toEqual([
         'sidebar-item-issues',
         'sidebar-item-projects',
         'sidebar-item-sidebar-accordion-explore-item',
         'sidebar-item-sidebar-accordion-insights-item',
+        'sidebar-item-performance-http',
+        'sidebar-item-performance-database',
+        'sidebar-item-performance-browser-resources',
+        'sidebar-item-performance-mobile-app-startup',
+        'sidebar-item-performance-mobile-screens',
+        'sidebar-item-performance-webvitals',
         'sidebar-item-performance-cache',
         'sidebar-item-performance',
         'sidebar-item-crons',
