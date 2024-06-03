@@ -1647,21 +1647,21 @@ function ReplayTimeStampIndicators({
       currentTime,
       currentHoverTime,
     }: {
-      currentHoverTime: number;
+      currentHoverTime: number | undefined;
       currentTime: number;
     }) => {
       if (traceStartTimestamp !== undefined) {
-        viewmanager.registerReplayTimestamp(
-          currentTimeStampIndicatorRef.current,
-          traceStartTimestamp + currentTime,
-          'current'
-        );
-
-        viewmanager.registerReplayTimestamp(
-          currentHoverTimeStampIndicatorRef.current,
-          traceStartTimestamp + currentHoverTime,
-          'hover'
-        );
+        viewmanager.registerReplayTimestamps({
+          current: {
+            ref: currentTimeStampIndicatorRef.current,
+            timestamp: currentTime,
+          },
+          hover: {
+            ref: currentHoverTimeStampIndicatorRef.current,
+            timestamp: currentHoverTime,
+          },
+          traceStartTimestamp,
+        });
       }
     };
     replayPlayerTimeEmitter.on('replay player timestamp changed', listener);

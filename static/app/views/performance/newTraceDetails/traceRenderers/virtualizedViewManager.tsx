@@ -539,6 +539,32 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerReplayTimestamps({
+    current,
+    hover,
+    traceStartTimestamp,
+  }: {
+    current: {ref: HTMLElement | null; timestamp: number};
+    hover: {ref: HTMLElement | null; timestamp: number | undefined};
+    traceStartTimestamp: number;
+  }) {
+    if (current.ref) {
+      this.replay_indicators.current = {
+        ref: current.ref,
+        timestamp: traceStartTimestamp + current.timestamp,
+      };
+      this.drawReplayTimestamp(current.ref, traceStartTimestamp + current.timestamp);
+    }
+
+    if (hover.ref && hover.timestamp) {
+      this.replay_indicators.hover = {
+        ref: hover.ref,
+        timestamp: traceStartTimestamp + hover.timestamp,
+      };
+      this.drawReplayTimestamp(hover.ref, traceStartTimestamp + hover.timestamp);
+    }
+  }
+
   registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
     if (ref) {
       ref.style.width = Math.round(this.columns.list.width * 100) + '%';
