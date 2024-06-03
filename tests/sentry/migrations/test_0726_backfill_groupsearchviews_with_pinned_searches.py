@@ -22,10 +22,10 @@ class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
     def test(self):
         custom_view = GroupSearchView.objects.get(organization=self.org, user_id=self.user.id)
 
-        assert custom_view.exists()
-        assert custom_view.organizaiton == self.org
+        assert custom_view
+        assert custom_view.organization == self.org
         assert custom_view.user_id == self.user.id
         assert custom_view.position == 0
-        assert custom_view.name == "Default View"
+        assert custom_view.name == "Default Search"
         assert custom_view.query == "assigned:me"
         assert custom_view.query_sort == "date"
