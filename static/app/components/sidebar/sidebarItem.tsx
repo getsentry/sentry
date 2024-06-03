@@ -164,7 +164,7 @@ function SidebarItem({
   const placement = isTop ? 'bottom' : 'right';
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
-  const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}-1`;
+  const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew =
     isNew && !localStorage.getItem(isNewSeenKey) && !(isInFloatingAccordion && !hasLink);
 
