@@ -342,7 +342,7 @@ function DangerZonePanelContent({
     <FieldGroup
       label={t('Delete Remote Config')}
       help={tct(
-        'If you want to start over you can delete the remote config for [projectName].',
+        'If you want to start over, you can delete the remote config for [projectName].',
         {projectName: <strong>{project.slug}</strong>}
       )}
     >
