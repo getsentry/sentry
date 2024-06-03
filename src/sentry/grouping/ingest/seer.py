@@ -31,10 +31,10 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     if not has_either_seer_grouping_feature:
         return False
 
-    if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
+    if not event_content_is_seer_eligible(event):
         return False
 
-    if not event_content_is_seer_eligible(event):
+    if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
         return False
 
     return True
