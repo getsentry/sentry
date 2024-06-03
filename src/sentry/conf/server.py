@@ -2642,8 +2642,7 @@ SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
             # TODO: Editing pass
             """
             Admin privileges on the team. They can create and remove projects,
-            and can manage the team's memberships. They cannot invite members to
-            the organization.
+            and can manage the team's memberships.
             """
         ),
         "scopes": {
