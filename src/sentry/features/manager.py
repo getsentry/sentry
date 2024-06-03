@@ -150,6 +150,7 @@ class FeatureManager(RegisteredFeatureManager):
         name: str,
         cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
+        default: bool = False,
     ) -> None:
         """
         Register a feature.
@@ -158,6 +159,8 @@ class FeatureManager(RegisteredFeatureManager):
         to encapsulate the context associated with a feature.
 
         >>> FeatureManager.has('my:feature', actor=request.user)
+
+        Features that use flagpole will have an option automatically registered.
         """
         entity_feature_strategy = self._shim_feature_strategy(entity_feature_strategy)
 
@@ -177,6 +180,9 @@ class FeatureManager(RegisteredFeatureManager):
             # Set a default of {} to ensure the feature evaluates to None when checked
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
             register(feature_option_name, type=Dict, default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+        if name not in settings.SENTRY_FEATURES:
+            settings.SENTRY_FEATURES[name] = default
 
         self._feature_registry[name] = cls
 

@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 
 from sentry import features
 from sentry.features.base import (
@@ -72,6 +73,22 @@ class FeatureManagerTest(TestCase):
             "projects:feature2",
             "projects:feature3",
         }
+
+    def test_feature_register_default(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:red-paint", OrganizationFeature, default=False)
+
+        assert set(manager.all(OrganizationFeature)) == {"organizations:red-paint"}
+        assert settings.SENTRY_FEATURES["organizations:red-paint"] is False
+
+        # Defaults should not override config data.
+        feature_config = {
+            "organizations:red-paint": True,
+        }
+        with override_settings(SENTRY_FEATURES=feature_config):
+            manager = features.FeatureManager()
+            manager.add("organizations:red-paint", OrganizationFeature, default=False)
+            assert settings.SENTRY_FEATURES["organizations:red-paint"] is True
 
     def test_handlers(self):
         project_flag = "projects:test_handlers"
