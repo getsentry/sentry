@@ -20,7 +20,7 @@ class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
         )
 
     def test(self):
-        custom_view = GroupSearchView.objects.get(org_member_id=self.user.id)
+        custom_view = GroupSearchView.objects.get(organization=self.org, user_id=self.user.id)
 
         assert custom_view.exists()
         assert custom_view.organizaiton == self.org
