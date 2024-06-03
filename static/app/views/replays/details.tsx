@@ -190,7 +190,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           projectSlug={projectSlug}
           replayErrors={replayErrors}
         >
-          <ReplaysLayout isVideoReplay={isVideoReplay} />
+          <ReplaysLayout isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>
