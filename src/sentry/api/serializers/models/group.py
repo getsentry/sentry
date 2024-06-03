@@ -646,11 +646,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         # find the external issues for sentry apps and add them in
         return (
-            safe_execute(
-                PlatformExternalIssue.get_annotations_for_group_list,
-                group_list=groups,
-                _with_transaction=False,
-            )
+            safe_execute(PlatformExternalIssue.get_annotations_for_group_list, group_list=groups)
             or {}
         )
 
@@ -672,12 +668,7 @@ class GroupSerializerBase(Serializer, ABC):
 
             install = integration.get_installation(organization_id=org_id)
             local_annotations_by_group_id = (
-                safe_execute(
-                    install.get_annotations_for_group_list,
-                    group_list=groups,
-                    _with_transaction=False,
-                )
-                or {}
+                safe_execute(install.get_annotations_for_group_list, group_list=groups) or {}
             )
             integration_annotations.append(local_annotations_by_group_id)
 
@@ -698,11 +689,9 @@ class GroupSerializerBase(Serializer, ABC):
         for plugin in plugins.for_project(project=item.project, version=1):
             if is_plugin_deprecated(plugin, item.project):
                 continue
-            safe_execute(plugin.tags, None, item, annotations_for_group, _with_transaction=False)
+            safe_execute(plugin.tags, None, item, annotations_for_group)
         for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(
-                safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
-            )
+            annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
         return annotations_for_group
 
