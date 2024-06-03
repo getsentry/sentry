@@ -22,6 +22,7 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/w
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 import {Accordion} from '../components/accordion';
@@ -44,7 +45,7 @@ type DataType = {
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const {ContainerActions, InteractiveTitle} = props;
   const theme = useTheme();
 
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
@@ -88,6 +89,8 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     );
   };
 
+  const moduleURL = useModuleURL('vital');
+
   const getHeaders = _ =>
     transactionWebVitals.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
@@ -101,7 +104,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         <Fragment key={i}>
           <GrowLink
             to={{
-              pathname: '/performance/browser/pageloads/overview/',
+              pathname: `${moduleURL}/overview/`,
               query: {...location.query, transaction},
             }}
           >
@@ -157,10 +160,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     return (
       <Fragment>
         <div>
-          <LinkButton
-            to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-            size="sm"
-          >
+          <LinkButton to={`${moduleURL}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

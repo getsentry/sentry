@@ -2,10 +2,10 @@ import type {CSSProperties, SyntheticEvent} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

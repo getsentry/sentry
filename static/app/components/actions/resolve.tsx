@@ -18,8 +18,9 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 function SetupReleasesPrompt() {
   return (

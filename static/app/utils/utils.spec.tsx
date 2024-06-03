@@ -1,13 +1,9 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {
-  deepFreeze,
   descopeFeatureName,
   escapeDoubleQuotes,
   explodeSlug,
   extractMultilineFields,
   parseRepo,
-  sortProjects,
   valueIsEqual,
 } from 'sentry/utils';
 
@@ -177,32 +173,6 @@ describe('utils.explodeSlug', function () {
   });
 });
 
-describe('utils.projectDisplayCompare', function () {
-  it('sorts by bookmark and project slug', function () {
-    const projects = [
-      ProjectFixture({isBookmarked: true, slug: 'm'}),
-      ProjectFixture({isBookmarked: false, slug: 'm'}),
-      ProjectFixture({isBookmarked: false, slug: 'a'}),
-      ProjectFixture({isBookmarked: true, slug: 'a'}),
-      ProjectFixture({isBookmarked: true, slug: 'z'}),
-      ProjectFixture({isBookmarked: false, slug: 'z'}),
-    ];
-
-    const expected = [
-      expect.objectContaining({isBookmarked: true, slug: 'a'}),
-      expect.objectContaining({isBookmarked: true, slug: 'm'}),
-      expect.objectContaining({isBookmarked: true, slug: 'z'}),
-      expect.objectContaining({isBookmarked: false, slug: 'a'}),
-      expect.objectContaining({isBookmarked: false, slug: 'm'}),
-      expect.objectContaining({isBookmarked: false, slug: 'z'}),
-    ];
-
-    const sortedProjects = sortProjects(projects);
-
-    expect(sortedProjects).toEqual(expected);
-  });
-});
-
 describe('utils.descopeFeatureName', function () {
   it('descopes the feature name', () => {
     [
@@ -211,28 +181,6 @@ describe('utils.descopeFeatureName', function () {
       ['unknown-scope:feature', 'unknown-scope:feature'],
       ['', ''],
     ].forEach(([input, expected]) => expect(descopeFeatureName(input)).toEqual(expected));
-  });
-});
-
-describe('deepFreeze', function () {
-  it('throws error on attempt to mutate frozen object', function () {
-    const testObj = deepFreeze({foo: [1, 2, 3]});
-
-    [
-      () => {
-        testObj.foo.push(4);
-      },
-      () => {
-        // @ts-expect-error
-        testObj.bar = '';
-      },
-      () => {
-        // @ts-expect-error
-        delete testObj.foo;
-      },
-    ].forEach(fn => {
-      expect(fn).toThrow();
-    });
   });
 });
 

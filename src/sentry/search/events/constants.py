@@ -8,6 +8,9 @@ TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
 """
+TIMEOUT_SPAN_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or filtering on transaction or tag fields when filtering span data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -332,6 +335,8 @@ SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
+    "ai.total_tokens.used": "c:spans/ai.total_tokens.used@none",
+    "ai.total_cost": "c:spans/ai.total_cost@usd",
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
@@ -366,6 +371,9 @@ SPAN_METRIC_DURATION_COLUMNS = {
     for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") or value.endswith("@second")
 }
+SPAN_METRIC_SUMMABLE_COLUMNS = SPAN_METRIC_DURATION_COLUMNS.union(
+    {"ai.total_tokens.used", "ai.total_cost"}
+)
 SPAN_METRIC_COUNT_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()

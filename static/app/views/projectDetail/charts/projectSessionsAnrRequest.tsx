@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 

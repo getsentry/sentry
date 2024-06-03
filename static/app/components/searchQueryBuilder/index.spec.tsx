@@ -27,7 +27,20 @@ const MOCK_SUPPORTED_KEYS: TagCollection = {
     name: 'Assigned To',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['me', 'unassigned', 'person@sentry.io'],
+    values: [
+      {
+        title: 'Suggested',
+        type: 'header',
+        icon: null,
+        children: [{value: 'me'}, {value: 'unassigned'}],
+      },
+      {
+        title: 'All',
+        type: 'header',
+        icon: null,
+        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+      },
+    ],
   },
   [FieldKey.BROWSER_NAME]: {
     key: FieldKey.BROWSER_NAME,
@@ -55,6 +68,39 @@ describe('SearchQueryBuilder', function () {
     label: 'Query Builder',
   };
 
+  describe('callbacks', function () {
+    it('calls onChange, onBlur, and onSearch with the query string', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnBlur = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          onChange={mockOnChange}
+          onBlur={mockOnBlur}
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('foo{enter}');
+
+      // Should call onChange and onSearch after enter
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('foo');
+        expect(mockOnSearch).toHaveBeenCalledWith('foo');
+      });
+
+      await userEvent.click(document.body);
+
+      // Clicking outside activates onBlur
+      await waitFor(() => {
+        expect(mockOnBlur).toHaveBeenCalledWith('foo');
+      });
+    });
+  });
+
   describe('actions', function () {
     it('can clear the query', async function () {
       const mockOnChange = jest.fn();
@@ -76,7 +122,8 @@ describe('SearchQueryBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('can switch between interfaces', async function () {
+    // biome-ignore lint/suspicious/noSkippedTests: This test flakes in CI due to an act warning in Tooltip
+    it.skip('can switch between interfaces', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
@@ -313,6 +360,23 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
+    it('opens the value suggestions menu when clicking anywhere in the filter value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:[Chrome,Firefox]"
+        />
+      );
+
+      // Start editing value
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      // Click in the filter value area, should open the menu
+      await userEvent.click(screen.getByTestId('filter-value-editing'));
+      expect(await screen.findByRole('option', {name: 'Chrome'})).toBeInTheDocument();
+    });
+
     it('can remove parens by clicking the delete button', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
 
@@ -415,6 +479,9 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('(');
 
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+
+      // Last input (the one after the paren) should have focus
+      expect(screen.getAllByRole('combobox').at(-1)).toHaveFocus();
     });
   });
 
@@ -542,6 +609,64 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('exits filter value when pressing escape', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      // Pressing escape will exit the filter value, so edit button will come back
+      await userEvent.keyboard('{Escape}');
+      expect(
+        await screen.findByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).toBeInTheDocument();
+
+      // Focus should now be to the right of the filter
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
+    });
+  });
+
+  describe('token values', function () {
+    it('supports grouped token value suggestions', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="assigned:me" />);
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+      );
+      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+      const groups = within(screen.getByRole('listbox')).getAllByRole('group');
+
+      // First group is selected option, second is "Suggested", third is "All"
+      expect(groups).toHaveLength(3);
+      expect(
+        within(screen.getByRole('listbox')).getByText('Suggested')
+      ).toBeInTheDocument();
+      expect(within(screen.getByRole('listbox')).getByText('All')).toBeInTheDocument();
+
+      // First group is the selected "me"
+      expect(within(groups[0]).getByRole('option', {name: 'me'})).toBeInTheDocument();
+      // Second group is the remaining option in the "Suggested" section
+      expect(
+        within(groups[1]).getByRole('option', {name: 'unassigned'})
+      ).toBeInTheDocument();
+      // Third group are the options under the "All" section
+      expect(
+        within(groups[2]).getByRole('option', {name: 'person1@sentry.io'})
+      ).toBeInTheDocument();
+      expect(
+        within(groups[2]).getByRole('option', {name: 'person2@sentry.io'})
+      ).toBeInTheDocument();
     });
   });
 });

@@ -2,8 +2,8 @@ import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
+import {Flex} from 'sentry/components/container/flex';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';

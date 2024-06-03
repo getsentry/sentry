@@ -4,13 +4,12 @@ from datetime import UTC, datetime, timedelta
 from random import choice
 from string import ascii_uppercase
 from typing import Any
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 
 import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info
@@ -177,10 +176,16 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert group_data == expected_group_data
         assert stacktrace_string == EXCEPTION_STACKTRACE_STRING
 
-    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_event")
+    @patch("time.sleep", return_value=None)
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    def test_lookup_group_data_stacktrace_single_exceptions(self, mock_logger, mock_lookup_event):
-        """Test cases where ServiceUnavailable and DeadlineExceeded exceptions occur"""
+    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_event")
+    def test_lookup_group_data_stacktrace_single_exceptions(
+        self, mock_lookup_event, mock_logger, mock_sleep
+    ):
+        """
+        Test when ServiceUnavailable and DeadlineExceeded exceptions occur, that we stop the
+        backfill
+        """
         exceptions = [
             ServiceUnavailable(message="Service Unavailable"),
             DeadlineExceeded(message="Deadline Exceeded"),
@@ -189,24 +194,24 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         for exception in exceptions:
             mock_lookup_event.side_effect = exception
-            group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-                self.project,
-                event.event_id,
-                event.group_id,
-                event.group.message,
-                self.group_hashes[event.group.id],
-            )
-            assert (group_data, stacktrace_string) == (None, "")
-            mock_logger.exception.assert_called_with(
-                "tasks.backfill_seer_grouping_records.event_lookup_exception",
-                extra={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "group_id": event.group.id,
-                    "event_id": event.event_id,
-                    "error": exception.message,
-                },
-            )
+            with pytest.raises(Exception):
+                lookup_group_data_stacktrace_single(
+                    self.project,
+                    event.event_id,
+                    event.group_id,
+                    event.group.message,
+                    self.group_hashes[event.group.id],
+                )
+                mock_logger.exception.assert_called_with(
+                    "tasks.backfill_seer_grouping_records.event_lookup_exception",
+                    extra={
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "group_id": event.group.id,
+                        "event_id": event.event_id,
+                        "error": exception.message,
+                    },
+                )
 
     def test_lookup_group_data_stacktrace_single_not_stacktrace_grouping(self):
         """Test that no data is returned if the group did not use the stacktrace to determine grouping"""
@@ -264,14 +269,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
 
     @patch("time.sleep", return_value=None)
-    @patch("sentry.nodestore.backend.get_multi")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
+    @patch("sentry.nodestore.backend.get_multi")
     def test_lookup_group_data_stacktrace_bulk_exceptions(
-        self, mock_logger, mock_get_multi, mock_sleep
+        self, mock_get_multi, mock_logger, mock_sleep
     ):
         """
         Test cases where ServiceUnavailable or DeadlineExceeded exceptions occur in bulk data
-        lookup
+        lookup, that the backfill stops
         """
         exceptions = [
             ServiceUnavailable(message="Service Unavailable"),
@@ -281,24 +286,17 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         for exception in exceptions:
             mock_get_multi.side_effect = exception
-            (
-                bulk_event_ids,
-                invalid_event_ids,
-                bulk_group_data_stacktraces,
-            ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages, self.group_hashes)
-            assert bulk_event_ids == set()
-            assert invalid_event_ids == set()
-            assert bulk_group_data_stacktraces["data"] == []
-            assert bulk_group_data_stacktraces["stacktrace_list"] == []
-            mock_logger.exception.assert_called_with(
-                "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-                extra={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "group_data": json.dumps(rows),
-                    "error": exception.message,
-                },
-            )
+            with pytest.raises(Exception):
+                lookup_group_data_stacktrace_bulk(self.project, rows, messages, self.group_hashes)
+                mock_logger.exception.assert_called_with(
+                    "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
+                    extra={
+                        "organization_id": self.project.organization.id,
+                        "project_id": self.project.id,
+                        "group_data": json.dumps(rows),
+                        "error": exception.message,
+                    },
+                )
 
     def test_lookup_group_data_stacktrace_bulk_not_stacktrace_grouping(self):
         """
@@ -697,7 +695,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records
     ):
         """
-        Test that different metadata is set for groups where times_seen > 1 and times_seen == 1.
+        Test that groups where times_seen == 1 are not included.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
@@ -725,7 +723,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "request_hash": self.group_hashes[group.id],
                 }
             else:
-                assert group.data["metadata"].get("seer_similarity") == {"times_seen_once": True}
+                assert group.data["metadata"].get("seer_similarity") is None
 
         redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
@@ -1004,40 +1002,47 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         # Mock snuba response to purposefully exclude the first group
-        group_ids_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
-        group_id_batch = [group.id for group in group_ids_minus_first]
-        time_now = datetime.now()
+        groups_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
+        group_id_batch = [group.id for group in groups_minus_first]
         events_entity = Entity("events", alias="events")
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Function("max", [Column("event_id")], "event_id"),
-            ],
-            groupby=[Column("group_id")],
-            where=[
-                Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("group_id"), Op.IN, group_id_batch),
-                Condition(
-                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
-                ),
-                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
-            ],
-            orderby=[OrderBy(Column("group_id"), Direction.ASC)],
-        )
-
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
+        snuba_requests = []
+        for group_id in group_id_batch:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(days=10),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
 
         result = bulk_snuba_queries(
-            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
         mock_snuba_queries.return_value = result
 
@@ -1100,3 +1105,36 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Assert metadata was not set for groups that is 90 days old
         old_group = Group.objects.filter(project_id=self.project.id, id=old_group_id).first()
         assert old_group.data["metadata"].get("seer_similarity") is None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
+    @patch(
+        "sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk_with_fallback"
+    )
+    @patch("sentry.tasks.backfill_seer_grouping_records.call_next_backfill")
+    def test_backfill_seer_grouping_records_empty_nodestore(
+        self,
+        mock_call_next_backfill,
+        mock_lookup_group_data_stacktrace_bulk_with_fallback,
+        mock_logger,
+    ):
+        mock_lookup_group_data_stacktrace_bulk_with_fallback.return_value = GroupStacktraceData(
+            data=[], stacktrace_list=[]
+        )
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.all()
+        groups_len = len(groups)
+        group_ids_sorted = sorted([group.id for group in groups])
+        mock_logger.info.assert_called_with(
+            "tasks.backfill_seer_grouping_records.no_data",
+            extra={
+                "project_id": self.project.id,
+                "group_id_batch": json.dumps(group_ids_sorted),
+            },
+        )
+        mock_call_next_backfill.assert_called_with(
+            groups_len, self.project.id, ANY, groups_len, groups[groups_len - 1].id, False
+        )
