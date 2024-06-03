@@ -190,9 +190,8 @@ export function CacheSamplePanel() {
   let cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
 
   if (isCacheHitFilterOverridden) {
-    // if the search query overrides the `cache.hit` filter, ignore the
-    // dropdown filter value (`query.statusClass`) and derive the sample limits from the
-    // search query
+    // if the search query overrides the `cache.hit` filter, ignore the dropdown filter value (`query.statusClass`) and derive the sample limits
+    // from the search query
     const cacheHitSearchFilter = searchQueryObject.getFilterValues('cache.hit')?.[0];
     if (cacheHitSearchFilter === 'hit') {
       cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT;
@@ -202,8 +201,7 @@ export function CacheSamplePanel() {
       cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT;
     }
   } else {
-    // if the search query does not override the `cache.hit` dropdown filter, derive the
-    // sample limits from the dropdown value
+    // if the search query does not override the `cache.hit` dropdown filter, derive the sample limits from the dropdown value
     if (query.statusClass === 'hit') {
       cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT;
       cacheMissSamplesLimit = -1;
