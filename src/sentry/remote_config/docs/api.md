@@ -118,7 +118,7 @@ Delete the project's configuration.
 
 - Response 204
 
-## Configuration Proxy [/relays/<project_id>/configuration/]
+## Configuration Proxy [/project/<project_id>/configuration/]
 
 Temporary configuration proxy resource.
 

@@ -949,11 +949,6 @@ RELAY_URLS = [
         RelayDetailsEndpoint.as_view(),
         name="sentry-api-0-relays-details",
     ),
-    re_path(
-        r"^(?P<project_id>[^\/]+)/configuration/$",
-        ProjectConfigurationProxyEndpoint.as_view(),
-        name="sentry-api-0-relays-remote-configuration",
-    ),
 ]
 
 USER_URLS = [
@@ -3263,6 +3258,11 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    re_path(
+        r"^configuration/(?P<project_id>[^\/]+)/$",
+        ProjectConfigurationProxyEndpoint.as_view(),
+        name="sentry-api-0-project-remote-configuration",
     ),
     # Internal
     re_path(
