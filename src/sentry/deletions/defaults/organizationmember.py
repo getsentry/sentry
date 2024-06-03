@@ -1,5 +1,6 @@
-from sentry.deletions.base import ModelDeletionTask, ModelRelation
 from sentry.models.groupsearchview import GroupSearchView
+
+from ..base import ModelDeletionTask, ModelRelation
 
 
 class OrganizationMemberDeletionTask(ModelDeletionTask):
