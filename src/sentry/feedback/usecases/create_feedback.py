@@ -193,9 +193,9 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
 
     is_message_spam = None
     if (
-        project.slug not in options.get("feedback.spam.projects.slug-denylist")
-        and features.has("organizations:user-feedback-spam-filter-ingest", project.organization)
+        features.has("organizations:user-feedback-spam-filter-ingest", project.organization)
         and project.get_option("sentry:feedback_ai_spam_detection")
+        and project.slug not in options.get("feedback.spam.projects.slug-denylist")
     ):
         try:
             is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
