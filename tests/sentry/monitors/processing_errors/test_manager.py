@@ -9,6 +9,8 @@ from sentry.monitors.processing_errors.manager import (
     _get_cluster,
     build_error_identifier,
     delete_error,
+    delete_errors_for_monitor_by_type,
+    delete_errors_for_project_by_type,
     get_errors_for_monitor,
     get_errors_for_projects,
     handle_processing_errors,
@@ -135,6 +137,72 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(get_errors_for_projects([self.project])) == 1
         delete_error(self.project, processing_error.id)
         assert len(get_errors_for_projects([self.project])) == 0
+
+    def test_delete_for_monitor_by_type(self):
+        monitor = self.create_monitor()
+        processing_error1 = build_checkin_processing_error(
+            processing_errors=[{"type": ProcessingErrorType.CHECKIN_FINISHED}],
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+        processing_error2 = build_checkin_processing_error(
+            processing_errors=[{"type": ProcessingErrorType.CHECKIN_FINISHED}],
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+        store_error(processing_error1, monitor)
+        store_error(processing_error2, monitor)
+
+        processing_error3 = build_checkin_processing_error(
+            processing_errors=[
+                {"type": ProcessingErrorType.CHECKIN_FINISHED},
+                {"type": ProcessingErrorType.MONITOR_DISABLED},
+            ],
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+        store_error(processing_error3, monitor)
+
+        # verify that we have stored three checkin processing errors
+        assert len(get_errors_for_monitor(monitor)) == 3
+        delete_errors_for_monitor_by_type(monitor, ProcessingErrorType.CHECKIN_FINISHED)
+
+        # after deleting we should be left with a single MONITOR_DISABLED error
+        monitor_errors = get_errors_for_monitor(monitor)
+        assert len(monitor_errors) == 1
+        assert len(monitor_errors[0].errors) == 1
+        assert monitor_errors[0].errors[0]["type"] == ProcessingErrorType.MONITOR_DISABLED
+
+    def test_delete_for_project_by_type(self):
+        processing_error1 = build_checkin_processing_error(
+            processing_errors=[{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            message_overrides={"project_id": self.project.id},
+        )
+        processing_error2 = build_checkin_processing_error(
+            processing_errors=[{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            message_overrides={"project_id": self.project.id},
+        )
+        store_error(processing_error1, None)
+        store_error(processing_error2, None)
+
+        processing_error3 = build_checkin_processing_error(
+            processing_errors=[
+                {"type": ProcessingErrorType.MONITOR_NOT_FOUND},
+                {"type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED, "errors": {}},
+            ],
+            message_overrides={"project_id": self.project.id},
+        )
+        store_error(processing_error3, None)
+
+        # verify that we have stored three checkin processing errors
+        assert len(get_errors_for_projects([self.project])) == 3
+        delete_errors_for_project_by_type(self.project, ProcessingErrorType.MONITOR_NOT_FOUND)
+
+        # after deleting we should be left with a single CHECKIN_VALIDATION_FAILED error
+        project_errors = get_errors_for_projects([self.project])
+        assert len(project_errors) == 1
+        assert len(project_errors[0].errors) == 1
+        assert project_errors[0].errors[0]["type"] == ProcessingErrorType.CHECKIN_VALIDATION_FAILED
 
 
 class HandleProcessingErrorsTest(TestCase):
