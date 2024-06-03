@@ -211,6 +211,7 @@ export function TraceView() {
                 traceEventView={traceEventView}
                 metaResults={meta}
                 rootEvent={rootEvent}
+                replayRecord={null}
                 source="performance"
               />
             </TraceInnerLayout>
@@ -234,13 +235,13 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
+  replayRecord: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
   status: UseApiQueryResult<any, any>['status'];
   trace: TraceSplitResults<TraceTree.Transaction> | null;
   traceEventView: EventView;
   traceSlug: string;
-  replayRecord?: ReplayRecord;
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {

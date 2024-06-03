@@ -1489,20 +1489,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  drawReplayTimestamp(ref: HTMLElement | null, timestamp: number | undefined) {
-    if (!ref) {
-      return;
-    }
-    if (timestamp === undefined || isNaN(timestamp)) {
-      ref.style.opacity = '0';
-      return;
-    }
-
-    const placement = this.computeTransformXFromTimestamp(timestamp);
-    ref.style.opacity = '1';
-    ref.style.transform = `translateX(${placement}px)`;
-  }
-
   drawVerticalIndicator(indicator: VerticalIndicator) {
     if (!indicator.ref) {
       return;

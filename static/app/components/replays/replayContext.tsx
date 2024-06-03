@@ -33,32 +33,33 @@ type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 
-type ReplayPlayerTimestampChange = {
+type ReplayPlayerTimestampChangeEvent = {
   currentHoverTime: number | undefined;
   currentTime: number;
 };
-type ReplayPlayerListener = (arg: ReplayPlayerTimestampChange) => void;
+type ReplayPlayerListener = (arg: ReplayPlayerTimestampChangeEvent) => void;
 
 class ReplayPlayerTimestampEmitter {
-  private listeners: {[key: string]: ReplayPlayerListener[]} = {};
+  private listeners: {[key: string]: Set<ReplayPlayerListener>} = {};
 
   on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
     this.listeners[event] = this.listeners[event] || [];
-    if (!this.listeners[event].includes(handler)) {
-      this.listeners[event].push(handler);
-    }
+    this.listeners[event].add(handler);
   }
 
-  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChange): void {
+  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChangeEvent): void {
     const handlers = this.listeners[event] || [];
     handlers.forEach(handler => handler(arg));
   }
 
   off(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
     const handlers = this.listeners[event];
-    if (handlers) {
-      this.listeners[event] = handlers.filter(h => h !== handler);
+
+    if (!handlers) {
+      return;
     }
+
+    handlers.delete?.(handler);
   }
 }
 

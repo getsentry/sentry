@@ -1643,31 +1643,34 @@ function VerticalTimestampIndicators({
   const currentHoverTimeStampIndicatorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const listener = ({
+    function replayTimestampListener({
       currentTime,
       currentHoverTime,
     }: {
       currentHoverTime: number | undefined;
       currentTime: number;
-    }) => {
-      if (traceStartTimestamp !== undefined) {
-        viewmanager.registerVerticalIndicator('replay_current_timestamp', {
-          ref: currentTimeStampIndicatorRef.current,
-          timestamp: traceStartTimestamp + currentTime,
-        });
-
-        viewmanager.registerVerticalIndicator('replay_hover_timestamp', {
-          ref: currentHoverTimeStampIndicatorRef.current,
-          timestamp: currentHoverTime
-            ? traceStartTimestamp + currentHoverTime
-            : undefined,
-        });
+    }) {
+      if (!traceStartTimestamp) {
+        return;
       }
-    };
-    replayPlayerTimestampEmitter.on('replay timestamp change', listener);
+
+      viewmanager.registerVerticalIndicator('replay_timestamp.current', {
+        ref: currentTimeStampIndicatorRef.current,
+        timestamp: traceStartTimestamp + currentTime,
+      });
+
+      viewmanager.registerVerticalIndicator('replay_timestamp.hover', {
+        ref: currentHoverTimeStampIndicatorRef.current,
+        timestamp: currentHoverTime ? traceStartTimestamp + currentHoverTime : undefined,
+      });
+    }
+    replayPlayerTimestampEmitter.on('replay timestamp change', replayTimestampListener);
 
     return () => {
-      replayPlayerTimestampEmitter.off('replay timestamp change', listener);
+      replayPlayerTimestampEmitter.off(
+        'replay timestamp change',
+        replayTimestampListener
+      );
     };
   }, [traceStartTimestamp, viewmanager]);
 
@@ -1678,10 +1681,10 @@ function VerticalTimestampIndicators({
   return (
     <Fragment>
       <div ref={currentTimeStampIndicatorRef} className="TraceIndicator Timeline">
-        <div className="ReplayTraceIndicatorLine" />
+        <div className="Indicator CurrentReplayTimestamp" />
       </div>
       <div ref={currentHoverTimeStampIndicatorRef} className="TraceIndicator Timeline">
-        <div className="ReplayTraceIndicatorLine HoverTimestamp" />
+        <div className="Indicator HoverReplayTimestamp" />
       </div>
     </Fragment>
   );
@@ -1725,7 +1728,7 @@ const TraceStylingWrapper = styled('div')`
         top: 30px;
       }
 
-      .ReplayTraceIndicatorLine {
+      .Indicator {
         top: 44px;
       }
     }
@@ -1864,16 +1867,19 @@ const TraceStylingWrapper = styled('div')`
         80%/2px 100% no-repeat;
     }
 
-    .ReplayTraceIndicatorLine {
+    .Indicator {
       width: 1px;
       height: 100%;
       position: absolute;
       left: 50%;
       transform: translateX(-2px);
-      background: ${p => p.theme.purple300};
       top: 26px;
 
-      &.HoverTimestamp {
+      &.CurrentReplayTimestamp {
+        background: ${p => p.theme.purple300};
+      }
+
+      &.HoverReplayTimestamp {
         background: ${p => p.theme.purple200};
       }
     }
