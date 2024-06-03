@@ -34,6 +34,7 @@ from sentry.search.events.constants import (
     DEVICE_CLASS_ALIAS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    EVENT_TYPE_ALIAS,
     FUNCTION_ALIASES,
     HTTP_STATUS_CODE_ALIAS,
     ISSUE_ALIAS,
@@ -93,6 +94,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
@@ -132,6 +134,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
             "performance.issue_ids": self._performance_issue_ids_filter_converter,
+            EVENT_TYPE_ALIAS: self._event_type_filter_converter,
         }
 
     @property
@@ -2002,3 +2005,15 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
+
+    def _event_type_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        if self.builder.dataset == Dataset.Transactions:
+            if search_filter.operator in ["=", "IN"] and search_filter.value.value in [
+                "transaction",
+                ["transaction"],
+            ]:
+                return Condition(Function("equals", [1, 1]), Op.EQ, 1)
+            raise InvalidSearchQuery(
+                "Invalid value for event.type condition. Allowed value is transaction."
+            )
+        return self.builder.default_filter_converter(search_filter)

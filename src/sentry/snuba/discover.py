@@ -28,6 +28,7 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
@@ -174,7 +175,7 @@ def transform_tips(tips):
     }
 
 
-def query(
+def _query(
     selected_columns,
     query,
     params,
@@ -199,43 +200,15 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    dataset=Dataset.Discover,
 ) -> EventsResponse:
-    """
-    High-level API for doing arbitrary user queries against events.
-
-    This function operates on the Discover public event schema and
-    virtual fields/aggregate functions for selected columns and
-    conditions are supported through this function.
-
-    The resulting list will have all internal field names mapped
-    back into their public schema names.
-
-    selected_columns (Sequence[str]) List of public aliases to fetch.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
-    equations (Sequence[str]) List of equations to calculate for the query
-    orderby (None|str|Sequence[str]) The field to order results by.
-    offset (None|int) The record offset to read.
-    limit (int) The number of records to fetch.
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    auto_fields (bool) Set to true to have project + eventid fields automatically added.
-    auto_aggregations (bool) Whether aggregates should be added automatically if they're used
-                    in conditions, and there's at least one aggregate already.
-    include_equation_fields (bool) Whether fields should be added automatically if they're used in
-                    equations
-    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
-    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
-    conditions (Sequence[Condition]) List of conditions that are passed directly to snuba without
-                    any additional processing.
-    transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
-                                requested function format.
-    sample (float) The sample rate to run the query with
-    """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
+    assert dataset in [Dataset.Discover, Dataset.Transactions]
+
     builder = QueryBuilder(
-        Dataset.Discover,
+        dataset,
         params,
         snuba_params=snuba_params,
         query=query,
@@ -266,7 +239,7 @@ def query(
     return result
 
 
-def timeseries_query(
+def _timeseries_query(
     selected_columns: Sequence[str],
     query: str,
     params: ParamsType,
@@ -280,34 +253,13 @@ def timeseries_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    dataset=Dataset.Discover,
 ):
-    """
-    High-level API for doing arbitrary user timeseries queries against events.
-
-    This function operates on the public event schema and
-    virtual fields/aggregate functions for selected columns and
-    conditions are supported through this function.
-
-    This function is intended to only get timeseries based
-    results and thus requires the `rollup` parameter.
-
-    Returns a SnubaTSResult object that has been zerofilled in
-    case of gaps.
-
-    selected_columns (Sequence[str]) List of public aliases to fetch.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    rollup (int) The bucket width in seconds
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    comparison_delta: A timedelta used to convert this into a comparison query. We make a second
-    query time-shifted back by comparison_delta, and compare the results to get the % change for each
-    time bucket. Requires that we only pass
-    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
-    """
+    assert dataset in [Dataset.Discover, Dataset.Transactions]
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
-            Dataset.Discover,
+            dataset,
             params,
             rollup,
             query=query,
@@ -326,7 +278,7 @@ def timeseries_query(
             comp_query_params["start"] -= comparison_delta
             comp_query_params["end"] -= comparison_delta
             comparison_builder = TimeseriesQueryBuilder(
-                Dataset.Discover,
+                dataset,
                 comp_query_params,
                 rollup,
                 query=query,
@@ -387,6 +339,148 @@ def timeseries_query(
     )
 
 
+def query(
+    selected_columns,
+    query,
+    params,
+    snuba_params=None,
+    equations=None,
+    orderby=None,
+    offset=None,
+    limit=50,
+    referrer=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    include_equation_fields=False,
+    allow_metric_aggregates=False,
+    use_aggregate_conditions=False,
+    conditions=None,
+    functions_acl=None,
+    transform_alias_to_input_format=False,
+    sample=None,
+    has_metrics=False,
+    use_metrics_layer=False,
+    skip_tag_resolution=False,
+    extra_columns=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+) -> EventsResponse:
+    """
+    High-level API for doing arbitrary user queries against events.
+
+    This function operates on the Discover public event schema and
+    virtual fields/aggregate functions for selected columns and
+    conditions are supported through this function.
+
+    The resulting list will have all internal field names mapped
+    back into their public schema names.
+
+    selected_columns (Sequence[str]) List of public aliases to fetch.
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    equations (Sequence[str]) List of equations to calculate for the query
+    orderby (None|str|Sequence[str]) The field to order results by.
+    offset (None|int) The record offset to read.
+    limit (int) The number of records to fetch.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    auto_fields (bool) Set to true to have project + eventid fields automatically added.
+    auto_aggregations (bool) Whether aggregates should be added automatically if they're used
+                    in conditions, and there's at least one aggregate already.
+    include_equation_fields (bool) Whether fields should be added automatically if they're used in
+                    equations
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
+    use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
+    conditions (Sequence[Condition]) List of conditions that are passed directly to snuba without
+                    any additional processing.
+    transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
+                                requested function format.
+    sample (float) The sample rate to run the query with
+    """
+    return _query(
+        selected_columns,
+        query,
+        params,
+        snuba_params=snuba_params,
+        equations=equations,
+        orderby=orderby,
+        offset=offset,
+        limit=limit,
+        referrer=referrer,
+        auto_fields=auto_fields,
+        auto_aggregations=auto_aggregations,
+        include_equation_fields=include_equation_fields,
+        allow_metric_aggregates=allow_metric_aggregates,
+        use_aggregate_conditions=use_aggregate_conditions,
+        conditions=conditions,
+        functions_acl=functions_acl,
+        transform_alias_to_input_format=transform_alias_to_input_format,
+        sample=sample,
+        has_metrics=has_metrics,
+        use_metrics_layer=use_metrics_layer,
+        skip_tag_resolution=skip_tag_resolution,
+        extra_columns=extra_columns,
+        on_demand_metrics_enabled=on_demand_metrics_enabled,
+        on_demand_metrics_type=on_demand_metrics_type,
+        dataset=Dataset.Discover,
+    )
+
+
+def timeseries_query(
+    selected_columns: Sequence[str],
+    query: str,
+    params: dict[str, str],
+    rollup: int,
+    referrer: str,
+    zerofill_results: bool = True,
+    allow_metric_aggregates=True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    has_metrics: bool = True,
+    use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+) -> SnubaTSResult:
+    """
+    High-level API for doing arbitrary user timeseries queries against events.
+
+    This function operates on the public event schema and
+    virtual fields/aggregate functions for selected columns and
+    conditions are supported through this function.
+
+    This function is intended to only get timeseries based
+    results and thus requires the `rollup` parameter.
+
+    Returns a SnubaTSResult object that has been zerofilled in
+    case of gaps.
+
+    selected_columns (Sequence[str]) List of public aliases to fetch.
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    rollup (int) The bucket width in seconds
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    comparison_delta: A timedelta used to convert this into a comparison query. We make a second
+    query time-shifted back by comparison_delta, and compare the results to get the % change for each
+    time bucket. Requires that we only pass
+    allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
+    """
+    return _timeseries_query(
+        selected_columns,
+        query,
+        params,
+        rollup,
+        referrer,
+        zerofill_results=zerofill_results,
+        allow_metric_aggregates=allow_metric_aggregates,
+        comparison_delta=comparison_delta,
+        functions_acl=functions_acl,
+        has_metrics=has_metrics,
+        use_metrics_layer=use_metrics_layer,
+        on_demand_metrics_enabled=on_demand_metrics_enabled,
+        on_demand_metrics_type=on_demand_metrics_type,
+        dataset=Dataset.Discover,
+    )
+
+
 def create_result_key(result_row, fields, issues) -> str:
     values = []
     for field in fields:
@@ -413,7 +507,7 @@ def create_result_key(result_row, fields, issues) -> str:
     return result
 
 
-def top_events_timeseries(
+def _top_events_timeseries(
     timeseries_columns,
     selected_columns,
     user_query,
@@ -431,29 +525,9 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    dataset=Dataset.Discover,
 ):
-    """
-    High-level API for doing arbitrary user timeseries queries for a limited number of top events
-
-    Returns a dictionary of SnubaTSResult objects that have been zerofilled in
-    case of gaps. Each value of the dictionary should match the result of a timeseries query
-
-    timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
-                    usually matches the y-axis of the graph
-    selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
-                    this is to determine what the top events are
-    user_query (str) Filter query string to create conditions from. needs to be user_query
-                    to not conflict with the function query
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    orderby (Sequence[str]) The fields to order results by.
-    rollup (int) The bucket width in seconds
-    limit (int) The number of events to get timeseries for
-    organization (Organization) Used to map group ids to short ids
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
-                    represent the top events matching the query. Useful when you have found
-                    the top events earlier and want to save a query.
-    """
+    assert dataset in [Dataset.Discover, Dataset.Transactions]
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
             top_events = query(
@@ -468,10 +542,11 @@ def top_events_timeseries(
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
                 skip_tag_resolution=True,
+                dataset=dataset,
             )
 
     top_events_builder = TopEventsQueryBuilder(
-        Dataset.Discover,
+        dataset,
         params,
         rollup,
         top_events["data"],
@@ -487,7 +562,7 @@ def top_events_timeseries(
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
-            Dataset.Discover,
+            dataset,
             params,
             rollup,
             top_events["data"],
@@ -570,6 +645,69 @@ def top_events_timeseries(
             )
 
     return results
+
+
+def top_events_timeseries(
+    timeseries_columns,
+    selected_columns,
+    user_query,
+    params,
+    orderby,
+    rollup,
+    limit,
+    organization,
+    equations=None,
+    referrer=None,
+    top_events=None,
+    allow_empty=True,
+    zerofill_results=True,
+    include_other=False,
+    functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: MetricSpecType | None = None,
+):
+    """
+    High-level API for doing arbitrary user timeseries queries for a limited number of top events
+
+    Returns a dictionary of SnubaTSResult objects that have been zerofilled in
+    case of gaps. Each value of the dictionary should match the result of a timeseries query
+
+    timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
+                    usually matches the y-axis of the graph
+    selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
+                    this is to determine what the top events are
+    user_query (str) Filter query string to create conditions from. needs to be user_query
+                    to not conflict with the function query
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    orderby (Sequence[str]) The fields to order results by.
+    rollup (int) The bucket width in seconds
+    limit (int) The number of events to get timeseries for
+    organization (Organization) Used to map group ids to short ids
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
+                    represent the top events matching the query. Useful when you have found
+                    the top events earlier and want to save a query.
+    """
+    return _top_events_timeseries(
+        timeseries_columns,
+        selected_columns,
+        user_query,
+        params,
+        orderby,
+        rollup,
+        limit,
+        organization,
+        equations=equations,
+        referrer=referrer,
+        top_events=top_events,
+        allow_empty=allow_empty,
+        zerofill_results=zerofill_results,
+        include_other=include_other,
+        functions_acl=functions_acl,
+        on_demand_metrics_enabled=on_demand_metrics_enabled,
+        on_demand_metrics_type=on_demand_metrics_type,
+        dataset=Dataset.Discover,
+    )
 
 
 def get_id(result):
