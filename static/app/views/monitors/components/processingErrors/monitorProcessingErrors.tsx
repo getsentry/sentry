@@ -7,9 +7,10 @@ import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {DateTime} from 'sentry/components/dateTime';
+import {Hovercard} from 'sentry/components/hovercard';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Tooltip} from 'sentry/components/tooltip';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {CheckInPayload, CheckinProcessingError} from 'sentry/views/monitors/types';
@@ -30,18 +31,24 @@ export default function MonitorProcessingErrors({
   const errorsByType = groupBy(flattenedErrors, ({error}) => error.type);
 
   const renderCheckinTooltip = (checkin: CheckInPayload) => (
-    <Tooltip
+    <StyledHovercard
       skipWrapper
       showUnderline
-      title={
-        <div>
-          {tct('[status] check-in sent on [date]', {
-            status: checkin.payload.status,
-            date: <DateTime timeZone date={checkin.message.start_time * 1000} />,
-          })}
+      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
+      body={
+        // Prevent clicks inside the hovercard from closing the expandable alert
+        <div onClick={e => e.stopPropagation()}>
+          <StyledStructuredEventData
+            data={checkin.payload}
+            maxDefaultDepth={3}
+            withAnnotatedText
+            forceDefaultExpand
+          />
         </div>
       }
-    />
+    >
+      {t('check-in')}
+    </StyledHovercard>
   );
 
   const [expanded, setExpanded] = useState(-1);
@@ -109,4 +116,12 @@ const ErrorHeader = styled('div')`
 const ScrollableAlert = styled(Alert)`
   max-height: 400px;
   overflow-y: auto;
+`;
+
+const StyledHovercard = styled(Hovercard)`
+  width: 600px;
+`;
+
+const StyledStructuredEventData = styled(StructuredEventData)`
+  margin: 0;
 `;
