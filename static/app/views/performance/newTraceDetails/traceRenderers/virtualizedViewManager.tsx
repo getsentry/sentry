@@ -821,6 +821,20 @@ export class VirtualizedViewManager {
       this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
   }
 
+  maybeSyncViewWithVerticalIndicator(key: string) {
+    const indicator = this.vertical_indicators[key];
+    if (!indicator || typeof indicator.timestamp !== 'number') {
+      return;
+    }
+
+    const timestamp = indicator.timestamp - this.to_origin;
+    this.setTraceView({
+      x: timestamp - this.trace_view.width / 2,
+      width: this.trace_view.width,
+    });
+    this.draw();
+  }
+
   onHorizontalScrollbarScroll(_event: Event) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'fake scrollbar';
@@ -1423,10 +1437,7 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
-    for (const key in this.vertical_indicators) {
-      this.drawVerticalIndicator(this.vertical_indicators[key]);
-    }
-
+    this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
 
@@ -1486,6 +1497,12 @@ export class VirtualizedViewManager {
       } else {
         span_arrow.ref.className = 'TraceArrow';
       }
+    }
+  }
+
+  drawVerticalIndicators() {
+    for (const key in this.vertical_indicators) {
+      this.drawVerticalIndicator(this.vertical_indicators[key]);
     }
   }
 

@@ -1657,13 +1657,15 @@ function VerticalTimestampIndicators({
           traceStartTimestamp + currentTime;
       }
 
-      if (
-        currentHoverTime !== undefined &&
-        viewmanager.vertical_indicators['replay_timestamp.hover']
-      ) {
+      if (viewmanager.vertical_indicators['replay_timestamp.hover']) {
         viewmanager.vertical_indicators['replay_timestamp.hover'].timestamp =
-          traceStartTimestamp + currentHoverTime;
+          currentHoverTime ? traceStartTimestamp + currentHoverTime : undefined;
       }
+
+      // When timestamp is changing, it needs to be redrawn
+      // if it is out of bounds, we need to scroll to it
+      viewmanager.drawVerticalIndicators();
+      viewmanager.maybeSyncViewWithVerticalIndicator('replay_timestamp.current');
     }
 
     replayPlayerTimestampEmitter.on('replay timestamp change', replayTimestampListener);
