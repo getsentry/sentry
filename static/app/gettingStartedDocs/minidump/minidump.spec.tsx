@@ -3,7 +3,7 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './minidump';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with minidump', function () {
   it('renders gradle docs correctly', function () {
     renderWithOnboardingLayout(docs);
 

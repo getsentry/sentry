@@ -24,7 +24,7 @@ export enum DiscoverDatasets {
 
 export enum SavedQueryDatasets {
   DISCOVER = 'discover',
-  ERRORS = 'errors',
+  ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
 }
 

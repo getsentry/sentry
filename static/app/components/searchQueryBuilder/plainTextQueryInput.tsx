@@ -1,5 +1,6 @@
 import {
   type ChangeEvent,
+  type KeyboardEvent,
   type SyntheticEvent,
   useCallback,
   useRef,
@@ -17,10 +18,10 @@ interface PlainTextQueryInputProps {
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {query, parsedQuery, dispatch} = useSearchQueryBuilder();
+  const {query, parsedQuery, dispatch, onSearch} = useSearchQueryBuilder();
   const [cursorPosition, setCursorPosition] = useState(0);
 
-  const handler = (event: SyntheticEvent<HTMLTextAreaElement>) => {
+  const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
     if (event.currentTarget !== document.activeElement) {
       setCursorPosition(-1);
     } else {
@@ -30,10 +31,22 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
 
   const onChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
-      setCursorPosition(e.target.selectionStart);
+      setCursorPositionOnEvent(e);
       dispatch({type: 'UPDATE_QUERY', query: e.target.value});
     },
     [dispatch]
+  );
+
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      setCursorPositionOnEvent(e);
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onSearch?.(query);
+      }
+    },
+    [onSearch, query]
   );
 
   return (
@@ -48,13 +61,13 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
         ref={inputRef}
         autoComplete="off"
         value={query}
-        onFocus={handler}
-        onBlur={handler}
-        onKeyUp={handler}
-        onKeyDown={handler}
+        onFocus={setCursorPositionOnEvent}
+        onBlur={setCursorPositionOnEvent}
+        onKeyUp={setCursorPositionOnEvent}
+        onKeyDown={onKeyDown}
         onChange={onChange}
-        onClick={handler}
-        onPaste={handler}
+        onClick={setCursorPositionOnEvent}
+        onPaste={setCursorPositionOnEvent}
         spellCheck={false}
       />
     </InputWrapper>

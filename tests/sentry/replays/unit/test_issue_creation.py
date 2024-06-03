@@ -257,7 +257,7 @@ def test_report_hydration_error_issue_with_replay_event(mock_new_issue_occurrenc
     issue_occurence_call = mock_new_issue_occurrence.call_args[1]
     assert issue_occurence_call["culprit"] == "https://www.sentry.io"
     assert issue_occurence_call["environment"] == "production"
-    # assert issue_occurence_call["fingerprint"] == ["div.xyz > SmartSearchBar"]  # TODO:
+    assert issue_occurence_call["fingerprint"][0] == "1"
     assert issue_occurence_call["issue_type"].type_id == 5003
     assert issue_occurence_call["level"] == "error"
     assert issue_occurence_call["platform"] == "javascript"

@@ -10,6 +10,7 @@ import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
+import {replaceTokenWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
 import type {
   ParseResultToken,
@@ -19,8 +20,8 @@ import type {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
-import {toTitleCase} from 'sentry/utils';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -161,7 +162,7 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {keys, dispatch} = useSearchQueryBuilder();
+  const {query, keys, dispatch, onSearch} = useSearchQueryBuilder();
 
   const allKeys = useMemo(() => {
     return Object.values(keys).sort((a, b) => a.key.localeCompare(b.key));
@@ -214,8 +215,15 @@ function SearchQueryBuilderInputInternal({
         });
         resetInputValue();
       }}
-      onCustomValueSelected={value => {
+      onCustomValueBlurred={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+      }}
+      onCustomValueCommitted={value => {
+        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+
+        // Because the query does not change until a subsequent render,
+        // we need to do the replacement that is does in the ruducer here
+        onSearch?.(replaceTokenWithPadding(query, token, value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
@@ -241,7 +249,7 @@ function SearchQueryBuilderInputInternal({
       }}
       onKeyDown={onKeyDown}
       tabIndex={tabIndex}
-      maxOptions={100}
+      maxOptions={50}
     >
       {sections.map(({title, children}) => (
         <Section title={title} key={title}>
