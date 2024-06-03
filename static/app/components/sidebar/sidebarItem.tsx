@@ -157,6 +157,7 @@ function SidebarItem({
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  const hasLink = Boolean(to);
 
   const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top' && !isInFloatingAccordion;
@@ -164,7 +165,8 @@ function SidebarItem({
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
-  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+  const showIsNew =
+    isNew && !localStorage.getItem(isNewSeenKey) && !(isInFloatingAccordion && !hasLink);
 
   const organization = useOrganization({allowNull: true});
 
@@ -201,7 +203,6 @@ function SidebarItem({
   );
 
   const isInCollapsedState = !isInFloatingAccordion && collapsed;
-  const hasLink = Boolean(to);
 
   return (
     <Tooltip

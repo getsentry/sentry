@@ -600,6 +600,7 @@ function Sidebar() {
       icon={<IconGraph />}
       label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
       id="insights"
+      isNew
       exact={!shouldAccordionFloat}
     >
       {requests}
