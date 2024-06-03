@@ -12,7 +12,8 @@ import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -108,7 +109,7 @@ export interface ChoiceMapperFieldProps
 export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
-  hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
+  hasValue = (value: InputFieldProps['value']) => defined(value) && !isEmptyObject(value);
 
   renderField = (props: ChoiceMapperFieldProps) => {
     const {

@@ -7,12 +7,12 @@ import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getTimeFormat, getUtcDateString} from 'sentry/utils/dates';
-import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {CombinedMetricChartProps} from 'sentry/views/metrics/chart/types';
 

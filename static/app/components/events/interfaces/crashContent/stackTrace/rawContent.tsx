@@ -1,7 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {ExceptionValue, Frame} from 'sentry/types';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined, trim} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 
 function getJavaScriptFrame(frame: Frame): string {
   let result = '';
@@ -72,7 +72,7 @@ export function getPythonFrame(frame: Frame): string {
   if (defined(frame.context)) {
     frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
-        result += '\n    ' + trim(item[1]);
+        result += '\n    ' + item[1].trim();
       }
     });
   }
