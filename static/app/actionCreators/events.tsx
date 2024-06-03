@@ -14,7 +14,7 @@ import type {
 } from 'sentry/types/organization';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import type {
