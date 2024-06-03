@@ -550,7 +550,7 @@ function buildRoutes() {
       />
       <Route
         path="remote-config/"
-        name={t('Replays')}
+        name={t('Remote Config')}
         component={make(
           () => import('sentry/views/settings/project/projectRemoteConfig')
         )}
