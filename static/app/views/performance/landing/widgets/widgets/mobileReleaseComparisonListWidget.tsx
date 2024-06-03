@@ -26,6 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
@@ -310,13 +311,15 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     );
   };
 
+  const moduleURLBuilder = useModuleURLBuilder();
+
   const isAppStartup = [
     PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
     PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
   ].includes(props.chartSetting);
   const targetModulePath = isAppStartup
-    ? '/performance/mobile/app-startup/'
-    : '/performance/mobile/screens/';
+    ? moduleURLBuilder('app_start')
+    : moduleURLBuilder('screen_load');
   const targetQueryParams = isAppStartup
     ? {
         app_start_type:
@@ -332,8 +335,8 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       return (
         <Fragment key={i}>
           <GrowLink
-            to={normalizeUrl({
-              pathname: `${targetModulePath}spans/`,
+            to={{
+              pathname: `${targetModulePath}/spans/`,
               query: {
                 project: listItem['project.id'],
                 transaction,
@@ -342,7 +345,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
                 ...normalizeDateTimeParams(location.query),
                 ...targetQueryParams,
               },
-            })}
+            }}
           >
             <Truncate value={transaction} maxLength={40} />
           </GrowLink>
