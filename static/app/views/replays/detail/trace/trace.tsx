@@ -172,6 +172,7 @@ function Trace({replayRecord}: Props) {
             metaResults={metaResults}
             rootEvent={rootEvent}
             source="replay"
+            replayRecord={replayRecord}
           />
         </TraceViewWaterfallWrapper>
       </TraceStateProvider>

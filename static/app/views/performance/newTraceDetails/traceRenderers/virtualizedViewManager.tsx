@@ -42,7 +42,10 @@ interface VirtualizedViewManagerEvents {
   ['divider resize end']: (list_width: number) => void;
   ['virtualized list init']: () => void;
 }
-
+type VerticalIndicator = {
+  ref: HTMLElement | null;
+  timestamp: number | undefined;
+};
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -128,14 +131,8 @@ export class VirtualizedViewManager {
   private scrollbar_width: number = 0;
 
   replay_indicators: {
-    current: {
-      ref: HTMLElement | null;
-      timestamp: number | undefined;
-    };
-    hover: {
-      ref: HTMLElement | null;
-      timestamp: number | undefined;
-    };
+    current: VerticalIndicator;
+    hover: VerticalIndicator;
   } = {
     current: {ref: null, timestamp: undefined},
     hover: {ref: null, timestamp: undefined},

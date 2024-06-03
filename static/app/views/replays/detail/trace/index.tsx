@@ -20,30 +20,36 @@ function PerfDisabled() {
   );
 }
 
-type EventHandler = (...args: any[]) => void;
+type ReplayPlayerTimestampChange = {
+  currentHoverTime: number | undefined;
+  currentTime: number;
+};
+type ReplayPlayerListener = (arg: ReplayPlayerTimestampChange) => void;
 
-class EventEmitter {
-  private events: {[key: string]: EventHandler[]} = {};
+class ReplayPlayerTimestampEmitter {
+  private listeners: {[key: string]: ReplayPlayerListener[]} = {};
 
-  on(event: string, handler: EventHandler): void {
-    this.events[event] = this.events[event] || [];
-    this.events[event].push(handler);
+  on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
+    this.listeners[event] = this.listeners[event] || [];
+    if (!this.listeners[event].includes(handler)) {
+      this.listeners[event].push(handler);
+    }
   }
 
-  emit(event: string, ...args: any[]): void {
-    const handlers = this.events[event] || [];
-    handlers.forEach(handler => handler(...args));
+  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChange): void {
+    const handlers = this.listeners[event] || [];
+    handlers.forEach(handler => handler(arg));
   }
 
-  removeListener(event: string, handler: EventHandler): void {
-    const handlers = this.events[event];
+  off(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
+    const handlers = this.listeners[event];
     if (handlers) {
-      this.events[event] = handlers.filter(h => h !== handler);
+      this.listeners[event] = handlers.filter(h => h !== handler);
     }
   }
 }
 
-export const replayPlayerTimeEmitter = new EventEmitter();
+export const replayPlayerTimestampEmitter = new ReplayPlayerTimestampEmitter();
 
 function TraceFeature() {
   const organization = useOrganization();
@@ -52,7 +58,7 @@ function TraceFeature() {
   const {currentTime, currentHoverTime} = useReplayContext();
 
   useEffect(() => {
-    replayPlayerTimeEmitter.emit('replay player timestamp changed', {
+    replayPlayerTimestampEmitter.emit('replay timestamp change', {
       currentTime,
       currentHoverTime,
     });

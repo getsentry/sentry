@@ -38,7 +38,7 @@ import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
-import {replayPlayerTimeEmitter} from 'sentry/views/replays/detail/trace';
+import {replayPlayerTimestampEmitter} from 'sentry/views/replays/detail/trace';
 
 import {
   makeTraceNodeBarColor,
@@ -1664,10 +1664,10 @@ function ReplayTimeStampIndicators({
         });
       }
     };
-    replayPlayerTimeEmitter.on('replay player timestamp changed', listener);
+    replayPlayerTimestampEmitter.on('replay timestamp change', listener);
 
     return () => {
-      replayPlayerTimeEmitter.removeListener('replay player timestamp changed', listener);
+      replayPlayerTimestampEmitter.off('replay timestamp change', listener);
     };
   }, [traceStartTimestamp, viewmanager]);
 
