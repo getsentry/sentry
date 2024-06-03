@@ -6,7 +6,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
-import {isAllowedOp, isGaugeMetric} from 'sentry/utils/metrics';
+import {isAllowedOp} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {
   DEFAULT_METRIC_ALERT_FIELD,
@@ -34,15 +34,13 @@ function MriField({aggregate, project, onChange}: Props) {
   ]);
 
   const metaArr = useMemo(() => {
-    return meta
-      .filter(({mri}) => !isGaugeMetric({mri}))
-      .map(
-        metric =>
-          ({
-            ...metric,
-            ...parseMRI(metric.mri),
-          }) as ParsedMRI & MetricMeta
-      );
+    return meta.map(
+      metric =>
+        ({
+          ...metric,
+          ...parseMRI(metric.mri),
+        }) as ParsedMRI & MetricMeta
+    );
   }, [meta]);
 
   const selectedValues = parseField(aggregate) ?? {mri: '' as MRI, op: ''};
