@@ -194,6 +194,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         project: Project | RpcProject | None = None,
         values: Any = None,
     ) -> SentryAppComponent | None:
+        # TODO(mark) this method can go away
         return prepare_ui_component(
             self, component, project_slug=project.slug if project else None, values=values
         )
@@ -271,6 +272,7 @@ def prepare_ui_component(
     if values is None:
         values = []
     try:
+        # TODO(mark) this needs to be replaced with module functions first.
         SentryAppComponentPreparer(
             component=component, install=installation, project_slug=project_slug, values=values
         ).run()

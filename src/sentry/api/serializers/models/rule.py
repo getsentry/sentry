@@ -143,6 +143,9 @@ class RuleSerializer(Serializer):
                     action["_sentry_app_component"] = install.get("sentry_app_component")
                     action["_sentry_app_installation"] = installation
                     action["_sentry_app"] = sentry_app_map.get(installation.get("sentry_app_id"))
+                    # TODO(mark) Having component preparation happen here would reduce how hacky
+                    # this is. It would also let us optimize the scenario where an alert has the
+                    # same installation used as multiple actions.
 
         if "lastTriggered" in self.expand:
             last_triggered_lookup = {
