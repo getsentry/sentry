@@ -54,6 +54,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             values={"query": result["query"], "sort": result["sort"]},
         )
 
+        # This entire endpoint will be removed once custom views are GA'd
         GroupSearchView.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
@@ -83,5 +84,8 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             owner_id=request.user.id,
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
+        ).delete()
+        GroupSearchView.objects.filter(
+            organization=organization, user_id=request.user.id, position=0
         ).delete()
         return Response(status=204)

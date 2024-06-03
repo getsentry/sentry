@@ -36,7 +36,6 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             visibility=Visibility.OWNER_PINNED,
         ).exists()
 
-        # TODO(msun): Remove this when custom views are GA'd
         assert GroupSearchView.objects.filter(
             organization=self.organization,
             name="Default Search",
@@ -171,6 +170,23 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         # delete
         self.get_success_response(type=saved_search.type, status_code=204)
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()
+
+    def test_views_deleted(self):
+        self.login_as(self.member)
+
+        saved_search = SavedSearch.objects.create(
+            organization=self.organization,
+            owner_id=self.member.id,
+            type=SearchType.ISSUE.value,
+            query="wat",
+            visibility=Visibility.OWNER_PINNED,
+        )
+
+        self.get_success_response(type=saved_search.type, status_code=204)
+        assert not SavedSearch.objects.filter(id=saved_search.id).exists()
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, user_id=self.member.id, position=0
+        ).exists()
 
     def test_invalid_type(self):
         self.login_as(self.member)
