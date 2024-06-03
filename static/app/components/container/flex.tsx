@@ -16,7 +16,6 @@ interface FlexProps {
   wrap?: CSSProperties['flexWrap'];
 }
 
-// TODO(@eliashussary): move to common folder / bring up in fe-tsc
 const FlexContainer = styled('div')<FlexProps>`
   /* these can all come from a better base primitive */
   display: flex;

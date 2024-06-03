@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import type {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {
   REPLAY_LOADING_HEIGHT,
@@ -11,7 +12,6 @@ import {
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconDelete} from 'sentry/icons';

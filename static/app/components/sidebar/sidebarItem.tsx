@@ -6,10 +6,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Flex} from 'sentry/components/container/flex';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {Flex} from 'sentry/components/profiling/flex';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';

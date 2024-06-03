@@ -1,6 +1,6 @@
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';

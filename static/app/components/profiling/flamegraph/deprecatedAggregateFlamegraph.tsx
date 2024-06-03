@@ -7,8 +7,8 @@ import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {Flex} from 'sentry/components/profiling/flex';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

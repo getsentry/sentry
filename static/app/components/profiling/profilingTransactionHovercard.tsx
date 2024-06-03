@@ -1,8 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Flex} from 'sentry/components/profiling/flex';
 import {
   FunctionsMiniGrid,
   FunctionsMiniGridEmptyState,

@@ -5,11 +5,11 @@ import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Flex} from 'sentry/components/profiling/flex';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';

@@ -3,7 +3,7 @@ import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
