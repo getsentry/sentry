@@ -52,7 +52,7 @@ class _BurstState:
 
         try:
             _start_time = options.pop("__start_time", None)
-            if _start_time:
+            if _start_time and kwargs:
                 kwargs["__start_time"] = _start_time
         except Exception:
             pass
