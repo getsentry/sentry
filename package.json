@@ -126,7 +126,7 @@
     "js-cookie": "3.0.1",
     "less": "^4.1.3",
     "less-loader": "^12.2.0",
-    "lightningcss": "^1.23.0",
+    "lightningcss": "^1.25.1",
     "lodash": "^4.17.19",
     "marked": "6.0.0",
     "mini-css-extract-plugin": "^2.8.0",
