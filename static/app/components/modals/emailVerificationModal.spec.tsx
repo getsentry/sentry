@@ -1,11 +1,8 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EmailVerificationModal from 'sentry/components/modals/emailVerificationModal';
 
 describe('Email Verification Modal', function () {
-  const routerContext = RouterContextFixture();
   it('renders', function () {
     MockApiClient.addMockResponse({
       url: '/users/me/emails/',
@@ -16,8 +13,7 @@ describe('Email Verification Modal', function () {
       <EmailVerificationModal
         Body={(p => p.children) as any}
         Header={(p => p.children) as any}
-      />,
-      {context: routerContext}
+      />
     );
     const message = screen.getByText(
       'Please verify your email before taking this action',

@@ -119,6 +119,9 @@ SPAN_COLUMN_MAP = {
     "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "description",
     "span.domain": "domain",
     # DO NOT directly expose span.duration, we should always use the alias
     # "span.duration": "duration",
@@ -1064,11 +1067,6 @@ def _log_request_query(req: Request) -> None:
 
 
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
-
-
-def _snql_query(params: tuple[RequestQueryBody, Hub, Mapping[str, str], str]) -> RawResult:
-    # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(params)
 
 
 def _snuba_query(

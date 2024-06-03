@@ -159,7 +159,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
         # 425 - Text content does not match server-rendered HTML.
         error_messages += [
-            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
+            "*https://react.dev/errors/{418,419,422,423,425}*",
         ]
 
     if project.get_option("filters:chunk-load-error") == "1":
@@ -259,66 +260,63 @@ class CardinalityLimitOption(TypedDict):
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
-    if features.has("organizations:relay-cardinality-limiter", project.organization):
-        passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-            str(project.organization.id), []
-        )
+    passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+        str(project.organization.id), []
+    )
 
-        existing_ids: set[str] = set()
-        cardinality_limits: list[CardinalityLimit] = []
-        for namespace in CARDINALITY_LIMIT_USE_CASES:
-            timeout.check()
-            option = options.get(
-                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
-            )
-            if not option or not len(option) == 1:
-                # Multiple quotas are not supported
+    existing_ids: set[str] = set()
+    cardinality_limits: list[CardinalityLimit] = []
+    for namespace in CARDINALITY_LIMIT_USE_CASES:
+        timeout.check()
+        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
+        if not option or not len(option) == 1:
+            # Multiple quotas are not supported
+            continue
+
+        quota = option[0]
+        id = namespace.value
+
+        limit: CardinalityLimit = {
+            "id": id,
+            "window": {
+                "windowSeconds": quota["window_seconds"],
+                "granularitySeconds": quota["granularity_seconds"],
+            },
+            "limit": quota["limit"],
+            "scope": "organization",
+            "namespace": namespace.value,
+        }
+        if id in passive_limits:
+            limit["passive"] = True
+        cardinality_limits.append(limit)
+        existing_ids.add(id)
+
+    project_limit_options: list[CardinalityLimitOption] = project.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    option_limit_options: list[CardinalityLimitOption] = options.get(
+        "relay.cardinality-limiter.limits", []
+    )
+
+    for clo in project_limit_options + organization_limit_options + option_limit_options:
+        rollout_rate = clo.get("rollout_rate", 1.0)
+        if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        try:
+            limit = clo["limit"]
+            if clo["limit"]["id"] in existing_ids:
+                # skip if a limit with the same id already exists
                 continue
-
-            quota = option[0]
-            id = namespace.value
-
-            limit: CardinalityLimit = {
-                "id": id,
-                "window": {
-                    "windowSeconds": quota["window_seconds"],
-                    "granularitySeconds": quota["granularity_seconds"],
-                },
-                "limit": quota["limit"],
-                "scope": "organization",
-                "namespace": namespace.value,
-            }
-            if id in passive_limits:
-                limit["passive"] = True
             cardinality_limits.append(limit)
-            existing_ids.add(id)
+            existing_ids.add(clo["limit"]["id"])
+        except KeyError:
+            pass
 
-        project_limit_options: list[CardinalityLimitOption] = project.get_option(
-            "relay.cardinality-limiter.limits", []
-        )
-        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
-            "relay.cardinality-limiter.limits", []
-        )
-        option_limit_options: list[CardinalityLimitOption] = options.get(
-            "relay.cardinality-limiter.limits", []
-        )
-
-        for clo in project_limit_options + organization_limit_options + option_limit_options:
-            rollout_rate = clo.get("rollout_rate", 1.0)
-            if (project.organization.id % 100000) / 100000 >= rollout_rate:
-                continue
-
-            try:
-                limit = clo["limit"]
-                if clo["limit"]["id"] in existing_ids:
-                    # skip if a limit with the same id already exists
-                    continue
-                cardinality_limits.append(limit)
-                existing_ids.add(clo["limit"]["id"])
-            except KeyError:
-                pass
-
-        metrics_config["cardinalityLimits"] = cardinality_limits
+    metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)

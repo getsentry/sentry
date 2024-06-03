@@ -24,7 +24,7 @@ const ModalHeader = styled('header')`
   h5,
   h6 {
     font-size: 20px;
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeightBold};
     margin-bottom: 0;
     line-height: 1.1;
   }

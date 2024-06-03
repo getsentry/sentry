@@ -188,6 +188,6 @@ const MenuTitle = styled('span')`
   gap: ${space(1)};
 
   & > a {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;

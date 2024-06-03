@@ -162,6 +162,7 @@ function findLongestMatchingFrame(
 }
 
 function computeProfileOffset(
+  profileStart: string | undefined,
   flamegraph: FlamegraphModel,
   transaction: RequestState<EventTransaction | null>
 ): number {
@@ -170,14 +171,15 @@ function computeProfileOffset(
   const transactionStart =
     transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
 
-  const profileStart = flamegraph.profile.timestamp;
-
-  if (defined(transactionStart) && defined(profileStart)) {
-    offset += formatTo(
-      profileStart - transactionStart,
-      'second',
-      flamegraph.profile.unit
-    );
+  if (
+    defined(transactionStart) &&
+    defined(profileStart) &&
+    // Android sometimes doesnt report timestamps, which end up being wrongly initialized when the data is ingested.
+    profileStart !== '0001-01-01T00:00:00Z'
+  ) {
+    const profileStartTimestamp = new Date(profileStart).getTime() / 1e3;
+    const profileOffset = profileStartTimestamp - transactionStart;
+    offset += formatTo(profileOffset, 'second', flamegraph.profile.unit);
   }
 
   return offset;
@@ -240,18 +242,28 @@ function Flamegraph(): ReactElement {
 
   const hasBatteryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa';
-  }, [profileGroup.metadata.platform]);
+    return platform === 'cocoa' || profileGroup.measurements?.cpu_energy_usage;
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa' || platform === 'android' || platform === 'node';
-  }, [profileGroup.metadata.platform]);
+    return (
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.cpu_usage
+    );
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return platform === 'cocoa' || platform === 'android' || platform === 'node';
-  }, [profileGroup.metadata.platform]);
+    return (
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.memory_footprint
+    );
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === threadId);
@@ -330,8 +342,13 @@ function Flamegraph(): ReactElement {
   }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);
 
   const profileOffsetFromTransaction = useMemo(
-    () => computeProfileOffset(flamegraph, profiledTransaction),
-    [flamegraph, profiledTransaction]
+    () =>
+      computeProfileOffset(
+        profileGroup.metadata.timestamp,
+        flamegraph,
+        profiledTransaction
+      ),
+    [flamegraph, profiledTransaction, profileGroup.metadata.timestamp]
   );
 
   const uiFrames = useMemo(() => {
@@ -1203,7 +1220,7 @@ function Flamegraph(): ReactElement {
     [selectedRoot, flamegraph.root]
   );
 
-  // In case a user selected root is present, we will display that root + it's entire sub tree.
+  // In case a user selected root is present, we will display that root + its entire sub tree.
   // If no root is selected, we will display the entire sub tree down from the root. We start at
   // root.children because flamegraph.root is a virtual node that we do not want to show in the table.
   const rootNodes = useMemo(() => {

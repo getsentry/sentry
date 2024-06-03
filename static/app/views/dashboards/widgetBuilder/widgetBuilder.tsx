@@ -21,7 +21,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -33,6 +33,7 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -287,7 +288,7 @@ function WidgetBuilder({
       new_widget: !isEditing,
     });
 
-    if (objectIsEmpty(tags)) {
+    if (isEmptyObject(tags)) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for

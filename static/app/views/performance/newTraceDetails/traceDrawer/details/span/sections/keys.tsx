@@ -16,6 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {
   type TraceTree,
@@ -98,7 +99,8 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   if (allZeroSizes) {
     items.push({
       key: 'all_zeros_text',
-      subject: null,
+      subject: t('Timing-Allow-Origin'),
+      subjectNode: null,
       value: tct(
         ' The following sizes were not collected for security reasons. Check if the host serves the appropriate [link] header. You may have to enable this collection manually.',
         {
@@ -144,7 +146,8 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   timingKeys.forEach(timing => {
     items.push({
       key: timing.name,
-      subject: (
+      subject: toTitleCase(timing.name),
+      subjectNode: (
         <TraceDrawerComponents.FlexBox style={{gap: space(0.5)}}>
           <RowTimingPrefix timing={timing} />
           {timing.name}

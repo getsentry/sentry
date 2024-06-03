@@ -457,7 +457,8 @@ function SectionFilterInput(props: InputProps) {
 const modalBodyCss = css`
   margin: 0 -${space(4)};
   padding: 0 ${space(4)};
-  max-height: 75vh;
+  /* Full height minus enough buffer for header, footer and margins */
+  max-height: calc(100vh - 275px);
   overflow-y: auto;
 `;
 
@@ -593,7 +594,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

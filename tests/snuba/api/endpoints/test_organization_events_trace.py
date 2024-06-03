@@ -663,6 +663,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         if self.check_generation:
             assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
+        assert root["sdk_name"] == "sentry.test.sdk"
         assert len(root["children"]) == 3
         self.assert_performance_issues(root)
 
@@ -673,6 +674,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             if self.check_generation:
                 assert gen1["generation"] == 1
             assert gen1["transaction.duration"] == 2000
+            assert gen1["sdk_name"] == "sentry.test.sdk"
             assert len(gen1["children"]) == 1
 
             gen2 = gen1["children"][0]
@@ -682,6 +684,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             if self.check_generation:
                 assert gen2["generation"] == 2
             assert gen2["transaction.duration"] == 1000
+            assert gen2["sdk_name"] == "sentry.test.sdk"
 
             # Only the first gen2 descendent has a child
             if i == 0:
@@ -693,6 +696,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 if self.check_generation:
                     assert gen3["generation"] == 3
                 assert gen3["transaction.duration"] == 500
+                assert gen3["sdk_name"] == "sentry.test.sdk"
                 assert len(gen3["children"]) == 0
             elif gen2_no_children:
                 assert len(gen2["children"]) == 0

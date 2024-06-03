@@ -1,7 +1,6 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -14,7 +13,6 @@ describe('Access', function () {
   const organization = OrganizationFixture({
     access: ['project:write', 'project:read'],
   });
-  const routerContext = RouterContextFixture([{organization}]);
 
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
@@ -25,7 +23,6 @@ describe('Access', function () {
 
     it('has access', function () {
       render(<Access access={['project:write', 'project:read']}>{childrenMock}</Access>, {
-        context: routerContext,
         organization,
       });
 
@@ -37,7 +34,6 @@ describe('Access', function () {
 
     it('has no access', function () {
       render(<Access access={['org:write']}>{childrenMock}</Access>, {
-        context: routerContext,
         organization,
       });
 
@@ -49,14 +45,13 @@ describe('Access', function () {
 
     it('read access from team', function () {
       const org = OrganizationFixture({access: []});
-      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
       const team1 = TeamFixture({access: []});
       render(
         <Access access={['team:admin']} team={team1}>
           {childrenMock}
         </Access>,
-        {context: nextRouterContext, organization: org}
+        {organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -73,7 +68,7 @@ describe('Access', function () {
         <Access access={['team:admin']} team={team2}>
           {childrenMock}
         </Access>,
-        {context: nextRouterContext, organization: org}
+        {organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -86,14 +81,13 @@ describe('Access', function () {
 
     it('read access from project', function () {
       const org = OrganizationFixture({access: []});
-      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
       const proj1 = ProjectFixture({access: []});
       render(
         <Access access={['project:read']} project={proj1}>
           {childrenMock}
         </Access>,
-        {context: nextRouterContext, organization: org}
+        {organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -108,7 +102,7 @@ describe('Access', function () {
         <Access access={['project:read']} project={proj2}>
           {childrenMock}
         </Access>,
-        {context: nextRouterContext, organization: org}
+        {organization: org}
       );
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -121,7 +115,6 @@ describe('Access', function () {
 
     it('handles no org', function () {
       render(<Access access={['org:write']}>{childrenMock}</Access>, {
-        context: routerContext,
         organization,
       });
 
@@ -139,7 +132,7 @@ describe('Access', function () {
         user: undefined,
       });
 
-      render(<Access>{childrenMock}</Access>, {context: routerContext, organization});
+      render(<Access>{childrenMock}</Access>, {organization});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -153,7 +146,6 @@ describe('Access', function () {
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
-        context: routerContext,
         organization,
       });
 
@@ -169,7 +161,6 @@ describe('Access', function () {
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
-        context: routerContext,
         organization,
       });
 
@@ -186,7 +177,7 @@ describe('Access', function () {
         <Access access={['project:write']}>
           <p>The Child</p>
         </Access>,
-        {context: routerContext, organization}
+        {organization}
       );
 
       expect(screen.getByText('The Child')).toBeInTheDocument();
@@ -197,7 +188,7 @@ describe('Access', function () {
         <Access access={['org:write']}>
           <p>The Child</p>
         </Access>,
-        {context: routerContext, organization}
+        {organization}
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
@@ -212,7 +203,7 @@ describe('Access', function () {
         <Access isSuperuser>
           <p>The Child</p>
         </Access>,
-        {context: routerContext, organization}
+        {organization}
       );
 
       expect(screen.getByText('The Child')).toBeInTheDocument();
@@ -227,7 +218,7 @@ describe('Access', function () {
         <Access isSuperuser>
           <p>The Child</p>
         </Access>,
-        {context: routerContext, organization}
+        {organization}
       );
       expect(screen.queryByRole('The Child')).not.toBeInTheDocument();
     });
