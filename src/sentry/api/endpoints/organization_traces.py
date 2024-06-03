@@ -987,14 +987,40 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
-def convert_to_slice(timestamp, trace_range) -> int:
+def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
+    slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
-    slices = trace_range["slices"]
     trace_duration = trace_end - trace_start
 
     idx = round((timestamp - trace_start) * slices / trace_duration)
+
+    if left_bound is not None and left_bound >= idx:
+        idx = left_bound + 1
+
     return clip(idx, 0, slices)
+
+
+def quantize_to_slice(timestamp, trace_range, left_bound=None) -> int:
+    slices = trace_range["slices"]
+    trace_start = trace_range["start"]
+    trace_end = trace_range["end"]
+    trace_duration = trace_end - trace_start
+
+    # Scale the timestamps up when dividing to find the bin
+    # size, it doesn't go to zero.
+    scaled_timestamp = timestamp * slices
+    scaled_trace_start = trace_start * slices
+    scaled_bin_size = trace_duration
+
+    quantized = round((scaled_timestamp - scaled_trace_start) / scaled_bin_size)
+    quantized = quantized * scaled_bin_size + scaled_trace_start
+    quantized = round(quantized / slices)
+
+    if left_bound is not None and left_bound >= quantized:
+        quantized = left_bound + scaled_bin_size / slices
+
+    return clip(quantized, trace_start, trace_end)
 
 
 def quantize_range(span_start, span_end, trace_range):
@@ -1007,9 +1033,6 @@ def quantize_range(span_start, span_end, trace_range):
     if trace_duration == 0:
         return (trace_start, trace_end), (0, slices)
 
-    start_index = convert_to_slice(span_start, trace_range)
-    end_index = convert_to_slice(span_end, trace_range)
-
     if span_start <= trace_start:
         span_start = trace_start
 
@@ -1018,27 +1041,12 @@ def quantize_range(span_start, span_end, trace_range):
     if span_end >= trace_end:
         span_end = trace_end
 
-    bin_size = int(trace_duration / slices)
+    start_index = convert_to_slice(span_start, trace_range)
+    end_index = convert_to_slice(span_end, trace_range, start_index)
 
-    def quantize(timestamp):
-        # Scale the timestamps up when dividing to find the bin
-        # size, it doesn't go to zero.
-        scaled_timestamp = timestamp * slices
-        scaled_trace_start = trace_start * slices
-        scaled_trace_duration = trace_duration * slices
-        bin_size = int(scaled_trace_duration / slices)
-        quantized = (
-            round((scaled_timestamp - scaled_trace_start) / bin_size) * bin_size
-            + scaled_trace_start
-        )
-        return clip(round(quantized / slices), trace_start, trace_end)
+    rounded_start = quantize_to_slice(span_start, trace_range)
 
-    rounded_start = quantize(span_start)
-    rounded_end = quantize(span_end)
-
-    # ensure minimum of 1 width
-    if rounded_start == rounded_end:
-        rounded_end += bin_size
+    rounded_end = quantize_to_slice(span_end, trace_range, rounded_start)
 
     return (int(rounded_start), int(rounded_end)), (start_index, end_index)
 
