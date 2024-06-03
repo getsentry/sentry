@@ -118,7 +118,7 @@ app.All("/", func(ctx *fiber.Ctx) error {
 
 if err := app.Listen(":3000"); err != nil {
   panic(err)
-};`
+};`;
 
 const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
