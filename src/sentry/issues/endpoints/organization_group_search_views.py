@@ -14,7 +14,6 @@ from sentry.models.organization import Organization
 class MemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write"],
-        "PUT": ["member:read", "member:write"],
     }
 
 
@@ -22,7 +21,6 @@ class MemberPermission(OrganizationPermission):
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
