@@ -548,6 +548,13 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
+      <Route
+        path="remote-config/"
+        name={t('Replays')}
+        component={make(
+          () => import('sentry/views/settings/project/projectRemoteConfig')
+        )}
+      />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
