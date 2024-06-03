@@ -1017,7 +1017,7 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         for callback, futures in rp.apply():
             has_alert = True
-            safe_execute(callback, group_event, futures, _with_transaction=False)
+            safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return
@@ -1234,7 +1234,7 @@ def process_similarity(job: PostProcessJob) -> None:
     event = job["event"]
 
     with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
-        safe_execute(similarity.record, event.project, [event], _with_transaction=False)
+        safe_execute(similarity.record, event.project, [event])
 
 
 def fire_error_processed(job: PostProcessJob):
@@ -1285,7 +1285,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
-        _with_transaction=False,
         **kwargs,
     )
 

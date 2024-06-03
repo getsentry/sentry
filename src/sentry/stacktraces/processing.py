@@ -384,11 +384,7 @@ def should_process_for_stacktraces(data):
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
         processors = safe_execute(
-            plugin.get_stacktrace_processors,
-            data=data,
-            stacktrace_infos=infos,
-            platforms=platforms,
-            _with_transaction=False,
+            plugin.get_stacktrace_processors, data=data, stacktrace_infos=infos, platforms=platforms
         )
         if processors:
             return True
@@ -410,7 +406,6 @@ def get_processors_for_stacktraces(data, infos):
                 data=data,
                 stacktrace_infos=infos,
                 platforms=platforms,
-                _with_transaction=False,
             )
             or ()
         )

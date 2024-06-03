@@ -215,9 +215,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
 def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
-        result = safe_execute(
-            plugin.is_regression, group, event, version=1, _with_transaction=False
-        )
+        result = safe_execute(plugin.is_regression, group, event, version=1)
         if result is not None:
             return bool(result)
     return True
@@ -610,7 +608,6 @@ class EventManager:
                 datetime=job["event"].datetime,
                 old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
                 current_primary_hash=job["event"].get_primary_hash(),
-                _with_transaction=False,
             )
 
         _eventstream_insert_many(jobs)
@@ -822,7 +819,7 @@ def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:
-            added_tags = safe_execute(plugin.get_tags, job["event"], _with_transaction=False)
+            added_tags = safe_execute(plugin.get_tags, job["event"])
             if added_tags:
                 data = job["data"]
                 # plugins should not override user provided tags

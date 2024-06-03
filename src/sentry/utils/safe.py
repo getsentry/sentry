@@ -2,13 +2,10 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, Union
 
-import sentry_sdk
 from django.conf import settings
-from django.db import transaction
 from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
-from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
@@ -16,17 +13,9 @@ PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
 
 
 def safe_execute(func, *args, **kwargs):
-    # TODO: we should make smart savepoints (only executing the savepoint server
-    # side if we execute a query)
-    _with_transaction = kwargs.pop("_with_transaction", True)
     expected_errors = kwargs.pop("expected_errors", None)
     try:
-        if _with_transaction:
-            with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
-                with transaction.atomic("default"), django_test_transaction_water_mark():
-                    result = func(*args, **kwargs)
-        else:
-            result = func(*args, **kwargs)
+        result = func(*args, **kwargs)
     except Exception as e:
         if hasattr(func, "im_class"):
             cls = func.im_class

@@ -50,9 +50,7 @@ def should_process(data: CanonicalKeyDict[Any]) -> bool:
         return False
 
     for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_event_preprocessors, data=data, _with_transaction=False
-        )
+        processors = safe_execute(plugin.get_event_preprocessors, data=data)
         if processors:
             return True
 
@@ -397,9 +395,7 @@ def do_process_event(
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
     if has_changed:
-        new_data = safe_execute(
-            scrub_data, project=project, event=data.data, _with_transaction=False
-        )
+        new_data = safe_execute(scrub_data, project=project, event=data.data)
 
         # XXX(markus): When datascrubbing is finally "totally stable", we might want
         # to drop the event if it crashes to avoid saving PII
@@ -412,9 +408,7 @@ def do_process_event(
         with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
             span.set_data("plugin", plugin.slug)
             span.set_data("from_symbolicate", from_symbolicate)
-            processors = safe_execute(
-                plugin.get_event_preprocessors, data=data, _with_transaction=False
-            )
+            processors = safe_execute(plugin.get_event_preprocessors, data=data)
             for processor in processors or ():
                 try:
                     result = processor(data)
