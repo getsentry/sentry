@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
@@ -20,7 +18,7 @@ def can_access_use_case_id(request: Request, use_case_id: UseCaseID) -> bool:
     )
 
 
-def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
+def get_default_use_case_ids(request: Request) -> list[str]:
     """
     Gets the default use case ids given a Request.
 
@@ -30,15 +28,11 @@ def get_default_use_case_ids(request: Request) -> Sequence[UseCaseID]:
     Returns:
         A list of use case ids that can be used for the API request.
     """
-    default_use_case_ids = []
-
-    for use_case_id in UseCaseID:
-        if not can_access_use_case_id(request, use_case_id):
-            continue
-
-        default_use_case_ids.append(use_case_id)
-
-    return default_use_case_ids
+    return [
+        use_case_id.value
+        for use_case_id in UseCaseID
+        if can_access_use_case_id(request, use_case_id)
+    ]
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
@@ -61,7 +55,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
         raise ParseError(detail="The supplied use case doesn't exist or it's private")
 
 
-def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
+def get_use_case_ids(request: Request) -> list[UseCaseID]:
     """
     Gets the use case ids from the Request. If at least one use case id is malformed or private the entire request
     will fail.

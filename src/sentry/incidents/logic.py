@@ -76,7 +76,6 @@ from sentry.snuba.subscriptions import (
     create_snuba_query,
     update_snuba_query,
 )
-from sentry.snuba.tasks import build_query_builder
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -339,11 +338,10 @@ def build_incident_query_builder(
     project_ids = list(
         IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
     )
-    query_builder = build_query_builder(
-        entity_subscription,
-        snuba_query.query,
-        project_ids,
-        snuba_query.environment,
+    query_builder = entity_subscription.build_query_builder(
+        query=snuba_query.query,
+        project_ids=project_ids,
+        environment=snuba_query.environment,
         params={
             "organization_id": incident.organization_id,
             "project_id": project_ids,

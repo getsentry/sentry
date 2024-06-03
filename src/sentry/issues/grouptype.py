@@ -561,6 +561,16 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
 
 
 @dataclass(frozen=True)
+class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
+    type_id = 5003
+    slug = "replay_hydration_error"
+    description = "Hydration Error Detected"
+    category = GroupCategory.REPLAY.value
+    default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
+
+
+@dataclass(frozen=True)
 class FeedbackGroup(GroupType):
     type_id = 6001
     slug = "feedback"

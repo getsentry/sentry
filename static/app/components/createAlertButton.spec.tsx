@@ -38,8 +38,6 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('should trigger onClick callback', async () => {
-    const context = RouterContextFixture();
-
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
@@ -51,8 +49,7 @@ describe('CreateAlertFromViewButton', () => {
         eventView={eventView}
         projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />,
-      {context}
+      />
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -90,7 +87,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -126,7 +122,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: RouterContextFixture([{organization}]),
         organization,
       }
     );
@@ -175,7 +170,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );

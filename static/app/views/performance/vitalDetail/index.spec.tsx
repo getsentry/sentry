@@ -282,7 +282,6 @@ describe('Performance > VitalDetail', function () {
 
     const context = RouterContextFixture([
       {
-        organization,
         project,
         router: newRouter,
         location: newRouter.location,
@@ -336,7 +335,6 @@ describe('Performance > VitalDetail', function () {
 
     const context = RouterContextFixture([
       {
-        organization,
         project,
         router: newRouter,
         location: newRouter.location,
@@ -391,7 +389,6 @@ describe('Performance > VitalDetail', function () {
 
     const context = RouterContextFixture([
       {
-        organization,
         project,
         router: newRouter,
         location: newRouter.location,

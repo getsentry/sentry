@@ -94,6 +94,16 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
+class EnvironmentParams:
+    VISIBILITY = OpenApiParameter(
+        name="visibility",
+        location="query",
+        required=False,
+        type=str,
+        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+    )
+
+
 class OrganizationParams:
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
@@ -363,6 +373,25 @@ class TeamParams:
         type=str,
         description="""
 Specify `"0"` to return team details that do not include projects.
+""",
+    )
+    COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt out of certain pieces of data. Supports `organization`.
+""",
+    )
+
+    EXPAND = OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt in to additional data. Supports `projects`, `externalTeams`.
 """,
     )
 

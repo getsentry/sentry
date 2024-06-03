@@ -336,10 +336,6 @@ export function isSpanDuration({mri}: {mri: MRI}) {
   return mri === 'd:spans/duration@millisecond';
 }
 
-export function isGaugeMetric({mri}: {mri: MRI}) {
-  return parseMRI(mri)?.type === 'g';
-}
-
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
     return MRIToField(metricsQuery.mri, metricsQuery.op);
