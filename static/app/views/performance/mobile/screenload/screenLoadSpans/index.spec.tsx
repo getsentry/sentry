@@ -114,7 +114,7 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'react-native'});
       organization = OrganizationFixture({
-        features: ['spans-first-ui'],
+        features: ['insights-initial-modules'],
         projects: [project],
       });
       mockResponses(organization, project);
@@ -210,7 +210,7 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android'});
       organization = OrganizationFixture({
-        features: ['spans-first-ui'],
+        features: ['insights-initial-modules'],
         projects: [project],
       });
       mockResponses(organization, project);
