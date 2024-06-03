@@ -2637,6 +2637,23 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
+# Release dates for enabling metric seconds on am2
+register(
+    "billing.am2.metric_seconds.release_data",
+    type=String,
+    default="5/29/2024",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Release dates for enablic profile duration on am3
+register(
+    "billing.am3.profile_duration.release_data",
+    type=String,
+    default="8/30/2024",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
 # also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
 register(
