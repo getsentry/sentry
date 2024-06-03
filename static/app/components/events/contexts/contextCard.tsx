@@ -1,14 +1,16 @@
+import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
+  getContextIcon,
   getContextMeta,
   getContextTitle,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import * as KeyValueData from 'sentry/components/keyValueData/card';
 import type {Event, Group, KeyValueListDataItem, Project} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
@@ -72,7 +74,7 @@ export default function ContextCard({
   value = {},
 }: ContextCardProps) {
   const organization = useOrganization();
-  if (objectIsEmpty(value)) {
+  if (isEmptyObject(value)) {
     return null;
   }
   const meta = getContextMeta(event, type === 'default' ? alias : type);
@@ -98,8 +100,19 @@ export default function ContextCard({
   return (
     <KeyValueData.Card
       contentItems={contentItems}
-      title={getContextTitle({alias, type, value})}
+      title={
+        <Title>
+          <div>{getContextTitle({alias, type, value})}</div>
+          <div>{getContextIcon({type, value})}</div>
+        </Title>
+      }
       sortAlphabetically
     />
   );
 }
+
+const Title = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;

@@ -390,7 +390,7 @@ class GroupManager(BaseManager["Group"]):
         integration: RpcIntegration,
         organizations: Sequence[Organization],
         external_issue_key: str,
-    ) -> QuerySet:
+    ) -> QuerySet[Group]:
         from sentry.models.grouplink import GroupLink
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.services.hybrid_cloud.integration import integration_service

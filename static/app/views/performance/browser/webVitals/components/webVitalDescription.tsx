@@ -223,7 +223,7 @@ const ScoreBadge = styled('div')<{status: string}>`
   flex-direction: column;
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   padding: ${space(0.5)};
   text-align: center;
   height: 60px;

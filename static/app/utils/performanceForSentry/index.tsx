@@ -461,7 +461,7 @@ const customMeasurements: Record<
   },
 
   /**
-   * Budget measurement for the time between loading the bundle and a visually complete component finishing it's render.
+   * Budget measurement for the time between loading the bundle and a visually complete component finishing its render.
    *
    * Fires for navigation components as well using the beginning of the navigation as 'init'
    *
