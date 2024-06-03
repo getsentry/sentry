@@ -49,8 +49,8 @@ def is_condition_slow(
     condition: Mapping[str, Any],
 ) -> bool:
     """
-    Returns whether a condition is considered slow. Note that the slow condition
-    mapping take the form on EventFrequencyConditionData.
+    Returns whether a condition is considered slow. Note that slow conditions in
+    the condition Mapping take on the form of EventFrequencyConditionData.
     """
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:

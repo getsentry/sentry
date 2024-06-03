@@ -11,7 +11,7 @@ describe('formatMetricUsingFixedUnit', () => {
   });
 
   it.each(formattingSupportedMetricUnits.filter(unit => unit !== 'none'))(
-    'appends a unit for every supported one (except none)',
+    'appends a unit (%s) for every supported one (except none)',
     unit => {
       expect(formatMetricUsingFixedUnit(1234.56, unit)).toMatch(/1,234\.56.+/);
     }
@@ -23,7 +23,7 @@ describe('formatMetricUsingFixedUnit', () => {
   });
 
   it.each(['sum', 'count_unique', 'avg', 'max', 'p50', 'p75', 'p95', 'p99'])(
-    'should append a unit for every operation (except count)',
+    'should append a unit (%s) for every operation (except count)',
     op => {
       expect(formatMetricUsingFixedUnit(1234.56, 'second', op)).toMatch(/1,234\.56s/);
     }

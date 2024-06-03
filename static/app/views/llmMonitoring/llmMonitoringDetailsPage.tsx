@@ -20,6 +20,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
+import {MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -100,7 +101,7 @@ export function LLMMonitoringPage({params}: Props) {
                 },
               ]}
             />
-            <Layout.Title>{t('LLM Monitoring')}</Layout.Title>
+            <Layout.Title>{MODULE_TITLE}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
