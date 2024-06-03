@@ -247,7 +247,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="http" features="spans-first-ui">
+    <ModulePageProviders moduleName="http" features="insights-initial-modules">
       <HTTPLandingPage />
     </ModulePageProviders>
   );
