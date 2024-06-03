@@ -502,7 +502,7 @@ export function Trace({
             </div>
           );
         })}
-        <ReplayTimeStampIndicators viewmanager={manager} tree={treeRef.current} />
+        <VerticalTimestampIndicators viewmanager={manager} tree={treeRef.current} />
       </div>
       <div
         ref={setScrollContainer}
@@ -1630,7 +1630,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   );
 }
 
-function ReplayTimeStampIndicators({
+function VerticalTimestampIndicators({
   viewmanager,
   tree,
 }: {
