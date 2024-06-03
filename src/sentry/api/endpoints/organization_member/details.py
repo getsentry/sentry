@@ -441,9 +441,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 using=router.db_for_write(Project),
             )
 
-        # Delete a member's views of this org once the member is removed
-        # We will need to modify this to delete ONLY the member-scoped views of the org and not their
-        # Organization-scoped views if we choose to support that feature in the future.
+        # Delete a member's views of this org upon member's removal
+        # Should we choose to support Organization-scoped views in the future,
+        # we will need to modify this to delete ONLY the member-scoped views of the org
         GroupSearchView.objects.filter(user_id=member.user_id, organization=organization).delete()
 
         self.create_audit_entry(
