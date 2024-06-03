@@ -192,9 +192,11 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     project = Project.objects.get_from_cache(id=project_id)
 
     is_message_spam = None
-    if features.has(
-        "organizations:user-feedback-spam-filter-ingest", project.organization
-    ) and project.get_option("sentry:feedback_ai_spam_detection"):
+    if (
+        project.slug not in options.get("feedback.spam.projects.slug-denylist")
+        and features.has("organizations:user-feedback-spam-filter-ingest", project.organization)
+        and project.get_option("sentry:feedback_ai_spam_detection")
+    ):
         try:
             is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
         except Exception:
@@ -353,9 +355,7 @@ def shim_to_feedback(
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    if features.has(
-        "organizations:user-feedback-spam-filter-actions", project.organization
-    ) and project.slug not in options.get("feedback.projects.slug-denylist"):
+    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
         metrics.incr("feedback.spam-detection-actions.set-ignored")
         produce_occurrence_to_kafka(
             payload_type=PayloadType.STATUS_CHANGE,
