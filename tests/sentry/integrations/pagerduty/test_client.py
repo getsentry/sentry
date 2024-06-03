@@ -33,7 +33,9 @@ class PagerDutyClientTest(APITestCase):
 
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+        with mock.patch(
+            "sentry.shared_integrations.track_response.metrics"
+        ) as self.metrics:
             yield
 
     def setUp(self):
