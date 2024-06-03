@@ -20,7 +20,7 @@ def backfill_groupsearchviews_with_pinned_searches(
             organization=pinned_search.organization,
             user_id=pinned_search.owner_id,
             position=0,
-            values={
+            defaults={
                 "name": "Default Search",
                 "query": pinned_search.query,
                 "query_sort": pinned_search.sort,
