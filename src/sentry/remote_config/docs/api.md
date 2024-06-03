@@ -118,7 +118,7 @@ Delete the project's configuration.
 
 - Response 204
 
-## Configuration Proxy [/projects/<project_id>/configuration/]
+## Configuration Proxy [/remote-config/projects/<project_id>/]
 
 Temporary configuration proxy resource.
 

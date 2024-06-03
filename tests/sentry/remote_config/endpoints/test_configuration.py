@@ -180,7 +180,7 @@ class ConfigurationAPITestCase(APITestCase):
 
 
 class ConfigurationProxyAPITestCase(APITestCase):
-    endpoint = "sentry-api-0-relays-remote-configuration"
+    endpoint = "sentry-api-0-project-remote-configuration"
 
     def setUp(self):
         super().setUp()
