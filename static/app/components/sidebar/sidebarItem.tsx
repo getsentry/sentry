@@ -201,6 +201,7 @@ function SidebarItem({
   );
 
   const isInCollapsedState = !isInFloatingAccordion && collapsed;
+  const hasLink = Boolean(to);
 
   return (
     <Tooltip
@@ -224,6 +225,7 @@ function SidebarItem({
               isInFloatingAccordion={isInFloatingAccordion}
               active={isActive ? 'true' : undefined}
               to={disabled ? '' : toProps}
+              disabled={!hasLink && isInFloatingAccordion}
               className={className}
               aria-current={isActive ? 'page' : undefined}
               onClick={handleItemClick}
@@ -333,8 +335,6 @@ const getActiveStyle = ({
   }
   if (isInFloatingAccordion) {
     return css`
-      background-color: ${theme?.hover};
-
       &:active,
       &:focus,
       &:hover {

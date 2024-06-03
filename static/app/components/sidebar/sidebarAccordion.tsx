@@ -55,6 +55,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const isOpenInFloatingSidebar = expandedItemId === mainItemId;
 
   const isActive = isItemActive(itemProps);
+  const hasMainLink = Boolean(itemProps.to);
 
   const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
 
@@ -82,6 +83,9 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   ) => {
     if ((!horizontal && !sidebarCollapsed) || !children) {
       setExpandedItemId(null);
+      if (!hasMainLink) {
+        setExpanded(!expanded);
+      }
       return;
     }
 
