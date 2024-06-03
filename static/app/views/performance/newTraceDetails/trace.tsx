@@ -1639,8 +1639,6 @@ function VerticalTimestampIndicators({
 }) {
   const traceNode = tree.root.children[0];
   const traceStartTimestamp = traceNode.space?.[0];
-  const currentTimeStampIndicatorRef = useRef<HTMLDivElement | null>(null);
-  const currentHoverTimeStampIndicatorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     function replayTimestampListener({
@@ -1650,20 +1648,24 @@ function VerticalTimestampIndicators({
       currentHoverTime: number | undefined;
       currentTime: number;
     }) {
-      if (!traceStartTimestamp) {
+      if (!traceStartTimestamp || !traceNode) {
         return;
       }
 
-      viewmanager.registerVerticalIndicator('replay_timestamp.current', {
-        ref: currentTimeStampIndicatorRef.current,
-        timestamp: traceStartTimestamp + currentTime,
-      });
+      if (viewmanager.vertical_indicators['replay_timestamp.current']) {
+        viewmanager.vertical_indicators['replay_timestamp.current'].timestamp =
+          traceStartTimestamp + currentTime;
+      }
 
-      viewmanager.registerVerticalIndicator('replay_timestamp.hover', {
-        ref: currentHoverTimeStampIndicatorRef.current,
-        timestamp: currentHoverTime ? traceStartTimestamp + currentHoverTime : undefined,
-      });
+      if (
+        currentHoverTime !== undefined &&
+        viewmanager.vertical_indicators['replay_timestamp.hover']
+      ) {
+        viewmanager.vertical_indicators['replay_timestamp.hover'].timestamp =
+          traceStartTimestamp + currentHoverTime;
+      }
     }
+
     replayPlayerTimestampEmitter.on('replay timestamp change', replayTimestampListener);
 
     return () => {
@@ -1672,7 +1674,27 @@ function VerticalTimestampIndicators({
         replayTimestampListener
       );
     };
-  }, [traceStartTimestamp, viewmanager]);
+  }, [traceStartTimestamp, traceNode, viewmanager]);
+
+  const registerReplayCurrentTimestampRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      viewmanager.registerVerticalIndicator('replay_timestamp.current', {
+        ref,
+        timestamp: undefined,
+      });
+    },
+    [viewmanager]
+  );
+
+  const registerReplayHoverTimestampRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      viewmanager.registerVerticalIndicator('replay_timestamp.hover', {
+        ref,
+        timestamp: undefined,
+      });
+    },
+    [viewmanager]
+  );
 
   if (!traceNode || !traceStartTimestamp) {
     return null;
@@ -1680,10 +1702,10 @@ function VerticalTimestampIndicators({
 
   return (
     <Fragment>
-      <div ref={currentTimeStampIndicatorRef} className="TraceIndicator Timeline">
+      <div ref={registerReplayCurrentTimestampRef} className="TraceIndicator Timeline">
         <div className="Indicator CurrentReplayTimestamp" />
       </div>
-      <div ref={currentHoverTimeStampIndicatorRef} className="TraceIndicator Timeline">
+      <div ref={registerReplayHoverTimestampRef} className="TraceIndicator Timeline">
         <div className="Indicator HoverReplayTimestamp" />
       </div>
     </Fragment>
