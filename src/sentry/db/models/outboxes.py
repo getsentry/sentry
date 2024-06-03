@@ -331,7 +331,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
 class ReplicatedControlModel(ControlOutboxProducingModel):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outboxes_for_update`
+    An extension of ControlOutboxProducingModel that provides a default implementation for `outboxes_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_deletion based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.

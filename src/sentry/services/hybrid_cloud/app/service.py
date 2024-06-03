@@ -7,6 +7,7 @@ import abc
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,
@@ -81,6 +82,14 @@ class AppService(RpcService):
     @abc.abstractmethod
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
+
+    def installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
+        """
+        Get a sentryapp install by id
+
+        This method is a cached wrapper around get_installation_by_id()
+        """
+        return get_installation(id)
 
     @rpc_method
     @abc.abstractmethod
@@ -170,6 +179,11 @@ class AppService(RpcService):
     @abc.abstractmethod
     def disable_sentryapp(self, *, id: int) -> None:
         pass
+
+
+@back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
+def get_installation(id: int) -> RpcSentryAppInstallation | None:
+    return app_service.get_installation_by_id(id=id)
 
 
 app_service = AppService.create_delegation()
