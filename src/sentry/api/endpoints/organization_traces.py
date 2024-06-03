@@ -998,11 +998,17 @@ def convert_to_slice(timestamp, trace_range) -> int:
 
 
 def quantize_range(span_start, span_end, trace_range):
-    start_index = convert_to_slice(span_start, trace_range)
-    end_index = convert_to_slice(span_end, trace_range)
-
+    slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
+
+    trace_duration = trace_end - trace_start
+
+    if trace_duration == 0:
+        return (trace_start, trace_end), (0, slices)
+
+    start_index = convert_to_slice(span_start, trace_range)
+    end_index = convert_to_slice(span_end, trace_range)
 
     if span_start <= trace_start:
         span_start = trace_start
@@ -1011,10 +1017,6 @@ def quantize_range(span_start, span_end, trace_range):
     # do not adjust the end if it's at the trace end.
     if span_end >= trace_end:
         span_end = trace_end
-
-    slices = trace_range["slices"]
-
-    trace_duration = trace_end - trace_start
 
     bin_size = int(trace_duration / slices)
 
@@ -1190,6 +1192,7 @@ def process_breakdowns(data, traces_range):
         except Exception as e:
             context = {"trace": row["trace"]}
             sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
+            raise
 
     quantized_data.sort(
         key=lambda row: (
@@ -1224,6 +1227,7 @@ def process_breakdowns(data, traces_range):
         except Exception as e:
             context = {"trace": row["trace"]}
             sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
+            raise
 
     """ TODO: Add this back
     for trace, trace_range in traces_range.items():

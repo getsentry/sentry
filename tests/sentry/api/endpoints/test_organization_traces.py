@@ -2106,37 +2106,37 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             },
             id="trace shorter than slices",
         ),
-        # pytest.param(
-        #     [
-        #         {
-        #             "trace": "a" * 32,
-        #             "project": "foo",
-        #             "sdk.name": "sentry.javascript.node",
-        #             "parent_span": "a" * 16,
-        #             "transaction": "foo1",
-        #             "precise.start_ts": 0.001,
-        #             "precise.finish_ts": 0.001,
-        #         },
-        #     ],
-        #     {"a" * 32: (0, 100, 1000)},
-        #     {
-        #         "a"
-        #         * 32: [
-        #             {
-        #                 "project": "foo",
-        #                 "sdkName": "sentry.javascript.node",
-        #                 "start": 3,
-        #                 "end": 97,
-        #                 "startIndex": 30,
-        #                 "endIndex": 970,
-        #                 "kind": "project",
-        #                 "duration": 94,
-        #                 "isRoot": False,
-        #             },
-        #         ],
-        #     },
-        #     id="zero duration trace",
-        # ),
+        pytest.param(
+            [
+                {
+                    "trace": "a" * 32,
+                    "project": "foo",
+                    "sdk.name": "sentry.javascript.node",
+                    "parent_span": "a" * 16,
+                    "transaction": "foo1",
+                    "precise.start_ts": 1,
+                    "precise.finish_ts": 1,
+                },
+            ],
+            {"a" * 32: (1, 1, 40)},
+            {
+                "a"
+                * 32: [
+                    {
+                        "project": "foo",
+                        "sdkName": "sentry.javascript.node",
+                        "start": 1,
+                        "end": 1,
+                        "startIndex": 0,
+                        "endIndex": 40,
+                        "kind": "project",
+                        "duration": 0,
+                        "isRoot": False,
+                    },
+                ],
+            },
+            id="zero duration trace",
+        ),
     ],
 )
 def test_process_breakdowns(data, traces_range, expected):
