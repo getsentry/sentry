@@ -37,15 +37,6 @@ export const NANOSECOND = 0.000001;
  */
 export {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
-export const SUFFIX_ABBR = {
-  years: t('yr'),
-  weeks: t('wk'),
-  days: t('d'),
-  hours: t('hr'),
-  minutes: t('min'),
-  seconds: t('s'),
-  milliseconds: t('ms'),
-};
 export function formatSecondsToClock(
   seconds: number,
   {padAll}: {padAll: boolean} = {padAll: true}

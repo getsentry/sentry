@@ -2,7 +2,17 @@ import round from 'lodash/round';
 
 import {t, tn} from 'sentry/locale';
 
-import {DAY, HOUR, MINUTE, SECOND, SUFFIX_ABBR, WEEK} from '../formatters';
+import {DAY, HOUR, MINUTE, SECOND, WEEK} from '../formatters';
+
+const SUFFIX_ABBR = {
+  years: t('yr'),
+  weeks: t('wk'),
+  days: t('d'),
+  hours: t('hr'),
+  minutes: t('min'),
+  seconds: t('s'),
+  milliseconds: t('ms'),
+};
 
 /**
  * Returns a human readable exact duration.
