@@ -1,5 +1,5 @@
+from sentry.models import IssueViews, OrganizationMember, SavedSearch
 from sentry.testutils.cases import TestMigrations
-from sentry.models import SavedSearch, IssueViews, OrganizationMember
 
 
 class BackfillIssueViewsWithPinnedSearchesTest(TestMigrations):
