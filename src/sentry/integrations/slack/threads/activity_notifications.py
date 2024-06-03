@@ -128,11 +128,11 @@ class _ExternalIssueCreatedActivity:
 
         return ticket_number
 
-    def get_formatted_provider_name(self, provider: str) -> str:
+    def get_formatted_provider_name(self) -> str:
         # Make sure to make the proper noun have correct capitalization
         # I.e. github -> GitHub, jira -> Jira
         # Special cases like github -> GitHub are implemented in their overriden classes
-        return provider.capitalize()
+        return self.get_provider().capitalize()
 
 
 class _AsanaExternalIssueCreatedActivity(_ExternalIssueCreatedActivity):
@@ -172,8 +172,14 @@ class _GithubExternalIssueCreatedActivity(_ExternalIssueCreatedActivity):
     Override class for Github, as the provider name that we want to display should be GitHub, not "Github"
     """
 
-    def get_formatted_provider_name(self, _: str) -> str:
+    def get_formatted_provider_name(self) -> str:
         return "GitHub"
+
+
+_activity_classes = {
+    "asana": _AsanaExternalIssueCreatedActivity,
+    "github": _GithubExternalIssueCreatedActivity,
+}
 
 
 def _external_issue_activity_factory(activity: Activity) -> _ExternalIssueCreatedActivity:
@@ -181,15 +187,11 @@ def _external_issue_activity_factory(activity: Activity) -> _ExternalIssueCreate
     Returns the correct ExternalIssueCreatedActivity class based on the provider.
     All classes have the same interface, the method for one is simply modified for its use case.
     """
-    activity_classes = {
-        "asana": _AsanaExternalIssueCreatedActivity,
-        "github": _GithubExternalIssueCreatedActivity,
-    }
 
     base_activity = _ExternalIssueCreatedActivity(activity=activity)
     provider = base_activity.get_provider()
 
-    ActivityClass = activity_classes.get(provider, None)
+    ActivityClass = _activity_classes.get(provider, None)
     return ActivityClass(activity=activity) if ActivityClass else base_activity
 
 
@@ -206,7 +208,7 @@ class ExternalIssueCreatedActivityNotification(GroupActivityNotification):
             base_template = "an "
         else:
             base_template = "a "
-            provider = external_issue.get_formatted_provider_name(provider)
+            provider = external_issue.get_formatted_provider_name()
         base_template += "{provider} issue"
 
         ticket_number = external_issue.get_ticket_number()
