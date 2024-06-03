@@ -22,6 +22,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Flex} from 'sentry/components/profiling/flex';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -368,7 +369,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
             <div>
               <TeamRoleColumnLabel />
             </div>
-            <div style={{textTransform: 'none'}}>{this.renderDropdown(isTeamAdmin)}</div>
+            <Flex justify="end">{this.renderDropdown(isTeamAdmin)}</Flex>
           </StyledPanelHeader>
           {this.renderMembers(isTeamAdmin)}
         </Panel>
