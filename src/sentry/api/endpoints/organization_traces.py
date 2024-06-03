@@ -1200,7 +1200,6 @@ def process_breakdowns(data, traces_range):
         except Exception as e:
             context = {"trace": row["trace"]}
             sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
-            raise
 
     quantized_data.sort(
         key=lambda row: (
@@ -1235,7 +1234,6 @@ def process_breakdowns(data, traces_range):
         except Exception as e:
             context = {"trace": row["trace"]}
             sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
-            raise
 
     """ TODO: Add this back
     for trace, trace_range in traces_range.items():
