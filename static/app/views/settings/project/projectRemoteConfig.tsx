@@ -156,7 +156,7 @@ function OptionsPanelContent({
         id="sample_rate"
         label={t('Sample Rate')}
         help={t(
-          'Configures the sample rate for error events, in the range of 0.0 to 1.0. The default is 1.0 which means that 100% of error events are sent. If set to 0.1 only 10% of error events will be sent. Events are picked randomly.'
+          'Configures the sample rate for error events, in the range of 0.0 to 1.0. The default is 1.0, which means that 100% of error events will be sent. If set to 0.1, only 10% of error events will be sent. Events are picked randomly.'
         )}
       >
         <FieldControl>
