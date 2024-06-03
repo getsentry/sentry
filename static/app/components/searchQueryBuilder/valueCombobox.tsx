@@ -264,10 +264,11 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
+      if (!value) {
+        return;
+      }
+
       if (canSelectMultipleValues) {
-        if (!value && !selectedValues.length) {
-          return;
-        }
         dispatch({
           type: 'TOGGLE_FILTER_VALUE',
           token: token,
@@ -279,9 +280,6 @@ export function SearchQueryBuilderValueCombobox({
           onCommit();
         }
       } else {
-        if (!value) {
-          return;
-        }
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token: token.value,
@@ -318,7 +316,7 @@ export function SearchQueryBuilderValueCombobox({
   }, []);
 
   return (
-    <ValueEditing onClick={onClick}>
+    <ValueEditing onClick={onClick} data-test-id="filter-value-editing">
       {selectedValues.map(value => (
         <SelectedValue key={value}>{value},</SelectedValue>
       ))}
@@ -328,6 +326,7 @@ export function SearchQueryBuilderValueCombobox({
         onOptionSelected={handleSelectValue}
         onCustomValueBlurred={handleSelectValue}
         onCustomValueCommitted={handleSelectValue}
+        onExit={onCommit}
         inputValue={inputValue}
         placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
         token={token}
