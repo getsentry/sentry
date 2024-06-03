@@ -52,8 +52,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_groupsearchviews_with_pinned_searches,
             reverse_code=migrations.RunPython.noop,
-            hints={
-                "tables": ["sentry_issueviews", "sentry_savedsearch", "sentry_organizationmember"]
-            },
+            hints={"tables": ["sentry_issueviews", "sentry_savedsearch"]},
         )
     ]
