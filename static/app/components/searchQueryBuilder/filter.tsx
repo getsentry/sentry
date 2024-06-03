@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -138,12 +138,20 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
 function FilterValue({token, state, item}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const {dispatch, focusOverride} = useSearchQueryBuilder();
 
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!token.value.text && !isEditing) {
-    setIsEditing(true);
-  }
+  useLayoutEffect(() => {
+    if (
+      !isEditing &&
+      focusOverride?.itemKey === item.key &&
+      focusOverride.part === 'value'
+    ) {
+      setIsEditing(true);
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, isEditing, item.key]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
