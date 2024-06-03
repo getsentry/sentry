@@ -2621,6 +2621,35 @@
       ]
     ]
   },
+  "sentry.groupsearchview": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "sentry.groupsearchview",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_groupsearchview",
+    "uniques": [
+      [
+        "organization_id",
+        "position",
+        "user_id"
+      ]
+    ]
+  },
   "sentry.groupseen": {
     "dangling": false,
     "foreign_keys": {

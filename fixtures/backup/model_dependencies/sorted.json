@@ -66,6 +66,7 @@
   "sentry.integrationexternalproject",
   "sentry.identity",
   "sentry.grouptombstone",
+  "sentry.groupsearchview",
   "sentry.fileblobowner",
   "sentry.file",
   "sentry.featureadoption",
