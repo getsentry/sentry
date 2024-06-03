@@ -164,7 +164,7 @@ function SidebarItem({
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
-  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey) && Boolean(to);
 
   const organization = useOrganization({allowNull: true});
 
