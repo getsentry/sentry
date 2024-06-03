@@ -13,8 +13,8 @@ import {
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {type IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
+import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
+import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/starfish/types';
 
 interface Props {
   event: Event;
@@ -24,15 +24,17 @@ interface Props {
 export default function LLMMonitoringSection({event}: Props) {
   const traceId = event.contexts.trace?.trace_id;
   const spanId = event.contexts.trace?.span_id;
-  const {data, error, isLoading} = useIndexedSpans({
-    limit: 1,
-    fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP],
-    referrer: 'api.ai-pipelines.view',
-    search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
-  });
+  const {data, error, isLoading} = useSpansIndexed(
+    {
+      limit: 1,
+      fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP],
+      search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
+    },
+    'api.ai-pipelines.view'
+  );
   const moduleUrl = useModuleURL('ai');
   const aiPipelineGroup =
-    data && (data[0] as IndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
+    data && (data[0] as SpanIndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
 
   const actions = (
     <ButtonBar gap={1}>

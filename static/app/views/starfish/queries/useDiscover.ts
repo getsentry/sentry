@@ -7,6 +7,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   MetricsProperty,
   MetricsResponse,
+  SpanIndexedField,
+  SpanIndexedResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/starfish/types';
@@ -18,10 +20,20 @@ interface UseMetricsOptions<Fields> {
   fields?: Fields;
   limit?: number;
   pageFilters?: PageFilters;
-  referrer?: string;
   search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
 }
+
+export const useSpansIndexed = <Fields extends SpanIndexedField[]>(
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, SpanIndexedResponse>(
+    options,
+    DiscoverDatasets.SPANS_INDEXED,
+    referrer
+  );
+};
 
 export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsOptions<Fields> = {},

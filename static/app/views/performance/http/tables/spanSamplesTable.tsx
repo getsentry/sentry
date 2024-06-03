@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import type {IndexedResponse} from 'sentry/views/starfish/types';
+import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
 type DataRowKeys =
@@ -31,7 +31,7 @@ type ColumnKeys =
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.RESPONSE_CODE;
 
-type DataRow = Pick<IndexedResponse, DataRowKeys>;
+type DataRow = Pick<SpanIndexedResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 

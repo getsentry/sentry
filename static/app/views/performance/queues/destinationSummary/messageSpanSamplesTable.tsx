@@ -15,7 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MessageActorType} from 'sentry/views/performance/queues/settings';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import type {IndexedResponse} from 'sentry/views/starfish/types';
+import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
 type DataRowKeys =
@@ -40,7 +40,7 @@ type ColumnKeys =
   | SpanIndexedField.TRACE_STATUS
   | SpanIndexedField.SPAN_DURATION;
 
-type DataRow = Pick<IndexedResponse, DataRowKeys>;
+type DataRow = Pick<SpanIndexedResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 

@@ -17,7 +17,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -87,21 +87,23 @@ export function PipelineSpansTable({groupId}: Props) {
     meta: rawMeta,
     error,
     isLoading,
-  } = useIndexedSpans({
-    limit: 30,
-    sorts: [sort],
-    fields: [
-      SpanIndexedField.ID,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.SPAN_DURATION,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.USER,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.PROJECT,
-    ],
-    referrer: 'api.ai-pipelines.view',
-    search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
-  });
+  } = useSpansIndexed(
+    {
+      limit: 30,
+      sorts: [sort],
+      fields: [
+        SpanIndexedField.ID,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.SPAN_DURATION,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.USER,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.PROJECT,
+      ],
+      search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
+    },
+    'api.ai-pipelines.view'
+  );
   const data = rawData || [];
   const meta = rawMeta as EventsMetaType;
 
