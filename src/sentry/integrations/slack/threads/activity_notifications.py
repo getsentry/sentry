@@ -128,6 +128,12 @@ class _ExternalIssueCreatedActivity:
 
         return ticket_number
 
+    def get_formatted_provider_name(self, provider: str) -> str:
+        # Make sure to make the proper noun have correct capitalization
+        # I.e. github -> GitHub, jira -> Jira
+        # Special cases like github -> GitHub are implemented in their overriden classes
+        return provider.capitalize()
+
 
 class _AsanaExternalIssueCreatedActivity(_ExternalIssueCreatedActivity):
     """
@@ -161,29 +167,35 @@ class _AsanaExternalIssueCreatedActivity(_ExternalIssueCreatedActivity):
         return last_part
 
 
+class _GithubExternalIssueCreatedActivity(_ExternalIssueCreatedActivity):
+    """
+    Override class for Github, as the provider name that we want to display should be GitHub, not "Github"
+    """
+
+    def get_formatted_provider_name(self, _: str) -> str:
+        return "GitHub"
+
+
 def _external_issue_activity_factory(activity: Activity) -> _ExternalIssueCreatedActivity:
     """
     Returns the correct ExternalIssueCreatedActivity class based on the provider.
     All classes have the same interface, the method for one is simply modified for its use case.
     """
+    activity_classes = {
+        "asana": _AsanaExternalIssueCreatedActivity,
+        "github": _GithubExternalIssueCreatedActivity,
+    }
+
     base_activity = _ExternalIssueCreatedActivity(activity=activity)
     provider = base_activity.get_provider()
-    if provider == "asana":
-        return _AsanaExternalIssueCreatedActivity(activity=activity)
 
-    return base_activity
+    ActivityClass = activity_classes.get(provider, None)
+    return ActivityClass(activity=activity) if ActivityClass else base_activity
 
 
 class ExternalIssueCreatedActivityNotification(GroupActivityNotification):
     metrics_key = "create_issue"
     title = "External Issue Created"
-
-    def format_provider_name(provider: str) -> str:
-        # Make sure to make the proper noun have correct capitalization
-        # Take in account special cases
-        # I.e. github -> GitHub, jira -> Jira
-        special_cases = {"github": "GitHub"}
-        return special_cases.get(provider.lower(), provider.capitalize())
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         external_issue = _external_issue_activity_factory(activity=self.activity)
@@ -194,7 +206,7 @@ class ExternalIssueCreatedActivityNotification(GroupActivityNotification):
             base_template = "an "
         else:
             base_template = "a "
-            provider = self.format_provider_name(provider)
+            provider = external_issue.get_formatted_provider_name(provider)
         base_template += "{provider} issue"
 
         ticket_number = external_issue.get_ticket_number()
