@@ -4,7 +4,7 @@ import logging
 from collections import namedtuple
 from collections.abc import Callable
 from datetime import timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, ClassVar, Protocol, Self
 
 from django.conf import settings
@@ -437,6 +437,11 @@ class AlertRuleTriggerExclusion(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletriggerexclusion"
         unique_together = (("alert_rule_trigger", "query_subscription"),)
+
+
+class AlertRuleTriggerActionMethod(StrEnum):
+    FIRE = "fire"
+    RESOLVE = "resolve"
 
 
 class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):

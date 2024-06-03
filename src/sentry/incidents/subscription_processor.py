@@ -27,6 +27,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    AlertRuleTriggerActionMethod,
     invoke_alert_subscription_callback,
 )
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
@@ -710,7 +711,11 @@ class SubscriptionProcessor:
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
-        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+        method = (
+            AlertRuleTriggerActionMethod.FIRE.value
+            if incident_trigger.status == TriggerStatus.ACTIVE.value
+            else AlertRuleTriggerActionMethod.RESOLVE.value
+        )
         try:
             incident = Incident.objects.get(id=incident_trigger.incident_id)
         except Incident.DoesNotExist:
@@ -735,7 +740,7 @@ class SubscriptionProcessor:
         actions_to_fire = []
         new_status = IncidentStatus.CLOSED.value
 
-        if method == "resolve":
+        if method == AlertRuleTriggerActionMethod.RESOLVE.value:
             if incident.status != IncidentStatus.CLOSED.value:
                 # Critical -> warning
                 actions_to_fire = actions
