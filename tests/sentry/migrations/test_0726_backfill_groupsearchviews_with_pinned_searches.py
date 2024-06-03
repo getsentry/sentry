@@ -3,7 +3,7 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.testutils.cases import TestMigrations
 
 
-class BackfillIssueViewsWithPinnedSearchesTest(TestMigrations):
+class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
     migrate_from = "0725_create_sentry_groupsearchview_table"
     migrate_to = "0726_backfill_groupsearchviews_with_pinned_searches"
 
