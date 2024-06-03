@@ -162,8 +162,6 @@ class Fixtures:
     def create_project(self, **kwargs):
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
-        if "first_event" not in kwargs:
-            kwargs["first_event"] = timezone.now()
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
