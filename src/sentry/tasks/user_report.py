@@ -18,4 +18,6 @@ def user_report(report, project_id):
     from sentry.models.project import Project
 
     project = Project.objects.get_from_cache(id=project_id)
-    safe_execute(mail_adapter.handle_user_report, report=report, project=project)
+    safe_execute(
+        mail_adapter.handle_user_report, report=report, project=project, _with_transaction=False
+    )

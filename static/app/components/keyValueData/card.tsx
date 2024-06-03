@@ -59,7 +59,7 @@ export function Content({
     <ContentWrapper hasErrors={hasErrors} {...props}>
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
-        <ValueWrapper>
+        <ValueWrapper hasErrors={hasErrors}>
           {!disableRichValue && defined(action?.link) ? (
             <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
@@ -208,7 +208,8 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+  box-shadow: inset 0 0 0 1px
+    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
   background-color: ${p =>
     p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
   &:nth-child(odd) {
@@ -231,9 +232,9 @@ const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boole
   grid-column-gap: ${space(0.5)};
 `;
 
-const ValueWrapper = styled('div')`
+const ValueWrapper = styled('div')<{hasErrors: boolean}>`
   word-break: break-word;
-  grid-column: 1 / -1;
+  grid-column: ${p => (p.hasErrors ? 'span 1' : '1 / -1')};
 `;
 
 const TruncateWrapper = styled('a')`
