@@ -16,15 +16,16 @@ class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
             owner_id=self.user.id,
             visibility="owner_pinned",
             query="assigned:me",
-            query_sort="date",
+            sort="date",
         )
 
     def test(self):
         custom_view = GroupSearchView.objects.get(org_member_id=self.user.id)
 
-        assert custom_view
+        assert custom_view.exists()
         assert custom_view.organizaiton == self.org
         assert custom_view.user_id == self.user.id
+        assert custom_view.position == 0
         assert custom_view.name == "Default View"
         assert custom_view.query == "assigned:me"
         assert custom_view.query_sort == "date"
