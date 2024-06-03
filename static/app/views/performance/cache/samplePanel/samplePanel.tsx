@@ -95,6 +95,11 @@ export function CacheSamplePanel() {
     });
   };
 
+  const searchQueryObject = new MutableSearch(query.spanSearchQuery);
+  const isCacheHitFilterOverridden = Object.keys(searchQueryObject.filters).includes(
+    SpanIndexedField.CACHE_HIT
+  );
+
   // `detailKey` controls whether the panel is open. If all required properties are ailable, concat them to make a key, otherwise set to `undefined` and hide the panel
   const detailKey = query.transaction
     ? [query.transaction].filter(Boolean).join(':')
@@ -159,7 +164,8 @@ export function CacheSamplePanel() {
         search: MutableSearch.fromQueryObject({
           ...sampleFilters,
           ...new MutableSearch(query.spanSearchQuery).filters,
-          'cache.hit': isCacheHit,
+          // only specify `cache.hit` dropdown filter if not overriden by search query
+          ...(!isCacheHitFilterOverridden && {'cache.hit': isCacheHit}),
         }),
         fields: [
           SpanIndexedField.PROJECT,
@@ -183,12 +189,28 @@ export function CacheSamplePanel() {
   let cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
   let cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
 
-  if (query.statusClass === 'hit') {
-    cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT;
-    cacheMissSamplesLimit = -1;
-  } else if (query.statusClass === 'miss') {
-    cacheHitSamplesLimit = -1;
-    cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT;
+  if (isCacheHitFilterOverridden) {
+    // if the search query overrides the `cache.hit` filter, ignore the
+    // dropdown filter value (`query.statusClass`) and derive the sample limits from the
+    // search query
+    const cacheHitSearchFilter = searchQueryObject.getFilterValues('cache.hit')?.[0];
+    if (cacheHitSearchFilter === 'hit') {
+      cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT;
+      cacheMissSamplesLimit = -1;
+    } else if (cacheHitSearchFilter === 'miss') {
+      cacheHitSamplesLimit = -1;
+      cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT;
+    }
+  } else {
+    // if the search query does not override the `cache.hit` dropdown filter, derive the
+    // sample limits from the dropdown value
+    if (query.statusClass === 'hit') {
+      cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT;
+      cacheMissSamplesLimit = -1;
+    } else if (query.statusClass === 'miss') {
+      cacheHitSamplesLimit = -1;
+      cacheMissSamplesLimit = SPAN_SAMPLE_LIMIT;
+    }
   }
 
   const {
@@ -353,6 +375,7 @@ export function CacheSamplePanel() {
           <ModuleLayout.Full>
             <CompactSelect
               value={query.statusClass}
+              disabled={isCacheHitFilterOverridden}
               options={CACHE_STATUS_OPTIONS}
               onChange={handleStatusClassChange}
               triggerProps={{

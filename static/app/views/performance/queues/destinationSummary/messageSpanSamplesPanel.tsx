@@ -118,6 +118,13 @@ export function MessageSpanSamplesPanel() {
     });
   };
 
+  const searchFilterKeys = Object.keys(new MutableSearch(query.spanSearchQuery).filters);
+  // Disable dropdown filter if the same filter key already exists in the search query
+  const isStatusFilterDisabled = searchFilterKeys.includes(SpanIndexedField.TRACE_STATUS);
+  const isRetryFilterDisabled = searchFilterKeys.includes(
+    SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT
+  );
+
   const isPanelOpen = Boolean(detailKey);
 
   const messageActorType =
@@ -140,12 +147,12 @@ export function MessageSpanSamplesPanel() {
   // filter by key-value filters specified in the search bar query
   sampleFilters.addStringMultiFilter(query.spanSearchQuery);
 
-  if (query.traceStatus.length > 0) {
+  if (!isStatusFilterDisabled && query.traceStatus.length > 0) {
     sampleFilters.addFilterValue('trace.status', query.traceStatus);
   }
 
   // Note: only consumer panels should allow filtering by retry count
-  if (messageActorType === MessageActorType.CONSUMER) {
+  if (!isRetryFilterDisabled && messageActorType === MessageActorType.CONSUMER) {
     if (query.retryCount === '0') {
       sampleFilters.addFilterValue('measurements.messaging.message.retry.count', '0');
     } else if (query.retryCount === '1-3') {
@@ -311,6 +318,7 @@ export function MessageSpanSamplesPanel() {
               <CompactSelect
                 searchable
                 value={query.traceStatus}
+                disabled={isStatusFilterDisabled}
                 options={TRACE_STATUS_SELECT_OPTIONS}
                 onChange={handleTraceStatusChange}
                 triggerProps={{
@@ -320,6 +328,7 @@ export function MessageSpanSamplesPanel() {
               {messageActorType === MessageActorType.CONSUMER && (
                 <CompactSelect
                   value={query.retryCount}
+                  disabled={isRetryFilterDisabled}
                   options={RETRY_COUNT_SELECT_OPTIONS}
                   onChange={handleRetryCountChange}
                   triggerProps={{
