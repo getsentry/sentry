@@ -124,7 +124,7 @@ export default function SpanMetricsTable(props: Props) {
       cursor: spansCursor,
       limit: LIMIT,
     },
-    ''
+    'api.performance.transaction-spans'
   );
 
   return (
