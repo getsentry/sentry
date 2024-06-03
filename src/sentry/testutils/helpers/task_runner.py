@@ -45,7 +45,7 @@ class _BurstState:
         kwargs: dict[str, Any] | None = None,
         countdown: float | None = None,
         queue: str | None = None,
-        **options,
+        **options: Any,
     ) -> None:
         if not self._active:
             raise AssertionError("task enqueued to burst runner while burst was not active!")
