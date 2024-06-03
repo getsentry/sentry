@@ -130,13 +130,7 @@ export class VirtualizedViewManager {
   private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
 
-  replay_indicators: {
-    current: VerticalIndicator;
-    hover: VerticalIndicator;
-  } = {
-    current: {ref: null, timestamp: undefined},
-    hover: {ref: null, timestamp: undefined},
-  };
+  vertical_indicators: {[key: string]: VerticalIndicator} = {};
 
   timers: {
     onFovChange: {id: number} | null;
@@ -525,40 +519,10 @@ export class VirtualizedViewManager {
     }
   }
 
-  registerReplayTimestamp(
-    ref: HTMLElement | null,
-    timestamp: number,
-    type: 'current' | 'hover'
-  ) {
-    if (ref) {
-      this.replay_indicators[type] = {ref, timestamp};
-      this.drawReplayTimestamp(ref, timestamp);
-    }
-  }
-
-  registerReplayTimestamps({
-    current,
-    hover,
-    traceStartTimestamp,
-  }: {
-    current: {ref: HTMLElement | null; timestamp: number};
-    hover: {ref: HTMLElement | null; timestamp: number | undefined};
-    traceStartTimestamp: number;
-  }) {
-    if (current.ref) {
-      this.replay_indicators.current = {
-        ref: current.ref,
-        timestamp: traceStartTimestamp + current.timestamp,
-      };
-      this.drawReplayTimestamp(current.ref, traceStartTimestamp + current.timestamp);
-    }
-
-    if (hover.ref && hover.timestamp) {
-      this.replay_indicators.hover = {
-        ref: hover.ref,
-        timestamp: traceStartTimestamp + hover.timestamp,
-      };
-      this.drawReplayTimestamp(hover.ref, traceStartTimestamp + hover.timestamp);
+  registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
+    if (indicator.ref) {
+      this.vertical_indicators[key] = indicator;
+      this.drawVerticalIndicator(indicator);
     }
   }
 
@@ -1459,8 +1423,11 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
+    for (const key in this.vertical_indicators) {
+      this.drawVerticalIndicator(this.vertical_indicators[key]);
+    }
+
     this.drawTimelineIntervals();
-    this.drawReplayTimestamps();
   }
 
   // DRAW METHODS
@@ -1522,12 +1489,6 @@ export class VirtualizedViewManager {
     }
   }
 
-  drawReplayTimestamps() {
-    const {current, hover} = this.replay_indicators;
-    this.drawReplayTimestamp(current.ref, current.timestamp);
-    this.drawReplayTimestamp(hover.ref, hover.timestamp);
-  }
-
   drawReplayTimestamp(ref: HTMLElement | null, timestamp: number | undefined) {
     if (!ref) {
       return;
@@ -1540,6 +1501,21 @@ export class VirtualizedViewManager {
     const placement = this.computeTransformXFromTimestamp(timestamp);
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
+  }
+
+  drawVerticalIndicator(indicator: VerticalIndicator) {
+    if (!indicator.ref) {
+      return;
+    }
+
+    if (indicator.timestamp === undefined) {
+      indicator.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
+    indicator.ref.style.opacity = '1';
+    indicator.ref.style.transform = `translateX(${placement}px)`;
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {

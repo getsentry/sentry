@@ -1651,16 +1651,16 @@ function ReplayTimeStampIndicators({
       currentTime: number;
     }) => {
       if (traceStartTimestamp !== undefined) {
-        viewmanager.registerReplayTimestamps({
-          current: {
-            ref: currentTimeStampIndicatorRef.current,
-            timestamp: currentTime,
-          },
-          hover: {
-            ref: currentHoverTimeStampIndicatorRef.current,
-            timestamp: currentHoverTime,
-          },
-          traceStartTimestamp,
+        viewmanager.registerVerticalIndicator('replay_current_timestamp', {
+          ref: currentTimeStampIndicatorRef.current,
+          timestamp: traceStartTimestamp + currentTime,
+        });
+
+        viewmanager.registerVerticalIndicator('replay_hover_timestamp', {
+          ref: currentHoverTimeStampIndicatorRef.current,
+          timestamp: currentHoverTime
+            ? traceStartTimestamp + currentHoverTime
+            : undefined,
         });
       }
     };
