@@ -307,7 +307,11 @@ export const QueryBuilder = memo(function QueryBuilder({
       selectedProjects[0];
 
     // Add disabled percentiles options if the metric is a distribution and the feature is not enabled
-    if (selectedMeta?.type === 'd' && !organization.metricsActivatePercentiles) {
+    if (
+      firstProject &&
+      selectedMeta?.type === 'd' &&
+      !organization.metricsActivatePercentiles
+    ) {
       return options.concat(...getDisabledPercentileOptions(firstProject.slug));
     }
 
