@@ -1,10 +1,12 @@
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.issues.grouptype import (
+    PerformanceHTTPOverheadGroupType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -115,3 +117,13 @@ class TestSlackImageBlockBuilder(
 
         assert image_block and "type" in image_block and image_block["type"] == "image"
         assert "_media/" in image_block["image_url"]
+
+    @patch("sentry_sdk.capture_exception")
+    @with_feature("organizations:slack-function-regression-image")
+    def test_image_not_generated_for_unsupported_issues(self, mock_capture_exception):
+        group = self.create_group()
+        group.update(type=PerformanceHTTPOverheadGroupType.type_id)
+        image_block = ImageBlockBuilder(group=group).build_image_block()
+
+        assert image_block is None
+        assert mock_capture_exception.call_count == 0
