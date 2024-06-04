@@ -294,3 +294,17 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             useCase="custom",
         )
         assert len(response.data) == 4
+
+    def test_metric_not_in_indexer(self):
+        mri = "c:custom/sentry_metric@none"
+        response = self.get_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+            useCase="custom",
+        )
+        assert (
+            response.json()["detail"]
+            == "One of the specified metrics was not found: ['c:custom/sentry_metric@none']"
+        )
+        assert response.status_code == 404

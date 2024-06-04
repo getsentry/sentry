@@ -1,4 +1,4 @@
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,7 +9,11 @@ from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoin
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
-from sentry.snuba.metrics import DerivedMetricParseException, get_all_tags
+from sentry.snuba.metrics import (
+    DerivedMetricParseException,
+    get_all_tags,
+    MetricDoesNotExistInIndexer,
+)
 
 
 @region_silo_endpoint
@@ -47,5 +51,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
+
+        except MetricDoesNotExistInIndexer:
+            raise NotFound(f"One of the specified metrics was not found: {metric_names}")
 
         return Response(tags, status=200)
