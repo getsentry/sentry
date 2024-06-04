@@ -702,7 +702,7 @@ describe('IssueList', function () {
         body: [savedSearch],
       });
 
-      const {routerContext: newRouterContext, router: newRouter} = initializeOrg({
+      const {router: newRouter} = initializeOrg({
         router: {
           location: {
             query: {
@@ -728,7 +728,7 @@ describe('IssueList', function () {
             },
           }}
         />,
-        {context: newRouterContext}
+        {router: newRouter}
       );
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -780,7 +780,7 @@ describe('IssueList', function () {
         method: 'DELETE',
       });
 
-      const {routerContext: newRouterContext, router: newRouter} = initializeOrg(
+      const {router: newRouter} = initializeOrg(
         merge({}, router, {
           router: {
             location: {
@@ -810,7 +810,7 @@ describe('IssueList', function () {
           }}
           savedSearch={localSavedSearch}
         />,
-        {context: newRouterContext}
+        {router: newRouter}
       );
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -1369,9 +1369,9 @@ describe('IssueList', function () {
       },
     };
 
-    const {routerContext: newRouterContext} = initializeOrg();
+    const {router: newRouter} = initializeOrg();
     const {rerender} = render(<IssueListOverview {...props} />, {
-      context: newRouterContext,
+      router: newRouter,
     });
 
     expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
@@ -1394,7 +1394,7 @@ describe('IssueList', function () {
   });
 
   describe('project low trends queue alert', function () {
-    const {routerContext: newRouterContext} = initializeOrg();
+    const {router: newRouter} = initializeOrg();
 
     beforeEach(function () {
       act(() => ProjectsStore.reset());
@@ -1404,7 +1404,7 @@ describe('IssueList', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
       render(<IssueListOverview {...props} />, {
-        context: newRouterContext,
+        router: newRouter,
       });
 
       expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
@@ -1456,7 +1456,7 @@ describe('IssueList', function () {
             }}
           />,
           {
-            context: newRouterContext,
+            router: newRouter,
           }
         );
 
