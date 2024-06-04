@@ -116,7 +116,7 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('when adding a filter by typing, replaces aliases tokens', async function () {
+    it('when adding a filter by typing, replaces aliased tokens', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="" onChange={mockOnChange} />
@@ -126,9 +126,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('status:');
 
       // Component should display alias `status`
-      expect(
-        await screen.findByRole('button', {name: 'Edit filter key: status'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('status')).toBeInTheDocument();
       // Query should use the actual key `is`
       expect(mockOnChange).toHaveBeenCalledWith('is:');
     });
@@ -466,14 +464,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
-      // Should have a free text token "some free text"
-      expect(screen.getByRole('row', {name: 'some free text'})).toBeInTheDocument();
-
-      // Should have a filter token with key "browser.name"
-      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
-
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      await userEvent.keyboard('foo{enter}');
+
+      // Should have a free text token "some free text"
+      expect(
+        await screen.findByRole('row', {name: /some free text/})
+      ).toBeInTheDocument();
+
+      // Should have a filter token "browser.name:foo"
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {

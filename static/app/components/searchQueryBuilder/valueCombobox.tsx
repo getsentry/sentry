@@ -255,6 +255,7 @@ export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
 }: SearchQueryValueBuilderProps) {
+  const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
 
@@ -327,7 +328,7 @@ export function SearchQueryBuilderValueCombobox({
   }, []);
 
   return (
-    <ValueEditing onClick={onClick} data-test-id="filter-value-editing">
+    <ValueEditing ref={ref} onClick={onClick} data-test-id="filter-value-editing">
       {selectedValues.map(value => (
         <SelectedValue key={value}>{value},</SelectedValue>
       ))}
@@ -346,6 +347,8 @@ export function SearchQueryBuilderValueCombobox({
         onKeyDown={onKeyDown}
         autoFocus
         maxOptions={50}
+        openOnFocus
+        shouldCloseOnInteractOutside={el => el !== ref.current}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>

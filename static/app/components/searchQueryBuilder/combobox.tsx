@@ -41,7 +41,9 @@ type SearchQueryBuilderComboboxProps = {
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  openOnFocus?: boolean;
   placeholder?: string;
+  shouldCloseOnInteractOutside?: (el: Element) => boolean;
   tabIndex?: number;
 };
 
@@ -61,8 +63,10 @@ export const SearchQueryBuilderCombobox = forwardRef(
       onKeyDown,
       onInputChange,
       autoFocus,
+      openOnFocus,
       tabIndex = -1,
       maxOptions,
+      shouldCloseOnInteractOutside,
     }: SearchQueryBuilderComboboxProps,
     ref
   ) => {
@@ -110,6 +114,11 @@ export const SearchQueryBuilderCombobox = forwardRef(
         inputValue: filterValue,
         onSelectionChange,
         autoFocus,
+        onFocus: () => {
+          if (openOnFocus) {
+            state.open();
+          }
+        },
         onBlur: () => {
           onCustomValueBlurred(inputValue);
           state.close();
@@ -145,6 +154,7 @@ export const SearchQueryBuilderCombobox = forwardRef(
       offset: [0, 8],
       isKeyboardDismissDisabled: true,
       shouldCloseOnBlur: true,
+      shouldCloseOnInteractOutside,
       onInteractOutside: () => {
         if (state.inputValue) {
           onCustomValueBlurred(inputValue);
