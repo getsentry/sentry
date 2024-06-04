@@ -128,6 +128,8 @@ export function TraceBreakdownRenderer({
             sliceEnd={breakdown.end}
             sliceDurationReal={breakdown.duration}
             sliceSecondaryName={breakdown.sdkName}
+            sliceNumberStart={breakdown.sliceStart}
+            sliceNumberWidth={breakdown.sliceWidth}
             trace={trace}
             theme={theme}
             offset={index}
@@ -146,16 +148,22 @@ export function TraceBreakdownRenderer({
   );
 }
 
-const BREAKDOWN_BAR_SIZE = 200;
-const BREAKDOWN_QUANTIZE_STEP = 1;
-const BREAKDOWN_NUM_SLICES = BREAKDOWN_BAR_SIZE / BREAKDOWN_QUANTIZE_STEP; // 200
+const BREAKDOWN_SIZE_PX = 200;
+export const BREAKDOWN_SLICES = 40;
 
+/**
+ * This renders slices in two different ways;
+ * - Slices in the breakdown for the trace. These have slice numbers returned for quantization from the backend.
+ * - Slices derived from span timings. Spans aren't quantized into slices.
+ */
 export function SpanBreakdownSliceRenderer({
   trace,
   theme,
   sliceName,
   sliceStart,
   sliceEnd,
+  sliceNumberStart,
+  sliceNumberWidth,
   sliceDurationReal,
   sliceSecondaryName,
   onMouseEnter,
@@ -170,26 +178,34 @@ export function SpanBreakdownSliceRenderer({
   trace: TraceResult<Field>;
   offset?: number;
   sliceDurationReal?: number;
+  sliceNumberStart?: number;
+  sliceNumberWidth?: number;
 }) {
-  const traceSliceSize = (trace.end - trace.start) / BREAKDOWN_NUM_SLICES;
-  const traceDuration = BREAKDOWN_NUM_SLICES * traceSliceSize;
+  const traceDuration = trace.end - trace.start;
 
   const sliceDuration = sliceEnd - sliceStart;
 
-  if (sliceDuration <= 0) {
+  if (sliceNumberWidth === 0 && sliceNumberWidth === undefined && sliceDuration <= 0) {
+    // No slice width or no duration width if it's a regular span.
     return null;
   }
+
+  const pixelsPerSlice = BREAKDOWN_SIZE_PX / BREAKDOWN_SLICES;
+  const relativeSliceStart = sliceStart - trace.start;
 
   const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
   const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
 
   const sliceWidth =
-    BREAKDOWN_QUANTIZE_STEP *
-    Math.ceil(BREAKDOWN_NUM_SLICES * (sliceDuration / traceDuration));
-  const relativeSliceStart = sliceStart - trace.start;
+    sliceNumberWidth !== undefined
+      ? pixelsPerSlice * sliceNumberWidth
+      : pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration));
   const sliceOffset =
-    BREAKDOWN_QUANTIZE_STEP *
-    Math.floor((BREAKDOWN_NUM_SLICES * relativeSliceStart) / traceDuration);
+    sliceNumberStart !== undefined
+      ? pixelsPerSlice * sliceNumberStart
+      : pixelsPerSlice *
+        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration);
+
   return (
     <BreakdownSlice
       sliceName={sliceName}
