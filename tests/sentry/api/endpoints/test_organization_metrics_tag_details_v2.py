@@ -127,7 +127,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             metric=["d:custom/my_test_metric@percent"],
             project=[self.project.id],
             useCase="custom",
-            tagValuePrefix="tag_val",
+            prefix="tag_val",
         )
         assert sorted(response.data, key=lambda x: x["value"]) == [
             {"key": "mytag", "value": "tag_value_1"},
@@ -143,7 +143,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             metric=["d:custom/my_test_metric@percent"],
             project=[self.project.id],
             useCase="custom",
-            tagValuePrefix="this_does_not_exist",
+            prefix="this_does_not_exist",
         )
         assert len(response.data) == 0
 
@@ -154,7 +154,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             metric=["d:custom/my_non_existent_metric@percent"],
             project=[self.project.id],
             useCase="custom",
-            tagValuePrefix="this_does_not_exist",
+            prefix="this_does_not_exist",
         )
         assert response.status_code == 404
         assert (
@@ -169,7 +169,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             metric=["d:custom/my_non_existent_metric@percent"],
             project=[self.project.id],
             useCase="custom",
-            tagValuePrefix="this_does_not_exist",
+            prefix="this_does_not_exist",
         )
         assert response.status_code == 404
         assert (
@@ -184,7 +184,7 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             metric=["d:custom/my_test_metric@percent"],
             project=[self.project.id],
             useCase="custom",
-            tagValuePrefix="",
+            prefix="",
         )
         assert sorted(response.data, key=lambda x: x["value"]) == [
             {"key": "mytag", "value": "my_tag_value_5"},
