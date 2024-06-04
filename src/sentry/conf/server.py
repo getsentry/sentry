@@ -1454,8 +1454,6 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # potentially unused.
     "organizations:api-keys": False,
-    # Enable multiple Apple app-store-connect sources per project.
-    "organizations:app-store-connect-multiple": False,
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
@@ -1503,8 +1501,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-video": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
-    # Enable data forwarding functionality for projects.
-    "projects:data-forwarding": True,
     # Enable setting priority for issues
     "projects:issue-priority": True,
     # Enable functionality for attaching  minidumps to events and displaying
