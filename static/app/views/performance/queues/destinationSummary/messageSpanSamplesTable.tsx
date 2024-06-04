@@ -57,7 +57,7 @@ const CONSUMER_COLUMN_ORDER: Column[] = [
   },
   {
     key: SpanIndexedField.SPAN_DURATION,
-    name: t('Processing Time'),
+    name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
