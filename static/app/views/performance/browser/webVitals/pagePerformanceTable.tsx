@@ -84,7 +84,7 @@ export function PagePerformanceTable() {
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsQuery({
     limit: MAX_ROWS,
-    transaction: `*${escapeFilterValue(query)}*`,
+    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
   });

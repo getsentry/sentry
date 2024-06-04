@@ -62,6 +62,69 @@ describe('PageOverview', function () {
     jest.clearAllMocks();
   });
 
+  it('renders', () => {
+    render(<PageOverview />, {organization});
+    // Raw web vital metric tile queries
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'p75(measurements.inp)',
+            'p75(transaction.duration)',
+            'count_web_vitals(measurements.lcp, any)',
+            'count_web_vitals(measurements.fcp, any)',
+            'count_web_vitals(measurements.cls, any)',
+            'count_web_vitals(measurements.fid, any)',
+            'count_web_vitals(measurements.ttfb, any)',
+            'count()',
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+    // Project performance score ring query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            `performance_score(measurements.score.inp)`,
+            'performance_score(measurements.score.ttfb)',
+            'avg(measurements.score.total)',
+            'avg(measurements.score.weight.lcp)',
+            'avg(measurements.score.weight.fcp)',
+            'avg(measurements.score.weight.cls)',
+            `avg(measurements.score.weight.inp)`,
+            'avg(measurements.score.weight.ttfb)',
+            'count()',
+            'count_scores(measurements.score.total)',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.ttfb)',
+            `count_scores(measurements.score.inp)`,
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+  });
+
   it('renders FID deprecation alert', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
