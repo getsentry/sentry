@@ -1,7 +1,9 @@
 import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -20,9 +22,13 @@ export interface ContentProps {
    */
   item: KeyValueListDataItem;
   /**
-   * Displays tag value as plain text, rather than a hyperlink if applicable.
+   * If enabled, renders raw value instead of formatted structured data
    */
-  disableRichValue?: boolean;
+  disableFormattedData?: boolean;
+  /**
+   * If enabled, avoids rendering links, even if provided via `item.action.link`.
+   */
+  disableLink?: boolean;
   /**
    * Errors pertaining to content item
    */
@@ -37,14 +43,21 @@ export function Content({
   item,
   meta,
   errors = [],
-  disableRichValue = false,
+  disableLink = false,
+  disableFormattedData = false,
   ...props
 }: ContentProps) {
   const {subject, subjectNode, value: contextValue, action = {}} = item;
 
   const hasErrors = errors.length > 0;
 
-  const dataComponent = (
+  const dataComponent = disableFormattedData ? (
+    React.isValidElement(contextValue) ? (
+      contextValue
+    ) : (
+      <AnnotatedText value={contextValue as string} meta={meta} />
+    )
+  ) : (
     <StructuredData
       value={contextValue}
       depth={0}
@@ -60,7 +73,7 @@ export function Content({
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasErrors={hasErrors}>
-          {!disableRichValue && defined(action?.link) ? (
+          {!disableLink && defined(action?.link) ? (
             <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent
