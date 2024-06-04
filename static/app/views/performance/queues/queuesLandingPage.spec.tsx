@@ -12,9 +12,7 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
 describe('queuesLandingPage', () => {
-  const organization = OrganizationFixture({
-    features: ['performance-queues-view', 'insights-addon-modules'],
-  });
+  const organization = OrganizationFixture({features: ['performance-queues-view']});
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,

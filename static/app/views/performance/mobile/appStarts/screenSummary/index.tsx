@@ -200,7 +200,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="app_start"
       pageTitle={transaction}
-      features="insights-initial-modules"
+      features="spans-first-ui"
     >
       <ScreenSummary />
     </ModulePageProviders>

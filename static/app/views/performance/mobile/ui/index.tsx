@@ -24,7 +24,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="mobile-ui"
-      features={['insights-addon-modules', 'starfish-mobile-ui-module']}
+      features={['spans-first-ui', 'starfish-mobile-ui-module']}
     >
       <ResponsivenessModule />
     </ModulePageProviders>
