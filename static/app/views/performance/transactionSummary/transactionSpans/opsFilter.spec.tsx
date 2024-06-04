@@ -61,7 +61,7 @@ describe('Performance > Transaction Spans', function () {
         handleOpChange={() => {}}
         transactionName="Test Transaction"
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
@@ -89,7 +89,7 @@ describe('Performance > Transaction Spans', function () {
         handleOpChange={handleOpChange}
         transactionName="Test Transaction"
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(handleOpChange).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe('Performance > Transaction Spans', function () {
         handleOpChange={handleOpChange}
         transactionName="Test Transaction"
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByRole('button', {name: 'op1'})).toBeInTheDocument();

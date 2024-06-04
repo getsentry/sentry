@@ -25,7 +25,7 @@ describe('MonitorForm', function () {
 
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
-  const {project, routerContext} = initializeOrg({organization});
+  const {project, router} = initializeOrg({organization});
 
   beforeEach(() => {
     jest.mocked(useProjects).mockReturnValue({
@@ -66,7 +66,7 @@ describe('MonitorForm', function () {
         apiEndpoint={`/organizations/${organization.slug}/monitors/`}
         onSubmitSuccess={jest.fn()}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
@@ -88,7 +88,7 @@ describe('MonitorForm', function () {
         onSubmitSuccess={mockHandleSubmitSuccess}
         submitLabel="Add Monitor"
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'My Monitor');
@@ -190,7 +190,7 @@ describe('MonitorForm', function () {
         onSubmitSuccess={jest.fn()}
         submitLabel="Edit Monitor"
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     // Name and slug
