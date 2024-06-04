@@ -8,7 +8,7 @@ class OrganizationMemberDeletionTask(ModelDeletionTask):
         relations = [
             ModelRelation(
                 GroupSearchView,
-                {"user_id": instance.user_id, "organization": instance.organization},
+                {"user_id": instance.user_id, "organization_id": instance.organization_id},
             )
         ]
 
