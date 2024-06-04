@@ -155,7 +155,7 @@ def get_condition_group_results(
             unique_condition.environment_id,
             comparison_type,
         )
-        condition_group_results[unique_condition] = result
+        condition_group_results[unique_condition] = result or {}
     return condition_group_results
 
 

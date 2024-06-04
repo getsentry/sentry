@@ -21,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 import {
@@ -437,12 +437,15 @@ class UsageStatsOrganization<
       };
 
       orgStats.groups.forEach(group => {
-        const {outcome, category} = group.by;
+        const {outcome} = group.by;
+        // TODO(metrics): remove this when metrics category name is updated
+        const category =
+          group.by.category === DATA_CATEGORY_INFO.metrics.apiName
+            ? DATA_CATEGORY_INFO.metrics.plural
+            : group.by.category;
+
         // HACK: The backend enum are singular, but the frontend enums are plural
-        if (
-          dataCategory !== DATA_CATEGORY_INFO.metrics.plural &&
-          !dataCategory.includes(`${category}`)
-        ) {
+        if (!dataCategory.includes(`${category}`)) {
           return;
         }
 

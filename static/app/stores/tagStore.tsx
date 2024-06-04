@@ -56,6 +56,7 @@ const storeConfig: TagStoreDefinition = {
 
     const tagCollection = {
       [FieldKey.IS]: {
+        alias: 'issue.status',
         key: FieldKey.IS,
         name: 'Status',
         values: isSuggestions,
