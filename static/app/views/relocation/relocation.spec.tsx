@@ -86,14 +86,14 @@ describe('Relocation', function () {
       step,
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {router, routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
     });
 
     return render(<Relocation {...routerProps} />, {
-      context: routerContext,
+      router,
       organization,
     });
   }

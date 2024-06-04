@@ -25,7 +25,7 @@ const EXAMPLE_INTEGRATION = {
 };
 
 describe('TeamNotificationSettings', () => {
-  const {organization, routerContext, routerProps} = initializeOrg();
+  const {organization, router, routerProps} = initializeOrg();
   const team = TeamFixture();
 
   beforeEach(() => {
@@ -52,7 +52,7 @@ describe('TeamNotificationSettings', () => {
         params={{teamId: team.id}}
         organization={organization}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(
@@ -81,7 +81,7 @@ describe('TeamNotificationSettings', () => {
         organization={organization}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -109,7 +109,7 @@ describe('TeamNotificationSettings', () => {
         organization={organization}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -149,7 +149,7 @@ describe('TeamNotificationSettings', () => {
         organization={organization}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 

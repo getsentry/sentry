@@ -363,7 +363,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
         location={data.location}
       />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );

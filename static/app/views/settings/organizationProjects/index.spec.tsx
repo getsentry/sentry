@@ -1,6 +1,5 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -11,7 +10,6 @@ describe('OrganizationProjects', function () {
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
   const project = ProjectFixture();
-  const {routerContext} = initializeOrg();
 
   beforeEach(function () {
     projectsGetMock = MockApiClient.addMockResponse({
@@ -53,9 +51,7 @@ describe('OrganizationProjects', function () {
 
   it('should search organization projects', async function () {
     jest.useFakeTimers();
-    render(<OrganizationProjectsContainer />, {
-      context: routerContext,
-    });
+    render(<OrganizationProjectsContainer />);
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 

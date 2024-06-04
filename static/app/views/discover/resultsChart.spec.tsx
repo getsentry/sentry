@@ -59,7 +59,7 @@ describe('Discover > ResultsChart', function () {
         yAxis={['count()', 'failure_count()']}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await userEvent.click(screen.getByText(/Display/));
@@ -93,7 +93,7 @@ describe('Discover > ResultsChart', function () {
         yAxis={[]}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();

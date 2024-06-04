@@ -10,7 +10,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
@@ -59,7 +59,7 @@ describe('UserFeedback', function () {
       headers: {Link: pageLinks},
     });
 
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     expect(await screen.findByText('Something bad happened')).toBeInTheDocument();
   });
@@ -74,7 +74,7 @@ describe('UserFeedback', function () {
       },
       ...routeProps,
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     expect(
       screen.getByText('You need at least one project to use this view')
@@ -96,7 +96,7 @@ describe('UserFeedback', function () {
       },
       ...routeProps,
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
@@ -122,7 +122,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
@@ -137,7 +137,7 @@ describe('UserFeedback', function () {
       },
       ...routeProps,
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     // "Unresolved"  is selected by default
     const unresolved = screen.getByRole('radio', {name: 'Unresolved'});
@@ -176,7 +176,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(<UserFeedback {...params} />, {context: routerContext});
+    render(<UserFeedback {...params} />);
 
     expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });

@@ -14,7 +14,7 @@ import {
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 
 describe('EventAttachments', function () {
-  const {routerContext, organization, project} = initializeOrg({
+  const {router, organization, project} = initializeOrg({
     organization: {
       features: ['event-attachments'],
       orgRole: 'member',
@@ -41,7 +41,7 @@ describe('EventAttachments', function () {
     });
     const strippedCrashEvent = {...event, metadata: {stripped_crash: true}};
     render(<EventAttachments {...props} event={strippedCrashEvent} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -77,7 +77,7 @@ describe('EventAttachments', function () {
         {...props}
         event={{...event, metadata: {stripped_crash: false}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     // No loading state to wait for
@@ -87,14 +87,13 @@ describe('EventAttachments', function () {
   });
 
   it('displays message when user lacks permission to preview an attachment', async function () {
-    const {routerContext: newRouterContext, organization: orgWithWrongAttachmentRole} =
-      initializeOrg({
-        organization: {
-          features: ['event-attachments'],
-          orgRole: 'member',
-          attachmentsRole: 'admin',
-        },
-      } as any);
+    const {router: newRouter, organization: orgWithWrongAttachmentRole} = initializeOrg({
+      organization: {
+        features: ['event-attachments'],
+        orgRole: 'member',
+        attachmentsRole: 'admin',
+      },
+    } as any);
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
@@ -114,7 +113,7 @@ describe('EventAttachments', function () {
     });
 
     render(<EventAttachments {...props} />, {
-      context: newRouterContext,
+      router: newRouter,
       organization: orgWithWrongAttachmentRole,
     });
 
@@ -145,7 +144,7 @@ describe('EventAttachments', function () {
       body: 'file contents',
     });
 
-    render(<EventAttachments {...props} />, {context: routerContext, organization});
+    render(<EventAttachments {...props} />, {router, organization});
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
@@ -172,7 +171,7 @@ describe('EventAttachments', function () {
       method: 'DELETE',
     });
 
-    render(<EventAttachments {...props} />, {context: routerContext, organization});
+    render(<EventAttachments {...props} />, {router, organization});
     renderGlobalModal();
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();

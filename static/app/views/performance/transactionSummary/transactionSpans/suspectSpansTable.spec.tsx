@@ -34,7 +34,7 @@ describe('SuspectSpansTable', () => {
         totals={{'count()': 100}}
         sort={SpanSortOthers.SUM_EXCLUSIVE_TIME}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     const frequencyHeader = await screen.findByTestId('grid-editable');

@@ -168,7 +168,7 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown with access', async function () {
-    const {organization: org, routerContext} = initializeOrg({
+    const {organization: org} = initializeOrg({
       organization: OrganizationFixture({
         access: ['team:admin'],
         openMembership: false,
@@ -181,7 +181,7 @@ describe('TeamMembers', function () {
         organization={org}
         team={team}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(
@@ -193,7 +193,7 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
-    const {organization: org, routerContext} = initializeOrg({
+    const {organization: org} = initializeOrg({
       organization: OrganizationFixture({
         access: ['team:admin'],
         openMembership: true,
@@ -206,7 +206,7 @@ describe('TeamMembers', function () {
         organization={org}
         team={team}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(
@@ -218,7 +218,7 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
-    const {organization: org, routerContext} = initializeOrg({
+    const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: true}),
     });
     render(
@@ -228,7 +228,7 @@ describe('TeamMembers', function () {
         organization={org}
         team={team}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(
@@ -240,7 +240,7 @@ describe('TeamMembers', function () {
   });
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
-    const {organization: org, routerContext} = initializeOrg({
+    const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: false}),
     });
     render(
@@ -250,7 +250,7 @@ describe('TeamMembers', function () {
         organization={org}
         team={team}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(

@@ -101,7 +101,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await screen.findByText('Discover Trends');
@@ -119,7 +119,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -153,7 +153,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -172,7 +172,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
@@ -201,7 +201,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -248,7 +248,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
@@ -281,7 +281,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -317,7 +317,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await userEvent.click(await screen.findByText('24H'));
@@ -355,7 +355,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
@@ -411,7 +411,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
@@ -467,7 +467,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -502,7 +502,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());

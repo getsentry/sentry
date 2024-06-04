@@ -14,7 +14,7 @@ jest.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
   let initialData: Config;
-  const {organization, project, routerContext, routerProps} = initializeOrg();
+  const {organization, project, router, routerProps} = initializeOrg();
   const organizations = [
     organization,
     OrganizationFixture({
@@ -43,7 +43,7 @@ describe('OrganizationCrumb', function () {
     >
   ) =>
     render(<OrganizationCrumb {...routerProps} params={{}} {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 

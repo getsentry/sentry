@@ -59,7 +59,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    const {routerContext, router} = initializeOrg({
+    const {router} = initializeOrg({
       projects: [],
       router: {
         params: {orgId: 'org-slug'},
@@ -67,7 +67,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('Displays pretty dynamic sampling logs', async function () {
-    const {routerContext, router, project, projects, organization} = initializeOrg({
+    const {router, project, projects, organization} = initializeOrg({
       router: {
         params: {orgId: 'org-slug'},
       },
@@ -128,7 +128,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Enabled dynamic sampling priority

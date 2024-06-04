@@ -156,12 +156,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     ProjectsStore.loadInitialData(organization.projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Breadcrumb
@@ -190,12 +190,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     ProjectsStore.loadInitialData(organization.projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
@@ -205,12 +205,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     ProjectsStore.loadInitialData(organization.projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     const tableHeader = await screen.findAllByRole('columnheader');
@@ -234,14 +234,14 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders additional Web Vital column', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {webVital: WebVital.LCP},
     });
 
     ProjectsStore.loadInitialData(organization.projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     const tableHeader = await screen.findAllByRole('columnheader');

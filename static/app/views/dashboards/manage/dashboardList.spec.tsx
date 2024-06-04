@@ -24,7 +24,7 @@ describe('Dashboards - DashboardList', function () {
     projects: [ProjectFixture()],
   });
 
-  const {router, routerContext} = initializeOrg();
+  const {router} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -137,7 +137,7 @@ describe('Dashboards - DashboardList', function () {
         pageLinks=""
         location={router.location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -159,7 +159,7 @@ describe('Dashboards - DashboardList', function () {
         pageLinks=""
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -177,7 +177,7 @@ describe('Dashboards - DashboardList', function () {
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 

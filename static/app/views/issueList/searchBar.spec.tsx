@@ -10,7 +10,7 @@ describe('IssueListSearchBar', function () {
   let recentSearchMock;
   let defaultProps;
 
-  const {routerContext, organization} = initializeOrg();
+  const {router, organization} = initializeOrg();
 
   beforeEach(function () {
     TagStore.reset();
@@ -42,7 +42,7 @@ describe('IssueListSearchBar', function () {
       });
 
       render(<IssueListSearchBar {...defaultProps} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -68,7 +68,7 @@ describe('IssueListSearchBar', function () {
       });
 
       render(<IssueListSearchBar {...defaultProps} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -85,7 +85,7 @@ describe('IssueListSearchBar', function () {
       });
 
       render(<IssueListSearchBar {...defaultProps} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -110,7 +110,7 @@ describe('IssueListSearchBar', function () {
       const onSearch = jest.fn();
 
       render(<IssueListSearchBar {...defaultProps} onSearch={onSearch} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -148,7 +148,7 @@ describe('IssueListSearchBar', function () {
         body: [],
       });
 
-      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
+      render(<IssueListSearchBar {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('is:', {delay: null});

@@ -43,7 +43,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg();
+    const {organization, routerProps, router} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -65,7 +65,7 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -84,7 +84,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders selected incident', async () => {
-    const {routerContext, organization, router, routerProps} = initializeOrg();
+    const {organization, router, routerProps} = initializeOrg();
     const rule = MetricRuleFixture({projects: [project.slug]});
     const incident = IncidentFixture();
 
@@ -113,7 +113,7 @@ describe('MetricAlertDetails', () => {
         location={{...router.location, query: {alert: incident.id}}}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -131,7 +131,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders mute button for metric alert', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg();
+    const {organization, routerProps, router} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -162,7 +162,7 @@ describe('MetricAlertDetails', () => {
         organization={organization}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findByText('Mute for me')).toBeInTheDocument();
@@ -177,7 +177,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg({
+    const {organization, routerProps, router} = initializeOrg({
       organization: {features: ['discover-basic', 'metric-alert-ignore-archived']},
     });
     const rule = MetricRuleFixture({
@@ -205,7 +205,7 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);

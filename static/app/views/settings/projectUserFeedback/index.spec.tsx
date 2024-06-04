@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectUserFeedback from 'sentry/views/settings/projectUserFeedback';
 
 describe('ProjectUserFeedback', function () {
-  const {routerProps, organization, project, routerContext} = initializeOrg();
+  const {routerProps, organization, project, router} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -31,7 +31,7 @@ describe('ProjectUserFeedback', function () {
         project={project}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -57,7 +57,7 @@ describe('ProjectUserFeedback', function () {
 });
 
 describe('ProjectUserFeedbackProcessing', function () {
-  const {routerProps, organization, project, routerContext} = initializeOrg();
+  const {routerProps, organization, project, router} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -82,7 +82,7 @@ describe('ProjectUserFeedbackProcessing', function () {
         project={project}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 

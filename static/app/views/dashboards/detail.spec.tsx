@@ -163,7 +163,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       expect(await screen.findByText('Default Widget 1')).toBeInTheDocument();
@@ -183,7 +183,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </CreateDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -389,7 +389,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
@@ -445,7 +445,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       await waitFor(() =>
@@ -474,7 +474,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       // Enter edit mode.
@@ -512,7 +512,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
       expect(mockReleases).toHaveBeenCalledTimes(1);
@@ -534,7 +534,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       // Enter edit mode.
@@ -594,7 +594,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       expect(await screen.findByText('First Widget')).toBeInTheDocument();
@@ -637,7 +637,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -683,7 +683,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -731,7 +731,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -773,7 +773,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -803,7 +803,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -842,7 +842,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -885,7 +885,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -924,7 +924,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -956,7 +956,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -991,7 +991,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -1042,7 +1042,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1105,7 +1105,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText('7D');
@@ -1156,7 +1156,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1212,7 +1212,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText('7D');
@@ -1274,7 +1274,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
@@ -1331,7 +1331,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
@@ -1379,7 +1379,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1426,7 +1426,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1480,7 +1480,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
@@ -1545,7 +1545,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('All Releases'));

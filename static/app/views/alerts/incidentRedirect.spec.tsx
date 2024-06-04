@@ -12,7 +12,7 @@ jest.mock('sentry/utils/analytics');
 
 describe('IncidentRedirect', () => {
   const params = {alertId: '123'};
-  const {organization, project, routerContext, routerProps} = initializeOrg({
+  const {organization, project, router, routerProps} = initializeOrg({
     router: {
       params,
     },
@@ -33,7 +33,7 @@ describe('IncidentRedirect', () => {
 
   it('redirects to alert details page', async () => {
     render(<IncidentRedirect organization={organization} {...routerProps} />, {
-      context: routerContext,
+      router,
     });
 
     expect(trackAnalytics).toHaveBeenCalledWith(

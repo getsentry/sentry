@@ -202,7 +202,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {context: data.routerContext}
+        {router: data.router}
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');

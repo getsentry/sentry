@@ -152,7 +152,7 @@ let tid = -1;
 const span_id = () => `${++sid}`;
 const txn_id = () => `${++tid}`;
 
-const {routerContext} = initializeOrg({
+const {router} = initializeOrg({
   router: {
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
   },
@@ -241,7 +241,7 @@ async function keyboardNavigationTestSetup() {
   mockTraceEventDetails();
   mockMetricsResponse();
 
-  const value = render(<TraceView />, {context: routerContext});
+  const value = render(<TraceView />, {router});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -285,7 +285,7 @@ async function pageloadTestSetup() {
   mockTraceEventDetails();
   mockMetricsResponse();
 
-  const value = render(<TraceView />, {context: routerContext});
+  const value = render(<TraceView />, {router});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -329,7 +329,7 @@ async function searchTestSetup() {
   mockTraceEventDetails();
   mockMetricsResponse();
 
-  const value = render(<TraceView />, {context: routerContext});
+  const value = render(<TraceView />, {router});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -379,7 +379,7 @@ async function simpleTestSetup() {
   mockTraceEventDetails();
   mockMetricsResponse();
 
-  const value = render(<TraceView />, {context: routerContext});
+  const value = render(<TraceView />, {router});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -504,7 +504,7 @@ describe('trace view', () => {
     mockTraceMetaResponse();
     mockTraceTagsResponse();
 
-    render(<TraceView />, {context: routerContext});
+    render(<TraceView />, {router});
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
@@ -513,7 +513,7 @@ describe('trace view', () => {
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
 
-    render(<TraceView />, {context: routerContext});
+    render(<TraceView />, {router});
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
   });
 
@@ -527,7 +527,7 @@ describe('trace view', () => {
     mockTraceMetaResponse();
     mockTraceTagsResponse();
 
-    render(<TraceView />, {context: routerContext});
+    render(<TraceView />, {router});
     expect(
       await screen.findByText(/trace does not contain any data/i)
     ).toBeInTheDocument();
@@ -1135,7 +1135,7 @@ describe('trace view', () => {
         }
       );
 
-      const value = render(<TraceView />, {context: routerContext});
+      const value = render(<TraceView />, {router});
 
       // Awaits for the placeholder rendering rows to be removed
       expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();

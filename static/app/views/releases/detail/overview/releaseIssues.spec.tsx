@@ -114,9 +114,9 @@ describe('ReleaseIssues', function () {
   });
 
   it('can switch issue filters', async function () {
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
 
-    const {rerender} = render(<ReleaseIssues {...props} />, {context: routerContext});
+    const {rerender} = render(<ReleaseIssues {...props} />, {router});
 
     // New
     expect(await screen.findByRole('radio', {name: 'New Issues 0'})).toBeChecked();
@@ -176,9 +176,9 @@ describe('ReleaseIssues', function () {
       body: [GroupFixture({id: '123'})],
     });
 
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
 
-    render(<ReleaseIssues {...props} />, {context: routerContext});
+    render(<ReleaseIssues {...props} />, {router});
 
     await userEvent.click(screen.getByRole('radio', {name: /New Issues/}));
 

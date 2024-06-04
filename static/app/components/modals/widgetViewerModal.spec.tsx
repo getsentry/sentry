@@ -35,7 +35,7 @@ const waitForMetaToHaveBeenCalled = async () => {
 };
 
 async function renderModal({
-  initialData: {organization, routerContext},
+  initialData: {organization, router},
   widget,
   seriesData,
   tableData,
@@ -70,7 +70,7 @@ async function renderModal({
       />
     </div>,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );

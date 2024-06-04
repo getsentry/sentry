@@ -27,7 +27,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 }));
 
 describe('Dashboards > WidgetCard', function () {
-  const {router, organization, routerContext} = initializeOrg({
+  const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
       projects: [ProjectFixture()],
@@ -38,7 +38,7 @@ describe('Dashboards > WidgetCard', function () {
   const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
-      {organization, router, context: routerContext}
+      {organization, router}
     );
 
   const multipleQueryWidget: Widget = {

@@ -27,7 +27,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, routerContext, location;
+  let organization, project, router, location;
   // create wrapper
   const createWrapper = props =>
     render(
@@ -38,7 +38,7 @@ describe('Incident Rules Form', () => {
         project={project}
         {...props}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
   beforeEach(() => {
@@ -49,7 +49,7 @@ describe('Incident Rules Form', () => {
     project = initialData.project;
     location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
-    routerContext = initialData.routerContext;
+    router = initialData.router;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],

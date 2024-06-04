@@ -82,7 +82,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -93,7 +93,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitFor(() =>
@@ -159,7 +159,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitFor(() =>
@@ -232,7 +232,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
@@ -251,7 +251,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -262,7 +262,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
@@ -298,7 +298,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -309,7 +309,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalledTimes(1));
@@ -317,7 +317,7 @@ describe('OrgDashboards', () => {
     rerender(
       <OrgDashboards
         api={api}
-        location={{...initialData.routerContext.location, query: {}}}
+        location={{...initialData.router.location, query: {}}}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -326,7 +326,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}

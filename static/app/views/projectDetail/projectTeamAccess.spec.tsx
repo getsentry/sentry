@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 
 describe('ProjectDetail > ProjectTeamAccess', function () {
-  const {organization, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   it('renders a list', function () {
     render(
@@ -15,7 +15,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
         organization={organization}
         project={ProjectFixture({teams: [TeamFixture()]})}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Team Access')).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
         organization={organization}
         project={ProjectFixture({teams: [TeamFixture()]})}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('link', {name: '#team-slug'})).toHaveAttribute(
@@ -39,7 +39,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
 
   it('display the right empty state with access', function () {
     render(<ProjectTeamAccess organization={organization} project={ProjectFixture()} />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
@@ -54,7 +54,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
         organization={{...organization, access: []}}
         project={ProjectFixture({teams: []})}
       />,
-      {context: routerContext}
+      {router}
     );
     expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
   });
@@ -75,7 +75,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
           ],
         })}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
@@ -99,7 +99,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
           ],
         })}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const badges = screen.getAllByTestId('badge-display-name');

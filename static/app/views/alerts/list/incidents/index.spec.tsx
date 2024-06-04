@@ -23,7 +23,7 @@ describe('IncidentsList', () => {
   }
 
   const renderComponent = ({orgOverride}: Props = {}) => {
-    const {organization, routerContext, routerProps, router} = initializeOrg({
+    const {organization, routerProps, router} = initializeOrg({
       organization: {features: ['incidents'], ...orgOverride},
     });
 
@@ -32,7 +32,7 @@ describe('IncidentsList', () => {
         <AlertsContainer>
           <IncidentsList {...routerProps} organization={organization} />
         </AlertsContainer>,
-        {context: routerContext, organization}
+        {router, organization}
       ),
       router,
     };

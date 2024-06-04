@@ -11,7 +11,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
-  const {router, organization, routerContext} = initializeOrg({
+  const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit'],
     }),
@@ -126,7 +126,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
