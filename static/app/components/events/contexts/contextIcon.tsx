@@ -138,10 +138,11 @@ function getLogoImage(name: string) {
 
 type Props = {
   name: string;
+  hideUnknown?: boolean;
   size?: IconSize;
 };
 
-function ContextIcon({name, size: providedSize = 'xl'}: Props) {
+function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Props) {
   const theme = useTheme();
   const size = theme.iconSizes[providedSize];
 
@@ -149,7 +150,12 @@ function ContextIcon({name, size: providedSize = 'xl'}: Props) {
   const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
 
-  return <img height={size} width={size} css={extraCass} src={getLogoImage(name)} />;
+  const imageName = getLogoImage(name);
+  if (hideUnknown && imageName === logoUnknown) {
+    return null;
+  }
+
+  return <img height={size} width={size} css={extraCass} src={imageName} />;
 }
 
 export default ContextIcon;

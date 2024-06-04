@@ -1,6 +1,7 @@
 import {Fragment, isValidElement} from 'react';
 
 import {t} from 'sentry/locale';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {Redaction} from './redaction';
 
@@ -14,7 +15,7 @@ type Props = {
 // first place. It's much more likely that `withMeta` is buggy or improperly
 // used than that this component has a bug.
 export function ValueElement({value, meta}: Props) {
-  if (!!value && meta) {
+  if (!!value && !isEmptyObject(meta)) {
     return <Redaction>{value}</Redaction>;
   }
 
