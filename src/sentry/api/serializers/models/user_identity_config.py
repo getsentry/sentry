@@ -8,12 +8,12 @@ from typing import Any, Union
 
 from django.db.models.base import Model
 
-import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import ControlSiloOrganizationSerializer
 from sentry.auth.provider import Provider
 from sentry.exceptions import NotRegistered
 from sentry.identity import is_login_provider
+from sentry.integrations.manager import default_manager as integrations
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
@@ -88,7 +88,7 @@ class UserIdentityConfig:
             try:
                 provider = identity.get_provider()
             except NotRegistered:
-                provider = sentry.integrations.get(identity.idp.type)
+                provider = integrations.get(identity.idp.type)
 
             return base(
                 provider=UserIdentityProvider.adapt(provider),

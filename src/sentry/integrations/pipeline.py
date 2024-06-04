@@ -26,7 +26,7 @@ from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
-from . import default_manager
+from sentry.integrations.manager import default_manager
 
 
 def ensure_integration(key, data):

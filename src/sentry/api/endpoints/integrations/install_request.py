@@ -3,11 +3,11 @@ from __future__ import annotations
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import integrations
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
+from sentry.integrations.manager import default_manager as integrations
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )

@@ -313,7 +313,6 @@ def register_extensions() -> None:
 
     plugins.register(TestIssuePlugin2)
 
-    from sentry import integrations
     from sentry.integrations.example import (
         AlertRuleIntegrationProvider,
         AliasedIntegrationProvider,
@@ -322,6 +321,7 @@ def register_extensions() -> None:
         FeatureFlagIntegration,
         ServerExampleProvider,
     )
+    from sentry.integrations.manager import default_manager as integrations
 
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)

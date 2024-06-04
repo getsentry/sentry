@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def get_provider(instance: Integration | RpcIntegration) -> IntegrationProvider:
-    from sentry import integrations
+    from sentry.integrations.manager import default_manager as integrations
 
     return integrations.get(instance.provider)
 
