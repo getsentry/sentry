@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import type {InjectedRouter} from 'react-router';
 
-import {useNavigate} from './useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = {
   to: string;
