@@ -1516,14 +1516,16 @@ export class VirtualizedViewManager {
   }
 
   updateIndicatorContainerOffset() {
-    if (this.indicator_container) {
-      const correction =
-        (this.scrollbar_width / this.container_physical_space.width) *
-        this.columns.span_list.width;
-      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
-      this.indicator_container.style.width =
-        (this.columns.span_list.width - correction) * 100 + '%';
+    if (!this.indicator_container) {
+      return;
     }
+
+    const correction =
+      (this.scrollbar_width / this.container_physical_space.width) *
+      this.columns.span_list.width;
+    this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
+    this.indicator_container.style.width =
+      (this.columns.span_list.width - correction) * 100 + '%';
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
