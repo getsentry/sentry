@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -18,6 +19,7 @@ import type {
   Project,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
 import {
@@ -290,7 +292,7 @@ export function getUnknownData({
     .map(([key, value]) => ({
       key,
       value,
-      subject: key,
+      subject: startCase(key),
       meta: meta?.[key]?.[''],
     }));
 }
@@ -309,7 +311,7 @@ export function getContextTitle({
   }
 
   if (!defined(type)) {
-    return alias;
+    return toTitleCase(alias);
   }
 
   switch (type) {
@@ -328,9 +330,9 @@ export function getContextTitle({
     case 'trace':
       return t('Trace Details');
     case 'otel':
-      return 'OpenTelemetry';
+      return t('OpenTelemetry');
     case 'unity':
-      return 'Unity';
+      return t('Unity');
     case 'memory_info': // Current value for memory info
     case 'Memory Info': // Legacy for memory info
       return t('Memory Info');
@@ -344,10 +346,10 @@ export function getContextTitle({
         case 'laravel':
           return t('Laravel Context');
         default:
-          return alias;
+          return toTitleCase(alias);
       }
     default:
-      return type;
+      return toTitleCase(type);
   }
 }
 
