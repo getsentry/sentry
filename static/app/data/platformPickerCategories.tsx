@@ -57,6 +57,7 @@ const server: Set<PlatformKey> = new Set([
   'go-http',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-iris',
   'go-martini',
