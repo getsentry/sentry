@@ -1,4 +1,4 @@
-import {trimSlug} from 'sentry/utils/trimSlug';
+import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 describe('trimSlug', function () {
   it('returns slug if it is already short enough', function () {
