@@ -16,10 +16,10 @@ import type {
 import {SessionField} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {statsPeriodToDays} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';

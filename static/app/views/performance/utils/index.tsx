@@ -14,10 +14,10 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {statsPeriodToDays} from 'sentry/utils/dates';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';

@@ -30,8 +30,8 @@ import type {
   MRI,
   UseCase,
 } from 'sentry/types/metrics';
-import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
