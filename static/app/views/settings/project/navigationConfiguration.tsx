@@ -141,6 +141,12 @@ export default function getConfiguration({
           description: t("View and manage the project's Loader Script"),
         },
         {
+          path: `${pathPrefix}/remote-config/`,
+          title: t('Remote Config'),
+          description: t("View and manage the project's Remote Configuration"),
+          show: organization?.features.includes('remote-config'),
+        },
+        {
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
         },
