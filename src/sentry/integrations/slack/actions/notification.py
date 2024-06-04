@@ -7,7 +7,7 @@ from typing import Any
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import features, options
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
@@ -24,6 +24,7 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
+from sentry.integrations.slack.utils.options import has_slack_sdk_flag
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -167,7 +168,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             organization = event.group.project.organization
 
-            if organization.id in options.get("slack.sdk-issue-alert"):
+            if has_slack_sdk_flag(organization.id):
                 sdk_client = SlackSdkClient(integration_id=integration.id)
                 text = str(payload["text"]) if payload["text"] is not None else None
                 try:

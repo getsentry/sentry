@@ -6,7 +6,7 @@ from sentry.silo.base import SiloMode
 
 
 class SlackSdkClient(WebClient):
-    def __init__(self, integration_id: int):
+    def __init__(self, integration_id: int) -> None:
         integration = None
         if SiloMode.get_current_mode() == SiloMode.REGION:
             integration = integration_service.get_integration(integration_id=integration_id)
