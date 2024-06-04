@@ -147,6 +147,36 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
         )
         assert len(response.data) == 0
 
+    def test_tag_details_prefix_non_existent_metric(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            "mytag",
+            metric=["d:custom/my_non_existent_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+            tagValuePrefix="this_does_not_exist",
+        )
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:custom/my_non_existent_metric@percent and tag: mytag"
+        )
+
+    def test_tag_details_prefix_non_existent_tag_key(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            "mytagkeydoesnotexist",
+            metric=["d:custom/my_non_existent_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+            tagValuePrefix="this_does_not_exist",
+        )
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:custom/my_non_existent_metric@percent and tag: mytagkeydoesnotexist"
+        )
+
     def test_tag_details_empty_prefix(self):
         response = self.get_success_response(
             self.project.organization.slug,

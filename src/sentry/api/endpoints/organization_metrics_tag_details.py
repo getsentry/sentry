@@ -56,6 +56,8 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
         if len(tag_values_formatted) > 0:
             return Response(tag_values_formatted, status=200)
+        elif len(tag_values_formatted) == 0 and len(tag_value_prefix) > 0:
+            return Response(tag_values_formatted, status=200)
         else:
             raise NotFound(self._generate_not_found_message(metric_names, tag_name))
 
