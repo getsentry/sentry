@@ -279,12 +279,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
+    const context = RouterContextFixture([{router: newRouter}]);
 
     render(<TestComponent router={newRouter} />, {
       context,
@@ -331,12 +326,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
+    const context = RouterContextFixture([{router: newRouter}]);
 
     render(<TestComponent router={newRouter} />, {
       context,
@@ -384,12 +374,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
+    const context = RouterContextFixture([{router: newRouter}]);
 
     render(<TestComponent router={newRouter} />, {
       context,

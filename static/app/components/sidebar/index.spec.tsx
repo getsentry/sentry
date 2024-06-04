@@ -1,19 +1,23 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, StatuspageIncident} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 jest.mock('sentry/utils/useServiceIncidents');
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 const sidebarAccordionFeatures = [
   'performance-view',
@@ -23,7 +27,7 @@ const sidebarAccordionFeatures = [
 ];
 
 describe('Sidebar', function () {
-  const {organization, routerContext} = initializeOrg();
+  const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
   const user = UserFixture();
   const apiMocks = {
@@ -39,9 +43,10 @@ describe('Sidebar', function () {
   );
 
   const renderSidebar = ({organization: org}: {organization: Organization | null}) =>
-    render(getElement(), {context: routerContext, organization: org});
+    render(getElement(), {organization: org});
 
   beforeEach(function () {
+    mockUseLocation.mockReset();
     jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
       () =>
         ({
@@ -171,11 +176,9 @@ describe('Sidebar', function () {
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
-      const oldPath = routerContext.context.location.pathname;
-      routerContext.context.location.pathname = '/other/path';
+      mockUseLocation.mockReturnValue({...LocationFixture(), pathname: '/other/path'});
       rerender(getElement());
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      routerContext.context.location.pathname = oldPath;
     });
 
     it('can have onboarding feature', async function () {
