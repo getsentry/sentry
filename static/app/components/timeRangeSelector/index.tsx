@@ -20,8 +20,8 @@ import {
   getPeriodAgo,
   getUserTimezone,
   getUtcToSystem,
-  parsePeriodToHours,
 } from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';

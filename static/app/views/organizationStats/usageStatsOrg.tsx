@@ -21,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 import {

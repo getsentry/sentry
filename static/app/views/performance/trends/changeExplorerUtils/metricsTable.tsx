@@ -8,7 +8,6 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -20,6 +19,7 @@ import type {
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {formatPercentage} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

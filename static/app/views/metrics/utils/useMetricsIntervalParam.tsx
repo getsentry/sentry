@@ -13,7 +13,7 @@ import {
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useUpdateQuery} from 'sentry/utils/metrics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';

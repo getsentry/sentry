@@ -3,7 +3,7 @@ import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategoryInfo} from 'sentry/types';
 import {formatBytesBase10} from 'sentry/utils';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 const MILLION = 10 ** 6;
 const BILLION = 10 ** 9;

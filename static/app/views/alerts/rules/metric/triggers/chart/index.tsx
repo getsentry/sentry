@@ -32,8 +32,8 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';

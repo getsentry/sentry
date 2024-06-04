@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -12,6 +11,7 @@ import type {
   MetricsQueryApiResponse,
   MRI,
 } from '../../types/metrics';
+import {parsePeriodToHours} from '../duration/parsePeriodToHours';
 
 export function createMqlQuery({
   field,
