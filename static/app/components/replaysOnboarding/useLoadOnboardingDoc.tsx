@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {replayPlatforms} from 'sentry/data/platformCategories';
-import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 function useLoadOnboardingDoc({

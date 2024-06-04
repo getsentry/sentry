@@ -1,6 +1,6 @@
 import {replayFrontendPlatforms, replayPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
   const platformKey = platform.startsWith('javascript')
