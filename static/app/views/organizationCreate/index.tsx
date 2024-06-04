@@ -38,7 +38,7 @@ function OrganizationCreate() {
   const client = useApi();
 
   const DataConsentCheck = HookOrDefault({
-    hookName: 'component:data-consent-banner',
+    hookName: 'component:data-consent-org-creation-checkbox',
     defaultComponent: null,
   });
 
