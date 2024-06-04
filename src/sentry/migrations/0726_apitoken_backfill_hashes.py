@@ -16,13 +16,50 @@ logger = logging.getLogger(__name__)
 def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     ApiToken = apps.get_model("sentry", "ApiToken")
     ControlOutbox = apps.get_model("sentry", "ControlOutbox")
+    OrganizationMemberMapping = apps.get_model("sentry", "OrganizationMemberMapping")
+    OrganizationMapping = apps.get_model("sentry", "OrganizationMapping")
+
     try:
+        from collections.abc import Container
+
+        from django.conf import settings
+
         from sentry.models.outbox import OutboxCategory, OutboxScope
+        from sentry.services.hybrid_cloud.util import control_silo_function
+        from sentry.silo.base import SiloMode
         from sentry.silo.safety import unguarded_write
-        from sentry.types.region import find_regions_for_user
     except ImportError:
         logger.exception("Cannot execute migration. Required symbols could not be imported")
         return
+
+    @control_silo_function
+    def _find_orgs_for_user(user_id: int) -> set[int]:
+        return {
+            m["organization_id"]
+            for m in OrganizationMemberMapping.objects.filter(user_id=user_id).values(
+                "organization_id"
+            )
+        }
+
+    @control_silo_function
+    def find_regions_for_orgs(org_ids: Container[int]) -> set[str]:
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return {settings.SENTRY_MONOLITH_REGION}
+        else:
+            return set(
+                OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
+                    "region_name", flat=True
+                )
+            )
+
+    @control_silo_function
+    def find_regions_for_user(user_id: int) -> set[str]:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return {settings.SENTRY_MONOLITH_REGION}
+
+        org_ids = _find_orgs_for_user(user_id)
+        return find_regions_for_orgs(org_ids)
 
     for api_token in RangeQuerySetWrapperWithProgressBar(ApiToken.objects.all()):
         hashed_token = None
