@@ -244,7 +244,8 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # to transfer manually.
         # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
         # are ignored.
-        activity = Activity.objects.get(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activities = Activity.objects.filter(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activity = activities[0]
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
 
