@@ -19,7 +19,6 @@ import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidg
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -60,6 +59,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
@@ -211,6 +211,7 @@ export function TraceView() {
                 traceEventView={traceEventView}
                 metaResults={meta}
                 rootEvent={rootEvent}
+                replayRecord={null}
                 source="performance"
               />
             </TraceInnerLayout>
@@ -234,6 +235,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
+  replayRecord: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
   status: UseApiQueryResult<any, any>['status'];
@@ -247,7 +249,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const {projects} = useProjects();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {replay} = useReplayContext();
 
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -325,11 +326,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (props.trace) {
-      return TraceTree.FromTrace(props.trace, replay?.getReplay());
+      return TraceTree.FromTrace(props.trace, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects, replay]);
+  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -870,6 +871,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         ) : null}
 
         <TraceDrawer
+          replayRecord={props.replayRecord}
           metaResults={props.metaResults}
           traceType={shape}
           trace={tree}

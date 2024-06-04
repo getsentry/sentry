@@ -1,9 +1,10 @@
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import Trace from 'sentry/views/replays/detail/trace/trace';
+
+import type {ReplayRecord} from '../../types';
 
 const features = ['organizations:performance-view'];
 
@@ -18,10 +19,8 @@ function PerfDisabled() {
   );
 }
 
-function TraceFeature() {
+function TraceFeature({replayRecord}: {replayRecord: ReplayRecord | undefined}) {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
-  const replayRecord = replay?.getReplay();
 
   return (
     <Feature

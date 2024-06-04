@@ -14,6 +14,8 @@ import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
+import type {ReplayRecord} from '../../types';
+
 const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
@@ -21,7 +23,13 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
+function ReplayLayout({
+  isVideoReplay = false,
+  replayRecord,
+}: {
+  replayRecord: ReplayRecord | undefined;
+  isVideoReplay?: boolean;
+}) {
   const {getLayout} = useReplayLayout();
   const layout = getLayout() ?? LayoutKey.TOPBAR;
 
@@ -62,7 +70,7 @@ function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const focusArea = (
     <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
-        <FocusArea isVideoReplay={isVideoReplay} />
+        <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
       </ErrorBoundary>
     </FluidPanel>
   );
