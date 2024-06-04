@@ -23,6 +23,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or []
+        tag_value_prefix = request.GET.get("tagValuePrefix") or ""
         if len(metric_names) > 1:
             raise ParseError(
                 "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
@@ -41,6 +42,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                     use_case_ids=[get_use_case_id(request)],
                     mri=mri,
                     tag_key=tag_name,
+                    tag_value_prefix=tag_value_prefix,
                 )
                 tag_values = tag_values.union(mri_tag_values)
 

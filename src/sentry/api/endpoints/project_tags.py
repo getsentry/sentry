@@ -27,6 +27,9 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
             if request.GET.get("onlySamplingTags") == "1":
                 kwargs["denylist"] = DS_DENYLIST
 
+            if request.GET.get("tagValuePrefix"):
+                kwargs["tagValuePrefix"] = request.GET.get("tagValuePrefix")
+
             tag_keys = sorted(
                 tagstore.backend.get_tag_keys(
                     project.id,
