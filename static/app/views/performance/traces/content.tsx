@@ -34,6 +34,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {type Field, FIELDS, SORTS} from './data';
 import {
+  BREAKDOWN_SLICES,
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
@@ -420,6 +421,7 @@ export interface TraceResult<F extends string> {
   numOccurrences: number;
   numSpans: number;
   project: string | null;
+  slices: number;
   spans: SpanResult<F>[];
   start: number;
   trace: string;
@@ -430,6 +432,9 @@ interface TraceBreakdownBase {
   end: number;
   opCategory: string | null;
   sdkName: string | null;
+  sliceEnd: number;
+  sliceStart: number;
+  sliceWidth: number;
   start: number;
 }
 
@@ -494,8 +499,7 @@ function useTraces<F extends string>({
       suggestedQuery,
       sort,
       per_page: limit,
-      breakdownSlices: 40,
-      minBreakdownPercentage: 1 / 40,
+      breakdownSlices: BREAKDOWN_SLICES,
       maxSpansPerTrace: 10,
       mri,
       metricsMax,
