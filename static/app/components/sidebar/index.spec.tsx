@@ -283,8 +283,15 @@ describe('Sidebar', function () {
   });
 
   describe('sidebar links', () => {
+    beforeEach(function () {
+      ConfigStore.init();
+      ConfigStore.set('features', new Set([]));
+      ConfigStore.set('user', user);
+    });
+
     it('renders for self-hosted errors only', async function () {
-      act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
+      ConfigStore.set('isSelfHostedErrorsOnly', true);
+
       const {container} = renderSidebar({organization});
       expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
       const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
@@ -302,7 +309,6 @@ describe('Sidebar', function () {
         'sidebar-item-statusupdate',
         'sidebar-item-collapse',
       ]);
-      act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
     });
 
     it('renders sidebar with features', async function () {
