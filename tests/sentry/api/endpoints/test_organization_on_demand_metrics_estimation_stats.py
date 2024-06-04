@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 from django.utils import timezone
 
-from sentry.api.endpoints.organization_metrics_estimation_stats import (
+from sentry.api.endpoints.organization_on_demand_metrics_estimation_stats import (
     CountResult,
     MetricVolumeRow,
     StatsQualityEstimation,
@@ -30,7 +30,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time(MOCK_DATETIME)
-class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLayerTestCase):
+class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLayerTestCase):
     endpoint = "sentry-api-0-organization-metrics-estimation-stats"
     method = "GET"
 

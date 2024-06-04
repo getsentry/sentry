@@ -1,14 +1,23 @@
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
-from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.indexer.base import to_use_case_id
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
     UseCaseIDAPIAccess,
     get_use_case_id_api_access,
 )
-from sentry.sentry_metrics.utils import string_to_use_case_id
+
+
+def string_to_use_case_id(value: str) -> UseCaseID:
+    try:
+        return UseCaseID(value)
+    except ValueError:
+        # param doesn't appear to be a UseCaseID try with the obsolete UseCaseKey
+        # will raise ValueError if it fails
+        return to_use_case_id(UseCaseKey(value))
 
 
 def can_access_use_case_id(request: Request, use_case_id: UseCaseID) -> bool:
@@ -78,7 +87,3 @@ def get_use_case_ids(request: Request) -> list[UseCaseID]:
         return use_case_ids
     except ValueError:
         raise ParseError(detail="One or more supplied use cases doesn't exist or it's private")
-
-
-class OrganizationMetricsEnrollPermission(OrganizationPermission):
-    scope_map = {"PUT": ["org:read", "org:write", "org:admin"]}
