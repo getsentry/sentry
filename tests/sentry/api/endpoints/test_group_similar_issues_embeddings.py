@@ -222,6 +222,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
+            "read_only": True,
             "k": 1,
         }
 
@@ -329,6 +330,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
@@ -454,7 +456,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
-        Test that optional parameters, k and threshold, can not be included.
+        Test that optional parameters, k, threshold, and read_only can not be included.
         """
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -485,6 +487,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
@@ -509,6 +512,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                     "k": 1,
                 },
             ).decode(),
@@ -534,6 +538,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
