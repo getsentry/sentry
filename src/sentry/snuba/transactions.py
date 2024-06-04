@@ -4,16 +4,15 @@ from datetime import timedelta
 
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns,
-    query,
-    params,
+    selected_columns: Sequence[str],
+    query: str,
+    params: dict[str, str],
     snuba_params=None,
     equations=None,
     orderby=None,
@@ -34,7 +33,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: MetricSpecType | None = None,
+    on_demand_metrics_type=None,
 ) -> discover.EventsResponse:
     return discover._query(
         selected_columns,
@@ -78,7 +77,7 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: MetricSpecType | None = None,
+    on_demand_metrics_type=None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -119,7 +118,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: MetricSpecType | None = None,
+    on_demand_metrics_type=None,
 ):
     return discover._top_events_timeseries(
         timeseries_columns,

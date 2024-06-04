@@ -28,7 +28,6 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
@@ -363,7 +362,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: MetricSpecType | None = None,
+    on_demand_metrics_type=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -438,7 +437,7 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: MetricSpecType | None = None,
+    on_demand_metrics_type=None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -530,7 +529,7 @@ def _top_events_timeseries(
     assert dataset in [Dataset.Discover, Dataset.Transactions]
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
-            top_events = query(
+            top_events = _query(
                 selected_columns,
                 query=user_query,
                 params=params,
@@ -664,7 +663,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: MetricSpecType | None = None,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
