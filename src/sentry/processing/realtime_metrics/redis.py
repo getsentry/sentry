@@ -48,6 +48,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._budget_time_window < 60:
             raise InvalidConfiguration("budget time window must be at least a minute")
 
+        if self._backoff_timer < 1:
+            raise InvalidConfiguration("backoff timer must be at least a second")
+
     def _budget_key_prefix(self) -> str:
         return f"{BUDGET_KEY_PREFIX}:{self._budget_bucket_size}"
 
@@ -114,15 +117,16 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         counts = results[1:]
 
         if is_lpq is not None:
-            return bool(is_lpq)
+            return True
 
         total_time_window = timestamp - first_bucket
         total_sum = sum(int(c) if c else 0 for c in counts)
 
         # the counts in redis are in ms resolution.
         average_used = total_sum / total_time_window / 1000
+        budget = settings.SENTRY_LPQ_OPTIONS["project_budget"]
+        new_is_lpq = average_used > budget
 
-        new_is_lpq = average_used > settings.SENTRY_LPQ_OPTIONS["project_budget"]
-
-        self.cluster.set(name=member_key, value=int(new_is_lpq), ex=self._backoff_timer)
+        if new_is_lpq:
+            self.cluster.set(name=member_key, value="1", ex=self._backoff_timer)
         return new_is_lpq
