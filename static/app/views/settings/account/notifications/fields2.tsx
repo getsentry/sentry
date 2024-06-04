@@ -168,7 +168,7 @@ export const QUOTA_FIELDS = [
     name: 'quotaSpans',
     label: t('Spans'),
     help: tct('Receive notifications about your spans quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('spans')} />,
+      learnMore: <ExternalLink href={getDocsLinkForEventType('span')} />,
     }),
     choices: [
       ['always', t('On')],

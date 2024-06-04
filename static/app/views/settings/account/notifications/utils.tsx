@@ -36,12 +36,12 @@ export const groupByOrganization = (
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
 export function getDocsLinkForEventType(
-  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat' | 'spans'
+  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat' | 'span'
 ) {
   switch (event) {
     case 'transaction':
       return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
-    case 'spans':
+    case 'span':
       return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
     case 'attachment':
       return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
