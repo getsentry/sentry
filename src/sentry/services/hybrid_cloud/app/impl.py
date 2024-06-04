@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -22,6 +23,7 @@ from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
+    RpcSentryAppComponentContext,
     RpcSentryAppEventData,
     RpcSentryAppInstallation,
     RpcSentryAppService,
@@ -162,6 +164,30 @@ class DatabaseBackedAppService(AppService):
                 group_by=group_by,
             ).items()
         }
+
+    def get_component_context(
+        self, *, filter: SentryAppInstallationFilterArgs, component_type: str
+    ) -> list[RpcSentryAppComponentContext]:
+        install_query = self._FQ.query_many(filter=filter)
+        install_query = install_query.select_related("sentry_app", "sentry_app__application")
+        install_map: dict[int, list[SentryAppInstallation]] = defaultdict(list)
+        for install in install_query:
+            install_map[install.sentry_app_id].append(install)
+        component_query = SentryAppComponent.objects.filter(
+            type=component_type, sentry_app_id__in=list(install_map.keys())
+        )
+        output = []
+        for component in component_query:
+            installs = install_map[component.sentry_app_id]
+            for install in installs:
+                context_item = RpcSentryAppComponentContext(
+                    installation=serialize_sentry_app_installation(
+                        installation=install, app=install.sentry_app
+                    ),
+                    component=serialize_sentry_app_component(component),
+                )
+                output.append(context_item)
+        return output
 
     class _AppServiceFilterQuery(
         FilterQueryDatabaseImpl[

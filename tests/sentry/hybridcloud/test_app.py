@@ -42,3 +42,60 @@ def test_find_alertable_services() -> None:
     assert len(services) == 2
     assert services[0].title in [app1.name, app2.name]
     assert services[1].title in [app1.name, app2.name]
+
+
+@django_db_all(transaction=True)
+def test_get_component_context() -> None:
+    user = Factories.create_user()
+    org = Factories.create_organization(owner=user)
+    other_org = Factories.create_organization(owner=user)
+    app = Factories.create_sentry_app(
+        name="demo-app",
+        user=user,
+        published=True,
+        schema={
+            "elements": [
+                {
+                    "type": "alert-rule-trigger",
+                    "title": "go beep",
+                    "settings": {
+                        "type": "alert-rule-settings",
+                        "uri": "https://example.com/search/",
+                    },
+                },
+            ]
+        },
+    )
+    install = Factories.create_sentry_app_installation(
+        organization=org,
+        slug=app.slug,
+    )
+    install_other = Factories.create_sentry_app_installation(
+        organization=other_org,
+        slug=app.slug,
+    )
+    # wrong component type
+    result = app_service.get_component_context(filter={"app_ids": [app.id]}, component_type="derp")
+    assert len(result) == 0
+
+    # filter by app_id gets all installs
+    result = app_service.get_component_context(
+        filter={"app_ids": [app.id]}, component_type="alert-rule-trigger"
+    )
+    assert len(result) == 2
+    for row in result:
+        assert row.installation.id in {install.id, install_other.id}
+        assert row.installation.sentry_app.slug == app.slug
+        assert row.component.sentry_app_id == app.id
+        assert row.component.app_schema
+
+    # filter by install_uuid gets only one
+    result = app_service.get_component_context(
+        filter={"uuids": [install.uuid]}, component_type="alert-rule-trigger"
+    )
+    assert len(result) == 1
+    row = result[0]
+    assert row.installation.id == install.id
+    assert row.installation.sentry_app.slug == app.slug
+    assert row.component.sentry_app_id == app.id
+    assert row.component.app_schema
