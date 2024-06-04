@@ -6,6 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/browser/webVitals/settings';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import type {
   RowWithScoreAndOpportunity,
@@ -71,13 +72,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         `count_scores(measurements.score.ttfb)`,
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:[pageload,""]',
-        'span.op:[ui.interaction.click,""]',
-        search.formatString(),
-      ]
-        .join(' ')
-        .trim(),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },

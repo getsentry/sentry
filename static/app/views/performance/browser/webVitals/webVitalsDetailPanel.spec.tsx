@@ -61,8 +61,97 @@ describe('WebVitalsDetailPanel', function () {
       organization,
     });
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-    // Once for project web vitals and once for samples
-    expect(eventsMock).toHaveBeenCalledTimes(3);
+    // Raw web vital metric tile queries
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'p75(measurements.inp)',
+            'p75(transaction.duration)',
+            'count_web_vitals(measurements.lcp, any)',
+            'count_web_vitals(measurements.fcp, any)',
+            'count_web_vitals(measurements.cls, any)',
+            'count_web_vitals(measurements.fid, any)',
+            'count_web_vitals(measurements.ttfb, any)',
+            'count()',
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+    // Project performance score ring query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            `performance_score(measurements.score.inp)`,
+            'performance_score(measurements.score.ttfb)',
+            'avg(measurements.score.total)',
+            'avg(measurements.score.weight.lcp)',
+            'avg(measurements.score.weight.fcp)',
+            'avg(measurements.score.weight.cls)',
+            `avg(measurements.score.weight.inp)`,
+            'avg(measurements.score.weight.ttfb)',
+            'count()',
+            'count_scores(measurements.score.total)',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.ttfb)',
+            'count_scores(measurements.score.inp)',
+            'sum(measurements.score.weight.lcp)',
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+    // Table query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'transaction',
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'p75(measurements.inp)',
+            'performance_score(measurements.score.lcp)',
+            'opportunity_score(measurements.score.lcp)',
+            'avg(measurements.score.total)',
+            'count()',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.fid)',
+            'count_scores(measurements.score.inp)',
+            'count_scores(measurements.score.ttfb)',
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0',
+        }),
+      })
+    );
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Largest Contentful Paint (P75)')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();
