@@ -13,7 +13,6 @@ PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
 
 
 def safe_execute(func, *args, **kwargs):
-    expected_errors = kwargs.pop("expected_errors", None)
     try:
         result = func(*args, **kwargs)
     except Exception as e:
@@ -26,9 +25,6 @@ def safe_execute(func, *args, **kwargs):
         cls_name = cls.__name__
         logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 
-        if expected_errors and isinstance(e, expected_errors):
-            logger.info("%s.process_error_ignored", func_name, extra={"exception": e})
-            return
         logger.exception("%s.process_error", func_name, extra={"exception": e})
     else:
         return result
