@@ -465,7 +465,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
-                    "read_only": True,
                 }
             ]
         }
