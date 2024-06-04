@@ -497,13 +497,6 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
-from .endpoints.project_app_store_connect_credentials import (
-    AppStoreConnectAppsEndpoint,
-    AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectRefreshEndpoint,
-    AppStoreConnectStatusEndpoint,
-    AppStoreConnectUpdateCredentialsEndpoint,
-)
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_autofix_codebase_index_status import (
@@ -2704,31 +2697,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/grouping-configs/$",
         ProjectGroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-project-grouping-configs",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/$",
-        AppStoreConnectCreateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-create",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/apps/$",
-        AppStoreConnectAppsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-apps",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/status/$",
-        AppStoreConnectStatusEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-status",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-        AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
-        AppStoreConnectRefreshEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-refresh",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/functions/$",

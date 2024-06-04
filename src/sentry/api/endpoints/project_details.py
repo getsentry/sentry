@@ -326,10 +326,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         # * positive caches are re-fetches as well, making it less effective.
         for source in added_or_modified_sources:
             # This should only apply to sources which are being fed to symbolicator.
-            # App Store Connect in particular is managed in a completely different
-            # way, and needs its `id` to stay valid for a longer time.
-            if source["type"] != "appStoreConnect":
-                source["id"] = str(uuid4())
+            source["id"] = str(uuid4())
 
         sources_json = orjson.dumps(sources).decode() if sources else ""
 
@@ -341,15 +338,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not has_sources:
             raise serializers.ValidationError(
                 "Organization is not allowed to set custom symbol sources"
-            )
-
-        has_multiple_appconnect = features.has(
-            "organizations:app-store-connect-multiple", organization, actor=request.user
-        )
-        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
-        if not has_multiple_appconnect and len(appconnect_sources) > 1:
-            raise serializers.ValidationError(
-                "Only one Apple App Store Connect application is allowed in this project"
             )
 
         return sources_json

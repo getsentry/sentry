@@ -12,7 +12,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -263,10 +262,6 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
 
             <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <StyledGlobalAppStoreConnectUpdateAlert
-                project={project}
-                organization={organization}
-              />
               <FloatingFeedbackWidget />
               <Layout.Main>
                 <ProjectFiltersWrapper>
@@ -360,15 +355,5 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-bottom: 0;
   }
 `;
-
-const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default withProjects(withPageFilters(ProjectDetail));

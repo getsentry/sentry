@@ -192,11 +192,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - project
-  model_name: sentry.appconnectbuild
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - file
     - organization_id
   model_name: sentry.artifactbundle
@@ -780,11 +775,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields: []
   model_name: sentry.integrationfeature
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - project
-  model_name: sentry.latestappconnectbuildscheck
 - comparators:
   - class: ForeignKeyComparator
     fields:

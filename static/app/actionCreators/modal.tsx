@@ -10,7 +10,7 @@ import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBui
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
-import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {Group, IssueOwnership} from 'sentry/types/group';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -194,11 +194,9 @@ export type SentryAppDetailsModalOptions = {
 };
 
 type DebugFileSourceModalOptions = {
-  appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
-  appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
 };

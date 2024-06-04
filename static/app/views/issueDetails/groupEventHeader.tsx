@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
-import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -44,17 +43,9 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
         </StyledTraceLink>
       )}
       {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
-      <StyledGlobalAppStoreConnectUpdateAlert
-        project={project}
-        organization={organization}
-      />
     </StyledDataSection>
   );
 }
-
-const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  margin: ${space(0.5)} 0;
-`;
 
 const StyledDataSection = styled(DataSection)`
   padding: ${space(1)} ${space(2)} 0;
