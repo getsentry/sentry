@@ -36,24 +36,14 @@ require() {
 
 configure-sentry-cli() {
     if [ -f "${venv_name}/bin/sentry-cli" ]; then
-        path="${venv_name}/bin/sentry-cli"
-    elif command -v "sentry-cli" >/dev/null 2>&1; then
-        path="sentry-cli"
+        return 0
     elif [ -f "${venv_name}/bin/pip" ]; then
+        echo 'installing sentry-cli'
         pip-install sentry-cli
-        path="${venv_name}/bin/sentry-cli"
     else
-        curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.32.0" bash
-        path="sentry-cli"
-    fi
-    current_version=$("$path" --version 2>&1 | awk '{print $2}')
-    major=$(echo "$current_version" | cut -d. -f1)
-    minor=$(echo "$current_version" | cut -d. -f2)
-    if [ $major -ne 2 ] || [ $minor -lt 32 ]; then
         cat <<EOF
 ${red}${bold}
-ERROR: Your sentry-cli version is ${current_version}. We only support >= 2.32.0, < 3.0.
-Please run devenv sync in sentry and getsentry, or uninstall sentry-cli and try again.
+ERROR: sentry-cli could not be installed. Please run "devenv sync" in sentry and getsentry.
 ${reset}
 EOF
         return 1

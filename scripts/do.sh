@@ -19,11 +19,6 @@ end=`date +%s`
 duration=$(($end-$start))
 
 configure-sentry-cli
-if [ -f "${venv_name}/bin/sentry-cli" ]; then
-    sentry_cli="${venv_name}/bin/sentry-cli"
-else
-    sentry_cli="sentry-cli"
-fi
 # DSN for `sentry-devservices` project in the Sentry SDKs org. Used as authentication for sentry-cli.
 export SENTRY_DSN=https://8ae521d2441786bb405b3b3705bb9dc1@o447951.ingest.us.sentry.io/4507346183716864
-"$sentry_cli" send-metric distribution -n script_execution_time -v $duration -u second -t script:$1
+"${venv_name}"/bin/sentry-cli send-metric distribution -n script_execution_time -v $duration -u second -t script:$1
