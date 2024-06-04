@@ -64,5 +64,11 @@ export function getPlatformContextIcon({
   if (platformIconName.length === 0) {
     return null;
   }
-  return <PlatformIcon format="sm" platform={platformIconName} />;
+  return (
+    <PlatformIcon
+      format="sm"
+      platform={platformIconName}
+      data-test-id={`${platform}-context-icon`}
+    />
+  );
 }
