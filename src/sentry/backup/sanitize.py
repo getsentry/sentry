@@ -9,11 +9,10 @@ from typing import Any
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID, uuid4
 
+import orjson
 import petname
 from dateutil.parser import parse as parse_datetime
 from django.utils.text import slugify
-
-from sentry.utils import json
 
 UPPER_CASE_HEX = {"A", "B", "C", "D", "E", "F"}
 UPPER_CASE_NON_HEX = {
@@ -291,12 +290,16 @@ class Sanitizer:
         `set_json()` is the preferred method for doing so.
         """
 
-        old_serialized = json.dumps(old_json)
+        old_serialized = orjson.dumps(
+            old_json, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS
+        ).decode()
         interned = self.interned_strings.get(old_serialized)
         if interned is not None:
-            return json.loads(interned)
+            return orjson.loads(interned)
 
-        new_serialized = json.dumps(new_json)
+        new_serialized = orjson.dumps(
+            new_json, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS
+        ).decode()
         self.interned_strings[old_serialized] = new_serialized
         return new_json
 

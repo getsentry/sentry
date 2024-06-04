@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from dateutil.parser import parse as parse_datetime
 from django.core.serializers import serialize
@@ -31,7 +32,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.silo import strip_silo_mode_test_suffix
-from sentry.utils import json
 from tests.sentry.backup import expect_models, verify_models_in_output
 
 FAKE_EMAIL = "test@fake.com"
@@ -97,7 +97,7 @@ class SanitizationUnitTests(TestCase):
             use_natural_foreign_keys=False,
             cls=DatetimeSafeDjangoJSONEncoder,
         )
-        json_data = json.loads(json_string)
+        json_data = orjson.loads(json_string)
         return json_data
 
     def test_good_all_sanitizers_set_fields(self):
@@ -350,7 +350,7 @@ class SanitizationUnitTests(TestCase):
         assert all(c.isascii() for c in list(sanitized[5]["fields"]["text"]))
 
     def test_bad_invalid_datetime_type(self):
-        invalid = json.loads(
+        invalid = orjson.loads(
             """
                 {
                     "model": "test.fakesanitizablemodel",
@@ -365,7 +365,7 @@ class SanitizationUnitTests(TestCase):
             sanitize([invalid])
 
     def test_bad_invalid_email_type(self):
-        invalid = json.loads(
+        invalid = orjson.loads(
             """
                 {
                     "model": "test.fakesanitizablemodel",
@@ -380,7 +380,7 @@ class SanitizationUnitTests(TestCase):
             sanitize([invalid])
 
     def test_bad_invalid_name_type(self):
-        invalid = json.loads(
+        invalid = orjson.loads(
             """
                 {
                     "model": "test.fakesanitizablemodel",
@@ -395,7 +395,7 @@ class SanitizationUnitTests(TestCase):
             sanitize([invalid])
 
     def test_bad_invalid_slug_type(self):
-        invalid = json.loads(
+        invalid = orjson.loads(
             """
                 {
                     "model": "test.fakesanitizablemodel",
@@ -411,7 +411,7 @@ class SanitizationUnitTests(TestCase):
             sanitize([invalid])
 
     def test_bad_invalid_string_type(self):
-        invalid = json.loads(
+        invalid = orjson.loads(
             """
                 {
                     "model": "test.fakesanitizablemodel",
@@ -479,8 +479,8 @@ class SanitizationIntegrationTests(IntegrationTestCase):
     """
 
     def test_fresh_install(self):
-        with open(get_fixture_path("backup", "fresh-install.json")) as backup_file:
-            unsanitized_json = json.load(backup_file)
+        with open(get_fixture_path("backup", "fresh-install.json"), "rb") as backup_file:
+            unsanitized_json = orjson.loads(backup_file.read())
             self.sanitize_and_compare(unsanitized_json)
 
 
