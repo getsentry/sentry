@@ -1,4 +1,5 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import ParamSpec, TypedDict, TypeVar
 
 from django.core.cache import cache
@@ -122,6 +123,44 @@ def with_circuit_breaker(
 
     if _should_call_callback(key, error_count_key, config):
         return _call_callback(error_count_key, config["error_limit_window"], callback)
+    else:
+        raise CircuitBreakerTripped
+
+
+@contextmanager
+def circuit_breaker_context(
+    key: str, custom_config: CircuitBreakerConfig | None = None
+) -> Iterator[None]:
+    """
+    A context manager version of `with_circuit_breaker`. This is useful when you want to ensure that
+    the circuit breaker is activated for the duration of a block of code, but don't want to raise an
+    exception if the circuit breaker is tripped.
+
+    Example usage:
+
+        try:
+            with circuit_breaker_context("fire", config):
+                charcoal = play_with_fire()
+        except CircuitBreakerTripped:
+            logger.log("Once burned, twice shy. No playing with fire for you today. Try again tomorrow.")
+        except BurnException:
+            logger.log("Ouch!")
+
+
+    If the circuit breaker is tripped, the block of code will be skipped, but no exception will be
+    raised. The block of code will be executed if the circuit breaker is not tripped.
+    """
+    config: CircuitBreakerConfig = {**CIRCUIT_BREAKER_DEFAULTS, **(custom_config or {})}
+    error_count_key = ERROR_COUNT_CACHE_KEY(key)
+
+    if _should_call_callback(key, error_count_key, config):
+        try:
+            yield
+        except Exception:
+            _update_error_count(error_count_key, config["error_limit_window"])
+            raise
+        else:
+            _update_error_count(error_count_key, config["error_limit_window"], reset=True)
     else:
         raise CircuitBreakerTripped
 
