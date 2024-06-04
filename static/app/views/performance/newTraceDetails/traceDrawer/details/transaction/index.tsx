@@ -9,7 +9,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -94,8 +93,8 @@ export function TransactionNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
+  replayRecord,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
-  const {replay} = useReplayContext();
   const location = useLocation();
   const {projects} = useProjects();
   const issues = useMemo(() => {
@@ -183,7 +182,7 @@ export function TransactionNodeDetails({
 
       {project ? <EventEvidence event={event} project={project} /> : null}
 
-      {replay ? <ReplayPreview event={event} organization={organization} /> : null}
+      {replayRecord ? <ReplayPreview event={event} organization={organization} /> : null}
 
       <BreadCrumbs event={event} organization={organization} />
 
