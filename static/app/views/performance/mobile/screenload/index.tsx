@@ -88,7 +88,7 @@ export function PageloadModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="screen_load" features="spans-first-ui">
+    <ModulePageProviders moduleName="screen_load" features="insights-initial-modules">
       <PageloadModule />
     </ModulePageProviders>
   );
