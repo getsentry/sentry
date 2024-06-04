@@ -405,10 +405,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/processing/realtime_metrics/                             @getsentry/owners-native
 /src/sentry/tasks/app_store_connect.py                               @getsentry/owners-native
 /src/sentry/tasks/assemble.py                                        @getsentry/owners-native
-/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/owners-native
 /src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                      @getsentry/owners-native
-/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
 /src/sentry/tasks/reprocessing.py                                    @getsentry/processing
 /src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
 /src/sentry/reprocessing2.py                                         @getsentry/processing
