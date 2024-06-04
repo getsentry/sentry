@@ -89,6 +89,7 @@ export const backend: PlatformKey[] = [
   'php-laravel',
   'php-monolog',
   'php-symfony',
+  'powershell',
   'python',
   'python-aiohttp',
   'python-asgi',
