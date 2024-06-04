@@ -2,8 +2,8 @@ import type {Location, LocationDescriptor} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import type {OrganizationSummary} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {
