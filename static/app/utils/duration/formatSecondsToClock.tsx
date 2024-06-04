@@ -1,6 +1,6 @@
 import round from 'lodash/round';
 
-import {HOUR, MINUTE, SECOND} from '../formatters';
+import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 export function formatSecondsToClock(
   seconds: number,

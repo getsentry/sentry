@@ -1,4 +1,4 @@
-import {DAY, HOUR, MINUTE, MONTH, SECOND, WEEK} from '../formatters';
+import {DAY, HOUR, MINUTE, MONTH, SECOND, WEEK} from 'sentry/utils/formatters';
 
 export function parseClockToSeconds(clock: string) {
   const [rest, milliseconds] = clock.split('.');
