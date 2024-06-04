@@ -60,7 +60,9 @@ const SDK_UPDATE_ALERT = (
     {t(
       `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. `
     )}
-    <ExternalLink href={'https://docs.sentry.io/product/performance/caches/'}>
+    <ExternalLink
+      href={'https://docs.sentry.io/product/performance/caches/#instrumentation'}
+    >
       {t('Read the Docs')}
     </ExternalLink>
   </Fragment>
@@ -141,11 +143,11 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
 
+  const onboardingProject = useOnboardingProject();
   const {hasData, isLoading: isHasDataLoading} = useHasData(
     MutableSearch.fromQueryObject(BASE_FILTERS),
     Referrer.LANDING_CACHE_ONBOARDING
   );
-  const onboardingProject = useOnboardingProject();
 
   useEffect(() => {
     const hasMissingDataError =
