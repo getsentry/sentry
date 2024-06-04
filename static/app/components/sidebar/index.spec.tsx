@@ -78,6 +78,28 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
+  it('renders for self-hosted errors only', async function () {
+    act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
+    const {container} = renderSidebar({organization});
+    expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+    const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+    const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+    expect(sidebarItems.length).toEqual(10);
+    expect(sidebarItemIds).toEqual([
+      'sidebar-item-issues',
+      'sidebar-item-projects',
+      'sidebar-item-alerts',
+      'sidebar-item-releases',
+      'sidebar-item-stats',
+      'sidebar-item-settings',
+      'sidebar-item-help',
+      'sidebar-item-broadcasts',
+      'sidebar-item-statusupdate',
+      'sidebar-item-collapse',
+    ]);
+    act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
+  });
+
   it('has can logout', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/auth/',
@@ -274,14 +296,92 @@ describe('Sidebar', function () {
   });
 
   describe('when the accordion is used', () => {
-    const renderSidebarWithFeatures = () => {
-      renderSidebar({
+    const renderSidebarWithFeatures = (features: string[] = []) => {
+      return renderSidebar({
         organization: {
           ...organization,
-          features: [...organization.features, ...sidebarAccordionFeatures],
+          features: [...organization.features, ...sidebarAccordionFeatures, ...features],
         },
       });
     };
+
+    it('renders sidebar with features', async function () {
+      const {container} = renderSidebarWithFeatures();
+      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+      expect(sidebarItems.length).toEqual(12);
+      expect(sidebarItemIds).toEqual([
+        'sidebar-item-issues',
+        'sidebar-item-projects',
+        'sidebar-item-sidebar-accordion-performance-item',
+        'sidebar-item-crons',
+        'sidebar-item-alerts',
+        'sidebar-item-releases',
+        'sidebar-item-stats',
+        'sidebar-item-settings',
+        'sidebar-item-help',
+        'sidebar-item-broadcasts',
+        'sidebar-item-statusupdate',
+        'sidebar-item-collapse',
+      ]);
+    });
+
+    it('renders new sidebar hierarchy', async function () {
+      const {container} = renderSidebarWithFeatures([
+        'performance-insights',
+        'insights-entry-points',
+      ]);
+      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+      expect(sidebarItems.length).toEqual(21);
+      expect(sidebarItemIds).toEqual([
+        'sidebar-item-issues',
+        'sidebar-item-projects',
+        'sidebar-item-sidebar-accordion-explore-item',
+        'sidebar-item-sidebar-accordion-insights-item',
+        'sidebar-item-performance-http',
+        'sidebar-item-performance-database',
+        'sidebar-item-performance-browser-resources',
+        'sidebar-item-performance-mobile-app-startup',
+        'sidebar-item-performance-mobile-screens',
+        'sidebar-item-performance-webvitals',
+        'sidebar-item-performance-cache',
+        'sidebar-item-performance',
+        'sidebar-item-crons',
+        'sidebar-item-alerts',
+        'sidebar-item-releases',
+        'sidebar-item-stats',
+        'sidebar-item-settings',
+        'sidebar-item-help',
+        'sidebar-item-broadcasts',
+        'sidebar-item-statusupdate',
+        'sidebar-item-collapse',
+      ]);
+    });
+
+    it('renders sidebar items for self-hosted errors only', async function () {
+      act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
+      const {container} = renderSidebarWithFeatures();
+      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+      expect(sidebarItems.length).toEqual(10);
+      expect(sidebarItemIds).toEqual([
+        'sidebar-item-issues',
+        'sidebar-item-projects',
+        'sidebar-item-alerts',
+        'sidebar-item-releases',
+        'sidebar-item-stats',
+        'sidebar-item-settings',
+        'sidebar-item-help',
+        'sidebar-item-broadcasts',
+        'sidebar-item-statusupdate',
+        'sidebar-item-collapse',
+      ]);
+      act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
+    });
 
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures();
