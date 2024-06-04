@@ -25,6 +25,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     hash: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
+    read_only: NotRequired[bool]
 
 
 class RawSeerSimilarIssueData(TypedDict):

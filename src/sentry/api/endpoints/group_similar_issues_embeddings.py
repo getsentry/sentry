@@ -78,6 +78,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
+            "read_only": True,
         }
         # Add optional parameters
         if request.GET.get("k"):
