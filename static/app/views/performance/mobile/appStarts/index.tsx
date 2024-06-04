@@ -24,7 +24,7 @@ export function InitializationModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="app_start" features="spans-first-ui">
+    <ModulePageProviders moduleName="app_start" features="insights-initial-modules">
       <InitializationModule />
     </ModulePageProviders>
   );

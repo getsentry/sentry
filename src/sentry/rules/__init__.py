@@ -24,7 +24,7 @@ def init_registry() -> RuleRegistry:
         cls = import_string(rule)
         registry.add(cls)
     for plugin in plugins.all(version=2):
-        for cls in safe_execute(plugin.get_rules, _with_transaction=False) or ():
+        for cls in safe_execute(plugin.get_rules) or ():
             registry.add(cls)
 
     return registry

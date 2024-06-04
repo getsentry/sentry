@@ -35,6 +35,7 @@ class IssueAlertImageBuilder:
 
     def get_image_url(self) -> str | None:
         try:
+            image_url = None
             metrics.incr("chartcuterie.issue_alert.attempt", tags=self.tags)
             if self.group.issue_type == PerformanceP95EndpointRegressionGroupType:
                 image_url = self._get_endpoint_regression_image_url()
@@ -66,7 +67,7 @@ class IssueAlertImageBuilder:
             data={
                 "yAxis": ["count()", "p95(transaction.duration)"],
                 "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
-                "query": f"event.type:transaction transaction:{transaction_name}",
+                "query": f'event.type:transaction transaction:"{transaction_name}"',
                 "project": self.group.project.id,
                 "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
                 "end": period["end"].strftime("%Y-%m-%d %H:%M:%S"),

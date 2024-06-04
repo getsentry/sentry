@@ -147,11 +147,20 @@ def get_block_kit_preview_url(index=0) -> str:
     return preview_url
 
 
-def setup_slack_with_identities(organization, user):
-    integration = install_slack(organization)
-    idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+def setup_slack_with_identities(
+    organization: Organization,
+    user: User,
+    identity_provider_external_id="TXXXXXXX1",
+    identity_external_id="UXXXXXXX1",
+):
+    integration = install_slack(
+        organization=organization, workspace_id=identity_provider_external_id
+    )
+    idp = IdentityProvider.objects.create(
+        type="slack", external_id=identity_provider_external_id, config={}
+    )
     Identity.objects.create(
-        external_id="UXXXXXXX1",
+        external_id=identity_external_id,
         idp=idp,
         user=user,
         status=IdentityStatus.VALID,

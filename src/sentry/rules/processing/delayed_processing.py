@@ -404,7 +404,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 for callback, futures in activate_downstream_actions(
                     rule, groupevent, notification_uuid, rule_fire_history
                 ).values():
-                    safe_execute(callback, groupevent, futures, _with_transaction=False)
+                    safe_execute(callback, groupevent, futures)
 
     # Step 8: Clean up Redis buffer data
     hashes_to_delete = [

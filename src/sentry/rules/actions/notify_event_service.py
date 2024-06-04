@@ -195,7 +195,7 @@ class NotifyEventServiceAction(EventAction):
             results.append(PluginService(plugin))
 
         for plugin in plugins.for_project(self.project, version=2):
-            for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
+            for notifier in safe_execute(plugin.get_notifiers) or ():
                 results.append(PluginService(notifier))
 
         return results

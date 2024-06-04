@@ -72,6 +72,9 @@ public class MvcApplication : HttpApplication
     // Global error catcher
     protected void Application_Error() => Server.CaptureLastError();
 
+    ${
+      params.isPerformanceSelected
+        ? `
     protected void Application_BeginRequest()
     {
         Context.StartSentryTransaction();
@@ -80,6 +83,8 @@ public class MvcApplication : HttpApplication
     protected void Application_EndRequest()
     {
         Context.FinishSentryTransaction();
+    }`
+        : ''
     }
 
     protected void Application_End()

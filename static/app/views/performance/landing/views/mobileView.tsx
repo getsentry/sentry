@@ -40,7 +40,7 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
-  if (organization.features.includes('spans-first-ui')) {
+  if (organization.features.includes('insights-initial-modules')) {
     doubleRowAllowedCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
   if (organization.features.includes('starfish-mobile-appstart')) {
@@ -61,7 +61,7 @@ export function MobileView(props: BasePerformanceViewProps) {
     );
   }
 
-  if (props.organization.features.includes('spans-first-ui')) {
+  if (props.organization.features.includes('insights-initial-modules')) {
     doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
   return (
