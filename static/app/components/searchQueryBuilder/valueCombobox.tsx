@@ -13,11 +13,11 @@ import {
   formatFilterValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {FilterType, Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
@@ -75,17 +75,29 @@ function getPredefinedValues({key}: {key?: Tag}): SuggestionSection[] {
   }));
 }
 
-function keySupportsMultipleValues(key?: Tag): boolean {
-  if (!key) {
-    return true;
-  }
+function tokenSupportsMultipleValues(
+  token: TokenResult<Token.FILTER>,
+  keys: TagCollection
+): boolean {
+  switch (token.filter) {
+    case FilterType.TEXT:
+      // The search parser defaults to the text type, so we need to do further
+      // checks to ensure that the filter actually supports multiple values
+      const key = keys[token.key.text];
+      if (!key) {
+        return true;
+      }
 
-  const fieldDef = getFieldDefinition(key.key);
+      const fieldDef = getFieldDefinition(key.key);
 
-  switch (fieldDef?.valueType) {
-    case FieldValueType.STRING:
-    case FieldValueType.NUMBER:
-    case FieldValueType.INTEGER:
+      return [
+        FieldValueType.STRING,
+        FieldValueType.NUMBER,
+        FieldValueType.INTEGER,
+      ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
+    case FilterType.NUMERIC:
+    case FilterType.TEXT_IN:
+    case FilterType.NUMERIC_IN:
       return true;
     default:
       return false;
@@ -120,7 +132,7 @@ function useFilterSuggestions({
   const {getTagValues, keys} = useSearchQueryBuilder();
   const key = keys[token.key.text];
   const shouldFetchValues = key && !key.predefined;
-  const canSelectMultipleValues = keySupportsMultipleValues(key);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
   const {data} = useQuery<string[]>({
@@ -247,8 +259,7 @@ export function SearchQueryBuilderValueCombobox({
   const [inputValue, setInputValue] = useState('');
 
   const {keys, dispatch} = useSearchQueryBuilder();
-  const key = keys[token.key.text];
-  const canSelectMultipleValues = keySupportsMultipleValues(key);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
   const selectedValues = useMemo(
     () =>
       canSelectMultipleValues

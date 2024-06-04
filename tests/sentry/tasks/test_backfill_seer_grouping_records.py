@@ -165,7 +165,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.event
         hash = self.group_hashes[event.group.id]
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id, event.group.message, hash
+            self.project, event.event_id, event.group_id, event.group.message
         )
         expected_group_data = CreateGroupingRecordData(
             group_id=event.group.id,
@@ -200,7 +200,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     event.event_id,
                     event.group_id,
                     event.group.message,
-                    self.group_hashes[event.group.id],
                 )
                 mock_logger.exception.assert_called_with(
                     "tasks.backfill_seer_grouping_records.event_lookup_exception",
@@ -221,18 +220,16 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-        hash = GroupHash.objects.get(group_id=event.group.id)
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id, event.group.message, hash
+            self.project, event.event_id, event.group_id, event.group.message
         )
         assert (group_data, stacktrace_string) == (None, "")
 
     def test_lookup_group_data_stacktrace_single_no_stacktrace(self):
         """Test that no data is returned if the event has no stacktrace"""
         event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
-        hash = GroupHash.objects.get(group_id=event.group.id)
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id, event.group.message, hash
+            self.project, event.event_id, event.group_id, event.group.message
         )
         assert (group_data, stacktrace_string) == (None, "")
 
@@ -244,7 +241,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             bulk_event_ids,
             invalid_event_ids,
             bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages, self.group_hashes)
+        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages)
 
         expected_event_ids = {event.event_id for event in events}
         expected_group_data = [
@@ -287,7 +284,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for exception in exceptions:
             mock_get_multi.side_effect = exception
             with pytest.raises(Exception):
-                lookup_group_data_stacktrace_bulk(self.project, rows, messages, self.group_hashes)
+                lookup_group_data_stacktrace_bulk(self.project, rows, messages)
                 mock_logger.exception.assert_called_with(
                     "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                     extra={
@@ -323,7 +320,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             bulk_event_ids,
             invalid_event_ids,
             bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages, hashes)
+        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages)
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -363,46 +360,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             bulk_event_ids,
             invalid_event_ids,
             bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages, hashes)
-        expected_group_data = [
-            CreateGroupingRecordData(
-                group_id=event.group.id,
-                hash=hashes[event.group.id],
-                project_id=self.project.id,
-                message=event.group.message,
-            )
-            for event in events
-        ]
-        expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(2)
-        ]
-        assert bulk_event_ids == {event.event_id for event in events}
-        assert invalid_event_ids == {event.event_id}
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-
-    def test_lookup_group_data_stacktrace_bulk_no_hash(self):
-        """
-        Test that if a group does not have a hash (for whatever reason), its data is not included
-        in the bulk lookup result
-        """
-        # Use 2 events
-        rows, events, messages, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}, {}
-        group_ids = [row["group_id"] for row in rows]
-        for group_id in group_ids:
-            messages.update({group_id: self.bulk_messages[group_id]})
-            hashes.update({group_id: self.group_hashes[group_id]})
-        # Create one event with no hash
-        event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
-        rows.append({"event_id": event.event_id, "group_id": event.group_id})
-        messages.update({event.group_id: event.group.message})
-
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages, hashes)
+        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages)
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -430,7 +388,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             self.group_hashes,
         )
         bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages, hashes
+            self.project, rows, messages
         )
 
         expected_group_data = [
@@ -480,7 +438,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         rows, messages, hashes = self.bulk_rows, self.bulk_messages, self.group_hashes
         bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages, hashes=hashes
+            self.project, rows, messages
         )
 
         events = self.bulk_events
@@ -501,72 +459,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk")
-    def test_lookup_group_data_stacktrace_bulk_with_fallback_no_hash(
-        self, mock_lookup_group_data_stacktrace_bulk, mock_logger
-    ):
-        """
-        Test that if a group does not have a hash (for whatever reason), we do not attempt the
-        fallback and we log it
-        """
-        # Purposely exclude one event from being included in the bulk lookup response, so that the fallback is used
-        events_missing = self.bulk_events[:-1]
-        group_data, stacktrace_strings = [], []
-        for event in events_missing:
-            grouping_info = get_grouping_info(None, project=self.project, event=event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
-            group_data.append(
-                CreateGroupingRecordData(
-                    group_id=event.group.id,
-                    hash=self.group_hashes[event.group.id],
-                    project_id=self.project.id,
-                    message=event.group.message,
-                )
-            )
-            stacktrace_strings.append(stacktrace_string)
-        mock_lookup_group_data_stacktrace_bulk.return_value = (
-            {event.event_id for event in events_missing},
-            set(),
-            GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
-        )
-
-        # Purposely remove the hash for the missing event
-        hashes = copy.deepcopy(self.group_hashes)
-        del hashes[self.bulk_events[-1].group.id]
-
-        rows, messages = self.bulk_rows, self.bulk_messages
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages, hashes=hashes
-        )
-
-        events = self.bulk_events[:-1]
-        expected_group_data = [
-            CreateGroupingRecordData(
-                group_id=event.group.id,
-                hash=hashes[event.group.id],
-                project_id=self.project.id,
-                message=event.group.message,
-            )
-            for event in events
-        ]
-        expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
-            for i in range(4)
-        ]
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.exception.assert_called_with(
-            "tasks.backfill_seer_grouping_records.no_group_hash",
-            extra={
-                "organization_id": self.project.organization.id,
-                "project_id": self.project.id,
-                "group_id": self.bulk_events[-1].group_id,
-            },
-        )
-
-    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
     def test_lookup_group_data_stacktrace_bulk_with_fallback_event_lookup_error(self, mock_logger):
         """
         Test bulk lookup with fallback catches EventLookupError and returns data for events that
@@ -581,7 +473,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows[-1]["event_id"] = 10000
 
         bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages, hashes
+            self.project, rows, messages
         )
 
         events = self.bulk_events[:-1]

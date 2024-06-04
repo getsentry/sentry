@@ -36,6 +36,12 @@ describe('PageFiltersStore', function () {
     });
   });
 
+  it('returns a stable reference with getState', () => {
+    PageFiltersStore.updateProjects([1], []);
+    const state = PageFiltersStore.getState();
+    expect(Object.is(state, PageFiltersStore.getState())).toBe(true);
+  });
+
   it('updateProjects()', async function () {
     expect(PageFiltersStore.getState().selection.projects).toEqual([]);
     updateProjects([1]);

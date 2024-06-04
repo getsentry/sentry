@@ -67,7 +67,6 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
 
   const routerContext: any = RouterContextFixture([
     {
-      project,
       router,
       location: router.location,
     },
