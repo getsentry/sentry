@@ -5,8 +5,9 @@ from logging import Logger, getLogger
 from typing import Any
 
 import orjson
+from slack_sdk.errors import SlackApiError
 
-from sentry import features
+from sentry import features, options
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
@@ -21,6 +22,7 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
+from sentry.integrations.slack.sdk_client import SlackClient as SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
@@ -157,53 +159,96 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # If this flow is triggered again for the same issue, we want it to be seen in the main channel
                     payload["reply_broadcast"] = True
 
-            client = SlackClient(integration_id=integration.id)
-            try:
-                response = client.post(
-                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
-                )
-            except ApiError as e:
-                # Record the error code and details from the exception
-                new_notification_message_object.error_code = e.code
-                new_notification_message_object.error_details = {
-                    "url": e.url,
-                    "host": e.host,
-                    "path": e.path,
-                    "data": e.json if e.json else e.text,
-                }
+            organization = event.group.project.organization
 
-                log_params = {
-                    "error": str(e),
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                    "channel_name": self.get_option("channel"),
-                }
-                # temporarily log the payload so we can debug message failures
-                log_params["payload"] = orjson.dumps(payload).decode()
-
-                self.logger.info(
-                    "rule.fail.slack_post",
-                    extra=log_params,
-                )
-            else:
-                # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
-                # on a successful message
-                ts = None
-                # This is a workaround for typing, and the dynamic nature of the return value
-                if isinstance(response, BaseApiResponse):
-                    ts = response.json.get("ts")
-                elif isinstance(response, MappingApiResponse):
-                    ts = response.get("ts")
-                else:
-                    _default_logger.info(
-                        "failed to get ts from slack response",
-                        extra={
-                            "response_type": type(response).__name__,
-                        },
+            if organization.id in options.get("slack.sdk-issue-alert"):
+                client = SlackSdkClient(integration_id=integration.id)
+                try:
+                    response = client.chat_postMessage(
+                        blocks=payload.get("blocks"),
+                        text=payload.get("text"),
+                        channel=payload["channel"],
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        thread_ts=payload.get("thread_ts"),
+                        reply_broadcast=payload.get("reply_broadcast"),
                     )
-                new_notification_message_object.message_identifier = (
-                    str(ts) if ts is not None else None
-                )
+                except SlackApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.status_code
+                    new_notification_message_object.error_details = {
+                        "msg": str(e),
+                        "data": e.response.data,
+                        "url": e.response.api_url,
+                    }
+
+                    log_params = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
+                    }
+                    # temporarily log the payload so we can debug message failures
+                    log_params["payload"] = orjson.dumps(payload).decode()
+
+                    self.logger.info(
+                        "slack.issue-alert.error",
+                        extra=log_params,
+                    )
+                else:
+                    ts = response.data.get("ts")
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
+
+            else:
+                client = SlackClient(integration_id=integration.id)
+                try:
+                    response = client.post(
+                        "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                    )
+                except ApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.code
+                    new_notification_message_object.error_details = {
+                        "url": e.url,
+                        "host": e.host,
+                        "path": e.path,
+                        "data": e.json if e.json else e.text,
+                    }
+
+                    log_params = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
+                    }
+                    # temporarily log the payload so we can debug message failures
+                    log_params["payload"] = orjson.dumps(payload).decode()
+
+                    self.logger.info(
+                        "rule.fail.slack_post",
+                        extra=log_params,
+                    )
+                else:
+                    # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
+                    # on a successful message
+                    ts = None
+                    # This is a workaround for typing, and the dynamic nature of the return value
+                    if isinstance(response, BaseApiResponse):
+                        ts = response.json.get("ts")
+                    elif isinstance(response, MappingApiResponse):
+                        ts = response.get("ts")
+                    else:
+                        _default_logger.info(
+                            "failed to get ts from slack response",
+                            extra={
+                                "response_type": type(response).__name__,
+                            },
+                        )
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
 
             if (
                 features.has(
