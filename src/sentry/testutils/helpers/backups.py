@@ -69,6 +69,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.project_integration import ProjectIntegration
@@ -563,6 +564,16 @@ class BackupTestCase(TransactionTestCase):
         )
         repo.external_id = "https://git.example.com:1234"
         repo.save()
+
+        # View
+        GroupSearchView.objects.create(
+            name=f"View 1 for {slug}",
+            user_id=owner_id,
+            organization=org,
+            query=f"some query for {slug}",
+            query_sort="date",
+            position=0,
+        )
 
         return org
 

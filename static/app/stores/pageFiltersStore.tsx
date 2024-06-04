@@ -2,6 +2,7 @@ import {createStore} from 'reflux';
 
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 import type {CommonStoreDefinition} from './types';
 
@@ -33,29 +34,6 @@ function datetimeHasSameValue(
   }
 
   return true;
-}
-
-function arrayIsEqual(
-  a: string[] | number[] | null,
-  b: string[] | number[] | null
-): boolean {
-  if (a === null && b === null) {
-    return true;
-  }
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) {
-      return false;
-    }
-
-    if (a.length === 1 && b.length === 1) {
-      return a[0] === b[0];
-    }
-
-    return a.every((value, index) => value === b[index]);
-  }
-
-  return a === b;
 }
 
 interface CommonState {
@@ -174,7 +152,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updateProjects(projects = [], environments = null) {
-    if (arrayIsEqual(this.selection.projects, projects)) {
+    if (valueIsEqual(this.selection.projects, projects)) {
       return;
     }
 
@@ -211,7 +189,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updateEnvironments(environments) {
-    if (arrayIsEqual(this.selection.environments, environments)) {
+    if (valueIsEqual(this.selection.environments, environments)) {
       return;
     }
 

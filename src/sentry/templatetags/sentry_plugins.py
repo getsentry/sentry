@@ -13,7 +13,7 @@ def get_actions(group, request):
 
     action_list = []
     for plugin in plugins.for_project(project, version=1):
-        results = safe_execute(plugin.actions, request, group, action_list, _with_transaction=False)
+        results = safe_execute(plugin.actions, request, group, action_list)
 
         if not results:
             continue
@@ -21,9 +21,7 @@ def get_actions(group, request):
         action_list = results
 
     for plugin in plugins.for_project(project, version=2):
-        for action in (
-            safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
-        ):
+        for action in safe_execute(plugin.get_actions, request, group) or ():
             action_list.append(action)
 
     return [(a[0], a[1]) for a in action_list]
@@ -37,10 +35,8 @@ def get_annotations(group, request=None):
     for plugin in plugins.for_project(project, version=2):
         if is_plugin_deprecated(plugin, project):
             continue
-        for value in (
-            safe_execute(plugin.get_annotations, group=group, _with_transaction=False) or ()
-        ):
-            annotation = safe_execute(Annotation, _with_transaction=False, **value)
+        for value in safe_execute(plugin.get_annotations, group=group) or ():
+            annotation = safe_execute(Annotation, **value)
             if annotation:
                 annotation_list.append(annotation)
 
