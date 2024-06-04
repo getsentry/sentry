@@ -971,6 +971,7 @@ class TraceSamplesExecutor:
             or any(user_query == self.suggested_query for user_query in self.user_queries)
         ):
             return None
+
         suggested_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -999,7 +1000,7 @@ def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
     if left_bound is not None and left_bound >= idx:
         idx = left_bound + 1
 
-    return clip(idx, 0, slices)
+    return idx
 
 
 def quantize_range(span_start, span_end, trace_range):
@@ -1013,8 +1014,20 @@ def quantize_range(span_start, span_end, trace_range):
         start_index = 0
         end_index = slices
     else:
-        start_index = convert_to_slice(span_start, trace_range)
-        end_index = convert_to_slice(span_end, trace_range, start_index)
+        raw_start_index = convert_to_slice(span_start, trace_range)
+        start_index = clip(raw_start_index, 0, slices)
+
+        raw_end_index = convert_to_slice(span_end, trace_range, start_index)
+        end_index = clip(raw_end_index, 0, slices)
+
+        if raw_start_index != start_index:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("slice start", {"raw": raw_start_index, "clipped": start_index})
+                sentry_sdk.capture_message("Slice start was adjusted", level="warning")
+        if raw_end_index != end_index:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("slice end", {"raw": raw_end_index, "clipped": end_index})
+                sentry_sdk.capture_message("Slice end was adjusted", level="warning")
 
     rounded_start = span_start
     rounded_end = span_end
@@ -1194,9 +1207,9 @@ def process_breakdowns(data, traces_range):
 
     quantized_data.sort(
         key=lambda row: (
-            row["start_index"],
+            row["quantized.start_ts"],
             row["precise.start_ts"],
-            -row["end_index"],
+            -row["quantized.finish_ts"],
             -row["precise.finish_ts"],
         )
     )
@@ -1211,7 +1224,7 @@ def process_breakdowns(data, traces_range):
                 row["precise.finish_ts"], last_timestamp_per_trace["trace"]
             )
 
-            if row["start_index"] == row["end_index"]:
+            if row["quantized.start_ts"] == row["quantized.finished_ts"]:
                 # after quantizing, this span is far too small to render, so remove it
                 continue
 
