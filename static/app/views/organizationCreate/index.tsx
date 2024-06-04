@@ -12,8 +12,8 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -42,7 +42,8 @@ function OrganizationCreate() {
     defaultComponent: null,
   });
 
-  const hasDataConsent = defined(DataConsentCheck);
+  const hasDataConsent =
+    HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host
