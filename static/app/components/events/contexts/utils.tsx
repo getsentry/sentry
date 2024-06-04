@@ -317,6 +317,16 @@ export function getContextTitle({
       return t('App');
     case 'device':
       return t('Device');
+    case 'browser':
+      return t('Browser');
+    case 'profile':
+      return t('Profile');
+    case 'replay':
+      return t('Replay');
+    case 'response':
+      return t('Response');
+    case 'feedback':
+      return t('Feedback');
     case 'os':
       return t('Operating System');
     case 'user':
@@ -328,9 +338,9 @@ export function getContextTitle({
     case 'trace':
       return t('Trace Details');
     case 'otel':
-      return t('OpenTelemetry');
+      return 'OpenTelemetry';
     case 'unity':
-      return t('Unity');
+      return 'Unity';
     case 'memory_info': // Current value for memory info
     case 'Memory Info': // Legacy for memory info
       return t('Memory Info');
@@ -343,6 +353,10 @@ export function getContextTitle({
           return t('Application State');
         case 'laravel':
           return t('Laravel Context');
+        case 'profile':
+          return t('Profile');
+        case 'replay':
+          return t('Replay');
         default:
           return alias;
       }
