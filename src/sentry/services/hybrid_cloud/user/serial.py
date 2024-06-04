@@ -43,6 +43,7 @@ def _serialize_from_user_fields(user: User) -> dict[str, Any]:
     args["display_name"] = user.get_display_name()
     args["label"] = user.get_label()
     args["is_superuser"] = user.is_superuser
+    args["is_unclaimed"] = user.is_unclaimed
     args["is_sentry_app"] = bool(user.is_sentry_app)
     args["password_usable"] = user.has_usable_password()
     args["session_nonce"] = user.session_nonce

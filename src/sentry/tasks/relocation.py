@@ -1251,6 +1251,11 @@ def notifying_users(uuid: str) -> None:
 
         # Okay, everything seems fine - go ahead and send those emails.
         for user in imported_users:
+            # Sometimes, we merge users together before unpausing a relocation. No need to send an
+            # email to these users!
+            if not user.is_unclaimed:
+                continue
+
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
             LostPasswordHash.send_relocate_account_email(user, hash, list(imported_org_slugs))
 
