@@ -1,5 +1,5 @@
 {
-  "logentry": {"formatted": "thread_demo Failing!"},
+  "logentry": { "formatted": "thread_demo Failing!" },
   "contexts": {
     "device": {
       "type": "device",
