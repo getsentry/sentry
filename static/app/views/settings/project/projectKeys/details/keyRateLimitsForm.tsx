@@ -16,7 +16,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, ProjectKey} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getExactDuration} from 'sentry/utils/formatters';
+import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,

@@ -284,7 +284,7 @@ class BaseNotification(abc.ABC):
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
             with sentry_sdk.start_span(op="notification.send", description=f"send_for_{provider}"):
-                safe_execute(notify, provider, self, recipients, context, _with_transaction=False)
+                safe_execute(notify, provider, self, recipients, context)
 
 
 class ProjectNotification(BaseNotification, abc.ABC):

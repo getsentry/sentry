@@ -36,6 +36,10 @@ from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
 
+class ExpectNoProcessingError:
+    pass
+
+
 class MonitorConsumerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -69,7 +73,7 @@ class MonitorConsumerTest(TestCase):
         guid: str | None = None,
         ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
-        expected_error: ProcessingErrorsException | None = None,
+        expected_error: ProcessingErrorsException | ExpectNoProcessingError | None = None,
         expected_monitor_slug: str | None = None,
         **overrides: Any,
     ) -> None:
@@ -116,7 +120,7 @@ class MonitorConsumerTest(TestCase):
     def check_processing_errors(
         self,
         expected_checkin: CheckIn,
-        expected_error: ProcessingErrorsException | None,
+        expected_error: ProcessingErrorsException | ExpectNoProcessingError | None,
         expected_monitor_slug: str | None,
     ) -> Generator:
         if expected_error is None:
@@ -129,6 +133,10 @@ class MonitorConsumerTest(TestCase):
             yield
 
             args_list = handle_processing_errors.call_args_list
+            if isinstance(expected_error, ExpectNoProcessingError):
+                assert len(args_list) == 0
+                return
+
             assert len(args_list) == 1
 
             checkin_item, error = args_list[0][0]
@@ -382,7 +390,31 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
-    def test_check_in_update_terminal(self):
+    def test_check_in_update_terminal_in_progress(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, duration=10.0)
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="in_progress",
+            expected_error=ExpectNoProcessingError(),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.duration == int(10.0 * 1000)
+
+        self.send_checkin(monitor.slug, duration=20.0, status="error")
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="in_progress",
+            expected_error=ExpectNoProcessingError(),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.duration == int(20.0 * 1000)
+
+    def test_check_in_update_terminal_user_terminal(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, duration=10.0)
         self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
@@ -391,7 +423,14 @@ class MonitorConsumerTest(TestCase):
         assert checkin.duration == int(10.0 * 1000)
 
         self.send_checkin(monitor.slug, duration=20.0, status="error")
-        self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="ok",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.CHECKIN_FINISHED}], monitor
+            ),
+        )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(20.0 * 1000)

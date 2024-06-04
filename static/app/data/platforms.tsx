@@ -180,6 +180,13 @@ export const platforms: PlatformIntegration[] = [
     language: 'go',
   },
   {
+    link: 'https://docs.sentry.io/platforms/go/guides/fiber/',
+    type: 'framework',
+    id: 'go-fiber',
+    name: 'Fiber',
+    language: 'go',
+  },
+  {
     link: 'https://docs.sentry.io/platforms/go/guides/gin/',
     type: 'framework',
     id: 'go-gin',
@@ -458,6 +465,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'php',
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
+  },
+  {
+    id: 'powershell',
+    name: 'PowerShell',
+    type: 'language',
+    language: 'powershell',
+    link: 'https://docs.sentry.io/platforms/powershell/',
   },
   {
     id: 'python',
