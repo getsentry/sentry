@@ -45,6 +45,7 @@ def get_tag_values(
     use_case_ids: Sequence[UseCaseID],
     mri: str,
     tag_key: str,
+    tag_value_prefix: str = "",
 ) -> list[str]:
     """
     Get all available tag values for an MRI and tag key from metrics.
@@ -53,7 +54,7 @@ def get_tag_values(
     tag_values: set[str] = set()
     for use_case_id in use_case_ids:
         use_case_tag_values = fetch_metric_tag_values(
-            organization.id, project_ids, use_case_id, mri, tag_key
+            organization.id, project_ids, use_case_id, mri, tag_key, tag_value_prefix
         )
         tag_values = tag_values.union(use_case_tag_values)
 
