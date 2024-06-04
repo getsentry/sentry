@@ -170,7 +170,6 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             if features.has("organizations:custom-metrics", organization):
                 if (
                     request.GET.get("category") == "metricSecond"  # TODO(metrics): remove this
-                    or request.GET.get("category") == "metricHour"
                     or request.GET.get("category") == "metricOutcomes"
                 ):
                     # TODO(metrics): align project resolution
