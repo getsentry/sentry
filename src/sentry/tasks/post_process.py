@@ -1280,13 +1280,16 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     from sentry.plugins.base import plugins
 
     plugin = plugins.get(plugin_slug)
-    safe_execute(
-        plugin.post_process,
-        event=event,
-        group=event.group,
-        expected_errors=(PluginError,),
-        **kwargs,
-    )
+    try:
+        plugin.post_process(
+            event=event,
+            group=event.group,
+            **kwargs,
+        )
+    except PluginError as e:
+        logger.info("post_process.process_error_ignored", extra={"exception": e})
+    except Exception as e:
+        logger.exception("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(func):
