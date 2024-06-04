@@ -45,6 +45,12 @@ import {
   OperatingSystemEventContext,
 } from './operatingSystem';
 import {
+  getKnownPlatformContextData,
+  getPlatformContextIcon,
+  getUnknownPlatformContextData,
+  KNOWN_PLATFORM_CONTEXTS,
+} from './platform';
+import {
   getKnownProfileContextData,
   getUnknownProfileContextData,
   ProfileEventContext,
@@ -334,10 +340,14 @@ export function getContextTitle({
     case 'ThreadPool Info': // Legacy value for thread pool info
       return t('Thread Pool Info');
     case 'default':
-      if (alias === 'state') {
-        return t('Application State');
+      switch (alias) {
+        case 'state':
+          return t('Application State');
+        case 'laravel':
+          return t('Laravel Context');
+        default:
+          return toTitleCase(alias);
       }
-      return toTitleCase(alias);
     default:
       return toTitleCase(type);
   }
@@ -360,12 +370,17 @@ export function getContextMeta(event: Event, contextType: string): Record<string
 }
 
 export function getContextIcon({
+  alias,
   type,
   value = {},
 }: {
+  alias: string;
   type: string;
   value?: Record<string, any>;
 }): React.ReactNode {
+  if (KNOWN_PLATFORM_CONTEXTS.has(alias)) {
+    return getPlatformContextIcon({platform: alias});
+  }
   let iconName = '';
   switch (type) {
     case 'device':
@@ -408,6 +423,13 @@ export function getFormattedContextData({
   project?: Project;
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
+
+  if (KNOWN_PLATFORM_CONTEXTS.has(contextType)) {
+    return [
+      ...getKnownPlatformContextData({platform: contextType, data: contextValue, meta}),
+      ...getUnknownPlatformContextData({platform: contextType, data: contextValue, meta}),
+    ];
+  }
 
   switch (contextType) {
     case 'app':
