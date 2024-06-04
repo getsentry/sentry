@@ -26,21 +26,21 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
     'related-issues-issue-details-page'
   );
   // This is also called within the TraceTimeline component but caching will save a second call
-  const {oneOtherIssueEvent} = useTraceTimelineEvents({
+  const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
   });
 
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      {isRelatedIssuesEnabled && oneOtherIssueEvent && (
+      {isRelatedIssuesEnabled && !isLoading && oneOtherIssueEvent && (
         <StyledTraceLink>
           One other issue appears in the same trace.
           <TraceLink event={event} />
         </StyledTraceLink>
       )}
       {/* This will be the default when we have GAed related issues  */}
-      {isRelatedIssuesEnabled && oneOtherIssueEvent === undefined && (
+      {isRelatedIssuesEnabled && !isLoading && oneOtherIssueEvent === undefined && (
         <TraceLink event={event} />
       )}
       {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}

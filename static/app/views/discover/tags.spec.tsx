@@ -126,7 +126,7 @@ describe('Tags', function () {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     // component has loaded
@@ -198,7 +198,7 @@ describe('Tags', function () {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitForElementToBeRemoved(

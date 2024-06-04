@@ -33,8 +33,12 @@ export default storyBook('KeyValueData', story => {
           <code>item.action.link</code>.
         </li>
         <li>
-          <code>displayRichValue</code> - Disable automatic links from{' '}
+          <code>disableLink</code> - Disable automatic links from{' '}
           <code>item.action.link</code>
+        </li>
+        <li>
+          <code>disableFormattedData</code> - Disable structured data and forces
+          string/component
         </li>
         <li>
           <code>errors</code> - Errors to display at the end of the row
@@ -146,13 +150,27 @@ const contentItems: KeyValueData.ContentProps[] = [
       value: 20481027,
     },
   },
-
   {
     item: {
       key: 'array',
       subject: 'array',
       value: ['entry 0', 1, null, ['3'], {value: 4}] as any,
     },
+  },
+  {
+    item: {
+      key: 'dict',
+      subject: 'dict',
+      value: {primary: 'alpha', secondary: 2} as any,
+    },
+  },
+  {
+    item: {
+      key: 'disabled-formatted-dict',
+      subject: 'raw dict',
+      value: {primary: 'alpha', secondary: 2} as any,
+    },
+    disableFormattedData: true,
   },
   {
     item: {
@@ -194,7 +212,7 @@ const contentItems: KeyValueData.ContentProps[] = [
         link: 'https://sentry.io',
       },
     },
-    disableRichValue: true,
+    disableLink: true,
   },
   {
     item: {

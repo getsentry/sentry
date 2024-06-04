@@ -644,7 +644,7 @@ class EventNodeStoreTest(TestCase):
         e2 = Event(project_id=1, event_id="mno", data=None)
         e2_node_id = e2.data.id
         assert e2.data.data == {}  # NodeData returns {} by default
-        eventstore.backend.bind_nodes([e2], "data")
+        eventstore.backend.bind_nodes([e2])
         assert e2.data.data == {}
         e2_body = nodestore.backend.get(e2_node_id)
         assert e2_body is None

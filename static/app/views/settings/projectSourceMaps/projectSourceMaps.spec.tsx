@@ -66,7 +66,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMaps', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, routerContext, routerProps} = initializeOrg({
+      const {organization, project, router, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -83,7 +83,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<ProjectSourceMaps project={project} {...routerProps} />, {
-        context: routerContext,
+        router,
         organization,
       });
 
@@ -170,7 +170,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, project, routerContext, routerProps} = initializeOrg({
+      const {organization, project, router, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -188,7 +188,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<ProjectSourceMaps project={project} {...routerProps} />, {
-        context: routerContext,
+        router,
         organization,
       });
 
@@ -200,7 +200,7 @@ describe('ProjectSourceMaps', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, routerContext, router, routerProps} = initializeOrg({
+      const {organization, project, router, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -217,7 +217,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<ProjectSourceMaps project={project} {...routerProps} />, {
-        context: routerContext,
+        router,
         organization,
       });
       expect(mockRequests.artifactBundles).toHaveBeenCalledTimes(1);
@@ -305,7 +305,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, project, routerProps, routerContext} = initializeOrg({
+      const {organization, project, routerProps, router} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -323,7 +323,7 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<ProjectSourceMaps project={project} {...routerProps} />, {
-        context: routerContext,
+        router,
         organization,
       });
 
