@@ -26,8 +26,9 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
-import {defined, valueIsEqual} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
 
