@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
-from sentry.integrations import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
