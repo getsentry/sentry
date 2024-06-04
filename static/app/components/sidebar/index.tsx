@@ -130,7 +130,6 @@ function Sidebar() {
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
-  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -672,7 +671,7 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                {hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
+                {hasNewSidebarHierarchy && (
                   <Fragment>
                     <SidebarSection>
                       {explore}
@@ -690,7 +689,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                {!hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
+                {!hasNewSidebarHierarchy && (
                   <Fragment>
                     <SidebarSection>
                       {performance}
@@ -704,18 +703,6 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
-                      {discover2}
-                      {dashboards}
-                      {releases}
-                      {userFeedback}
-                    </SidebarSection>
-                  </Fragment>
-                )}
-
-                {isSelfHostedErrorsOnly && (
-                  <Fragment>
-                    <SidebarSection>
-                      {alerts}
                       {discover2}
                       {dashboards}
                       {releases}
