@@ -36,29 +36,6 @@ function datetimeHasSameValue(
   return true;
 }
 
-function arrayIsEqual(
-  a: string[] | number[] | null,
-  b: string[] | number[] | null
-): boolean {
-  if (a === null && b === null) {
-    return true;
-  }
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) {
-      return false;
-    }
-
-    if (a.length === 1 && b.length === 1) {
-      return a[0] === b[0];
-    }
-
-    return a.every((value, index) => value === b[index]);
-  }
-
-  return a === b;
-}
-
 interface PageFiltersState {
   /**
    * The set of page filters which have been pinned but do not match the current
