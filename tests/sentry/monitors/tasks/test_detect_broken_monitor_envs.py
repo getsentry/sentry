@@ -24,7 +24,6 @@ from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monit
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -95,7 +94,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             )
         return incident
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_creates_broken_detection_no_duplicates(self, mock_now, builder):
@@ -115,7 +113,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
         assert builder.call_count == 1
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     def test_does_not_create_broken_detection_insufficient_duration(self):
         monitor, monitor_environment = self.create_monitor_and_env()
 
@@ -146,7 +143,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     def test_does_not_create_broken_detection_insufficient_checkins(self):
         monitor, monitor_environment = self.create_monitor_and_env()
 
@@ -177,14 +173,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_broken_detection_no_feature(self):
-        monitor, monitor_environment = self.create_monitor_and_env()
-        incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
-
-        detect_broken_monitor_envs()
-        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
-
-    @with_feature("organizations:crons-broken-monitor-detection")
     def test_does_not_create_for_disabled_monitor(self):
         monitor, monitor_environment = self.create_monitor_and_env()
         monitor.status = ObjectStatus.DISABLED
@@ -195,7 +183,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_sends_emails_to_all_users_across_orgs(self, mock_now, builder):
@@ -303,7 +290,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             any_order=True,
         )
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_disables_environments_and_sends_email(self, mock_now, builder):
@@ -443,7 +429,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             any_order=True,
         )
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_disables_corrects_environments_and_sends_email(self, mock_now, builder):
@@ -537,7 +522,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             any_order=True,
         )
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_sends_emails_to_owners_user_id(self, mock_now, builder):
@@ -557,7 +541,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
         builder.return_value.send_async.assert_called_with(["newowner@example.com"])
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_sends_emails_to_owners_team_id(self, mock_now, builder):
@@ -608,7 +591,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             ]
         )
 
-    @with_feature("organizations:crons-broken-monitor-detection")
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
     def test_does_not_send_emails_to_users_with_disabled_nudges(self, mock_now, builder):

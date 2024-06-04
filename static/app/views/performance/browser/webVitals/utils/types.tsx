@@ -49,7 +49,6 @@ export type InteractionSpanSampleRow = {
   projectSlug: string;
   replayId: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
-  [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.TIMESTAMP]: string;
   'user.display': string;

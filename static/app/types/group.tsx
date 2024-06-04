@@ -236,6 +236,7 @@ export type EventAttachment = IssueAttachment;
 export type Tag = {
   key: string;
   name: string;
+  alias?: string;
 
   isInput?: boolean;
 

@@ -22,7 +22,7 @@ type Options = {
 };
 
 /**
- * Returns an API client that will have it's requests canceled when the owning
+ * Returns an API client that will have its requests canceled when the owning
  * React component is unmounted (may be disabled via options).
  */
 function useApi({persistInFlight, api: providedApi}: Options = {}) {

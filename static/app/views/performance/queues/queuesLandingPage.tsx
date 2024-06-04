@@ -142,7 +142,10 @@ function QueuesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="queue" features="performance-queues-view">
+    <ModulePageProviders
+      moduleName="queue"
+      features={['insights-addon-modules', 'performance-queues-view']}
+    >
       <QueuesLandingPage />
     </ModulePageProviders>
   );

@@ -9,8 +9,7 @@ from unittest.mock import ANY, call, patch
 import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info
@@ -1003,40 +1002,47 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         # Mock snuba response to purposefully exclude the first group
-        group_ids_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
-        group_id_batch = [group.id for group in group_ids_minus_first]
-        time_now = datetime.now()
+        groups_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
+        group_id_batch = [group.id for group in groups_minus_first]
         events_entity = Entity("events", alias="events")
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Function("max", [Column("event_id")], "event_id"),
-            ],
-            groupby=[Column("group_id")],
-            where=[
-                Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("group_id"), Op.IN, group_id_batch),
-                Condition(
-                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
-                ),
-                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
-            ],
-            orderby=[OrderBy(Column("group_id"), Direction.ASC)],
-        )
-
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
+        snuba_requests = []
+        for group_id in group_id_batch:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(days=10),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
 
         result = bulk_snuba_queries(
-            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
         mock_snuba_queries.return_value = result
 
@@ -1121,11 +1127,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         groups = Group.objects.all()
         groups_len = len(groups)
+        group_ids_sorted = sorted([group.id for group in groups])
         mock_logger.info.assert_called_with(
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
                 "project_id": self.project.id,
-                "group_id_batch": json.dumps([group.id for group in groups]),
+                "group_id_batch": json.dumps(group_ids_sorted),
             },
         )
         mock_call_next_backfill.assert_called_with(

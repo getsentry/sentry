@@ -371,7 +371,6 @@ module = [
     "sentry.plugins.bases.notify",
     "sentry.plugins.config",
     "sentry.plugins.endpoints",
-    "sentry.plugins.providers.base",
     "sentry.plugins.providers.repository",
     "sentry.receivers.releases",
     "sentry.release_health.metrics_sessions_v2",
