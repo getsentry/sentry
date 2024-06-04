@@ -343,7 +343,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="http"
       pageTitle={t('Domain Summary')}
-      features="insights-initial-modules"
+      features="spans-first-ui"
     >
       <HTTPDomainSummaryPage />
     </ModulePageProviders>

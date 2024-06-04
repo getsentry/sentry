@@ -40,7 +40,7 @@ function SpanSummaryButton(props: Props) {
     : PERFORMANCE_RESOURCE_DATA_TYPE;
 
   if (
-    organization.features.includes('insights-initial-modules') &&
+    organization.features.includes('spans-first-ui') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -59,7 +59,7 @@ function SpanSummaryButton(props: Props) {
   }
 
   if (
-    organization.features.includes('insights-initial-modules') &&
+    organization.features.includes('spans-first-ui') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(sentryTags.op)
   ) {

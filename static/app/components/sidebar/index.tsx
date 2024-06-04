@@ -251,7 +251,7 @@ function Sidebar() {
   const moduleURLBuilder = useModuleURLBuilder(true);
 
   const queries = hasOrganization && (
-    <Feature key="db" features="insights-entry-points" organization={organization}>
+    <Feature key="db" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -265,7 +265,7 @@ function Sidebar() {
   );
 
   const requests = hasOrganization && (
-    <Feature key="http" features="insights-entry-points" organization={organization}>
+    <Feature key="http" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
@@ -277,11 +277,7 @@ function Sidebar() {
   );
 
   const caches = hasOrganization && (
-    <Feature
-      key="cache"
-      features={['insights-entry-points', 'performance-cache-view']}
-      organization={organization}
-    >
+    <Feature key="cache" features="performance-cache-view" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -296,7 +292,7 @@ function Sidebar() {
   );
 
   const webVitals = hasOrganization && (
-    <Feature key="vital" features="insights-entry-points" organization={organization}>
+    <Feature key="vital" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -310,11 +306,7 @@ function Sidebar() {
   );
 
   const queues = hasOrganization && (
-    <Feature
-      key="queue"
-      features={['insights-entry-points', 'performance-queues-view']}
-      organization={organization}
-    >
+    <Feature key="queue" features="performance-queues-view" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -329,11 +321,7 @@ function Sidebar() {
   );
 
   const screenLoads = hasOrganization && (
-    <Feature
-      key="screen_load"
-      features="insights-entry-points"
-      organization={organization}
-    >
+    <Feature key="screen_load" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={MODULE_TITLES.screen_load}
@@ -345,7 +333,7 @@ function Sidebar() {
   );
 
   const appStarts = hasOrganization && (
-    <Feature key="app_start" features="insights-entry-points" organization={organization}>
+    <Feature key="app_start" features="spans-first-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={MODULE_TITLES.app_start}
@@ -359,7 +347,7 @@ function Sidebar() {
   const mobileUI = hasOrganization && (
     <Feature
       key="mobile-ui"
-      features={['insights-entry-points', 'starfish-mobile-ui-module']}
+      features={['spans-first-ui', 'starfish-mobile-ui-module']}
       organization={organization}
     >
       <SidebarItem
@@ -374,7 +362,7 @@ function Sidebar() {
   );
 
   const resources = hasOrganization && (
-    <Feature key="resource" features="insights-entry-points">
+    <Feature key="resource" features="spans-first-ui">
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
@@ -399,10 +387,7 @@ function Sidebar() {
   );
 
   const llmMonitoring = hasOrganization && (
-    <Feature
-      features={['insights-entry-points', 'ai-analytics']}
-      organization={organization}
-    >
+    <Feature features="ai-analytics" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconRobot />}
@@ -424,7 +409,7 @@ function Sidebar() {
         // If the client has the old sidebar hierarchy _and_ something to show inside the Performance dropdown, render an accordion.
         if (
           !hasNewSidebarHierarchy &&
-          (organization.features.includes('insights-entry-points') ||
+          (organization.features.includes('spans-first-ui') ||
             organization.features.includes('performance-cache-view') ||
             organization.features.includes('performance-queues-view') ||
             organization.features.includes('performance-trace-explorer'))
@@ -610,28 +595,26 @@ function Sidebar() {
     />
   );
 
-  const insights = hasOrganization && (
-    <Feature key="insights" features="insights-entry-points" organization={organization}>
-      <SidebarAccordion
-        {...sidebarItemProps}
-        icon={<IconGraph />}
-        label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
-        id="insights"
-        isNew
-        exact={!shouldAccordionFloat}
-      >
-        {requests}
-        {queries}
-        {resources}
-        {appStarts}
-        {screenLoads}
-        {webVitals}
-        {caches}
-        {queues}
-        {mobileUI}
-        {llmMonitoring}
-      </SidebarAccordion>
-    </Feature>
+  const insights = (
+    <SidebarAccordion
+      {...sidebarItemProps}
+      icon={<IconGraph />}
+      label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+      id="insights"
+      isNew
+      exact={!shouldAccordionFloat}
+    >
+      {requests}
+      {queries}
+      {resources}
+      {appStarts}
+      {screenLoads}
+      {webVitals}
+      {caches}
+      {queues}
+      {mobileUI}
+      {llmMonitoring}
+    </SidebarAccordion>
   );
 
   const explore = (

@@ -97,7 +97,7 @@ function ResourcesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="resource" features="insights-initial-modules">
+    <ModulePageProviders moduleName="resource" features="spans-first-ui">
       <ResourcesLandingPage />
     </ModulePageProviders>
   );

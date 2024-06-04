@@ -27,7 +27,7 @@ const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['spans-first-ui', 'starfish-view'],
   });
 
   beforeEach(() => {

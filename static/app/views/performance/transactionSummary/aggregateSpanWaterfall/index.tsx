@@ -36,7 +36,7 @@ function AggregateSpanWaterfall(): React.ReactElement {
   const httpMethod = decodeScalar(location.query['http.method']);
   return (
     <Feature
-      features="insights-initial-modules"
+      features="spans-first-ui"
       organization={organization}
       renderDisabled={renderNoAccess}
     >

@@ -81,7 +81,7 @@ function ScreenLoadSpans() {
             />
             <HeaderWrapper>
               <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('insights-initial-modules') &&
+              {organization.features.includes('spans-first-ui') &&
                 isProjectCrossPlatform && <PlatformSelector />}
             </HeaderWrapper>
           </Layout.HeaderContent>
@@ -210,7 +210,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="screen_load"
       pageTitle={transaction}
-      features="insights-initial-modules"
+      features="spans-first-ui"
     >
       <ScreenLoadSpans />
     </ModulePageProviders>

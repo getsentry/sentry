@@ -11,7 +11,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['spans-first-ui'],
   });
 
   let eventsMock;
@@ -81,7 +81,7 @@ describe('PageOverview', function () {
 
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['spans-first-ui'],
     });
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -125,7 +125,7 @@ describe('PageOverview', function () {
 
   it('escapes transaction name before querying discover', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['spans-first-ui'],
     });
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
