@@ -404,7 +404,7 @@ export function getContextIcon({
   if (iconName.length === 0) {
     return null;
   }
-  return <ContextIcon name={iconName} size="sm" hideUnknown />;
+  return <ContextIcon name={iconName} size="sm" hideUnknown includeTitle />;
 }
 
 export function getFormattedContextData({

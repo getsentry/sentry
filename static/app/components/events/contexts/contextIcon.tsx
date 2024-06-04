@@ -139,10 +139,16 @@ function getLogoImage(name: string) {
 type Props = {
   name: string;
   hideUnknown?: boolean;
+  includeTitle?: boolean;
   size?: IconSize;
 };
 
-function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Props) {
+function ContextIcon({
+  name,
+  size: providedSize = 'xl',
+  hideUnknown = false,
+  includeTitle = false,
+}: Props) {
   const theme = useTheme();
   const size = theme.iconSizes[providedSize];
 
@@ -155,7 +161,15 @@ function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Pro
     return null;
   }
 
-  return <img height={size} width={size} css={extraCass} src={imageName} />;
+  return (
+    <img
+      height={size}
+      width={size}
+      css={extraCass}
+      src={imageName}
+      title={includeTitle ? name : undefined}
+    />
+  );
 }
 
 export default ContextIcon;
