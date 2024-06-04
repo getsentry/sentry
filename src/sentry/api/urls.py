@@ -3260,7 +3260,7 @@ urlpatterns = [
         name="sentry-api-0-project-wizard",
     ),
     re_path(
-        r"^remote-config/projects/(?P<project_id>[^\/]+)$",
+        r"^remote-config/projects/(?P<project_id>[^\/]+)/$",
         ProjectConfigurationProxyEndpoint.as_view(),
         name="sentry-api-0-project-remote-configuration",
     ),
