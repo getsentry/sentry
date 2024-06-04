@@ -1207,9 +1207,9 @@ def process_breakdowns(data, traces_range):
 
     quantized_data.sort(
         key=lambda row: (
-            row["quantized.start_ts"],
+            row["start_index"],
             row["precise.start_ts"],
-            -row["quantized.finish_ts"],
+            -row["end_index"],
             -row["precise.finish_ts"],
         )
     )
@@ -1224,7 +1224,7 @@ def process_breakdowns(data, traces_range):
                 row["precise.finish_ts"], last_timestamp_per_trace["trace"]
             )
 
-            if row["quantized.start_ts"] == row["quantized.finished_ts"]:
+            if row["start_index"] == row["end_index"]:
                 # after quantizing, this span is far too small to render, so remove it
                 continue
 
