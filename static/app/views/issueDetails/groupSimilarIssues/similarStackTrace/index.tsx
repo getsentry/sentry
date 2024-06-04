@@ -68,6 +68,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           {
             k: 10,
             threshold: 0.01,
+            read_only: true,
           }
         )}`,
         dataKey: 'similar',
