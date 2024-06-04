@@ -69,7 +69,6 @@ export function getPlatformContextIcon({
       format="sm"
       platform={platformIconName}
       data-test-id={`${platform}-context-icon`}
-      title={platformIconName}
     />
   );
 }
