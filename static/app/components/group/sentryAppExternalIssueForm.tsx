@@ -2,7 +2,10 @@ import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformExternalIssue, SentryAppInstallation} from 'sentry/types/integrations';
+import type {
+  PlatformExternalIssue,
+  SentryAppInstallation,
+} from 'sentry/types/integrations';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
