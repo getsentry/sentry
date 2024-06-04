@@ -426,6 +426,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
+        {/* Once trace-related issues are GA, we will remove this */}
         {issueTypeConfig.traceTimeline && !isRelatedIssuesEnabled ? (
           <TraceLink event={event} />
         ) : null}
