@@ -523,13 +523,15 @@ function SectionCard({
   title,
   disableTruncate,
   sortAlphabetically = false,
+  itemProps = {},
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
+  itemProps?: Partial<KeyValueData.ContentProps>;
   sortAlphabetically?: boolean;
 }) {
-  const contentItems = items.map(item => ({item}));
+  const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
     <KeyValueData.Card
