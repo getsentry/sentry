@@ -165,6 +165,17 @@ export const QUOTA_FIELDS = [
     ] as const,
   },
   {
+    name: 'quotaSpans',
+    label: t('Spans'),
+    help: tct('Receive notifications about your spans quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('span')} />,
+    }),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
     name: 'quotaReplays',
     label: t('Replays'),
     help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
