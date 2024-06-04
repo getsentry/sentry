@@ -13,7 +13,6 @@ from sentry.models.artifactbundle import ArtifactBundleArchive
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils.safe import get_path
 
@@ -59,14 +58,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
             self.data.setdefault("errors", []).append(
                 {"type": error_type, "mapping_uuid": debug_id}
-            )
-
-            report_processing_issue(
-                self.data,
-                scope="proguard",
-                object="mapping:%s" % debug_id,
-                type=error_type,
-                data={"mapping_uuid": debug_id},
             )
 
         return True

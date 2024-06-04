@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from sentry.lang.native.utils import image_name, is_minidump_event
+from sentry.lang.native.utils import image_name
 from sentry.models.eventerror import EventError
-from sentry.reprocessing import report_processing_issue
 
 FATAL_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,
@@ -86,22 +85,6 @@ class SymbolicationFailed(Exception):
 
 
 def write_error(e, data):
-    # User fixable but fatal errors are reported as processing
-    # issues. We skip this for minidumps, as reprocessing is not
-    # possible without persisting minidumps.
-    if e.is_user_fixable and e.is_fatal and not is_minidump_event(data):
-        report_processing_issue(
-            data, scope="native", object="dsym:%s" % e.image_uuid, type=e.type, data=e.get_data()
-        )
-
-    # This in many ways currently does not really do anything.
-    # The reason is that once a processing issue is reported
-    # the event will only be stored as a raw event and no
-    # group will be generated.  As a result it also means that
-    # we will not have any user facing event or error showing
-    # up at all.  We want to keep this here though in case we
-    # do not want to report some processing issues (eg:
-    # optional difs)
     if e.is_user_fixable or e.is_sdk_failure:
         errors = data.setdefault("errors", [])
         errors.append(e.get_data())

@@ -231,7 +231,6 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.lang.native.sources import record_last_upload
     from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
     from sentry.models.project import Project
-    from sentry.reprocessing import bump_reprocessing_revision
 
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
@@ -278,12 +277,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             delete_file = False
 
             if created:
-                # Bump the reprocessing revision since the symbol has changed
-                # and might resolve processing issues. If the file was not
-                # created, someone else has created it and will bump the
-                # revision instead.
                 record_last_upload(project)
-                bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(
             AssembleTask.DIF,
