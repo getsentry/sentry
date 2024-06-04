@@ -44,7 +44,7 @@ function AddWidget({onAddWidget}: Props) {
   const organization = useOrganization();
 
   return (
-    <Feature features={'dashboards-edit'}>
+    <Feature features="dashboards-edit">
       <WidgetWrapper
         key="add"
         ref={setNodeRef}
