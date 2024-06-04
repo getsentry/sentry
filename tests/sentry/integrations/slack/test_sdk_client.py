@@ -1,7 +1,7 @@
 import pytest
 from slack_sdk.errors import SlackApiError
 
-from sentry.integrations.slack.sdk_client import SlackClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -20,17 +20,17 @@ class SlackClientTest(TestCase):
 
     def test_no_integration_found_error(self):
         with pytest.raises(ValueError):
-            SlackClient(integration_id=2)
+            SlackSdkClient(integration_id=2)
 
     def test_no_access_token_error(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.update(metadata={})
 
         with pytest.raises(ValueError):
-            SlackClient(integration_id=self.integration.id)
+            SlackSdkClient(integration_id=self.integration.id)
 
     def test_authorize(self):
-        client = SlackClient(integration_id=self.integration.id)
+        client = SlackSdkClient(integration_id=self.integration.id)
 
         with pytest.raises(SlackApiError):
             # error raised because it's actually trying to POST

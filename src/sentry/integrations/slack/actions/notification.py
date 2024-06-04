@@ -22,7 +22,7 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
-from sentry.integrations.slack.sdk_client import SlackClient as SlackSdkClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
@@ -103,8 +103,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "unfurl_links": False,
                 "unfurl_media": False,
             }
+            json_blocks = None
             if payload_blocks := blocks.get("blocks"):
-                payload["blocks"] = orjson.dumps(payload_blocks).decode()
+                json_blocks = orjson.dumps(payload_blocks).decode()
+                payload["blocks"] = json_blocks
 
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
@@ -128,6 +130,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             # Only try to get the parent notification message if the organization is in the FF
             # We need to search by rule action uuid and rule id, so only search if they exist
+            reply_broadcast = False
+            thread_ts = None
             if (
                 features.has(
                     "organizations:slack-thread-issue-alert", event.group.project.organization
@@ -156,26 +160,29 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # To reply to a thread, use the specific key in the payload as referenced by the docs
                     # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
                     payload["thread_ts"] = parent_notification_message.message_identifier
+                    thread_ts = parent_notification_message.message_identifier
                     # If this flow is triggered again for the same issue, we want it to be seen in the main channel
                     payload["reply_broadcast"] = True
+                    reply_broadcast = True
 
             organization = event.group.project.organization
 
             if organization.id in options.get("slack.sdk-issue-alert"):
-                client = SlackSdkClient(integration_id=integration.id)
+                sdk_client = SlackSdkClient(integration_id=integration.id)
+                text = str(payload["text"]) if payload["text"] is not None else None
                 try:
-                    response = client.chat_postMessage(
-                        blocks=payload.get("blocks"),
-                        text=payload.get("text"),
-                        channel=payload["channel"],
+                    sdk_response = sdk_client.chat_postMessage(
+                        blocks=json_blocks,
+                        text=text,
+                        channel=channel,
                         unfurl_links=False,
                         unfurl_media=False,
-                        thread_ts=payload.get("thread_ts"),
-                        reply_broadcast=payload.get("reply_broadcast"),
+                        thread_ts=thread_ts,
+                        reply_broadcast=reply_broadcast,
                     )
                 except SlackApiError as e:
                     # Record the error code and details from the exception
-                    new_notification_message_object.error_code = e.status_code
+                    new_notification_message_object.error_code = e.response.status_code
                     new_notification_message_object.error_details = {
                         "msg": str(e),
                         "data": e.response.data,
@@ -196,7 +203,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         extra=log_params,
                     )
                 else:
-                    ts = response.data.get("ts")
+                    ts = None
+                    response_data = sdk_response.data
+                    if isinstance(response_data, dict):
+                        ts = response_data.get("ts")
+
+                    self.logger.info("slack.issue-alert.ts", extra={"ts": ts})
+
                     new_notification_message_object.message_identifier = (
                         str(ts) if ts is not None else None
                     )
