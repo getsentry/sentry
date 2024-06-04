@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -6,6 +6,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -54,8 +55,15 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
-const SDK_UPDATE_ALERT = t(
-  `If you're noticing missing cache data, try updating to the latest SDK.`
+const SDK_UPDATE_ALERT = (
+  <Fragment>
+    {t(
+      `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. `
+    )}
+    <ExternalLink href={'https://docs.sentry.io/product/performance/caches/'}>
+      {t('Read the Docs')}
+    </ExternalLink>
+  </Fragment>
 );
 
 const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
