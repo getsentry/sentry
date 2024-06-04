@@ -18,7 +18,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import ProjectContext from 'sentry/views/projects/projectContext';
+import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -256,14 +256,14 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext projectSlug={project.slug}>
+      <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
           location={LocationFixture()}
           params={params}
         />
-      </ProjectContext>,
+      </ProjectContextProvider>,
       {organization}
     );
 
@@ -290,14 +290,14 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext projectSlug={project.slug}>
+      <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
           location={LocationFixture()}
           params={params}
         />
-      </ProjectContext>,
+      </ProjectContextProvider>,
       {organization}
     );
 
@@ -334,14 +334,14 @@ describe('projectGeneralSettings', function () {
     function renderProjectGeneralSettings() {
       const params = {projectId: project.slug};
       render(
-        <ProjectContext projectSlug={project.slug}>
+        <ProjectContextProvider projectSlug={project.slug}>
           <ProjectGeneralSettings
             {...routerProps}
             routes={[]}
             location={LocationFixture()}
             params={params}
           />
-        </ProjectContext>,
+        </ProjectContextProvider>,
         {organization}
       );
     }

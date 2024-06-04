@@ -1,7 +1,5 @@
 import type {Avatar} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
-import type {Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {User, UserEmail} from 'sentry/types/user';
 
 /**
@@ -276,81 +274,6 @@ function isGroup(
 /**
  * @deprecated
  */
-function isTeamShape(team: unknown) {
-  if (typeof team !== 'object' || team === null) {
-    return new Error('Team has to be of object type');
-  }
-
-  const maybeTeamShape = team as Partial<Team>;
-  if (!('id' in maybeTeamShape) || typeof maybeTeamShape.id !== 'string') {
-    return new Error(`id must be string.`);
-  }
-
-  if (!('slug' in maybeTeamShape) || typeof maybeTeamShape.slug !== 'string') {
-    return new Error(`slug must be string.`);
-  }
-
-  return null;
-}
-
-/**
- * @deprecated
- */
-function isProject(
-  props: unknown,
-  propName: string,
-  _componentName: unknown
-): null | Error {
-  if (typeof props !== 'object' || props === null) {
-    return new Error('props is not an object');
-  }
-
-  if (!(propName in props) || typeof props[propName] !== 'object') {
-    return null;
-  }
-
-  if (!props[propName]) {
-    return null;
-  }
-
-  const project = props[propName] as Partial<Project>;
-
-  if (
-    !('id' in project) ||
-    ('id' in project && typeof project.id !== 'string' && typeof project.id !== 'number')
-  ) {
-    return new Error(`id must be string or number.`);
-  }
-  if ('slug' in project && typeof project.slug !== 'string') {
-    return new Error('slug must be string');
-  }
-
-  if ('isBookmarked' in project && typeof project.isBookmarked !== 'boolean') {
-    return new Error('isBookmarked must be boolean');
-  }
-  if ('status' in project && typeof project.status !== 'string') {
-    return new Error('status must be string');
-  }
-
-  if ('teams' in project) {
-    if (!Array.isArray(project.teams)) {
-      return new Error('teams must be array');
-    }
-    if (!project.teams.every(t => isTeamShape(t) === null)) {
-      return new Error(`teams must be array of Team types.`);
-    }
-  }
-
-  if ('name' in project && typeof project.name !== 'string') {
-    return new Error('name must be string');
-  }
-
-  return null;
-}
-
-/**
- * @deprecated
- */
 function isObject(
   props: unknown,
   propName: string,
@@ -379,6 +302,5 @@ function isObject(
  */
 export const SentryPropTypeValidators = {
   isGroup,
-  isProject,
   isObject,
 };
