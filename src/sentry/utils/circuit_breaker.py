@@ -146,8 +146,9 @@ def circuit_breaker_context(
             logger.log("Ouch!")
 
 
-    If the circuit breaker is tripped, the block of code will be skipped, but no exception will be
-    raised. The block of code will be executed if the circuit breaker is not tripped.
+    If the circuit breaker is tripped, the block of code will be skipped, and CircuitBreakerTripped raise.
+    The block of code will be executed if the circuit breaker is not tripped.
+    Reraises any exceptions that occur within the block of code.
     """
     config: CircuitBreakerConfig = {**CIRCUIT_BREAKER_DEFAULTS, **(custom_config or {})}
     error_count_key = ERROR_COUNT_CACHE_KEY(key)
