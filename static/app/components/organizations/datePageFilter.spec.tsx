@@ -6,7 +6,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, router} = initializeOrg({
   router: {
     location: {
       query: {},
@@ -38,7 +38,7 @@ describe('DatePageFilter', function () {
   });
 
   it('can change period', async function () {
-    render(<DatePageFilter />, {context: routerContext, organization});
+    render(<DatePageFilter />, {router, organization});
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -72,7 +72,7 @@ describe('DatePageFilter', function () {
   });
 
   it('can change absolute range', async function () {
-    render(<DatePageFilter />, {context: routerContext, organization});
+    render(<DatePageFilter />, {router, organization});
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -124,11 +124,7 @@ describe('DatePageFilter', function () {
   });
 
   it('displays a desynced state message', async function () {
-    const {
-      organization: desyncOrganization,
-      router: desyncRouter,
-      routerContext: desyncRouterContext,
-    } = initializeOrg({
+    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       router: {
         location: {
           // the datetime parameters need to be non-null for desync detection to work
@@ -150,7 +146,7 @@ describe('DatePageFilter', function () {
     });
 
     render(<DatePageFilter />, {
-      context: desyncRouterContext,
+      router: desyncRouter,
       organization: desyncOrganization,
     });
 

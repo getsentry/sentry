@@ -9,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 
 describe('getCustomFieldRenderer', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   const baseEventViewOptions: EventViewOptions = {
     start: undefined,
@@ -43,7 +43,7 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {context: routerContext}
+      {router}
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
@@ -72,7 +72,7 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(await screen.findByText('defg'));
@@ -114,7 +114,7 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));

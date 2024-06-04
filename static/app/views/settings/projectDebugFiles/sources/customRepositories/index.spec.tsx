@@ -60,7 +60,7 @@ function TestComponent({
 }
 
 function getProps(props?: Parameters<typeof initializeOrg>[0]) {
-  const {organization, router, project, routerContext} = initializeOrg({
+  const {organization, router, project} = initializeOrg({
     router: props?.router,
   });
 
@@ -71,7 +71,6 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
     router,
     isLoading: false,
     location: router.location,
-    routerContext,
   };
 }
 
@@ -111,9 +110,7 @@ describe('Custom Repositories', function () {
   it('renders', async function () {
     const props = getProps();
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      context: props.routerContext,
-    });
+    const {rerender} = render(<TestComponent {...props} />, {router: props.router});
 
     // Section title
     expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
@@ -207,7 +204,7 @@ describe('Custom Repositories', function () {
 
     const {rerender} = render(
       <TestComponent {...props} organization={newOrganization} />,
-      {context: props.routerContext}
+      {router: props.router}
     );
 
     // Section title
@@ -270,7 +267,7 @@ describe('Custom Repositories', function () {
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
       />,
-      {context: props.routerContext}
+      {router: props.router}
     );
 
     // Section title
@@ -319,7 +316,7 @@ describe('Custom Repositories', function () {
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
       />,
-      {context: props.routerContext}
+      {router: props.router}
     );
 
     // Content
@@ -356,7 +353,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[httpRepository, appStoreConnectRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
@@ -410,7 +407,7 @@ describe('Custom Repositories', function () {
           customRepositories={[httpRepository, appStoreConnectRepository]}
           credetialsStatus={{status: 'invalid', code: 'app-connect-authentication-error'}}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
@@ -436,7 +433,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[httpRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       expect(screen.queryByRole('button', {name: 'Sync Now'})).not.toBeInTheDocument();
@@ -488,7 +485,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[appStoreConnectRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       // Display modal content
@@ -530,7 +527,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[appStoreConnectRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       // Display modal content

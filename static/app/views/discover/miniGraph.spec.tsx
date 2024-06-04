@@ -50,7 +50,7 @@ describe('Discover > MiniGraph', function () {
         organization={organization}
         yAxis={yAxis}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(eventRequest.default).toHaveBeenCalledWith(
@@ -70,7 +70,7 @@ describe('Discover > MiniGraph', function () {
         organization={organization}
         yAxis={yAxis}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(eventRequest.default).toHaveBeenCalledWith(
