@@ -84,6 +84,8 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params["k"] = int(request.GET["k"])
         if request.GET.get("threshold"):
             similar_issues_params["threshold"] = float(request.GET["threshold"])
+        if request.GET.get("read_only"):
+            similar_issues_params["read_only"] = bool(request.GET["read_only"])
 
         extra: dict[str, Any] = dict(similar_issues_params.copy())
         extra["group_message"] = extra.pop("message")

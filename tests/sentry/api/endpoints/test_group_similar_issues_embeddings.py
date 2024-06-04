@@ -454,7 +454,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
-        Test that optional parameters, k and threshold, can not be included.
+        Test that optional parameters, k, threshold, and read_only can not be included.
         """
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -534,6 +534,31 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                },
+            ).decode(),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+        # Include read_only
+        response = self.client.get(
+            self.path,
+            data={"read_only": "True"},
+        )
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+        )
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            SEER_SIMILAR_ISSUES_URL,
+            body=orjson.dumps(
+                {
+                    "threshold": 0.01,
+                    "hash": NonNone(self.event.get_primary_hash()),
+                    "project_id": self.project.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                    "read_only": True,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
