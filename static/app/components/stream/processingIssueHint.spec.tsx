@@ -1,5 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProcessingIssueHint from 'sentry/components/stream/processingIssueHint';
@@ -28,8 +26,7 @@ describe('ProcessingIssueHint', function () {
         orgId={orgId}
         projectId={projectId}
         showProject={showProject}
-      />,
-      {context: RouterContextFixture()}
+      />
     );
     container = result.container;
   }

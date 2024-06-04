@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {getFocusableTreeWalker} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
@@ -10,17 +9,23 @@ import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import type {
-  ParseResultToken,
+import {replaceTokenWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
+import {
+  getKeyLabel,
+  useShiftFocusToChild,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  type ParseResultToken,
   Token,
-  TokenResult,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
-import {toTitleCase} from 'sentry/utils';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -79,6 +84,24 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
+/**
+ * Takes a string that contains a filter value `<key>:` and replaces with any aliases that may exist.
+ *
+ * Example:
+ * replaceAliasedFilterKeys('foo issue: bar', {'status': 'is'}) => 'foo is: bar'
+ */
+function replaceAliasedFilterKeys(value: string, aliasToKeyMap: Record<string, string>) {
+  const key = value.match(/(\w+):/);
+  const matchedKey = key?.[1];
+  if (matchedKey && aliasToKeyMap[matchedKey]) {
+    const actualKey = aliasToKeyMap[matchedKey];
+    const replacedValue = value.replace(`${matchedKey}:`, `${actualKey}:`);
+    return replacedValue;
+  }
+
+  return value;
+}
+
 function getItemsBySection(allKeys: Tag[]) {
   const itemsBySection = allKeys.reduce<{
     [section: string]: Array<SelectOptionWithKey<string>>;
@@ -87,7 +110,7 @@ function getItemsBySection(allKeys: Tag[]) {
 
     const section = tag.kind ?? fieldDefinition?.kind ?? t('other');
     const item = {
-      label: tag.key,
+      label: getKeyLabel(tag),
       key: getEscapedKey(tag.key),
       value: tag.key,
       textValue: tag.key,
@@ -120,6 +143,43 @@ function getItemsBySection(allKeys: Tag[]) {
   ];
 }
 
+function countPreviousItemsOfType({
+  state,
+  type,
+}: {
+  state: ListState<ParseResultToken>;
+  type: Token;
+}) {
+  const itemKeys = [...state.collection.getKeys()];
+  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey);
+
+  return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
+    if (next.toString().includes(type)) {
+      return count + 1;
+    }
+    return count;
+  }, 0);
+}
+
+function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusOverride {
+  const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
+
+  return {
+    itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
+    part: 'value',
+  };
+}
+
+function calculateNextFocusForParen(item: Node<ParseResultToken>): FocusOverride {
+  const [, tokenTypeIndexStr] = item.key.toString().split(':');
+
+  const tokenTypeIndex = parseInt(tokenTypeIndexStr, 10);
+
+  return {
+    itemKey: `${Token.FREE_TEXT}:${tokenTypeIndex + 1}`,
+  };
+}
+
 function KeyDescription({tag}: {tag: Tag}) {
   const fieldDefinition = getFieldDefinition(tag.key);
 
@@ -132,6 +192,12 @@ function KeyDescription({tag}: {tag: Tag}) {
       <div>{fieldDefinition.desc}</div>
       <Separator />
       <DescriptionList>
+        {tag.alias ? (
+          <Fragment>
+            <Term>{t('Alias')}</Term>
+            <Details>{tag.key}</Details>
+          </Fragment>
+        ) : null}
         {fieldDefinition.valueType ? (
           <Fragment>
             <Term>{t('Type')}</Term>
@@ -161,10 +227,14 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {keys, dispatch} = useSearchQueryBuilder();
-
+  const {query, keys, dispatch, onSearch} = useSearchQueryBuilder();
+  const aliasToKeyMap = useMemo(() => {
+    return Object.fromEntries(Object.values(keys).map(key => [key.alias, key.key]));
+  }, [keys]);
   const allKeys = useMemo(() => {
-    return Object.values(keys).sort((a, b) => a.key.localeCompare(b.key));
+    return Object.values(keys).sort((a, b) =>
+      getKeyLabel(a).localeCompare(getKeyLabel(b))
+    );
   }, [keys]);
   const sections = useMemo(() => getItemsBySection(allKeys), [allKeys]);
   const items = useMemo(() => sections.flatMap(section => section.children), [sections]);
@@ -211,11 +281,19 @@ function SearchQueryBuilderInputInternal({
           type: 'UPDATE_FREE_TEXT',
           token,
           text: replaceFocusedWordWithFilter(inputValue, selectionIndex, value),
+          focusOverride: calculateNextFocusForFilter(state),
         });
         resetInputValue();
       }}
-      onCustomValueSelected={value => {
+      onCustomValueBlurred={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+      }}
+      onCustomValueCommitted={value => {
+        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+
+        // Because the query does not change until a subsequent render,
+        // we need to do the replacement that is does in the ruducer here
+        onSearch?.(replaceTokenWithPadding(query, token, value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
@@ -227,17 +305,33 @@ function SearchQueryBuilderInputInternal({
       token={token}
       inputLabel={t('Add a search term')}
       onInputChange={e => {
-        if (e.target.value.includes(':')) {
-          dispatch({type: 'UPDATE_FREE_TEXT', token, text: e.target.value});
-          resetInputValue();
-        } else {
-          setInputValue(e.target.value);
-          setSelectionIndex(e.target.selectionStart ?? 0);
+        if (e.target.value.includes('(') || e.target.value.includes(')')) {
+          dispatch({
+            type: 'UPDATE_FREE_TEXT',
+            token,
+            text: e.target.value,
+            focusOverride: calculateNextFocusForParen(item),
+          });
+          return;
         }
+
+        if (e.target.value.includes(':')) {
+          dispatch({
+            type: 'UPDATE_FREE_TEXT',
+            token,
+            text: replaceAliasedFilterKeys(e.target.value, aliasToKeyMap),
+            focusOverride: calculateNextFocusForFilter(state),
+          });
+          resetInputValue();
+          return;
+        }
+
+        setInputValue(e.target.value);
+        setSelectionIndex(e.target.selectionStart ?? 0);
       }}
       onKeyDown={onKeyDown}
       tabIndex={tabIndex}
-      maxOptions={100}
+      maxOptions={50}
     >
       {sections.map(({title, children}) => (
         <Section title={title} key={title}>
@@ -260,26 +354,12 @@ export function SearchQueryBuilderInput({
   const ref = useRef<HTMLDivElement>(null);
 
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
-
-  const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
-      // Ensure that the state is updated correctly
-      state.selectionManager.setFocusedKey(item.key);
-
-      // When this row gains focus, immediately shift focus to the input
-      const walker = getFocusableTreeWalker(e.currentTarget);
-      const nextNode = walker.nextNode();
-      if (nextNode) {
-        (nextNode as HTMLElement).focus();
-      }
-    },
-    [item.key, state.selectionManager]
-  );
+  const {shiftFocusProps} = useShiftFocusToChild(item, state);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   return (
-    <Row {...mergeProps(rowProps, {onFocus})} ref={ref} tabIndex={-1}>
+    <Row {...mergeProps(rowProps, shiftFocusProps)} ref={ref} tabIndex={-1}>
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
         <SearchQueryBuilderInputInternal
           item={item}
@@ -295,7 +375,7 @@ export function SearchQueryBuilderInput({
 const Row = styled('div')`
   display: flex;
   align-items: stretch;
-  height: 22px;
+  height: 24px;
 `;
 
 const GridCell = styled('div')`
@@ -322,7 +402,7 @@ const Separator = styled('hr')`
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1.5)};
+  gap: ${space(0.5)};
   margin: 0;
 `;
 

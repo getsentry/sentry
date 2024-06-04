@@ -580,7 +580,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           organization={organization}
           features="performance-discover-dataset-selector"
         >
-          {({hasFeature}) => hasFeature && <DatasetSelector />}
+          {({hasFeature}) =>
+            hasFeature && (
+              <DatasetSelector isHomepage={isHomepage} savedQuery={savedQuery} />
+            )
+          }
         </Feature>
         {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -11,13 +11,14 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
 import {
   formatFilterValue,
+  getKeyLabel,
   getValidOpsForFilter,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   type ParseResultToken,
   TermOperator,
-  type Token,
+  Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {IconClose} from 'sentry/icons';
@@ -99,7 +100,10 @@ function FilterOperator({token, state, item}: SearchQueryTokenProps) {
 }
 
 function FilterKey({token, state, item}: SearchQueryTokenProps) {
-  const label = token.key.text;
+  const {keys} = useSearchQueryBuilder();
+  const key = token.key.text;
+  const tag = keys[key];
+  const label = tag ? getKeyLabel(tag) : key;
 
   const filterButtonProps = useFilterButtonProps({state, item});
   // TODO(malwilley): Add edit functionality
@@ -116,14 +120,42 @@ function FilterKey({token, state, item}: SearchQueryTokenProps) {
   );
 }
 
+function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
+  switch (token.value.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
+      const items = token.value.items;
+      return (
+        <FilterValueList>
+          {items.map((item, index) => (
+            <Fragment key={index}>
+              <span>{formatFilterValue(item.value)}</span>
+              {index !== items.length - 1 ? <FilterValueOr>or</FilterValueOr> : null}
+            </Fragment>
+          ))}
+        </FilterValueList>
+      );
+    default:
+      return formatFilterValue(token.value);
+  }
+}
+
 function FilterValue({token, state, item}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const {dispatch, focusOverride} = useSearchQueryBuilder();
 
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!token.value.text && !isEditing) {
-    setIsEditing(true);
-  }
+  useLayoutEffect(() => {
+    if (
+      !isEditing &&
+      focusOverride?.itemKey === item.key &&
+      focusOverride.part === 'value'
+    ) {
+      setIsEditing(true);
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, isEditing, item.key]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
@@ -158,7 +190,7 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
       {...filterButtonProps}
     >
       <InteractionStateLayer />
-      {formatFilterValue(token)}
+      <FilterValueText token={token} />
     </ValueButton>
   );
 }
@@ -320,4 +352,14 @@ const DeleteButton = styled(UnstyledButton)`
     background-color: ${p => p.theme.translucentGray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
+`;
+
+const FilterValueList = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const FilterValueOr = styled('span')`
+  color: ${p => p.theme.subText};
 `;

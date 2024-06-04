@@ -1,7 +1,8 @@
+import copy
 import logging
 import time
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -9,8 +10,7 @@ from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import features, nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -110,28 +110,16 @@ def backfill_seer_grouping_records(
         )
         return
 
-    if last_processed_index == 0:
-        # Set the metadata of groups where times_seen = 1
-        # Do not set the version number, so we can consider it for future backfills later
-        groups_seen_once = Group.objects.filter(
-            project_id=project_id, type=ErrorGroupType.type_id, times_seen=1
-        )
-        for group in groups_seen_once:
-            seer_similarity_seen_once = {"times_seen_once": True}
-            if group.data.get("metadata"):
-                group.data["metadata"]["seer_similarity"] = seer_similarity_seen_once
-            else:
-                group.data["metadata"] = {"seer_similarity": seer_similarity_seen_once}
-
-        if not dry_run:
-            Group.objects.bulk_update(groups_seen_once, ["data"])
-
     group_id_message_data = (
-        Group.objects.filter(project_id=project.id, type=ErrorGroupType.type_id, times_seen__gt=1)
+        Group.objects.filter(
+            project_id=project.id,
+            type=ErrorGroupType.type_id,
+            times_seen__gt=1,
+            last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
+        )
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "message", "data")
-        .order_by("times_seen")
-        .order_by("id")
+        .order_by("-times_seen", "id")
     )
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
@@ -144,6 +132,7 @@ def backfill_seer_grouping_records(
             "project_id": project.id,
             "batch_len": len(group_id_message_data_batch),
             "last_processed_index": last_processed_index,
+            "total_groups_length": len(group_id_message_data),
         },
     )
 
@@ -166,45 +155,55 @@ def backfill_seer_grouping_records(
         )
 
     group_id_batch = list(group_id_message_batch_filtered.keys())
-    time_now = datetime.now()
     events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    query = Query(
-        match=events_entity,
-        select=[
-            Column("group_id"),
-            Function("max", [Column("event_id")], "event_id"),
-        ],
-        groupby=[Column("group_id")],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project.id),
-            Condition(Column("group_id"), Op.IN, group_id_batch),
-            Condition(
-                Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
-            ),
-            Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
-        ],
-        orderby=[OrderBy(Column("group_id"), Direction.ASC)],
-    )
-
-    request = Request(
-        dataset=Dataset.Events.value,
-        app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            "cross_org_query": 1,
-        },
-    )
-
-    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-        result = bulk_snuba_queries(
-            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+    # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
+    snuba_requests = []
+    for group_id in group_id_batch:
+        group = Group.objects.get(id=group_id)
+        query = Query(
+            match=events_entity,
+            select=[
+                Column("group_id"),
+                Column("event_id"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project.id),
+                Condition(Column("group_id"), Op.EQ, group_id),
+                Condition(
+                    Column("timestamp", entity=events_entity),
+                    Op.GTE,
+                    group.last_seen - timedelta(minutes=5),
+                ),
+                Condition(
+                    Column("timestamp", entity=events_entity),
+                    Op.LT,
+                    group.last_seen + timedelta(minutes=5),
+                ),
+            ],
+            limit=Limit(1),
         )
 
-    if result and result[0].get("data"):
-        rows: list[GroupEventRow] = result[0]["data"]
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+            query=query,
+            tenant_ids={
+                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                "cross_org_query": 1,
+            },
+        )
+        snuba_requests.append(request)
+
+    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+        snuba_results = bulk_snuba_queries(
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
+
+    group_id_batch_all = copy.deepcopy(group_id_batch)
+    if snuba_results and snuba_results[0].get("data"):
+        rows: list[GroupEventRow] = [snuba_result["data"][0] for snuba_result in snuba_results]
 
         # Log if any group does not have any events in snuba and skip it
         if len(rows) != len(group_id_batch):
@@ -230,11 +229,19 @@ def backfill_seer_grouping_records(
             project, rows, group_id_message_batch_filtered, group_hashes_dict
         )
 
-        # If nodestore is down, we should stop
+        # If nodestore returns no data
         if data["data"] == [] and data["stacktrace_list"] == []:
             logger.info(
-                "backfill_seer_grouping_records.no_data",
-                extra={"project_id": project.id},
+                "tasks.backfill_seer_grouping_records.no_data",
+                extra={"project_id": project.id, "group_id_batch": json.dumps(group_id_batch)},
+            )
+            call_next_backfill(
+                batch_end_index,
+                project_id,
+                redis_client,
+                len(group_id_message_data),
+                group_id_batch_all[-1],
+                dry_run,
             )
             return
 
@@ -291,34 +298,14 @@ def backfill_seer_grouping_records(
                     extra={"project_id": project.id, "num_updated": num_updated},
                 )
 
-            last_processed_index = batch_end_index
-            redis_client.set(
-                f"{make_backfill_redis_key(project_id)}",
-                last_processed_index if last_processed_index is not None else 0,
-                ex=60 * 60 * 24 * 7,
+            call_next_backfill(
+                batch_end_index,
+                project_id,
+                redis_client,
+                len(group_id_message_data),
+                group_id_batch_all[-1],
+                dry_run,
             )
-
-            if last_processed_index and last_processed_index < len(group_id_message_data):
-                logger.info(
-                    "calling next backfill task",
-                    extra={
-                        "project_id": project.id,
-                        "last_processed_index": last_processed_index,
-                        "dry_run": dry_run,
-                    },
-                )
-                backfill_seer_grouping_records.apply_async(
-                    args=[project.id, last_processed_index, dry_run],
-                )
-            else:
-                logger.info(
-                    "reached the end of the group id list",
-                    extra={
-                        "project_id": project.id,
-                        "last_processed_index": last_processed_index,
-                        "dry_run": dry_run,
-                    },
-                )
         else:
             # If seer is down, we should stop
             logger.info(
@@ -330,9 +317,17 @@ def backfill_seer_grouping_records(
             "backfill_seer_snuba_returned_empty_result",
             extra={
                 "project_id": project.id,
-                "snuba_result": result,
-                "group_id_batch": group_id_batch,
+                "snuba_result": json.dumps(snuba_results),
+                "group_id_batch": json.dumps(group_id_batch_all),
             },
+        )
+        call_next_backfill(
+            batch_end_index,
+            project_id,
+            redis_client,
+            len(group_id_message_data),
+            group_id_batch_all[-1],
+            dry_run,
         )
 
 
@@ -401,7 +396,6 @@ def lookup_group_data_stacktrace_bulk(
             try:
                 bulk_data = nodestore.backend.get_multi(list(node_id_to_group_data.keys()))
             except (ServiceUnavailable, DeadlineExceeded) as e:
-                bulk_data = {}
                 extra = {
                     "organization_id": project.organization.id,
                     "project_id": project.id,
@@ -412,6 +406,7 @@ def lookup_group_data_stacktrace_bulk(
                     "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                     extra=extra,
                 )
+                raise
 
     group_data = []
     stacktrace_strings = []
@@ -474,7 +469,6 @@ def lookup_group_data_stacktrace_single(
             try:
                 event = lookup_event(project_id=project_id, event_id=event_id, group_id=group_id)
             except (ServiceUnavailable, DeadlineExceeded) as e:
-                event = None
                 extra = {
                     "organization_id": project.organization.id,
                     "project_id": project.id,
@@ -485,6 +479,7 @@ def lookup_group_data_stacktrace_single(
                 logger.exception(
                     "tasks.backfill_seer_grouping_records.event_lookup_exception", extra=extra
                 )
+                raise
 
     if event and event.data and event.data.get("exception"):
         with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
@@ -547,3 +542,41 @@ def delete_seer_grouping_records(
         for group in groups_with_seer_metadata:
             del group.data["metadata"]["seer_similarity"]
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
+
+
+def call_next_backfill(
+    last_processed_index: int,
+    project_id: int,
+    redis_client: RedisCluster | StrictRedis,
+    len_group_id_batch_unfiltered: int,
+    last_group_id: int,
+    dry_run: bool,
+):
+    redis_client.set(
+        f"{make_backfill_redis_key(project_id)}",
+        last_processed_index if last_processed_index is not None else 0,
+        ex=60 * 60 * 24 * 7,
+    )
+
+    if last_processed_index and last_processed_index < len_group_id_batch_unfiltered:
+        logger.info(
+            "calling next backfill task",
+            extra={
+                "project_id": project_id,
+                "last_processed_index": last_processed_index,
+                "last_processed_group_id": last_group_id,
+                "dry_run": dry_run,
+            },
+        )
+        backfill_seer_grouping_records.apply_async(
+            args=[project_id, last_processed_index, dry_run],
+        )
+    else:
+        logger.info(
+            "reached the end of the group id list",
+            extra={
+                "project_id": project_id,
+                "last_processed_index": last_processed_index,
+                "dry_run": dry_run,
+            },
+        )
