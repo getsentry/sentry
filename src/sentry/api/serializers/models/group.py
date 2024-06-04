@@ -654,7 +654,7 @@ class GroupSerializerBase(Serializer, ABC):
     def _resolve_integration_annotations(
         org_id: int, groups: Sequence[Group]
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
-        from sentry.integrations import IntegrationFeatures
+        from sentry.integrations.base import IntegrationFeatures
 
         integration_annotations = []
         # find all the integration installs that have issue tracking

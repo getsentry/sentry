@@ -6,7 +6,7 @@ from typing import Any
 from django.http import HttpResponse
 from rest_framework.request import Request
 
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,

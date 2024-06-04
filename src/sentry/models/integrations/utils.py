@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from sentry.integrations import (
+    from sentry.integrations.base import (
         IntegrationFeatures,
         IntegrationInstallation,
         IntegrationProvider,

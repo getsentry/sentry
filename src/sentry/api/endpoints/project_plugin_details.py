@@ -18,7 +18,7 @@ from sentry.api.serializers.models.plugin import (
     serialize_field,
 )
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
-from sentry.integrations import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures
 from sentry.plugins.base import plugins
 from sentry.signals import plugin_enabled
 from sentry.utils.http import absolute_uri

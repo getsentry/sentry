@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,

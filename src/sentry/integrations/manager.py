@@ -4,7 +4,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any
 
 from sentry.exceptions import NotRegistered
-from sentry.integrations import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider
 
 __all__ = ["IntegrationManager"]
 

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin

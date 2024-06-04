@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 
 from sentry import features
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization
 

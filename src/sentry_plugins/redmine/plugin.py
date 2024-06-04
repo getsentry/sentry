@@ -3,7 +3,7 @@ from rest_framework.request import Request
 
 import sentry
 from sentry.exceptions import PluginError
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue import IssuePlugin
 from sentry.utils import json
 from sentry.utils.http import absolute_uri

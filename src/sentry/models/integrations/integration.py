@@ -19,7 +19,7 @@ from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.integrations import (
+    from sentry.integrations.base import (
         IntegrationFeatures,
         IntegrationInstallation,
         IntegrationProvider,

@@ -1,6 +1,6 @@
 from rest_framework.request import Request
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
