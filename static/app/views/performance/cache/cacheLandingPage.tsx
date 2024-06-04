@@ -60,9 +60,7 @@ const SDK_UPDATE_ALERT = (
     {t(
       `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. `
     )}
-    <ExternalLink
-      href={'https://docs.sentry.io/product/performance/caches/#instrumentation'}
-    >
+    <ExternalLink href={`${MODULE_DOC_LINK}#instrumentation`}>
       {t('Read the Docs')}
     </ExternalLink>
   </Fragment>
