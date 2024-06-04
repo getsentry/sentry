@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import {type AriaGridListOptions, useGridList} from '@react-aria/gridlist';
 import {ListKeyboardDelegate} from '@react-aria/selection';
 import type {ListState} from '@react-stately/list';
@@ -38,6 +39,20 @@ export function useQueryBuilderGrid(
     ref
   );
 
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.target instanceof HTMLElement) {
+        // If the focus is on a menu item, let that component handle the event
+        if (e.target.getAttribute('role') === 'menuitemradio') {
+          return;
+        }
+      }
+
+      gridProps.onKeyDown?.(e);
+    },
+    [gridProps]
+  );
+
   return {
     gridProps: {
       ...gridProps,
@@ -49,6 +64,7 @@ export function useQueryBuilderGrid(
       // The default behavior will capture some keys such as Enter and Space, which
       // we want to handle ourselves.
       onKeyDownCapture: () => {},
+      onKeyDown,
       onFocus: () => {
         if (state.selectionManager.isFocused) {
           return;
