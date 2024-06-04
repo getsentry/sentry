@@ -207,7 +207,10 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="cache" features="performance-cache-view">
+    <ModulePageProviders
+      moduleName="cache"
+      features={['insights-addon-modules', 'performance-cache-view']}
+    >
       <CacheLandingPage />
     </ModulePageProviders>
   );

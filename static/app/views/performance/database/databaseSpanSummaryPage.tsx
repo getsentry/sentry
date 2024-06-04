@@ -304,7 +304,7 @@ function PageWithProviders(props) {
     <ModulePageProviders
       moduleName="db"
       pageTitle={t('Query Summary')}
-      features="spans-first-ui"
+      features="insights-initial-modules"
     >
       <DatabaseSpanSummaryPage {...props} />
     </ModulePageProviders>

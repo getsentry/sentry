@@ -13,7 +13,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('ScreenLoadSpansTable', function () {
   const organization = OrganizationFixture({
-    features: ['spans-first-ui'],
+    features: ['insights-initial-modules'],
   });
 
   jest.mocked(useLocation).mockReturnValue({

@@ -270,7 +270,7 @@ const LIMIT: number = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="db" features="spans-first-ui">
+    <ModulePageProviders moduleName="db" features="insights-initial-modules">
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

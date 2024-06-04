@@ -11,7 +11,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
-    features: ['spans-first-ui'],
+    features: ['insights-initial-modules'],
   });
 
   beforeEach(function () {

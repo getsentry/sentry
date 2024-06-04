@@ -165,7 +165,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="resource"
       pageTitle={`${resourceDataType} ${t('Summary')}`}
-      features="spans-first-ui"
+      features="insights-initial-modules"
     >
       <ResourceSummary />
     </ModulePageProviders>

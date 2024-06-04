@@ -85,7 +85,7 @@ function ResourceView() {
 function ResourceTypeSelector({value}: {value?: string}) {
   const location = useLocation();
   const {features} = useOrganization();
-  const hasImageView = features.includes('spans-first-ui');
+  const hasImageView = features.includes('insights-initial-modules');
 
   const options: Option[] = [
     {value: '', label: 'All'},
