@@ -1002,28 +1002,6 @@ def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
     return clip(idx, 0, slices)
 
 
-def quantize_to_slice(timestamp, trace_range, left_bound=None) -> int:
-    slices = trace_range["slices"]
-    trace_start = trace_range["start"]
-    trace_end = trace_range["end"]
-    trace_duration = trace_end - trace_start
-
-    # Scale the timestamps up when dividing to find the bin
-    # size, it doesn't go to zero.
-    scaled_timestamp = timestamp * slices
-    scaled_trace_start = trace_start * slices
-    scaled_bin_size = trace_duration
-
-    quantized = round((scaled_timestamp - scaled_trace_start) / scaled_bin_size)
-    quantized = quantized * scaled_bin_size + scaled_trace_start
-    quantized = round(quantized / slices)
-
-    if left_bound is not None and left_bound >= quantized:
-        quantized = left_bound + scaled_bin_size / slices
-
-    return clip(quantized, trace_start, trace_end)
-
-
 def quantize_range(span_start, span_end, trace_range):
     slices = trace_range["slices"]
     trace_start = trace_range["start"]
@@ -1032,22 +1010,33 @@ def quantize_range(span_start, span_end, trace_range):
     trace_duration = trace_end - trace_start
 
     if trace_duration == 0:
-        return (trace_start, trace_end), (0, slices)
+        start_index = 0
+        end_index = slices
+    else:
+        start_index = convert_to_slice(span_start, trace_range)
+        end_index = convert_to_slice(span_end, trace_range, start_index)
+
+    rounded_start = span_start
+    rounded_end = span_end
+
+    if slices > 0:
+        bin_size = int((trace_end - trace_start) / slices)
+
+        if bin_size > 0:
+            rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
+            rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
+
+            # ensure minimum of 1 width
+            if rounded_start == rounded_end:
+                rounded_end += bin_size
 
     if span_start <= trace_start:
-        span_start = trace_start
+        rounded_start = trace_start
 
     # To avoid creating gaps at the end of the trace,
     # do not adjust the end if it's at the trace end.
     if span_end >= trace_end:
-        span_end = trace_end
-
-    start_index = convert_to_slice(span_start, trace_range)
-    end_index = convert_to_slice(span_end, trace_range, start_index)
-
-    rounded_start = quantize_to_slice(span_start, trace_range)
-
-    rounded_end = quantize_to_slice(span_end, trace_range, rounded_start)
+        rounded_end = trace_end
 
     return (int(rounded_start), int(rounded_end)), (start_index, end_index)
 
