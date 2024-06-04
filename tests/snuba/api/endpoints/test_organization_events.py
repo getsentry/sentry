@@ -11,7 +11,7 @@ from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
-from sentry.discover.models import TeamKeyTransaction
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes, TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -5602,6 +5602,156 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["transaction"] == event1.transaction
         assert data[0]["epm()"] == 12.5
         assert data[0]["floored_epm()"] == 10
+
+    def test_saves_discover_saved_query_split_flag(self):
+        self.store_event(self.transaction_data, project_id=self.project.id)
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+
+        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:performance-discover-dataset-selector": False,
+        }
+        query = {
+            "field": ["project", "user"],
+            "query": "has:user event.type:transaction",
+            "statsPeriod": "14d",
+            "discoverSavedQueryId": model.id,
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert "discoverSplitDecision" not in response.data["meta"]
+
+        model = DiscoverSavedQuery.objects.get(id=model.id)
+        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+
+    def test_saves_discover_saved_query_split_transaction(self):
+        self.store_event(self.transaction_data, project_id=self.project.id)
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+
+        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:performance-discover-dataset-selector": True,
+        }
+        query = {
+            "field": ["project", "user"],
+            "query": "has:user event.type:transaction",
+            "statsPeriod": "14d",
+            "discoverSavedQueryId": model.id,
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["discoverSplitDecision"] == "transaction-like"
+
+        model = DiscoverSavedQuery.objects.get(id=model.id)
+        assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+
+    def test_saves_discover_saved_query_split_error(self):
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        data = self.load_data(platform="javascript")
+        data["timestamp"] = self.ten_mins_ago_iso
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+
+        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:performance-discover-dataset-selector": True,
+        }
+        query = {
+            "field": ["stack.filename"],
+            "query": "stack.filename:*.js",
+            "statsPeriod": "14d",
+            "discoverSavedQueryId": model.id,
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["discoverSplitDecision"] == "error-events"
+
+        model = DiscoverSavedQuery.objects.get(id=model.id)
+        assert model.dataset == DiscoverSavedQueryTypes.ERROR_EVENTS
+
+    def test_saves_discover_saved_query_ambiguous_as_discover(self):
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        data = self.load_data(platform="javascript")
+        data["timestamp"] = self.ten_mins_ago_iso
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by_id=self.user.id,
+            name="query name",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+
+        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:performance-discover-dataset-selector": True,
+        }
+        query = {
+            "field": ["stack.filename"],
+            "query": "",
+            "statsPeriod": "14d",
+            "discoverSavedQueryId": model.id,
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["discoverSplitDecision"] == "discover"
+
+        model = DiscoverSavedQuery.objects.get(id=model.id)
+        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):

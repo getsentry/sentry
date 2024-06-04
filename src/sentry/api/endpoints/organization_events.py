@@ -472,21 +472,29 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     has_errors = False
                     error_results = None
 
-                # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
-                sentry_sdk.set_tag("third_split_query", True)
-                transactions_only_query = (
-                    f"({scoped_query}) AND event.type:transaction"
-                    if scoped_query
-                    else "event.type:transaction"
-                )
-                # TODO: Change this to transactions dataset once it's available
-                transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
-                transaction_results["meta"][
-                    "discoverSplitDecision"
-                ] = DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.TRANSACTION_LIKE)
-                has_transactions = len(transaction_results["data"]) > 0
+                try:
+                    transactions_only_query = (
+                        f"({scoped_query}) AND event.type:transaction"
+                        if scoped_query
+                        else "event.type:transaction"
+                    )
+                    # TODO: Change this to transactions dataset once it's available
+                    transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
+                    transaction_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DiscoverSavedQueryTypes.get_type_name(
+                        DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                    )
+                    has_transactions = len(transaction_results["data"]) > 0
+                except SnubaError:
+                    has_transactions = False
+                    transaction_results = None
 
-                if has_errors and has_transactions:
+                # Evaluate discover query if it's actually on the discover dataset or if for
+                # some reason both transactions and errors queries error out.
+                if (has_errors and has_transactions) or (
+                    not has_transactions and not has_transactions
+                ):
                     discover_results = _data_fn(scopedDataset, offset, limit, scoped_query)
                     discover_results["meta"][
                         "discoverSplitDecision"
