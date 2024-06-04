@@ -20,7 +20,7 @@ from sentry.utils.safe import safe_execute
 def get_pii_config(project):
     def _decode(value):
         if value:
-            return safe_execute(orjson.loads, value, _with_transaction=False)
+            return safe_execute(orjson.loads, value)
 
     # Order of merging is important here. We want to apply organization rules
     # before project rules. For example:

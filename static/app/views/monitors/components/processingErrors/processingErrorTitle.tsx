@@ -28,7 +28,7 @@ export function ProcessingErrorTitle({type}: {type: ProcessingErrorType}) {
     case ProcessingErrorType.MONITOR_NOT_FOUND:
       return t('Monitor not found');
     case ProcessingErrorType.MONITOR_OVER_QUOTA:
-      return t('Monitor not created due to insufficient quota');
+      return t('Monitor not enabled due to insufficient quota');
     case ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED:
       return t('Environment limit exceeded');
     case ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED:

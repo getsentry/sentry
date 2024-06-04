@@ -478,12 +478,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
-register(
-    "feedback.ingest-inline-attachments",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Extract spans only from a random fraction of transactions.
@@ -1859,6 +1853,9 @@ register(
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# RPC optimization
+register("sentryapps.get_installation_cached", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.

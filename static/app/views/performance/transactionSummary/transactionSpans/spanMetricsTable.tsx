@@ -7,13 +7,15 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -90,28 +92,37 @@ type Props = {
 export default function SpanMetricsTable(props: Props) {
   const {project, transactionName} = props;
   const organization = useOrganization();
-
   const location = useLocation();
-  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-  const spanOp = decodeScalar(location.query?.spanOp);
+  const sort = useSpansTabTableSort();
+
+  const query = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+      spansCursor: decodeScalar,
+      spanOp: decodeScalar,
+    },
+  });
+
+  const {query: search, spansCursor, spanOp} = query;
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
     ['span.op']: spanOp,
   };
 
-  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (cursor, pathname, q) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.SPANS_CURSOR]: cursor},
+      query: {...q, [QueryParameterNames.SPANS_CURSOR]: cursor},
     });
   };
 
-  const sort = useSpansTabTableSort();
+  const mutableSearch = MutableSearch.fromQueryObject(filters);
+  mutableSearch.addStringMultiFilter(search);
 
   const {data, isLoading, pageLinks} = useSpanMetrics(
     {
-      search: MutableSearch.fromQueryObject(filters),
+      search: mutableSearch,
       fields: [
         SpanMetricsField.SPAN_OP,
         SpanMetricsField.SPAN_DESCRIPTION,
@@ -124,7 +135,7 @@ export default function SpanMetricsTable(props: Props) {
       cursor: spansCursor,
       limit: LIMIT,
     },
-    ''
+    'api.performance.transaction-spans'
   );
 
   return (
