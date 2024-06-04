@@ -103,6 +103,10 @@ export function SearchQueryBuilder({
   );
 
   useEffectAfterFirstRender(() => {
+    dispatch({type: 'UPDATE_QUERY', query: initialQuery});
+  }, [dispatch, initialQuery]);
+
+  useEffectAfterFirstRender(() => {
     onChange?.(state.query);
   }, [onChange, state.query]);
 

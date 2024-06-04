@@ -6,10 +6,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Flex} from 'sentry/components/container/flex';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {Flex} from 'sentry/components/profiling/flex';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -157,6 +157,7 @@ function SidebarItem({
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  const hasLink = Boolean(to);
 
   const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top' && !isInFloatingAccordion;
@@ -164,7 +165,8 @@ function SidebarItem({
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
-  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+  const showIsNew =
+    isNew && !localStorage.getItem(isNewSeenKey) && !(isInFloatingAccordion && !hasLink);
 
   const organization = useOrganization({allowNull: true});
 
@@ -224,6 +226,7 @@ function SidebarItem({
               isInFloatingAccordion={isInFloatingAccordion}
               active={isActive ? 'true' : undefined}
               to={disabled ? '' : toProps}
+              disabled={!hasLink && isInFloatingAccordion}
               className={className}
               aria-current={isActive ? 'page' : undefined}
               onClick={handleItemClick}
@@ -238,8 +241,7 @@ function SidebarItem({
                   >
                     <LabelHook id={id}>
                       <TruncatedLabel>{label}</TruncatedLabel>
-                      {badges}
-                      {additionalContent}
+                      {additionalContent ?? badges}
                     </LabelHook>
                   </SidebarItemLabel>
                 )}
@@ -334,8 +336,6 @@ const getActiveStyle = ({
   }
   if (isInFloatingAccordion) {
     return css`
-      background-color: ${theme?.hover};
-
       &:active,
       &:focus,
       &:hover {
@@ -459,7 +459,7 @@ const SidebarItemLabel = styled('span')<{
   opacity: 1;
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   overflow: hidden;
 `;
 

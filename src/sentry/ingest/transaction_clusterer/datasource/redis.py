@@ -109,10 +109,9 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             ClustererNamespace.TRANSACTIONS,
             project,
             transaction_name,
-            _with_transaction=False,
         )
         if in_random_rollout("txnames.bump-lifetime-sample-rate"):
-            safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
+            safe_execute(_bump_rule_lifetime, project, event_data)
 
 
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:

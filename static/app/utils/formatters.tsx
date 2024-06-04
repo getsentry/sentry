@@ -1,7 +1,6 @@
-import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
 
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {CommitAuthor, User} from 'sentry/types';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
@@ -21,32 +20,6 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   return displayName;
 }
 
-export const isSemverRelease = (rawVersion: string): boolean => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    return !!parsedVersion.versionParsed;
-  } catch {
-    return false;
-  }
-};
-
-export const formatVersion = (rawVersion: string, withPackage = false) => {
-  try {
-    const parsedVersion = new Release(rawVersion);
-    const versionToDisplay = parsedVersion.describe();
-
-    if (versionToDisplay.length) {
-      return `${versionToDisplay}${
-        withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
-      }`;
-    }
-
-    return rawVersion;
-  } catch {
-    return rawVersion;
-  }
-};
-
 // in milliseconds
 export const MONTH = 2629800000;
 export const WEEK = 604800000;
@@ -58,145 +31,11 @@ export const MILLISECOND = 1;
 export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
 
-const SUFFIX_ABBR = {
-  years: t('yr'),
-  weeks: t('wk'),
-  days: t('d'),
-  hours: t('hr'),
-  minutes: t('min'),
-  seconds: t('s'),
-  milliseconds: t('ms'),
-};
 /**
- * Returns a human readable exact duration.
- * 'precision' arg will truncate the results to the specified suffix
- *
- * e.g. 1 hour 25 minutes 15 seconds
+ * @deprecated Import directly from `sentry/utils/duration/getExactDuration` instead.
+ * biome-ignore lint/performance/noBarrelFile: Temporary for getsentry
  */
-export function getExactDuration(
-  seconds: number,
-  abbreviation: boolean = false,
-  precision: keyof typeof SUFFIX_ABBR = 'milliseconds'
-) {
-  const minSuffix = ` ${precision}`;
-
-  const convertDuration = (secs: number, abbr: boolean): string => {
-    // value in milliseconds
-    const msValue = round(secs * 1000);
-    const value = round(Math.abs(secs * 1000));
-
-    const divideBy = (time: number) => {
-      return {
-        quotient: msValue < 0 ? Math.ceil(msValue / time) : Math.floor(msValue / time),
-        remainder: msValue % time,
-      };
-    };
-
-    if (value >= WEEK || (value && minSuffix === ' weeks')) {
-      const {quotient, remainder} = divideBy(WEEK);
-      const suffix = abbr ? t('wk') : ` ${tn('week', 'weeks', quotient)}`;
-
-      return `${quotient}${suffix} ${
-        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
-      }`;
-    }
-    if (value >= DAY || (value && minSuffix === ' days')) {
-      const {quotient, remainder} = divideBy(DAY);
-      const suffix = abbr ? t('d') : ` ${tn('day', 'days', quotient)}`;
-
-      return `${quotient}${suffix} ${
-        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
-      }`;
-    }
-    if (value >= HOUR || (value && minSuffix === ' hours')) {
-      const {quotient, remainder} = divideBy(HOUR);
-      const suffix = abbr ? t('hr') : ` ${tn('hour', 'hours', quotient)}`;
-
-      return `${quotient}${suffix} ${
-        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
-      }`;
-    }
-    if (value >= MINUTE || (value && minSuffix === ' minutes')) {
-      const {quotient, remainder} = divideBy(MINUTE);
-      const suffix = abbr ? t('min') : ` ${tn('minute', 'minutes', quotient)}`;
-
-      return `${quotient}${suffix} ${
-        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
-      }`;
-    }
-    if (value >= SECOND || (value && minSuffix === ' seconds')) {
-      const {quotient, remainder} = divideBy(SECOND);
-      const suffix = abbr ? t('s') : ` ${tn('second', 'seconds', quotient)}`;
-
-      return `${quotient}${suffix} ${
-        minSuffix === suffix ? '' : convertDuration(remainder / 1000, abbr)
-      }`;
-    }
-
-    if (value === 0) {
-      return '';
-    }
-
-    const suffix = abbr ? t('ms') : ` ${tn('millisecond', 'milliseconds', value)}`;
-
-    return `${msValue}${suffix}`;
-  };
-
-  const result = convertDuration(seconds, abbreviation).trim();
-
-  if (result.length) {
-    return result;
-  }
-
-  return `0${abbreviation ? SUFFIX_ABBR[precision] : minSuffix}`;
-}
-
-export function formatSecondsToClock(
-  seconds: number,
-  {padAll}: {padAll: boolean} = {padAll: true}
-) {
-  if (seconds === 0 || isNaN(seconds)) {
-    return padAll ? '00:00' : '0:00';
-  }
-
-  const divideBy = (msValue: number, time: number) => {
-    return {
-      quotient: msValue < 0 ? Math.ceil(msValue / time) : Math.floor(msValue / time),
-      remainder: msValue % time,
-    };
-  };
-
-  // value in milliseconds
-  const absMSValue = round(Math.abs(seconds * 1000));
-
-  const {quotient: hours, remainder: rMins} = divideBy(absMSValue, HOUR);
-  const {quotient: minutes, remainder: rSeconds} = divideBy(rMins, MINUTE);
-  const {quotient: secs, remainder: milliseconds} = divideBy(rSeconds, SECOND);
-
-  const fill = (num: number) => (num < 10 ? `0${num}` : String(num));
-
-  const parts = hours
-    ? [padAll ? fill(hours) : hours, fill(minutes), fill(secs)]
-    : [padAll ? fill(minutes) : minutes, fill(secs)];
-
-  const ms = `000${milliseconds}`.slice(-3);
-  return milliseconds ? `${parts.join(':')}.${ms}` : parts.join(':');
-}
-
-export function parseClockToSeconds(clock: string) {
-  const [rest, milliseconds] = clock.split('.');
-  const parts = rest.split(':');
-
-  let seconds = 0;
-  const progression = [MONTH, WEEK, DAY, HOUR, MINUTE, SECOND].slice(parts.length * -1);
-  for (let i = 0; i < parts.length; i++) {
-    const num = Number(parts[i]) || 0;
-    const time = progression[i] / 1000;
-    seconds += num * time;
-  }
-  const ms = Number(milliseconds) || 0;
-  return seconds + ms / 1000;
-}
+export {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
 /**
  * Format a value between 0 and 1 as a percentage

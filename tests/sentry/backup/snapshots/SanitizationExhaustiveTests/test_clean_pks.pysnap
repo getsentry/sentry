@@ -1,5 +1,5 @@
 ---
-created: '2024-05-28T16:45:57.037010+00:00'
+created: '2024-05-31T16:05:03.897612+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -297,6 +297,12 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - guid
   - slug
+- model_name: sentry.groupsearchview
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+  - name
 - model_name: sentry.environment
   ordinal: 1
   sanitized_fields:
