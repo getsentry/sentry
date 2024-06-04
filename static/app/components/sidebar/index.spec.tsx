@@ -15,11 +15,23 @@ import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 jest.mock('sentry/utils/useServiceIncidents');
 
-const sidebarAccordionFeatures = [
+const ALL_AVAILABLE_FEATURES = [
+  'insights-entry-points',
+  'discover',
+  'discover-basic',
+  'discover-query',
+  'dashboards-basic',
+  'dashboards-edit',
+  'custom-metrics',
+  'user-feedback-ui',
+  'session-replay-ui',
   'performance-view',
-  'performance-database-view',
+  'performance-trace-explorer',
+  'ai-analytics',
+  'performance-queues-view',
   'performance-cache-view',
-  'performance-http',
+  'starfish-mobile-ui-module',
+  'profiling',
 ];
 
 describe('Sidebar', function () {
@@ -45,7 +57,7 @@ describe('Sidebar', function () {
     return renderSidebar({
       organization: {
         ...organization,
-        features: [...organization.features, ...sidebarAccordionFeatures, ...features],
+        features: [...organization.features, ...features],
       },
     });
   };
@@ -289,92 +301,145 @@ describe('Sidebar', function () {
       ConfigStore.set('user', user);
     });
 
-    it('renders for self-hosted errors only', async function () {
+    it('renders navigation', function () {
+      renderSidebar({organization});
+
+      waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      expect(
+        screen.getByRole('navigation', {name: 'Primary Navigation'})
+      ).toBeInTheDocument();
+    });
+
+    it('in self-hosted-errors-only mode, only shows links to basic features', function () {
       ConfigStore.set('isSelfHostedErrorsOnly', true);
 
-      const {container} = renderSidebar({organization});
-      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
-      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
-      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
-      expect(sidebarItems.length).toEqual(10);
-      expect(sidebarItemIds).toEqual([
-        'sidebar-item-issues',
-        'sidebar-item-projects',
-        'sidebar-item-alerts',
-        'sidebar-item-releases',
-        'sidebar-item-stats',
-        'sidebar-item-settings',
-        'sidebar-item-help',
-        'sidebar-item-broadcasts',
-        'sidebar-item-statusupdate',
-        'sidebar-item-collapse',
-      ]);
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
+
+      waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      const links = screen.getAllByRole('link');
+      expect(links).toHaveLength(12);
+
+      [
+        'Issues',
+        'Projects',
+        'Alerts',
+        'Discover',
+        'Dashboards',
+        'Releases',
+        'Stats',
+        'Settings',
+        'Help',
+        "What's new",
+        'Service status',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
     });
 
-    it('renders sidebar with features', async function () {
-      const {container} = renderSidebarWithFeatures();
-      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
-      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
-      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
-      expect(sidebarItems.length).toEqual(12);
-      expect(sidebarItemIds).toEqual([
-        'sidebar-item-issues',
-        'sidebar-item-projects',
-        'sidebar-item-sidebar-accordion-performance-item',
-        'sidebar-item-crons',
-        'sidebar-item-alerts',
-        'sidebar-item-releases',
-        'sidebar-item-stats',
-        'sidebar-item-settings',
-        'sidebar-item-help',
-        'sidebar-item-broadcasts',
-        'sidebar-item-statusupdate',
-        'sidebar-item-collapse',
-      ]);
+    it('in regular mode, also shows links to Performance and Crons', function () {
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
+
+      waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      const links = screen.getAllByRole('link');
+      expect(links).toHaveLength(29);
+
+      [
+        'Issues',
+        'Projects',
+        /Performance/,
+        'Queries',
+        'Requests',
+        /Caches/,
+        'Web Vitals',
+        /Queues/,
+        'Screen Loads',
+        'App Starts',
+        'Resources',
+        /Mobile UI/,
+        /Traces/,
+        'Profiling',
+        /Metrics/,
+        'Replays',
+        /LLM Monitoring/,
+        'User Feedback',
+        'Crons',
+        'Alerts',
+        'Discover',
+        'Dashboards',
+        'Releases',
+        'Stats',
+        'Settings',
+        'Help',
+        "What's new",
+        'Service status',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
     });
 
-    it('renders new sidebar hierarchy', async function () {
-      const {container} = renderSidebarWithFeatures([
-        'performance-insights',
-        'insights-entry-points',
-      ]);
-      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
-      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
-      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
-      expect(sidebarItems.length).toEqual(21);
-      expect(sidebarItemIds).toEqual([
-        'sidebar-item-issues',
-        'sidebar-item-projects',
-        'sidebar-item-sidebar-accordion-explore-item',
-        'sidebar-item-sidebar-accordion-insights-item',
-        'sidebar-item-performance-http',
-        'sidebar-item-performance-database',
-        'sidebar-item-performance-browser-resources',
-        'sidebar-item-performance-mobile-app-startup',
-        'sidebar-item-performance-mobile-screens',
-        'sidebar-item-performance-webvitals',
-        'sidebar-item-performance-cache',
-        'sidebar-item-performance',
-        'sidebar-item-crons',
-        'sidebar-item-alerts',
-        'sidebar-item-releases',
-        'sidebar-item-stats',
-        'sidebar-item-settings',
-        'sidebar-item-help',
-        'sidebar-item-broadcasts',
-        'sidebar-item-statusupdate',
-        'sidebar-item-collapse',
-      ]);
+    it('if Insights are on, shows links to Explore and Insights', function () {
+      renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES, 'performance-insights']);
+
+      waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      const links = screen.getAllByRole('link');
+      expect(links).toHaveLength(31);
+
+      [
+        'Issues',
+        'Projects',
+        /Explore/,
+        /Traces/,
+        /Metrics/,
+        'Profiles',
+        'Replays',
+        'Discover',
+        /Insights/,
+        'Requests',
+        'Queries',
+        'Assets',
+        'App Starts',
+        'Screen Loads',
+        'Web Vitals',
+        /Caches/,
+        /Queues/,
+        /Mobile UI/,
+        /LLM Monitoring/,
+        'Performance',
+        'User Feedback',
+        'Crons',
+        'Alerts',
+        'Dashboards',
+        'Releases',
+        'Stats',
+        'Settings',
+        'Help',
+        "What's new",
+        'Service status',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
     });
 
     it('should not render floating accordion when expanded', async () => {
-      renderSidebarWithFeatures();
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
       expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
     });
 
     it('should render floating accordion when collapsed', async () => {
-      renderSidebarWithFeatures();
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
       await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
