@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from django.conf import settings
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, router, transaction
+from redis.client import StrictRedis
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.types.region import RegionContextError, get_local_region
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import Model
 
 _TTL = timedelta(minutes=5)
 
@@ -19,19 +25,31 @@ class MaxSnowflakeRetryError(APIException):
     default_detail = "Max allowed ID retry reached. Please try again in a second"
 
 
-class SnowflakeIdMixin:
-    id: models.Field[int, int]
+def _snowflake_inst_is_model(inst: object) -> Model:
+    # this is an unsound hack to make the mixin typing work
+    # ideally the mixin should just be a function
+    from sentry.db.models.base import Model
 
-    def save_with_snowflake_id(self, snowflake_redis_key, save_callback):
+    if not isinstance(inst, Model):
+        raise TypeError(f"expected SnowflakeIdMixin to be mixed into Model, got {type(inst)}")
+    else:
+        return inst
+
+
+class SnowflakeIdMixin:
+    def save_with_snowflake_id(
+        self, snowflake_redis_key: str, save_callback: Callable[[], object]
+    ) -> None:
+        inst = _snowflake_inst_is_model(self)
         for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
-            if not self.id:
-                self.id = generate_snowflake_id(snowflake_redis_key)
+            if not inst.id:
+                inst.id = generate_snowflake_id(snowflake_redis_key)
             try:
-                with enforce_constraints(transaction.atomic(using=router.db_for_write(type(self)))):
+                with enforce_constraints(transaction.atomic(using=router.db_for_write(type(inst)))):
                     save_callback()
                 return
             except IntegrityError:
-                self.id = None
+                inst.id = None  # type: ignore[assignment]  # see typeddjango/django-stubs#2014
         raise MaxSnowflakeRetryError
 
 
@@ -40,11 +58,11 @@ class SnowflakeBitSegment:
     length: int
     name: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.length <= 0:
             raise Exception("The length should be a positive number")
 
-    def validate(self, value):
+    def validate(self, value: int) -> None:
         if value >> self.length != 0:
             raise Exception(f"{self.name} exceed max bit value of {self.length}")
 
@@ -67,7 +85,7 @@ assert MAX_AVAILABLE_REGION_SEQUENCES > 0
 NULL_REGION_ID = 0
 
 
-def msb_0_ordering(value, width):
+def msb_0_ordering(value: int, width: int) -> int:
     """
     MSB 0 Ordering refers to when the bit numbering starts at zero for the
     most significant bit (MSB) the numbering scheme is called MSB 0.
@@ -106,7 +124,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     return snowflake_id
 
 
-def get_redis_cluster(redis_key: str):
+def get_redis_cluster(redis_key: str) -> StrictRedis[str]:
     from sentry.utils import redis
 
     return redis.clusters.get("default").get_local_client_for_key(redis_key)
