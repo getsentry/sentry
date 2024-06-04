@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -19,7 +18,6 @@ import type {
   Project,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
 import {
@@ -292,7 +290,7 @@ export function getUnknownData({
     .map(([key, value]) => ({
       key,
       value,
-      subject: startCase(key),
+      subject: key,
       meta: meta?.[key]?.[''],
     }));
 }
@@ -311,7 +309,7 @@ export function getContextTitle({
   }
 
   if (!defined(type)) {
-    return toTitleCase(alias);
+    return alias;
   }
 
   switch (type) {
@@ -346,10 +344,10 @@ export function getContextTitle({
         case 'laravel':
           return t('Laravel Context');
         default:
-          return toTitleCase(alias);
+          return alias;
       }
     default:
-      return toTitleCase(type);
+      return type;
   }
 }
 
@@ -406,7 +404,7 @@ export function getContextIcon({
   if (iconName.length === 0) {
     return null;
   }
-  return <ContextIcon name={iconName} size="sm" />;
+  return <ContextIcon name={iconName} size="sm" hideUnknown />;
 }
 
 export function getFormattedContextData({
