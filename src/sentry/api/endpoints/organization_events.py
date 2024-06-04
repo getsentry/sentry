@@ -373,7 +373,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     split_query = scoped_query
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
                         split_dataset = discover
-                        split_query = f"({scoped_query}) AND !event.type:transaction"
+                        split_query = (
+                            f"({scoped_query}) AND !event.type:transaction"
+                            if scoped_query
+                            else "!event.type:transaction"
+                        )
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                         # We can't add event.type:transaction for now because of on-demand.
                         split_dataset = scopedDataset
@@ -384,7 +388,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                 try:
                     error_results = _data_fn(
-                        discover, offset, limit, f"({scoped_query}) AND !event.type:transaction"
+                        discover,
+                        offset,
+                        limit,
+                        (
+                            f"({scoped_query}) AND !event.type:transaction"
+                            if scoped_query
+                            else "!event.type:transaction"
+                        ),
                     )
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                     has_errors = len(error_results["data"]) > 0
@@ -407,7 +418,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if has_errors and has_other_data and not using_metrics:
                     # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                     sentry_sdk.set_tag("third_split_query", True)
-                    transactions_only_query = f"({scoped_query}) AND event.type:transaction"
+                    transactions_only_query = (
+                        f"({scoped_query}) AND event.type:transaction"
+                        if scoped_query
+                        else "event.type:transaction"
+                    )
                     transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
                     has_transactions = len(transaction_results["data"]) > 0
 
