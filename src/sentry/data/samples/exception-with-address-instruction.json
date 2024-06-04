@@ -1,5 +1,6 @@
 {
   "platform": "cocoa",
+  // this is a json comment
   "exception": {
     "values": [
       {
@@ -54,10 +55,10 @@
                 "symbolicator_status": "unknown_image"
               },
               "instruction_addr": "0x7fff248b1f42"
-            }
-          ]
-        }
-      }
-    ]
-  }
+            },
+          ],
+        },
+      },
+    ],
+  },
 }
