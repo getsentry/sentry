@@ -398,18 +398,19 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationType, organizations} = this.props;
     const {notificationOptions} = this.state;
     const unlinkedSlackOrgs = this.getUnlinkedOrgs('slack');
-    const notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     // TODO(isabella): Once GA, remove this
     if (
       notificationType === 'quota' &&
       organizations.some(org => org.features?.includes('spend-visibility-notifications'))
     ) {
-      notificationDetails.title = t('Spend Notifications');
-      notificationDetails.description = t(
-        'Control the notifications you receive for organization spend.'
-      );
+      notificationDetails = {
+        ...notificationDetails,
+        title: t('Spend Notifications'),
+        description: t('Control the notifications you receive for organization spend.'),
+      };
     }
-    const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    const {title, description} = notificationDetails;
 
     const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
     return (
