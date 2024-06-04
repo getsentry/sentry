@@ -25,6 +25,7 @@ interface CodeSnippetTab {
   label: string;
   language: string;
   value: string;
+  filename?: string;
 }
 
 interface TabbedCodeSnippetProps {
@@ -54,7 +55,7 @@ function TabbedCodeSnippet({
 }: TabbedCodeSnippetProps) {
   const [selectedTabValue, setSelectedTabValue] = useState(tabs[0].value);
   const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0];
-  const {code, language} = selectedTab;
+  const {code, language, filename} = selectedTab;
 
   return (
     <OnboardingCodeSnippet
@@ -67,6 +68,7 @@ function TabbedCodeSnippet({
       tabs={tabs}
       selectedTab={selectedTabValue}
       onTabClick={value => setSelectedTabValue(value)}
+      filename={filename}
     >
       {language === 'javascript'
         ? beautify.js(code, {

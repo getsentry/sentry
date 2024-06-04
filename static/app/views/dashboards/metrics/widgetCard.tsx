@@ -10,7 +10,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
@@ -97,6 +98,7 @@ export function MetricWidgetCard({
         metricQueries={metricQueries}
         displayType={toMetricDisplayType(widget.displayType)}
         chartHeight={!showContextMenu ? 200 : undefined}
+        showLegend
       />
     );
   }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
@@ -198,7 +200,7 @@ const WidgetTitle = styled(HeaderTitle)`
   padding-top: ${space(2)};
   padding-right: ${space(1)};
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ErrorWrapper = styled('div')`

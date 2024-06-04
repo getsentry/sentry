@@ -31,4 +31,6 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
 
         grouping_info = get_grouping_info(request.GET.get("config", None), project, event)
 
-        return HttpResponse(orjson.dumps(grouping_info), content_type="application/json")
+        return HttpResponse(
+            orjson.dumps(grouping_info, option=orjson.OPT_UTC_Z), content_type="application/json"
+        )

@@ -93,6 +93,11 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
+type MetricsSubscriptionCTAProps = {
+  organization: Organization;
+  children?: React.ReactNode;
+};
+
 type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
 type ReplayFeedbackButton = {children: React.ReactNode};
@@ -166,6 +171,8 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
 
 type MonitorCreatedCallback = (organization: Organization) => void;
 
+type CronsOnboardingPanelProps = {children: React.ReactNode};
+
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
@@ -185,6 +192,7 @@ export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
+  'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
@@ -201,6 +209,8 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:metrics-onboarding-panel-primary-action': () => React.ComponentType<MetricsSubscriptionCTAProps>;
+  'component:metrics-subscription-alert': () => React.ComponentType<MetricsSubscriptionCTAProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -230,6 +240,7 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
@@ -634,6 +645,23 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;
+}>;
+
+/**
+ * Sidebar navigation item customization allows passing render props to disable
+ * the link, wrap it in an upsell modal, and give it some additional content
+ * (e.g., a Business Icon) to render.
+ *
+ * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
+ * too, since this is a more generic version.
+ */
+type SidebarNavigationItemHook = () => React.ComponentType<{
+  children: (opts: {
+    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
+    additionalContent: React.ReactElement | null;
+    disabled: boolean;
+  }) => React.ReactElement;
+  id: string;
 }>;
 
 /**

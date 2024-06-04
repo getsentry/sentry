@@ -119,6 +119,9 @@ SPAN_COLUMN_MAP = {
     "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "description",
     "span.domain": "domain",
     # DO NOT directly expose span.duration, we should always use the alias
     # "span.duration": "duration",
@@ -133,6 +136,9 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "user.id": "sentry_tags[user.id]",
+    "user.email": "sentry_tags[user.email]",
+    "user.username": "sentry_tags[user.username]",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
@@ -999,7 +1005,7 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data, skip_trace=True)
+            body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
                     log_snuba_info(
@@ -1061,11 +1067,6 @@ def _log_request_query(req: Request) -> None:
 
 
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
-
-
-def _snql_query(params: tuple[RequestQueryBody, Hub, Mapping[str, str], str]) -> RawResult:
-    # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(params)
 
 
 def _snuba_query(
@@ -1448,6 +1449,7 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    "Nullable": "null",
 }
 
 

@@ -4,7 +4,7 @@ import logging
 from collections import namedtuple
 from collections.abc import Callable
 from datetime import timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, ClassVar, Protocol, Self
 
 from django.conf import settings
@@ -439,6 +439,11 @@ class AlertRuleTriggerExclusion(Model):
         unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
+class AlertRuleTriggerActionMethod(StrEnum):
+    FIRE = "fire"
+    RESOLVE = "resolve"
+
+
 class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
     """
     A manager that excludes trigger actions that are pending to be deleted
@@ -451,7 +456,7 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
 @region_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
-    This model represents an action that occurs when a trigger is fired. This is
+    This model represents an action that occurs when a trigger (over/under) is fired. This is
     typically some sort of notification.
     """
 

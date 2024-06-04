@@ -1,7 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -105,16 +104,13 @@ describe('DeprecatedAssigneeSelector', () => {
     });
 
     MemberListStore.reset();
+    ProjectsStore.loadInitialData([PROJECT_1]);
   });
 
   // Doesn't need to always be async, but it was easier to prevent flakes this way
   const openMenu = async () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
-
-  beforeEach(() => {
-    ProjectsStore.loadInitialData([PROJECT_1]);
-  });
 
   afterEach(() => {
     ProjectsStore.reset();
@@ -145,7 +141,7 @@ describe('DeprecatedAssigneeSelector', () => {
       render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => USER_2);
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
-      (ConfigStore.get as jest.Mock).mockRestore();
+      jest.mocked(ConfigStore.get).mockRestore();
     });
 
     it("should return the same member list if the session user isn't present", () => {
@@ -159,7 +155,7 @@ describe('DeprecatedAssigneeSelector', () => {
       );
 
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
-      (ConfigStore.get as jest.Mock).mockRestore();
+      jest.mocked(ConfigStore.get).mockRestore();
     });
   });
 
@@ -285,9 +281,7 @@ describe('DeprecatedAssigneeSelector', () => {
 
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
-    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />, {
-      context: RouterContextFixture(),
-    });
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     await openMenu();
@@ -295,7 +289,7 @@ describe('DeprecatedAssigneeSelector', () => {
 
     await userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
-    (ConfigStore.get as jest.Mock).mockRestore();
+    jest.mocked(ConfigStore.get).mockRestore();
   });
 
   it('filters user by email and selects with keyboard', async () => {

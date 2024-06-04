@@ -10,6 +10,8 @@ from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
+SPAN_DURATION_MRI = "d:spans/duration@millisecond"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     viewname = "sentry-api-0-organization-events"
@@ -1201,12 +1203,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span increases in duration
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.six_min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
             project=self.project.id,
         )
         self.store_span_metric(
             100,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Regressed Span"},
             project=self.project.id,
@@ -1215,12 +1219,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span stays the same
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.three_days_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
@@ -1230,12 +1236,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "span.description",
-                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                    f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})",
                 ],
                 "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
-                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                    f"-regression_score(span.duration,{int(self.two_min_ago.timestamp())})"
                 ],
                 "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
                 "end": before_now(minutes=0),
@@ -1251,6 +1257,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span only exists after the breakpoint
         self.store_span_metric(
             100,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Added span"},
             project=self.project.id,
@@ -1259,12 +1266,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span stays the same
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.three_days_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
@@ -1274,12 +1283,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "span.description",
-                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                    f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})",
                 ],
                 "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
-                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                    f"-regression_score(span.duration,{int(self.two_min_ago.timestamp())})"
                 ],
                 "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
                 "end": before_now(minutes=0),
@@ -1295,6 +1304,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span only exists before the breakpoint
         self.store_span_metric(
             100,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.six_min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Removed span"},
             project=self.project.id,
@@ -1303,12 +1313,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         # This span stays the same
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.three_days_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
         )
         self.store_span_metric(
             1,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.min_ago,
             tags={"transaction": "/api/0/projects/", "span.description": "Non-regressed"},
             project=self.project.id,
@@ -1318,12 +1330,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "span.description",
-                    f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})",
+                    f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})",
                 ],
                 "query": "transaction:/api/0/projects/",
                 "dataset": "spansMetrics",
                 "orderby": [
-                    f"-regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"
+                    f"-regression_score(span.duration,{int(self.two_min_ago.timestamp())})"
                 ],
                 "start": (self.six_min_ago - timedelta(minutes=1)).isoformat(),
                 "end": before_now(minutes=0),
@@ -1337,7 +1349,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         # The regression score is <0 for removed spans, this can act as
         # a way to filter out removed spans when necessary
-        assert data[1][f"regression_score(span.self_time,{int(self.two_min_ago.timestamp())})"] < 0
+        assert data[1][f"regression_score(span.duration,{int(self.two_min_ago.timestamp())})"] < 0
 
     def test_avg_self_time_by_timestamp(self):
         self.store_span_metric(
@@ -1397,7 +1409,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_epm_by_timestamp(self):
         self.store_span_metric(
             1,
-            internal_metric=constants.SELF_TIME_LIGHT,
+            internal_metric=SPAN_DURATION_MRI,
             timestamp=self.six_min_ago,
             tags={},
         )
@@ -1406,7 +1418,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(3):
             self.store_span_metric(
                 3,
-                internal_metric=constants.SELF_TIME_LIGHT,
+                internal_metric=SPAN_DURATION_MRI,
                 timestamp=self.min_ago,
                 tags={},
             )
@@ -1653,6 +1665,163 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "avg(messaging.message.receive.latency)": 5.0,
             },
         ]
+
+    def test_messaging_does_not_exist_as_metric(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            tags={"messaging.destination.name": "foo", "trace.status": "ok"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "messaging.destination.name",
+                    "trace.status",
+                    "avg(messaging.message.receive.latency)",
+                    "avg(span.duration)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {
+                "messaging.destination.name": "foo",
+                "trace.status": "ok",
+                "avg(messaging.message.receive.latency)": None,
+                "avg(span.duration)": 100,
+            },
+        ]
+        meta = response.data["meta"]
+        assert meta["fields"]["avg(messaging.message.receive.latency)"] == "null"
+
+    def test_trace_status_rate(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "unknown"},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "internal_error"},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "unauthenticated"},
+        )
+
+        self.store_span_metric(
+            4,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "ok"},
+        )
+
+        self.store_span_metric(
+            5,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "ok"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "trace_status_rate(ok)",
+                    "trace_status_rate(unknown)",
+                    "trace_status_rate(internal_error)",
+                    "trace_status_rate(unauthenticated)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["trace_status_rate(ok)"] == 0.4
+        assert data[0]["trace_status_rate(unknown)"] == 0.2
+        assert data[0]["trace_status_rate(internal_error)"] == 0.2
+        assert data[0]["trace_status_rate(unauthenticated)"] == 0.2
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["trace_status_rate(ok)"] == "percentage"
+        assert meta["fields"]["trace_status_rate(unknown)"] == "percentage"
+        assert meta["fields"]["trace_status_rate(internal_error)"] == "percentage"
+        assert meta["fields"]["trace_status_rate(unauthenticated)"] == "percentage"
+
+    def test_trace_error_rate(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "unknown"},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "internal_error"},
+        )
+
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "unauthenticated"},
+        )
+
+        self.store_span_metric(
+            4,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "ok"},
+        )
+
+        self.store_span_metric(
+            5,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"trace.status": "ok"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "trace_error_rate()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["trace_error_rate()"] == 0.4
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["trace_error_rate()"] == "percentage"
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

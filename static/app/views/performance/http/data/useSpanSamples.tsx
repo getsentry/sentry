@@ -5,11 +5,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {
-  IndexedProperty,
-  IndexedResponse,
-  SpanIndexedField,
-} from 'sentry/views/starfish/types';
+import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 
 interface UseSpanSamplesOptions<Fields> {
@@ -21,7 +17,7 @@ interface UseSpanSamplesOptions<Fields> {
   search?: MutableSearch;
 }
 
-export const useSpanSamples = <Fields extends IndexedProperty[]>(
+export const useSpanSamples = <Fields extends SpanIndexedField[]>(
   options: UseSpanSamplesOptions<Fields> = {}
 ) => {
   const {
@@ -50,7 +46,7 @@ export const useSpanSamples = <Fields extends IndexedProperty[]>(
   const result = useApiQuery<{
     data:
       | Pick<
-          IndexedResponse,
+          SpanIndexedResponse,
           | Fields[number]
           // These fields are returned by default
           | SpanIndexedField.PROJECT
@@ -63,7 +59,6 @@ export const useSpanSamples = <Fields extends IndexedProperty[]>(
       // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
       // eslint-disable-next-line @typescript-eslint/ban-types
       | [];
-    meta: 'hello';
   }>(
     [
       `/api/0/organizations/${organization.slug}/spans-samples/`,

@@ -85,10 +85,6 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	yarn build-chartcuterie-config
 
-fetch-release-registry:
-	@echo "--> Fetching release registry"
-	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
-
 run-acceptance:
 	@echo "--> Running acceptance tests"
 	python3 -b -m pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log

@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
@@ -652,7 +652,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         ):
             return
 
-        interface = event.interfaces.get("sentry.interfaces.Exception")
+        interface = event.interfaces.get("exception")
 
         if interface:
             post_data["description"] += "\n{code}%s{code}" % interface.get_stacktrace(

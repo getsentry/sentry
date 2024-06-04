@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -11,13 +11,14 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
 import {
   formatFilterValue,
+  getKeyLabel,
   getValidOpsForFilter,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   type ParseResultToken,
   TermOperator,
-  type Token,
+  Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {IconClose} from 'sentry/icons';
@@ -28,10 +29,6 @@ import {defined} from 'sentry/utils';
 type SearchQueryTokenProps = {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
-  token: TokenResult<Token.FILTER>;
-};
-
-type FilterPartProps = {
   token: TokenResult<Token.FILTER>;
 };
 
@@ -52,7 +49,22 @@ const getOpLabel = (token: TokenResult<Token.FILTER>) => {
   return OP_LABELS[token.operator] ?? token.operator;
 };
 
-function FilterOperator({token}: FilterPartProps) {
+function useFilterButtonProps({
+  item,
+  state,
+}: Pick<SearchQueryTokenProps, 'item' | 'state'>) {
+  const onFocus = useCallback(() => {
+    // Ensure that the state is updated correctly
+    state.selectionManager.setFocusedKey(item.key);
+  }, [item.key, state.selectionManager]);
+
+  return {
+    onFocus,
+    tabIndex: -1,
+  };
+}
+
+function FilterOperator({token, state, item}: SearchQueryTokenProps) {
   const {dispatch} = useSearchQueryBuilder();
 
   const items: MenuItemProps[] = useMemo(() => {
@@ -69,12 +81,14 @@ function FilterOperator({token}: FilterPartProps) {
     }));
   }, [dispatch, token]);
 
+  const filterButtonProps = useFilterButtonProps({state, item});
+
   return (
     <DropdownMenu
       trigger={triggerProps => (
         <OpButton
           aria-label={t('Edit operator for filter: %s', token.key.text)}
-          {...triggerProps}
+          {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
           {getOpLabel(token)}
@@ -85,27 +99,63 @@ function FilterOperator({token}: FilterPartProps) {
   );
 }
 
-function FilterKey({token}: FilterPartProps) {
-  const label = token.key.text;
+function FilterKey({token, state, item}: SearchQueryTokenProps) {
+  const {keys} = useSearchQueryBuilder();
+  const key = token.key.text;
+  const tag = keys[key];
+  const label = tag ? getKeyLabel(tag) : key;
 
+  const filterButtonProps = useFilterButtonProps({state, item});
   // TODO(malwilley): Add edit functionality
 
   return (
-    <KeyButton aria-label={t('Edit filter key: %s', label)} onClick={() => {}}>
+    <KeyButton
+      aria-label={t('Edit filter key: %s', label)}
+      onClick={() => {}}
+      {...filterButtonProps}
+    >
       <InteractionStateLayer />
       {label}
     </KeyButton>
   );
 }
 
+function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
+  switch (token.value.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
+      const items = token.value.items;
+      return (
+        <FilterValueList>
+          {items.map((item, index) => (
+            <Fragment key={index}>
+              <span>{formatFilterValue(item.value)}</span>
+              {index !== items.length - 1 ? <FilterValueOr>or</FilterValueOr> : null}
+            </Fragment>
+          ))}
+        </FilterValueList>
+      );
+    default:
+      return formatFilterValue(token.value);
+  }
+}
+
 function FilterValue({token, state, item}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const {dispatch, focusOverride} = useSearchQueryBuilder();
 
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!token.value.text && !isEditing) {
-    setIsEditing(true);
-  }
+  useLayoutEffect(() => {
+    if (
+      !isEditing &&
+      focusOverride?.itemKey === item.key &&
+      focusOverride.part === 'value'
+    ) {
+      setIsEditing(true);
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, isEditing, item.key]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
@@ -113,12 +163,14 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
     },
   });
 
+  const filterButtonProps = useFilterButtonProps({state, item});
+
   if (isEditing) {
     return (
-      <ValueEditing ref={ref} {...focusWithinProps}>
+      <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
-          onChange={() => {
+          onCommit={() => {
             setIsEditing(false);
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
@@ -135,20 +187,23 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
     <ValueButton
       aria-label={t('Edit value for filter: %s', token.key.text)}
       onClick={() => setIsEditing(true)}
+      {...filterButtonProps}
     >
       <InteractionStateLayer />
-      {formatFilterValue(token)}
+      <FilterValueText token={token} />
     </ValueButton>
   );
 }
 
-function FilterDelete({token}: FilterPartProps) {
+function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   const {dispatch} = useSearchQueryBuilder();
+  const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', token.key.text)}
       onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      {...filterButtonProps}
     >
       <InteractionStateLayer />
       <IconClose legacySize="8px" />
@@ -188,16 +243,16 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       {...modifiedRowProps}
     >
       <BaseTokenPart {...gridCellProps}>
-        <FilterKey token={token} />
+        <FilterKey token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
-        <FilterOperator token={token} />
+        <FilterOperator token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterValue token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
-        <FilterDelete token={token} />
+        <FilterDelete token={token} state={state} item={item} />
       </BaseTokenPart>
     </FilterWrapper>
   );
@@ -297,4 +352,14 @@ const DeleteButton = styled(UnstyledButton)`
     background-color: ${p => p.theme.translucentGray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
+`;
+
+const FilterValueList = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const FilterValueOr = styled('span')`
+  color: ${p => p.theme.subText};
 `;

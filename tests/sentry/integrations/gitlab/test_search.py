@@ -18,7 +18,7 @@ class GitlabSearchTest(GitLabTestCase):
         self.url = reverse(
             "sentry-extensions-gitlab-search",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "integration_id": self.installation.model.id,
             },
         )
@@ -192,7 +192,10 @@ class GitlabSearchTest(GitLabTestCase):
     def test_missing_integration(self):
         url = reverse(
             "sentry-extensions-gitlab-search",
-            kwargs={"organization_slug": self.organization.slug, "integration_id": "1234567890"},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "integration_id": "1234567890",
+            },
         )
         resp = self.client.get(url, data={"field": "project", "query": "GetSentry"})
 

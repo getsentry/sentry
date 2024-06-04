@@ -867,6 +867,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time-Consuming Queries'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/database/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -909,6 +913,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time-Consuming Domains'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/http/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -935,7 +943,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most time consuming resources widget', async function () {
-    const data = initializeData();
+    const data = initializeData(undefined, {features: ['performance-insights']});
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
@@ -947,7 +955,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Time Consuming Resources'
+      'Most Time-Consuming Assets'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/insights/browser/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -994,6 +1006,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Highest Cache Miss Rates'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/caches/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -1007,7 +1023,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.op:cache.get_item',
+          query: 'span.op:[cache.get_item,cache.get]',
           statsPeriod: '7d',
           referrer:
             'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
@@ -1058,7 +1074,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.ttfb)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,""] avg(measurements.score.total):>=0',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );

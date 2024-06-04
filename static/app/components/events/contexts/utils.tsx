@@ -3,18 +3,23 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
 import type {
+  AvatarUser,
   Event,
   KeyValueListData,
   KeyValueListDataItem,
   Organization,
   Project,
 } from 'sentry/types';
-import {defined, toTitleCase} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
 import {
@@ -40,11 +45,22 @@ import {
   OperatingSystemEventContext,
 } from './operatingSystem';
 import {
+  getKnownPlatformContextData,
+  getPlatformContextIcon,
+  getUnknownPlatformContextData,
+  KNOWN_PLATFORM_CONTEXTS,
+} from './platform';
+import {
   getKnownProfileContextData,
   getUnknownProfileContextData,
   ProfileEventContext,
 } from './profile';
 import {getReduxContextData, ReduxContext} from './redux';
+import {
+  getKnownReplayContextData,
+  getUnknownReplayContextData,
+  ReplayEventContext,
+} from './replay';
 import {
   getKnownRuntimeContextData,
   getUnknownRuntimeContextData,
@@ -91,7 +107,7 @@ const CONTEXT_TYPES = {
   threadpool_info: ThreadPoolInfoEventContext,
   state: StateEventContext,
   profile: ProfileEventContext,
-
+  replay: ReplayEventContext,
   // 'redux.state' will be replaced with more generic context called 'state'
   'redux.state': ReduxContext,
   // 'ThreadPool Info' will be replaced with 'threadpool_info' but
@@ -101,6 +117,57 @@ const CONTEXT_TYPES = {
   // we want to keep it here for now so it works for existing versions
   'Memory Info': MemoryInfoEventContext,
 };
+
+/**
+ * Generates the class name used for contexts
+ */
+export function generateIconName(
+  name?: string | boolean | null,
+  version?: string
+): string {
+  if (!defined(name) || typeof name === 'boolean') {
+    return '';
+  }
+
+  const lowerCaseName = name.toLowerCase();
+
+  // amazon fire tv device id changes with version: AFTT, AFTN, AFTS, AFTA, AFTVA (alexa), ...
+  if (lowerCaseName.startsWith('aft')) {
+    return 'amazon';
+  }
+
+  if (lowerCaseName.startsWith('sm-') || lowerCaseName.startsWith('st-')) {
+    return 'samsung';
+  }
+
+  if (lowerCaseName.startsWith('moto')) {
+    return 'motorola';
+  }
+
+  if (lowerCaseName.startsWith('pixel')) {
+    return 'google';
+  }
+
+  const formattedName = name
+    .split(/\d/)[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]+/g, '-')
+    .replace(/\-+$/, '')
+    .replace(/^\-+/, '');
+
+  if (formattedName === 'edge' && version) {
+    const majorVersion = version.split('.')[0];
+    const isLegacyEdge = majorVersion >= '12' && majorVersion <= '18';
+
+    return isLegacyEdge ? 'legacy-edge' : 'edge';
+  }
+
+  if (formattedName.endsWith('-mobile')) {
+    return formattedName.split('-')[0];
+  }
+
+  return formattedName;
+}
 
 export function getContextComponent(type: string) {
   return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
@@ -273,10 +340,14 @@ export function getContextTitle({
     case 'ThreadPool Info': // Legacy value for thread pool info
       return t('Thread Pool Info');
     case 'default':
-      if (alias === 'state') {
-        return t('Application State');
+      switch (alias) {
+        case 'state':
+          return t('Application State');
+        case 'laravel':
+          return t('Laravel Context');
+        default:
+          return toTitleCase(alias);
       }
-      return toTitleCase(alias);
     default:
       return toTitleCase(type);
   }
@@ -298,6 +369,46 @@ export function getContextMeta(event: Event, contextType: string): Record<string
   }
 }
 
+export function getContextIcon({
+  alias,
+  type,
+  value = {},
+}: {
+  alias: string;
+  type: string;
+  value?: Record<string, any>;
+}): React.ReactNode {
+  if (KNOWN_PLATFORM_CONTEXTS.has(alias)) {
+    return getPlatformContextIcon({platform: alias});
+  }
+  let iconName = '';
+  switch (type) {
+    case 'device':
+      iconName = generateIconName(value?.model);
+      break;
+    case 'client_os':
+    case 'os':
+      iconName = generateIconName(value?.name);
+      break;
+    case 'runtime':
+    case 'browser':
+      iconName = generateIconName(value?.name, value?.version);
+      break;
+    case 'user':
+      const user = removeFilterMaskedEntries(value);
+      return <UserAvatar user={user as AvatarUser} size={14} gravatar={false} />;
+    case 'gpu':
+      iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
+      break;
+    default:
+      break;
+  }
+  if (iconName.length === 0) {
+    return null;
+  }
+  return <ContextIcon name={iconName} size="sm" />;
+}
+
 export function getFormattedContextData({
   event,
   contextType,
@@ -312,6 +423,13 @@ export function getFormattedContextData({
   project?: Project;
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
+
+  if (KNOWN_PLATFORM_CONTEXTS.has(contextType)) {
+    return [
+      ...getKnownPlatformContextData({platform: contextType, data: contextValue, meta}),
+      ...getUnknownPlatformContextData({platform: contextType, data: contextValue, meta}),
+    ];
+  }
 
   switch (contextType) {
     case 'app':
@@ -383,6 +501,11 @@ export function getFormattedContextData({
         ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
         ...getUnknownProfileContextData({data: contextValue, meta}),
       ];
+    case 'replay':
+      return [
+        ...getKnownReplayContextData({data: contextValue, meta, organization}),
+        ...getUnknownReplayContextData({data: contextValue, meta}),
+      ];
     default:
       return getDefaultContextData(contextValue);
   }
@@ -392,3 +515,5 @@ const RelativeTime = styled('span')`
   color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
 `;
+
+export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;

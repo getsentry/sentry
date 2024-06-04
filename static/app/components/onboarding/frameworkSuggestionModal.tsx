@@ -38,6 +38,7 @@ export enum SupportedLanguages {
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
@@ -66,6 +67,7 @@ const topPythonFrameworks: PlatformKey[] = [
 
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
   'node-koa',

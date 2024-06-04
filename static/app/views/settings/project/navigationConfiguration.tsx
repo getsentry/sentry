@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
@@ -55,6 +56,10 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
+        },
+        {
+          path: `${pathPrefix}/user-feedback/`,
+          title: t('User Feedback'),
         },
       ],
     },
@@ -113,17 +118,12 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () => !!organization?.features?.includes('custom-metrics'),
+          show: () => !!(organization && canSeeMetricsPage(organization)),
         },
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
           show: () => !!organization?.features?.includes('session-replay-ui'),
-        },
-        {
-          path: `${pathPrefix}/user-feedback-processing/`,
-          title: t('User Feedback'),
-          show: () => !!organization?.features?.includes('user-feedback-ui'),
         },
       ],
     },
@@ -141,17 +141,18 @@ export default function getConfiguration({
           description: t("View and manage the project's Loader Script"),
         },
         {
+          path: `${pathPrefix}/remote-config/`,
+          title: t('Remote Config'),
+          description: t("View and manage the project's Remote Configuration"),
+          show: organization?.features.includes('remote-config'),
+        },
+        {
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
         },
         {
           path: `${pathPrefix}/security-headers/`,
           title: t('Security Headers'),
-        },
-        {
-          path: `${pathPrefix}/user-feedback/`,
-          title: t('User Feedback'),
-          description: t('Configure user feedback reporting feature'),
         },
       ],
     },

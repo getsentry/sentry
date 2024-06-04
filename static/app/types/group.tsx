@@ -236,6 +236,7 @@ export type EventAttachment = IssueAttachment;
 export type Tag = {
   key: string;
   name: string;
+  alias?: string;
 
   isInput?: boolean;
 
@@ -925,6 +926,7 @@ export type KeyValueListDataItem = {
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
+  subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };
 

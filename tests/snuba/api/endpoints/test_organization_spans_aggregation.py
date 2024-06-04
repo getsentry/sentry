@@ -168,7 +168,7 @@ MOCK_SNUBA_RESPONSE = {
 class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:spans-first-ui",
+        "organizations:insights-initial-modules",
         "organizations:performance-view",
     ]
 
@@ -180,8 +180,19 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_without_flag(self, _mock_query):
+
+        response = self.client.get(
+            self.url,
+            data={"transaction": "api/0/foo", "statsPeriod": "1d"},
+            format="json",
+        )
+        assert response.status_code == 404
 
     @override_options({"indexed-spans.agg-span-waterfall.enable": True})
     @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
@@ -314,7 +325,7 @@ class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
 class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:spans-first-ui",
+        "organizations:insights-initial-modules",
         "organizations:performance-view",
     ]
 
@@ -563,8 +574,17 @@ class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
+
+    @django_db_all
+    def test_without_flag(self):
+        response = self.client.get(
+            self.url,
+            data={"transaction": "api/0/foo"},
+            format="json",
+        )
+        assert response.status_code == 404
 
     @django_db_all
     def test_simple(self):

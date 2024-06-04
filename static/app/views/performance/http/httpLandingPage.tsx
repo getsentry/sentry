@@ -1,6 +1,5 @@
 import React, {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -9,6 +8,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -17,13 +17,17 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/http/referrers';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/http/settings';
+import {
+  BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+} from 'sentry/views/performance/http/settings';
 import {
   DomainsTable,
   isAValidSort,
@@ -31,10 +35,10 @@ import {
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export function HTTPLandingPage() {
@@ -54,11 +58,11 @@ export function HTTPLandingPage() {
   });
 
   const chartFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
   };
 
   const tableFilters = {
-    'span.module': ModuleName.HTTP,
+    ...BASE_FILTERS,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
@@ -135,26 +139,20 @@ export function HTTPLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
+  const crumbs = useModuleBreadcrumbs('http');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Performance'),
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: MODULE_TITLE,
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
           <Layout.Title>
             {MODULE_TITLE}
-            <FeatureBadge type={RELEASE_LEVEL} />
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
@@ -247,16 +245,12 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
-    <ModulePageProviders
-      title={[t('Performance'), MODULE_TITLE].join(' — ')}
-      baseURL="/performance/http"
-      features="spans-first-ui"
-    >
+    <ModulePageProviders moduleName="http" features="insights-initial-modules">
       <HTTPLandingPage />
     </ModulePageProviders>
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

@@ -10,7 +10,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -19,6 +18,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Alignments} from 'sentry/utils/discover/fields';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import CellAction from 'sentry/views/discover/table/cellAction';
@@ -145,7 +145,7 @@ class TransactionsTable extends PureComponent<Props> {
 
       const target = generateLink?.[field]?.(organization, row, location);
 
-      if (target && !objectIsEmpty(target)) {
+      if (target && !isEmptyObject(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
             <ViewReplayLink replayId={row.replayId} to={target}>

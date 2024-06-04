@@ -1,7 +1,7 @@
 import logging
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from time import time
 from typing import Any
 
@@ -20,16 +20,13 @@ from sentry.features.rollout import in_random_rollout
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
-from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
-from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
-from sentry.utils.dates import to_datetime
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -41,7 +38,7 @@ class RetryProcessing(Exception):
     pass
 
 
-def should_process(data: CanonicalKeyDict) -> bool:
+def should_process(data: CanonicalKeyDict[Any]) -> bool:
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
 
@@ -49,9 +46,7 @@ def should_process(data: CanonicalKeyDict) -> bool:
         return False
 
     for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_event_preprocessors, data=data, _with_transaction=False
-        )
+        processors = safe_execute(plugin.get_event_preprocessors, data=data)
         if processors:
             return True
 
@@ -65,7 +60,7 @@ def submit_process(
     from_reprocessing: bool,
     cache_key: str,
     event_id: str | None,
-    start_time: int | None,
+    start_time: float | None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
@@ -99,7 +94,7 @@ def submit_save_event(
     project_id: int,
     cache_key: str | None,
     event_id: str | None,
-    start_time: int | None,
+    start_time: float | None,
     data: Event | None,
 ) -> None:
     if cache_key:
@@ -125,7 +120,7 @@ def submit_save_event(
 def _do_preprocess_event(
     cache_key: str,
     data: Event | None,
-    start_time: int | None,
+    start_time: float | None,
     event_id: str | None,
     from_reprocessing: bool,
     project: Project | None,
@@ -188,13 +183,12 @@ def _do_preprocess_event(
             reprocessing2.backup_unprocessed_event(data=original_data)
 
             is_low_priority = should_demote_symbolication(project_id)
-            task_kind = SymbolicatorTaskKind(
-                platform=first_platform,
-                is_low_priority=is_low_priority,
-                is_reprocessing=from_reprocessing,
-            )
             submit_symbolicate(
-                task_kind,
+                SymbolicatorTaskKind(
+                    platform=first_platform,
+                    is_low_priority=is_low_priority,
+                    is_reprocessing=from_reprocessing,
+                ),
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,
@@ -217,12 +211,11 @@ def _do_preprocess_event(
         )
         return
 
-    task_kind = SaveEventTaskKind(
-        has_attachments=has_attachments,
-        from_reprocessing=from_reprocessing,
-    )
     submit_save_event(
-        task_kind,
+        SaveEventTaskKind(
+            has_attachments=has_attachments,
+            from_reprocessing=from_reprocessing,
+        ),
         project_id=project_id,
         cache_key=cache_key,
         event_id=event_id,
@@ -241,7 +234,7 @@ def _do_preprocess_event(
 def preprocess_event(
     cache_key: str,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
     has_attachments: bool = False,
@@ -315,7 +308,7 @@ def normalize_event(data: Any) -> Any:
 
 def do_process_event(
     cache_key: str,
-    start_time: int | None,
+    start_time: float | None,
     event_id: str | None,
     from_reprocessing: bool,
     data: Event | None = None,
@@ -340,7 +333,7 @@ def do_process_event(
     project_id = data["project"]
     set_current_event_project(project_id)
 
-    event_id = data["event_id"]
+    data_event_id = data["event_id"]
 
     def _continue_to_save_event() -> None:
         task_kind = SaveEventTaskKind(
@@ -351,12 +344,12 @@ def do_process_event(
             task_kind,
             project_id=project_id,
             cache_key=cache_key,
-            event_id=event_id,
+            event_id=data_event_id,
             start_time=start_time,
             data=data,
         )
 
-    if is_process_disabled(project_id, event_id, data.get("platform") or "null"):
+    if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
@@ -368,9 +361,6 @@ def do_process_event(
     )
 
     has_changed = data_has_changed
-
-    # Fetch the reprocessing revision
-    reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
     # Stacktrace based event processors.
     new_data = process_stacktraces(data)
@@ -398,9 +388,7 @@ def do_process_event(
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
     if has_changed:
-        new_data = safe_execute(
-            scrub_data, project=project, event=data.data, _with_transaction=False
-        )
+        new_data = safe_execute(scrub_data, project=project, event=data.data)
 
         # XXX(markus): When datascrubbing is finally "totally stable", we might want
         # to drop the event if it crashes to avoid saving PII
@@ -413,9 +401,7 @@ def do_process_event(
         with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
             span.set_data("plugin", plugin.slug)
             span.set_data("from_symbolicate", from_symbolicate)
-            processors = safe_execute(
-                plugin.get_event_preprocessors, data=data, _with_transaction=False
-            )
+            processors = safe_execute(plugin.get_event_preprocessors, data=data)
             for processor in processors or ():
                 try:
                     result = processor(data)
@@ -441,34 +427,6 @@ def do_process_event(
         # - store event timestamps that are older than our retention window
         #   (also happening with minidumps)
         data = normalize_event(data)
-
-        issues = data.get("processing_issues")
-
-        try:
-            if issues and create_failed_event(
-                cache_key,
-                data,
-                project_id,
-                list(issues.values()),
-                event_id=event_id,
-                start_time=start_time,
-                reprocessing_rev=reprocessing_rev,
-            ):
-                return
-        except RetryProcessing:
-            # If `create_failed_event` indicates that we need to retry we
-            # invoke ourselves again.  This happens when the reprocessing
-            # revision changed while we were processing.
-            _do_preprocess_event(
-                cache_key=cache_key,
-                data=data,
-                start_time=start_time,
-                event_id=event_id,
-                from_reprocessing=from_reprocessing,
-                project=project,
-            )
-            return
-
         cache_key = processing.event_processing_store.store(data)
 
     return _continue_to_save_event()
@@ -483,7 +441,7 @@ def do_process_event(
 )
 def process_event(
     cache_key: str,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
@@ -520,7 +478,7 @@ def process_event(
 )
 def process_event_proguard(
     cache_key: str,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
@@ -555,7 +513,7 @@ def process_event_proguard(
 )
 def process_event_from_reprocessing(
     cache_key: str,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
@@ -587,112 +545,11 @@ def delete_raw_event(project_id: int, event_id: str | None) -> None:
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
     ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).delete()
 
-    # Clear the sent notification if we reprocessed everything
-    # successfully and reprocessing is enabled
-    reprocessing_active = reprocessing.is_active(project_id)
-    if reprocessing_active and reprocessing.did_send_notification(project_id):
-        # XXX: We just `delete`d all the `ReprocessingReport`s a few lines above.
-        # The only way this can ever be true here is if we have a race?
-        if ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).exists():
-            reprocessing.mark_notification_sent(project_id, False)
-
-
-@sentry_sdk.tracing.trace
-def create_failed_event(
-    cache_key: str,
-    data: Event | None,
-    project_id: int,
-    issues: list[dict[str, str]],
-    event_id: str | None,
-    start_time: int | None = None,
-    reprocessing_rev: Any = None,
-) -> bool:
-    """If processing failed we put the original data from the cache into a
-    raw event.  Returns `True` if a failed event was inserted
-    """
-    set_current_event_project(project_id)
-
-    # We can only create failed events for events that can potentially
-    # create failed events.
-    if not reprocessing.event_supports_reprocessing(data):
-        return False
-
-    # If this event has just been reprocessed with reprocessing-v2, we don't
-    # put it through reprocessing-v1 again. The value of reprocessing-v2 is
-    # partially that one sees the entire event even in its failed state, all
-    # the time.
-    if reprocessing2.is_reprocessed_event(data):
-        return False
-
-    reprocessing_active = reprocessing.is_active(project_id)
-
-    # In case there is reprocessing active but the current reprocessing
-    # revision is already different than when we started, we want to
-    # immediately retry the event.  This resolves the problem when
-    # otherwise a concurrent change of debug symbols might leave a
-    # reprocessing issue stuck in the project forever.
-    if (
-        reprocessing_active
-        and reprocessing.get_reprocessing_revision(project_id, cached=False) != reprocessing_rev
-    ):
-        raise RetryProcessing()
-
-    # The first time we encounter a failed event and the hint was cleared
-    # we send a notification.
-    if not reprocessing.did_send_notification(project_id):
-        Activity.objects.create(
-            type=ActivityType.NEW_PROCESSING_ISSUES.value,
-            project_id=project_id,
-            datetime=to_datetime(start_time),
-            data={"reprocessing_active": reprocessing_active, "issues": issues},
-        ).send_notification()
-        reprocessing.mark_notification_sent(project_id, True)
-
-    # If reprocessing is not active we bail now without creating the
-    # processing issues
-    if not reprocessing_active:
-        return False
-
-    # We need to get the original data here instead of passing the data in
-    # from the last processing step because we do not want any
-    # modifications to take place.
-    delete_raw_event(project_id, event_id)
-    data = processing.event_processing_store.get(cache_key)
-
-    if data is None:
-        metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
-        error_logger.error("process.failed_raw.empty", extra={"cache_key": cache_key})
-        return True
-
-    data = CanonicalKeyDict(data)
-    from sentry.models.processingissue import ProcessingIssue
-    from sentry.models.rawevent import RawEvent
-
-    raw_event = RawEvent.objects.create(
-        project_id=project_id,
-        event_id=event_id,
-        datetime=datetime.fromtimestamp(data["timestamp"], timezone.utc),
-        data=data,
-    )
-
-    for issue in issues:
-        ProcessingIssue.objects.record_processing_issue(
-            raw_event=raw_event,
-            scope=issue["scope"],
-            object=issue["object"],
-            type=issue["type"],
-            data=issue["data"],
-        )
-
-    processing.event_processing_store.delete_by_key(cache_key)
-
-    return True
-
 
 def _do_save_event(
     cache_key: str | None = None,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
     has_attachments: bool = False,
@@ -861,7 +718,7 @@ def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: fl
 def save_event(
     cache_key: str | None = None,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
     **kwargs: Any,
@@ -879,7 +736,7 @@ def save_event(
 def save_event_transaction(
     cache_key: str | None = None,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
     **kwargs: Any,
@@ -895,10 +752,11 @@ def save_event_transaction(
 )
 def save_event_feedback(
     cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
-    project_id: int | None = None,
+    *,
+    data: Mapping[str, Any],
+    project_id: int,
     **kwargs: Any,
 ) -> None:
     create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -914,7 +772,7 @@ def save_event_feedback(
 def save_event_attachments(
     cache_key: str | None = None,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
     **kwargs: Any,
@@ -934,7 +792,7 @@ def save_event_attachments(
 def save_event_highcpu(
     cache_key: str | None = None,
     data: Event | None = None,
-    start_time: int | None = None,
+    start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
     **kwargs: Any,

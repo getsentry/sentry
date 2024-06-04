@@ -90,6 +90,7 @@ type Props = {
   disableProjectSelector?: boolean;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
+  isForSpanMetric?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
   monitorType?: number;
@@ -358,6 +359,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       onTimeWindowChange,
       project,
       monitorType,
+      isForSpanMetric,
     } = this.props;
 
     return (
@@ -368,22 +370,25 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         <FormRow>
-          <WizardField
-            name="aggregate"
-            help={null}
-            organization={organization}
-            disabled={disabled}
-            project={project}
-            style={{
-              ...this.formElemBaseStyle,
-              flex: 1,
-            }}
-            inline={false}
-            flexibleControlStateSize
-            columnWidth={200}
-            alertType={alertType}
-            required
-          />
+          {isForSpanMetric ? null : (
+            <WizardField
+              name="aggregate"
+              help={null}
+              organization={organization}
+              disabled={disabled}
+              project={project}
+              style={{
+                ...this.formElemBaseStyle,
+                flex: 1,
+              }}
+              inline={false}
+              flexibleControlStateSize
+              columnWidth={200}
+              alertType={alertType}
+              required
+            />
+          )}
+
           {monitorType !== MonitorType.ACTIVATED && (
             <SelectControl
               name="timeWindow"
@@ -461,6 +466,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                       {
                         value: ActivationConditionType.RELEASE_CREATION,
                         label: t('New Release'),
+                      },
+                      {
+                        value: ActivationConditionType.DEPLOY_CREATION,
+                        label: t('New Deploy'),
                       },
                     ]}
                     required

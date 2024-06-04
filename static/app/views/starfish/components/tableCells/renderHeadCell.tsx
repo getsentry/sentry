@@ -25,7 +25,8 @@ type Options = {
 
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
 
-const {SPAN_SELF_TIME, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_SIZE} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DURATION, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_SIZE} =
+  SpanMetricsField;
 const {
   TIME_SPENT_PERCENTAGE,
   SPS,
@@ -38,6 +39,8 @@ const {
 
 export const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
+  `avg(${SPAN_DURATION})`,
+  `sum(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
   `p75(transaction.duration)`,
   `transaction.duration`,
@@ -56,16 +59,22 @@ export const SORTABLE_FIELDS = new Set([
   SpanIndexedField.TIMESTAMP,
   SpanIndexedField.SPAN_DURATION,
   `avg(${CACHE_ITEM_SIZE})`,
+  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  'count_op(queue.publish)',
+  'count_op(queue.process)',
+  'avg_if(span.duration,span.op,queue.process)',
+  'avg(messaging.message.receive.latency)',
+  'time_spent_percentage(app,span.duration)',
 ]);
 
 const NUMERIC_FIELDS = new Set([
   'transaction.duration',
   SpanMetricsField.CACHE_ITEM_SIZE,
-  SpanIndexedField.RESPONSE_CODE,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.CACHE_ITEM_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
 ]);
 
 export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {

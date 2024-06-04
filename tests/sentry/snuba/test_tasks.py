@@ -29,7 +29,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_query_builder,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -190,6 +189,15 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
 
     def test_subscription_with_query_extra(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_subscription_with_query_extra_but_no_query(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        snuba_query = sub.snuba_query
+        snuba_query.update(query="")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
@@ -594,10 +602,9 @@ class BuildSnqlQueryTest(TestCase):
                 time_window=time_window,
                 extra_fields=entity_extra_fields,
             )
-            query_builder = build_query_builder(
-                entity_subscription,
-                query,
-                [self.project.id],
+            query_builder = entity_subscription.build_query_builder(
+                query=query,
+                project_ids=[self.project.id],
                 environment=environment,
                 params={
                     "organization_id": self.organization.id,

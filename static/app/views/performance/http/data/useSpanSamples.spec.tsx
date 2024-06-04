@@ -6,23 +6,25 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
-import type {IndexedProperty} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
-
-function Wrapper({children}: {children?: ReactNode}) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
-  );
-}
 
 describe('useSpanSamples', () => {
   const organization = OrganizationFixture();
+
+  function Wrapper({children}: {children?: ReactNode}) {
+    return (
+      <QueryClientProvider client={makeTestQueryClient()}>
+        <OrganizationContext.Provider value={organization}>
+          {children}
+        </OrganizationContext.Provider>
+      </QueryClientProvider>
+    );
+  }
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -41,8 +43,6 @@ describe('useSpanSamples', () => {
     },
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -59,10 +59,7 @@ describe('useSpanSamples', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          fields: [
-            SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
-          ] as IndexedProperty[],
+          fields: [SpanIndexedField.TRANSACTION_ID, SpanIndexedField.ID],
           enabled: false,
         },
       }
@@ -103,10 +100,7 @@ describe('useSpanSamples', () => {
             release: '0.0.1',
             environment: undefined,
           },
-          fields: [
-            SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.ID,
-          ] as IndexedProperty[],
+          fields: [SpanIndexedField.TRANSACTION_ID, SpanIndexedField.ID],
           referrer: 'api-spec',
         },
       }

@@ -23,7 +23,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import {
   COLD_START_TYPE,
@@ -31,6 +30,8 @@ import {
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -56,9 +57,11 @@ export function SpanOperationTable({
   primaryRelease,
   secondaryRelease,
 }: Props) {
+  const moduleURL = useModuleURL('app_start');
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
@@ -83,6 +86,11 @@ export function SpanOperationTable({
     ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
+
+  if (isProjectCrossPlatform) {
+    searchQuery.addFilterValue('os.name', selectedPlatform);
+  }
+
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
     primaryRelease,
@@ -146,9 +154,7 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/app-startup/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,

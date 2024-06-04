@@ -5,9 +5,9 @@ from rest_framework.request import Request
 
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -23,7 +23,7 @@ SUCCESS_LINKED_MESSAGE = (
 
 
 def build_linking_url(
-    integration: Integration, slack_id: str, channel_id: str, response_url: str
+    integration: RpcIntegration, slack_id: str, channel_id: str, response_url: str
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-identity",

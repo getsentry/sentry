@@ -16,6 +16,14 @@ export function hasCustomMetrics(organization: Organization) {
   );
 }
 
+export function hasRolledOutMetrics(organization: Organization) {
+  return organization.features.includes('metrics-launch-rollout');
+}
+
+export function canSeeMetricsPage(organization: Organization) {
+  return hasCustomMetrics(organization) || hasRolledOutMetrics(organization);
+}
+
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params

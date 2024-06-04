@@ -802,6 +802,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
             ],
+            "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
@@ -817,12 +818,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [
                 HashObfuscatingComparator("token"),
-                EqualOrRemovedComparator("inviter_id"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
             ],
+            "sentry.projecttemplate": [DateUpdatedComparator("date_updated")],
             "sentry.querysubscription": [
                 DateUpdatedComparator("date_updated"),
                 # We regenerate subscriptions when importing them, so even though all of the

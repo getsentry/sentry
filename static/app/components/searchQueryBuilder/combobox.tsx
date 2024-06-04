@@ -1,4 +1,11 @@
-import {type Key, type MouseEventHandler, useCallback, useMemo, useRef} from 'react';
+import {
+  forwardRef,
+  type Key,
+  type MouseEventHandler,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -24,166 +31,174 @@ type SearchQueryBuilderComboboxProps = {
   inputLabel: string;
   inputValue: string;
   items: SelectOptionWithKey<string>[];
-  onCustomValueSelected: (value: string) => void;
+  onCustomValueBlurred: (value: string) => void;
+  onCustomValueCommitted: (value: string) => void;
   onOptionSelected: (value: string) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
   filterValue?: string;
+  maxOptions?: number;
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  tabIndex?: number;
 };
 
-export function SearchQueryBuilderCombobox({
-  children,
-  items,
-  inputValue,
-  filterValue = inputValue,
-  placeholder,
-  onCustomValueSelected,
-  onOptionSelected,
-  inputLabel,
-  onExit,
-  onKeyDown,
-  onInputChange,
-  autoFocus,
-}: SearchQueryBuilderComboboxProps) {
-  const theme = useTheme();
-  const listBoxRef = useRef<HTMLUListElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  const hiddenOptions = useMemo(() => {
-    return getHiddenOptions(items, filterValue, 10);
-  }, [items, filterValue]);
-
-  const disabledKeys = useMemo(
-    () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
-    [hiddenOptions, items]
-  );
-
-  const onSelectionChange = useCallback(
-    (key: Key) => {
-      const selectedOption = items.find(item => item.key === key);
-      if (selectedOption) {
-        onOptionSelected(selectedOption.textValue ?? '');
-      } else if (key) {
-        onOptionSelected(key.toString());
-      }
-    },
-    [items, onOptionSelected]
-  );
-
-  const state = useComboBoxState<SelectOptionWithKey<string>>({
-    children,
-    items,
-    autoFocus,
-    inputValue: filterValue,
-    onSelectionChange,
-    disabledKeys,
-  });
-  const {inputProps, listBoxProps} = useComboBox<SelectOptionWithKey<string>>(
+export const SearchQueryBuilderCombobox = forwardRef(
+  (
     {
-      'aria-label': inputLabel,
-      listBoxRef,
-      inputRef,
-      popoverRef,
+      children,
       items,
+      inputValue,
+      filterValue = inputValue,
+      placeholder,
+      onCustomValueBlurred,
+      onCustomValueCommitted,
+      onOptionSelected,
+      inputLabel,
+      onExit,
+      onKeyDown,
+      onInputChange,
+      autoFocus,
+      tabIndex = -1,
+      maxOptions,
+    }: SearchQueryBuilderComboboxProps,
+    ref
+  ) => {
+    const theme = useTheme();
+    const listBoxRef = useRef<HTMLUListElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+
+    const hiddenOptions = useMemo(() => {
+      return getHiddenOptions(items, filterValue, maxOptions);
+    }, [items, filterValue, maxOptions]);
+
+    const disabledKeys = useMemo(
+      () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
+      [hiddenOptions, items]
+    );
+
+    const onSelectionChange = useCallback(
+      (key: Key) => {
+        const selectedOption = items.find(item => item.key === key);
+        if (selectedOption) {
+          onOptionSelected(selectedOption.textValue ?? '');
+        } else if (key) {
+          onOptionSelected(key.toString());
+        }
+      },
+      [items, onOptionSelected]
+    );
+
+    const state = useComboBoxState<SelectOptionWithKey<string>>({
+      children,
+      items,
+      autoFocus,
       inputValue: filterValue,
       onSelectionChange,
-      autoFocus,
-      onBlur: () => {
-        if (inputValue) {
-          onCustomValueSelected(inputValue);
+      disabledKeys,
+    });
+    const {inputProps, listBoxProps} = useComboBox<SelectOptionWithKey<string>>(
+      {
+        'aria-label': inputLabel,
+        listBoxRef,
+        inputRef,
+        popoverRef,
+        items,
+        inputValue: filterValue,
+        onSelectionChange,
+        autoFocus,
+        onBlur: () => {
+          onCustomValueBlurred(inputValue);
+          state.close();
+        },
+        onKeyDown: e => {
+          onKeyDown?.(e);
+          switch (e.key) {
+            case 'Escape':
+              state.close();
+              onExit?.();
+              return;
+            case 'Enter':
+              if (state.selectionManager.focusedKey) {
+                return;
+              }
+              state.close();
+              onCustomValueCommitted(inputValue);
+              return;
+            default:
+              return;
+          }
+        },
+      },
+      state
+    );
+
+    const isOpen = state.isOpen && hiddenOptions.size < items.length;
+
+    const {overlayProps, triggerProps} = useOverlay({
+      type: 'listbox',
+      isOpen,
+      position: 'bottom-start',
+      offset: [0, 8],
+      isKeyboardDismissDisabled: true,
+      shouldCloseOnBlur: true,
+      onInteractOutside: () => {
+        if (state.inputValue) {
+          onCustomValueBlurred(inputValue);
         } else {
           onExit?.();
         }
         state.close();
       },
-      onKeyDown: e => {
-        onKeyDown?.(e);
-        switch (e.key) {
-          case 'Escape':
-            state.close();
-            onExit?.();
-            return;
-          case 'Enter':
-            if (!state.inputValue || state.selectionManager.focusedKey) {
-              return;
-            }
-            state.close();
-            onCustomValueSelected(inputValue);
-            return;
-          default:
-            return;
-        }
+    });
+
+    const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
+      e => {
+        e.stopPropagation();
+        inputProps.onClick?.(e);
+        state.open();
       },
-    },
-    state
-  );
+      [inputProps, state]
+    );
 
-  const isOpen = state.isOpen && hiddenOptions.size < items.length;
-
-  const {overlayProps, triggerProps} = useOverlay({
-    type: 'listbox',
-    isOpen,
-    position: 'bottom-start',
-    offset: [0, 8],
-    isKeyboardDismissDisabled: true,
-    shouldCloseOnBlur: true,
-    onInteractOutside: () => {
-      if (state.inputValue) {
-        onCustomValueSelected(inputValue);
-      } else {
-        onExit?.();
-      }
-      state.close();
-    },
-  });
-
-  const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
-    e => {
-      e.stopPropagation();
-      inputProps.onClick?.(e);
-      state.open();
-    },
-    [inputProps, state]
-  );
-
-  return (
-    <Wrapper>
-      <UnstyledInput
-        {...inputProps}
-        size="md"
-        ref={mergeRefs([inputRef, triggerProps.ref])}
-        type="text"
-        placeholder={placeholder}
-        onClick={handleInputClick}
-        value={inputValue}
-        onChange={onInputChange}
-      />
-      <StyledPositionWrapper
-        {...overlayProps}
-        zIndex={theme.zIndex?.tooltip}
-        visible={isOpen}
-      >
-        <Overlay ref={popoverRef}>
-          <ListBox
-            {...listBoxProps}
-            ref={listBoxRef}
-            listState={state}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
-            keyDownHandler={() => true}
-            overlayIsOpen={isOpen}
-            size="md"
-          />
-        </Overlay>
-      </StyledPositionWrapper>
-    </Wrapper>
-  );
-}
+    return (
+      <Wrapper>
+        <UnstyledInput
+          {...inputProps}
+          size="md"
+          ref={mergeRefs([ref, inputRef, triggerProps.ref])}
+          type="text"
+          placeholder={placeholder}
+          onClick={handleInputClick}
+          value={inputValue}
+          onChange={onInputChange}
+          tabIndex={tabIndex}
+        />
+        <StyledPositionWrapper
+          {...overlayProps}
+          zIndex={theme.zIndex?.tooltip}
+          visible={isOpen}
+        >
+          <StyledOverlay ref={popoverRef}>
+            <ListBox
+              {...listBoxProps}
+              ref={listBoxRef}
+              listState={state}
+              hasSearch={!!filterValue}
+              hiddenOptions={hiddenOptions}
+              keyDownHandler={() => true}
+              overlayIsOpen={isOpen}
+              size="md"
+            />
+          </StyledOverlay>
+        </StyledPositionWrapper>
+      </Wrapper>
+    );
+  }
+);
 
 const Wrapper = styled('div')`
   position: relative;
@@ -216,4 +231,9 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 })<{visible?: boolean}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
+`;
+
+const StyledOverlay = styled(Overlay)`
+  max-height: 400px;
+  overflow-y: auto;
 `;

@@ -1,22 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization as TOrganization} from 'sentry/types';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ListPage from 'sentry/views/replays/list/listContent';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
@@ -38,13 +34,7 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
     access: [],
   });
 
-  jest.mocked(useOrganization).mockReturnValue(mockOrg);
-
   return mockOrg;
-}
-
-function getMockContext(mockOrg: TOrganization) {
-  return RouterContextFixture([{organization: mockOrg}]);
 }
 
 describe('ReplayList', () => {
@@ -77,7 +67,7 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
@@ -99,7 +89,7 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
@@ -121,7 +111,7 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() =>
@@ -143,7 +133,7 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() => {
@@ -172,7 +162,7 @@ describe('ReplayList', () => {
     });
 
     render(<ListPage />, {
-      context: getMockContext(mockOrg),
+      organization: mockOrg,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));

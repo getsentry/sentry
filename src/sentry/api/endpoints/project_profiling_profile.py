@@ -56,7 +56,7 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
 
     def get(self, request: Request, project: Project) -> Response:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
-            return Response(404)
+            return Response(status=404)
 
         params = self.get_profiling_params(request, project)
 

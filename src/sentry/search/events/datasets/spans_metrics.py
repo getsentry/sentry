@@ -20,6 +20,7 @@ from sentry.snuba.referrer import Referrer
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
+    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
 
     def __init__(self, builder: builder.SpansMetricsQueryBuilder):
         self.builder = builder
@@ -30,6 +31,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
+            "message": self._message_filter_converter,
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
             constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
         }
@@ -55,8 +57,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
         # If its still None its not a custom measurement
         if metric_id is None:
-            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-        self.builder.metric_ids.add(metric_id)
+            if constants.SPAN_METRICS_MAP.get(value, value) in self.nullable_metrics:
+                metric_id = 0
+            else:
+                raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
+        if metric_id != 0:
+            self.builder.metric_ids.add(metric_id)
         return metric_id
 
     @property
@@ -132,13 +138,21 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allowed_columns=constants.SPAN_METRIC_SUMMABLE_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    snql_counter=lambda args, alias: Function(
                         "sumIf",
                         [
                             Column("value"),
@@ -317,29 +331,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                     snql_distribution=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
-                ),
-                fields.MetricsFunction(
-                    "ai_total_tokens_used",
-                    optional_args=[
-                        fields.with_default(
-                            "c:spans/ai.total_tokens.used@none",
-                            fields.MetricArg(
-                                "column",
-                                allowed_columns=["c:spans/ai.total_tokens.used@none"],
-                                allow_custom_measurements=False,
-                                allow_mri=True,
-                            ),
-                        ),
-                    ],
-                    calculated_args=[resolve_metric_id],
-                    snql_counter=lambda args, alias: Function(
-                        "sumIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
                 ),
                 fields.MetricsFunction(
                     "http_response_rate",
@@ -566,6 +557,51 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_count_op,
                     default_result_type="integer",
                 ),
+                fields.MetricsFunction(
+                    "trace_status_rate",
+                    required_args=[
+                        SnQLStringArg("status"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_status_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "trace_error_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_trace_error_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -574,6 +610,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _span_domain_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value
@@ -1017,12 +1056,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "countIf",
                     [
                         Function(
-                            condition,
+                            "and",
                             [
-                                Column("timestamp"),
-                                args["timestamp"],
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.duration"),
+                                    ],
+                                ),
+                                Function(
+                                    condition,
+                                    [
+                                        Column("timestamp"),
+                                        args["timestamp"],
+                                    ],
+                                ),
                             ],
-                        ),
+                        )
                     ],
                 ),
                 Function("divide", [interval, 60]),
@@ -1125,6 +1176,62 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_avg_compare(self, args, alias):
         return function_aliases.resolve_avg_compare(self.builder.column, args, alias)
+
+    def _resolve_trace_status_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "equals",
+            [
+                self.builder.column("trace.status"),
+                args["status"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
+            alias,
+        )
+
+    def _resolve_trace_error_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        success_statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "not",
+                [
+                    Function(
+                        "in",
+                        [
+                            self.builder.column("trace.status"),
+                            list(status for status in success_statuses if status is not None),
+                        ],
+                    )
+                ],
+            ),
+            alias,
+        )
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
@@ -1231,7 +1338,7 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                             "span.self_time",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allowed_columns=constants.SPAN_METRIC_SUMMABLE_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),

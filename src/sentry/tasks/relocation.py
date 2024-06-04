@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
@@ -12,12 +13,14 @@ from zipfile import ZipFile
 import yaml
 from celery.app.task import Task
 from cryptography.fernet import Fernet
+from django.core.exceptions import ValidationError
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 from sentry_sdk import capture_exception
 
 from sentry import analytics
+from sentry.api.helpers.slugs import validate_sentry_slug
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.crypto import (
     GCPKMSDecryptor,
@@ -34,6 +37,7 @@ from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,
@@ -98,14 +102,16 @@ ERR_PREPROCESSING_DECRYPTION = """Could not decrypt the imported JSON - are you 
                                   correct public key?"""
 ERR_PREPROCESSING_INTERNAL = "Internal error during preprocessing."
 ERR_PREPROCESSING_INVALID_JSON = "Invalid input JSON."
+ERR_PREPROCESSING_INVALID_ORG_SLUG = Template(
+    "You asked to import an organization with the slug $slug, which is not formatted correctly."
+)
 ERR_PREPROCESSING_INVALID_TARBALL = "The import tarball you provided was invalid."
 ERR_PREPROCESSING_NO_USERS = "The provided JSON must contain at least one user."
 ERR_PREPROCESSING_TOO_MANY_USERS = Template(
-    f"The provided JSON must contain $count users but must not exceed the limit of {MAX_USERS_PER_RELOCATION}."
+    f"The provided JSON contains $count users who are members of at least one of the organizations you specified, but must not exceed the limit of {MAX_USERS_PER_RELOCATION}."
 )
-ERR_PREPROCESSING_NO_ORGS = "The provided JSON must contain at least one organization."
 ERR_PREPROCESSING_TOO_MANY_ORGS = Template(
-    f"The provided JSON must contain $count organizations, but must not exceed the limit of {MAX_ORGS_PER_RELOCATION}."
+    f"The provided JSON contains $count organizations matching one of the slugs you specified, but must not exceed the limit of {MAX_ORGS_PER_RELOCATION}."
 )
 ERR_PREPROCESSING_MISSING_ORGS = Template(
     "The following organization slug imports were requested, but could not be found in your submitted JSON: $orgs."
@@ -258,19 +264,23 @@ def preprocessing_scan(uuid: str) -> None:
                 fernet = Fernet(plaintext_data_encryption_key)
                 json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
 
-            # Grab usernames and org slugs from the JSON data.
-            usernames = []
-            org_slugs = []
+            # Grab usernames and org slugs from the JSON data, and record which users are members of
+            # which orgs.
+            found_user_org_memberships: dict[int, list[int]] = defaultdict(list)
+            found_org_slugs: dict[int, str] = dict()
+            found_usernames: dict[int, str] = dict()
             try:
                 for json_model in json.loads(json_data):
                     model_name = NormalizedModelName(json_model["model"])
                     if get_model(model_name) == Organization:
-                        org_slugs.append(json_model["fields"]["slug"])
-                        # TODO(getsentry/team-ospo#190): Validate slug using regex, so that we can
-                        # fail early on obviously invalid slugs. Also keeps the database `JSONField`
-                        # from ballooning on bad input.
+                        found_org_slugs[json_model["pk"]] = json_model["fields"]["slug"]
+                    if get_model(model_name) == OrganizationMember:
+                        if json_model["fields"]["user_id"] is not None:
+                            found_user_org_memberships[json_model["fields"]["user_id"]].append(
+                                json_model["fields"]["organization"]
+                            )
                     if get_model(model_name) == User:
-                        usernames.append(json_model["fields"]["username"])
+                        found_usernames[json_model["pk"]] = json_model["fields"]["username"]
                         # TODO(getsentry/team-ospo#190): Validate username using regex, so that we
                         # can fail early on obviously invalid usernames. Also keeps the database
                         # `JSONField` from ballooning on bad input.
@@ -279,33 +289,36 @@ def preprocessing_scan(uuid: str) -> None:
                     relocation, OrderedTask.PREPROCESSING_SCAN, ERR_PREPROCESSING_INVALID_JSON
                 )
 
+            # Discard `found_org_slugs` that were not explicitly requested by the user.
+            want_org_slugs = set(relocation.want_org_slugs)
+            found_org_slugs = {k: v for k, v in found_org_slugs.items() if v in want_org_slugs}
+            found_org_ids = set(found_org_slugs.keys())
+            for slug in want_org_slugs:
+                try:
+                    validate_sentry_slug(slug)
+                except ValidationError:
+                    return fail_relocation(
+                        relocation,
+                        OrderedTask.PREPROCESSING_SCAN,
+                        ERR_PREPROCESSING_INVALID_ORG_SLUG.substitute(slug=slug),
+                    )
+
+            # Discard users that are not members of at least one of the `found_org_slugs`.
+            want_usernames = {
+                v
+                for k, v in found_usernames.items()
+                if found_org_ids & set(found_user_org_memberships[k])
+            }
+
             # Ensure that the data is reasonable and within our set bounds before we start on the
             # next task.
-            if len(usernames) == 0:
+            missing_org_slugs = want_org_slugs - set(found_org_slugs.values())
+            if len(found_usernames) == 0:
                 return fail_relocation(
                     relocation,
                     OrderedTask.PREPROCESSING_SCAN,
                     ERR_PREPROCESSING_NO_USERS,
                 )
-            if len(usernames) > MAX_USERS_PER_RELOCATION:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=len(usernames)),
-                )
-            if len(org_slugs) == 0:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_NO_ORGS,
-                )
-            if len(org_slugs) > MAX_ORGS_PER_RELOCATION:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=len(org_slugs)),
-                )
-            missing_org_slugs = set(relocation.want_org_slugs) - set(org_slugs)
             if len(missing_org_slugs):
                 return fail_relocation(
                     relocation,
@@ -314,8 +327,20 @@ def preprocessing_scan(uuid: str) -> None:
                         orgs=",".join(sorted(missing_org_slugs))
                     ),
                 )
+            if len(found_org_slugs) > MAX_ORGS_PER_RELOCATION:
+                return fail_relocation(
+                    relocation,
+                    OrderedTask.PREPROCESSING_SCAN,
+                    ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=len(found_org_slugs)),
+                )
+            if len(want_usernames) > MAX_USERS_PER_RELOCATION:
+                return fail_relocation(
+                    relocation,
+                    OrderedTask.PREPROCESSING_SCAN,
+                    ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=len(want_usernames)),
+                )
 
-            relocation.want_usernames = sorted(usernames)
+            relocation.want_usernames = sorted(want_usernames)
             relocation.save()
 
             # The user's import data looks basically okay - we can use this opportunity to send a
@@ -681,7 +706,10 @@ def _update_relocation_validation_attempt(
                 relocation_validation_attempt.status = status.value
                 relocation_validation_attempt.save()
 
+                # Go back to `validating_start`; since this is a new attempt at that task, we reset
+                # the `latest_task_attempts` counter to 0.
                 relocation.latest_task = OrderedTask.VALIDATING_START.name
+                relocation.latest_task_attempts = 0
                 relocation.save()
 
                 logger.info(
@@ -1223,6 +1251,11 @@ def notifying_users(uuid: str) -> None:
 
         # Okay, everything seems fine - go ahead and send those emails.
         for user in imported_users:
+            # Sometimes, we merge users together before unpausing a relocation. No need to send an
+            # email to these users!
+            if not user.is_unclaimed:
+                continue
+
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
             LostPasswordHash.send_relocate_account_email(user, hash, list(imported_org_slugs))
 

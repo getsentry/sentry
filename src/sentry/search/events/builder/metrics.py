@@ -81,6 +81,9 @@ class MetricsQueryBuilder(QueryBuilder):
 
     organization_column: str = "organization_id"
 
+    column_remapping = {}
+    default_metric_tags = constants.DEFAULT_METRIC_TAGS
+
     def __init__(
         self,
         *args: Any,
@@ -104,6 +107,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
         self._use_default_tags: bool | None = None
+        self._has_nullable: bool = False
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -359,6 +363,8 @@ class MetricsQueryBuilder(QueryBuilder):
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
+        elif self.profile_functions_metrics_builder:
+            return UseCaseID.PROFILES
         else:
             return UseCaseID.SESSIONS
 
@@ -594,35 +600,43 @@ class MetricsQueryBuilder(QueryBuilder):
         resolve_only: bool,
     ) -> SelectType | None:
         prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
+        nullable = arguments.get("metric_id") == 0
+        if nullable:
+            self._has_nullable = True
 
         if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.distributions.append(resolved_function)
+                if not nullable:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.distributions.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
         if snql_function.snql_set is not None and (prefix is None or prefix == "s"):
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
-                self.sets.append(resolved_function)
+                if not nullable:
+                    self.sets.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
         if snql_function.snql_counter is not None and (prefix is None or prefix == "c"):
             resolved_function = snql_function.snql_counter(arguments, alias)
             if not resolve_only:
-                self.counters.append(resolved_function)
+                if not nullable:
+                    self.counters.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
         if snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
             resolved_function = snql_function.snql_gauge(arguments, alias)
             if not resolve_only:
-                self.gauges.append(resolved_function)
+                if not nullable:
+                    self.gauges.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
@@ -630,10 +644,11 @@ class MetricsQueryBuilder(QueryBuilder):
             resolved_function = snql_function.snql_metric_layer(arguments, alias)
             if not resolve_only:
                 self.aggregates.append(resolved_function)
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.metrics_layer_functions.append(resolved_function)
+                if not nullable:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.metrics_layer_functions.append(resolved_function)
             return resolved_function
         return None
 
@@ -646,13 +661,18 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> int | str | None:
-        if self.is_performance or self.use_metrics_layer:
+        # We only use the indexer for alerts queries
+        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
             return value
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
+        # some tag keys needs to be remapped to a different column name
+        # prior to resolving it via the indexer
+        value = self.column_remapping.get(value, value)
+
         if self.use_default_tags:
-            if value in constants.DEFAULT_METRIC_TAGS:
+            if value in self.default_metric_tags:
                 return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
@@ -1301,6 +1321,11 @@ class MetricsQueryBuilder(QueryBuilder):
 
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
+        # Nullable columns won't be in the meta
+        if self._has_nullable:
+            for function in self.aggregates:
+                if function.alias not in [meta["name"] for meta in result["meta"]]:
+                    result["meta"].append({"name": function.alias, "type": "Nullable"})
 
         # Data might be missing for fields after merging the requests, eg a transaction with no users
         for row in result["data"]:

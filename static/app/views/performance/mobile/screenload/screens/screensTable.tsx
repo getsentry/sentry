@@ -10,7 +10,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -21,10 +20,11 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -38,20 +38,14 @@ type Props = {
   isLoading: boolean;
   pageLinks: string | undefined;
   onCursor?: CursorHandler;
-  project?: Project | null;
 };
 
-export function ScreensTable({
-  data,
-  eventView,
-  isLoading,
-  pageLinks,
-  onCursor,
-  project,
-}: Props) {
+export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {project} = useCrossPlatformProject();
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
@@ -89,17 +83,13 @@ export function ScreensTable({
         <Fragment>
           <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
-            to={normalizeUrl(
-              `/organizations/${
-                organization.slug
-              }/performance/mobile/screens/spans/?${qs.stringify({
-                ...location.query,
-                project: row['project.id'],
-                transaction: row.transaction,
-                primaryRelease,
-                secondaryRelease,
-              })}`
-            )}
+            to={`${moduleURL}/spans/?${qs.stringify({
+              ...location.query,
+              project: row['project.id'],
+              transaction: row.transaction,
+              primaryRelease,
+              secondaryRelease,
+            })}`}
             style={{display: `block`, width: `100%`}}
           >
             {row.transaction}

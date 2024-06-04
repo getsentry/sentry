@@ -11,7 +11,7 @@ function createMarkerFrame(marker: JSSelfProfiling.Marker): JSSelfProfiling.Fram
 }
 /**
  * Utility fn to resolve stack frames starting from the top most frame.
- * Each frame points to it's parent, with the initial stackId pointer pointing to the top of the frame.
+ * Each frame points to its parent, with the initial stackId pointer pointing to the top of the frame.
  * We walk down the stack until no more frames are found, appending the parent frame to the list.
  * As a result we end up with a list of frames starting from the root most frame.
  *

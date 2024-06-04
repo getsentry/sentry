@@ -70,12 +70,9 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
-    "span-metrics-extraction-resource",
-    "span-metrics-extraction-all-modules",
     "race-free-group-creation",
     "first-event-severity-new-escalation",
     "first-event-severity-calculation",
-    "first-event-severity-alerting",
     "alert-filters",
     "servicehooks",
 }
@@ -1013,7 +1010,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = "[]"
         else:
             redacted_sources = redact_source_secrets(sources)
-            serialized_sources = orjson.dumps(redacted_sources).decode()
+            serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         data.update(
             {
@@ -1072,6 +1069,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:replay_rage_click_issues": self.get_value_with_default(
                 attrs, "sentry:replay_rage_click_issues"
+            ),
+            "sentry:replay_hydration_error_issues": self.get_value_with_default(
+                attrs, "sentry:replay_hydration_error_issues"
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }

@@ -1,12 +1,10 @@
-import copy
-
 from django.urls import reverse
 
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -28,9 +26,9 @@ class EventCommittersTest(APITestCase):
                 "fingerprint": ["group1"],
                 "timestamp": min_ago,
                 "release": release.version,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=project.id,
+            event_type=EventType.ERROR,
         )
 
         url = reverse(
@@ -38,7 +36,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_slug": event.project.organization.slug,
+                "organization_id_or_slug": event.project.organization.slug,
             },
         )
 
@@ -68,7 +66,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_slug": event.project.organization.slug,
+                "organization_id_or_slug": event.project.organization.slug,
             },
         )
 
@@ -91,7 +89,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_slug": event.project.organization.slug,
+                "organization_id_or_slug": event.project.organization.slug,
             },
         )
 
@@ -134,7 +132,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_slug": event.project.organization.slug,
+                "organization_id_or_slug": event.project.organization.slug,
             },
         )
 
@@ -159,9 +157,9 @@ class EventCommittersTest(APITestCase):
             data={
                 "fingerprint": ["group1"],
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         GroupOwner.objects.create(
@@ -178,7 +176,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_slug": event.project.organization.slug,
+                "organization_id_or_slug": event.project.organization.slug,
             },
         )
 
@@ -219,9 +217,9 @@ class EventCommittersTest(APITestCase):
             data={
                 "fingerprint": ["group1"],
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
 
         GroupOwner.objects.create(
@@ -238,7 +236,7 @@ class EventCommittersTest(APITestCase):
             kwargs={
                 "event_id": event.event_id,
                 "project_id_or_slug": event.project.slug,
-                "organization_slug": event.project.organization.slug,
+                "organization_id_or_slug": event.project.organization.slug,
             },
         )
 

@@ -54,20 +54,16 @@ Sentry.init({
     verify: t(
       'Add this intentional error to your application to test that everything is working right away.'
     ),
-    verifyCode: `const transaction = Sentry.startTransaction({
+    verifyCode: `Sentry.startSpan({
       op: "test",
-      name: "My First Test Transaction",
-});
-
-setTimeout(() => {
+      name: "My First Test Span",
+}, () => {
   try {
     foo();
   } catch (e) {
     Sentry.captureException(e);
-  } finally {
-    transaction.finish();
   }
-}, 99);`,
+});`,
   },
   'python-django': {
     install: t('Use the following command to install our Python Django SDK'),
@@ -260,13 +256,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         </Setup>
         <Preview>
           <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-          <VideoWrapper>
-            <Video
-              src="https://s3.us-east-1.amazonaws.com/remotionlambda-production/renders/x87ndylphr/out.mp4?v=415e1797fdba69d917459d119dc6c5af"
+          <ArcadeWrapper>
+            <Arcade
+              src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
               loading="lazy"
               allowFullScreen
             />
-          </VideoWrapper>
+          </ArcadeWrapper>
         </Preview>
       </Body>
     </div>
@@ -275,14 +271,14 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Description = styled('div')`
   max-width: 340px;
 `;
 
-const VideoWrapper = styled('div')`
+const ArcadeWrapper = styled('div')`
   margin-top: ${space(1)};
 `;
 
@@ -293,7 +289,7 @@ const HeaderWrapper = styled('div')`
 
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(1)};
 `;
 
@@ -347,10 +343,10 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const Video = styled('iframe')`
+const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  height: 500px;
+  height: 600px;
   border: 0;
 `;
 

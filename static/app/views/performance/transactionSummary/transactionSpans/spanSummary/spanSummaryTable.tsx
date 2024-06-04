@@ -9,7 +9,8 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -28,10 +29,11 @@ import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/t
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {
-  type IndexedResponse,
+  ModuleName,
   SpanIndexedField,
+  type SpanIndexedResponse,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -49,7 +51,7 @@ type ColumnKeys =
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_DURATION;
 
-type DataRow = Pick<IndexedResponse, DataRowKeys> & {'transaction.duration': number};
+type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {'transaction.duration': number};
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -108,20 +110,23 @@ export default function SpanSummaryTable(props: Props) {
     data: rowData,
     pageLinks,
     isLoading: isRowDataLoading,
-  } = useIndexedSpans({
-    fields: [
-      SpanIndexedField.ID,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.SPAN_DURATION,
-      SpanIndexedField.TRACE,
-    ],
-    search: MutableSearch.fromQueryObject(filters),
-    limit: LIMIT,
-    referrer: SpanSummaryReferrer.SPAN_SUMMARY_TABLE,
-    sorts: [sort],
-    cursor: spansCursor,
-  });
+  } = useSpansIndexed(
+    {
+      fields: [
+        SpanIndexedField.ID,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_DURATION,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.PROJECT,
+      ],
+      search: MutableSearch.fromQueryObject(filters),
+      limit: LIMIT,
+      sorts: [sort],
+      cursor: spansCursor,
+    },
+    SpanSummaryReferrer.SPAN_SUMMARY_TABLE
+  );
 
   const transactionIds = rowData?.map(row => row[SpanIndexedField.TRANSACTION_ID]);
 
@@ -160,7 +165,7 @@ export default function SpanSummaryTable(props: Props) {
     limit: LIMIT,
     options: {
       refetchOnWindowFocus: false,
-      enabled: Boolean(rowData),
+      enabled: Boolean(rowData && rowData.length > 0),
     },
     referrer: SpanSummaryReferrer.SPAN_SUMMARY_TABLE,
   });
@@ -172,7 +177,7 @@ export default function SpanSummaryTable(props: Props) {
   });
 
   const mergedData: DataRow[] =
-    rowData?.map((row: Pick<IndexedResponse, DataRowKeys>) => {
+    rowData?.map((row: Pick<SpanIndexedResponse, DataRowKeys>) => {
       const transactionId = row[SpanIndexedField.TRANSACTION_ID];
       const newRow = {
         ...row,
@@ -256,6 +261,7 @@ function renderBodyCell(
     if (column.key === SpanIndexedField.ID) {
       return (
         <SpanIdCell
+          moduleName={ModuleName.OTHER}
           projectSlug={project}
           spanId={span_id}
           timestamp={timestamp}

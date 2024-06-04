@@ -27,9 +27,9 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MobileVital, SpanOpBreakdown, WebVital} from 'sentry/utils/fields';
-import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -55,7 +55,6 @@ import OtherProjects from './sidebar/otherProjects';
 import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
 import ReleaseAdoption from './sidebar/releaseAdoption';
 import ReleaseStats from './sidebar/releaseStats';
-import ThresholdStatuses from './sidebar/thresholdStatuses';
 import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
@@ -363,10 +362,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
   render() {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
-    const hasV2ReleaseUIEnabled =
-      organization.features.includes('releases-v2-internal') ||
-      organization.features.includes('releases-v2') ||
-      organization.features.includes('releases-v2-st');
 
     return (
       <ReleaseContext.Consumer>
@@ -584,14 +579,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             release={release}
                             project={project}
                           />
-                          {hasV2ReleaseUIEnabled && (
-                            <ThresholdStatuses
-                              project={project}
-                              release={release}
-                              organization={organization}
-                              selectedEnvs={selection.environments}
-                            />
-                          )}
                           {hasHealthData && (
                             <ReleaseAdoption
                               releaseSessions={thisRelease}

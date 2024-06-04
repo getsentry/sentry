@@ -1,20 +1,19 @@
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {useQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/useQueuesTimeSeriesQuery';
+import type {Referrer} from 'sentry/views/performance/queues/referrers';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 interface Props {
+  referrer: Referrer;
+  destination?: string;
   error?: Error | null;
 }
 
-export function ThroughputChart({error}: Props) {
-  const {query} = useLocation();
-  const destination = decodeScalar(query.destination);
-  const {data, isLoading} = useQueuesTimeSeriesQuery({destination});
+export function ThroughputChart({error, destination, referrer}: Props) {
+  const {data, isLoading} = useQueuesTimeSeriesQuery({destination, referrer});
   return (
     <ChartPanel title={t('Published vs Processed')}>
       <Chart

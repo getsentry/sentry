@@ -2,7 +2,6 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -19,21 +18,27 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatVersion} from 'sentry/utils/formatters';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
-import {
-  GrowLink,
-  WidgetEmptyStateWarning,
-} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
-import type {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
+import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
+import {Subtitle} from 'sentry/views/profiling/landing/styles';
+import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
+import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+
+import {Accordion} from '../components/accordion';
+import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {GrowLink, WidgetEmptyStateWarning} from '../components/selectableList';
+import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
+import type {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
 import type {
   PerformanceWidgetProps,
   QueryDefinition,
@@ -41,20 +46,14 @@ import type {
   WidgetDataConstraint,
   WidgetDataResult,
   WidgetPropUnion,
-} from 'sentry/views/performance/landing/widgets/types';
+} from '../types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from 'sentry/views/performance/landing/widgets/utils';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+} from '../utils';
+import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -260,66 +259,67 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided =>
-    function () {
-      const transformedReleaseSeries: {
-        [releaseVersion: string]: Series;
-      } = {};
+  const getChart = provided => {
+    const transformedReleaseSeries: {
+      [releaseVersion: string]: Series;
+    } = {};
 
-      const series = provided.widgetData.chart.data;
-      if (defined(series)) {
-        series.forEach(({seriesName: release, data}) => {
-          const isPrimary = release === primaryRelease;
+    const series = provided.widgetData.chart.data;
+    if (defined(series)) {
+      series.forEach(({seriesName: release, data}) => {
+        const isPrimary = release === primaryRelease;
 
-          const label = release;
-          const seriesData =
-            data.map(datum => {
-              return {
-                name: datum.name,
-                value: datum.value,
-              } as SeriesDataUnit;
-            }) ?? [];
+        const label = release;
+        const seriesData =
+          data.map(datum => {
+            return {
+              name: datum.name,
+              value: datum.value,
+            } as SeriesDataUnit;
+          }) ?? [];
 
-          const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
-          transformedReleaseSeries[release] = {
-            seriesName: formatVersion(label),
-            color,
-            data: seriesData,
-          };
-        });
-      }
+        const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+        transformedReleaseSeries[release] = {
+          seriesName: formatVersion(label),
+          color,
+          data: seriesData,
+        };
+      });
+    }
 
-      return (
-        <Chart
-          height={props.chartHeight}
-          data={Object.values(transformedReleaseSeries)}
-          loading={provided.widgetData.chart.isLoading}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '8px',
-            bottom: '0',
-          }}
-          type={ChartType.LINE}
-          aggregateOutputFormat="duration"
-          tooltipFormatterOptions={{
-            valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-          }}
-          error={provided.widgetData.chart.error}
-          disableXAxis
-          showLegend={false}
-        />
-      );
-    };
+    return (
+      <Chart
+        height={props.chartHeight}
+        data={Object.values(transformedReleaseSeries)}
+        loading={provided.widgetData.chart.isLoading}
+        grid={{
+          left: '0',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        type={ChartType.LINE}
+        aggregateOutputFormat="duration"
+        tooltipFormatterOptions={{
+          valueFormatter: value =>
+            tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+        }}
+        error={provided.widgetData.chart.error}
+        disableXAxis
+        showLegend={false}
+      />
+    );
+  };
+
+  const moduleURLBuilder = useModuleURLBuilder();
 
   const isAppStartup = [
     PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
     PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
   ].includes(props.chartSetting);
   const targetModulePath = isAppStartup
-    ? '/performance/mobile/app-startup/'
-    : '/performance/mobile/screens/';
+    ? moduleURLBuilder('app_start')
+    : moduleURLBuilder('screen_load');
   const targetQueryParams = isAppStartup
     ? {
         app_start_type:
@@ -329,37 +329,34 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
       }
     : {};
   const getItems = provided =>
-    provided.widgetData.list.data.map(
-      listItem =>
-        function () {
-          const transaction = (listItem.transaction as string | undefined) ?? '';
+    provided.widgetData.list.data.map((listItem, i) => {
+      const transaction = (listItem.transaction as string | undefined) ?? '';
 
-          return (
-            <Fragment>
-              <GrowLink
-                to={normalizeUrl({
-                  pathname: `${targetModulePath}spans/`,
-                  query: {
-                    project: listItem['project.id'],
-                    transaction,
-                    primaryRelease,
-                    secondaryRelease,
-                    ...normalizeDateTimeParams(location.query),
-                    ...targetQueryParams,
-                  },
-                })}
-              >
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <RightAlignedCell>
-                <StyledDurationWrapper>
-                  <PerformanceDuration milliseconds={listItem[field]} abbreviation />
-                </StyledDurationWrapper>
-              </RightAlignedCell>
-            </Fragment>
-          );
-        }
-    );
+      return (
+        <Fragment key={i}>
+          <GrowLink
+            to={{
+              pathname: `${targetModulePath}/spans/`,
+              query: {
+                project: listItem['project.id'],
+                transaction,
+                primaryRelease,
+                secondaryRelease,
+                ...normalizeDateTimeParams(location.query),
+                ...targetQueryParams,
+              },
+            }}
+          >
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <RightAlignedCell>
+            <StyledDurationWrapper>
+              <PerformanceDuration milliseconds={listItem[field]} abbreviation />
+            </StyledDurationWrapper>
+          </RightAlignedCell>
+        </Fragment>
+      );
+    });
 
   const Visualizations = [
     {

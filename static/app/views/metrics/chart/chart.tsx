@@ -9,7 +9,7 @@ import omitBy from 'lodash/omitBy';
 
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
-import BaseChart from 'sentry/components/charts/baseChart';
+import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import {
   defaultFormatAxisLabel,
   getFormatter,
@@ -41,7 +41,35 @@ type ChartProps = {
   height?: number;
   releases?: UseMetricReleasesResult;
   samples?: UseMetricSamplesResult;
+  showLegend?: boolean;
 };
+
+function getLegendProps(showLegend?: boolean): Pick<BaseChartProps, 'legend' | 'grid'> {
+  if (showLegend) {
+    return {
+      legend: {
+        show: true,
+        left: 0,
+        top: 0,
+      },
+      grid: {
+        top: 40,
+        bottom: 0,
+        left: 0,
+        right: 0,
+      },
+    };
+  }
+
+  return {
+    grid: {
+      top: 5,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    },
+  };
+}
 
 // We need to enable canvas renderer for echarts before we use it here.
 // Once we use it in more places, this should probably move to a more global place
@@ -87,6 +115,7 @@ export const MetricChart = memo(
         enableZoom,
         releases,
         additionalSeries,
+        showLegend,
       },
       forwardedRef
     ) => {
@@ -178,6 +207,7 @@ export const MetricChart = memo(
         let baseChartProps: CombinedMetricChartProps = {
           ...heightOptions,
           ...dateTimeOptions,
+          ...getLegendProps(showLegend),
           displayType,
           forwardedRef: mergeRefs([forwardedRef, chartRef]),
           series: seriesToShow,
@@ -185,12 +215,6 @@ export const MetricChart = memo(
           renderer: 'canvas' as const,
           isGroupedByDate: true,
           colors: seriesToShow.map(s => s.color),
-          grid: {
-            top: 5,
-            bottom: 0,
-            left: 0,
-            right: 0,
-          },
           additionalSeries,
           tooltip: {
             formatter: (params, asyncTicket) => {
@@ -235,9 +259,7 @@ export const MetricChart = memo(
                   return true;
                 });
 
-                const date = params[0].value[0];
-
-                defaultFormatAxisLabel(
+                const formattedDate = defaultFormatAxisLabel(
                   params[0].value[0] as number,
                   timeseriesFormatters.isGroupedByDate,
                   timeseriesFormatters.utc,
@@ -251,7 +273,7 @@ export const MetricChart = memo(
                     '<div class="tooltip-series">',
                     `<center>${t('No data available')}</center>`,
                     '</div>',
-                    `<div class="tooltip-footer">${date}</div>`,
+                    `<div class="tooltip-footer">${formattedDate}</div>`,
                   ].join('');
                 }
                 return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
@@ -340,6 +362,7 @@ export const MetricChart = memo(
         releases,
         firstUnit,
         additionalSeries,
+        showLegend,
       ]);
 
       if (!enableZoom) {

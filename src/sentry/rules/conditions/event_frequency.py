@@ -66,7 +66,7 @@ class EventFrequencyConditionData(GenericCondition):
     # The interval to compare the value against such as 5m, 1h, 3w, etc.
     # e.g. # of issues is more than {value} in {interval}.
     interval: str
-    # NOTE: Some of tne earliest COUNT conditions were created without the
+    # NOTE: Some of the earliest COUNT conditions were created without the
     # comparisonType field, although modern rules will always have it.
     comparisonType: NotRequired[Literal[ComparisonType.COUNT, ComparisonType.PERCENT]]
     # The previous interval to compare the curr interval against. This is only
@@ -166,6 +166,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
         comparison_interval_option = self.get_option("comparisonInterval", "5m")
+        if comparison_interval_option == "":
+            return False
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
         try:

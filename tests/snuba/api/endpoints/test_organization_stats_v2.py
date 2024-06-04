@@ -950,13 +950,46 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
             value=1,
         )
 
+        self.store_metric(
+            org_id=self.org.id,
+            project_id=self.project.id,
+            type="gauge",
+            name="g:metric_stats/cardinality@none",
+            timestamp=self.ts(self.now - timedelta(hours=1)),
+            use_case_id=UseCaseID.METRIC_STATS,
+            tags={"mri": "", "cardinality.window": "60"},
+            value=1,
+        )
+
+        self.store_metric(
+            org_id=self.org.id,
+            project_id=self.project2.id,
+            type="gauge",
+            name="g:metric_stats/cardinality@none",
+            timestamp=self.ts(self.now - timedelta(hours=1)),
+            use_case_id=UseCaseID.METRIC_STATS,
+            tags={"mri": "", "cardinality.window": "60"},
+            value=2,
+        )
+
+        self.store_metric(
+            org_id=self.org.id,
+            project_id=self.project2.id,
+            type="gauge",
+            name="g:metric_stats/cardinality@none",
+            timestamp=self.ts(self.now - timedelta(hours=1)),
+            use_case_id=UseCaseID.METRIC_STATS,
+            tags={"mri": "", "cardinality.window": "60"},
+            value=3,
+        )
+
     @freeze_time("2021-03-14T12:27:28.303Z")
     @with_feature("organizations:custom-metrics")
     def test_metrics_category(self):
         response = self.do_request(
             {
                 "project": [-1],
-                "category": ["metrics"],
+                "category": ["metricOutcomes"],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
@@ -979,7 +1012,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         response = self.do_request(
             {
                 "project": [-1],
-                "category": ["metrics"],
+                "category": ["metricOutcomes"],
                 "groupBy": ["project"],
                 "statsPeriod": "1d",
                 "interval": "1d",
@@ -1012,7 +1045,7 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
         response = self.do_request(
             {
                 "project": [-1],
-                "category": ["metrics"],
+                "category": ["metricOutcomes"],
                 "groupBy": ["project", "outcome"],
                 "statsPeriod": "1d",
                 "interval": "1d",

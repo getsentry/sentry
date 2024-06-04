@@ -257,7 +257,7 @@ export function DebugImageDetails({
   );
   const hasReprocessWarning =
     haveCandidatesUnappliedDebugFile &&
-    displayReprocessEventAction(organization.features, event) &&
+    displayReprocessEventAction(event) &&
     !!onReprocessEvent;
 
   if (isError) {

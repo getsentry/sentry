@@ -25,16 +25,13 @@ def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
 
-    try:
-        wrapper: ClockTick = MONITORS_CLOCK_TICK_CODEC.decode(message.payload.value)
-        ts = datetime.fromtimestamp(wrapper["ts"], tz=timezone.utc)
+    wrapper: ClockTick = MONITORS_CLOCK_TICK_CODEC.decode(message.payload.value)
+    ts = datetime.fromtimestamp(wrapper["ts"], tz=timezone.utc)
 
-        logger.info("process_clock_tick", extra={"reference_datetime": str(ts)})
+    logger.info("process_clock_tick", extra={"reference_datetime": str(ts)})
 
-        dispatch_check_missing(ts)
-        dispatch_check_timeout(ts)
-    except Exception:
-        logger.exception("Failed to process clock tick")
+    dispatch_check_missing(ts)
+    dispatch_check_timeout(ts)
 
 
 class MonitorClockTickStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

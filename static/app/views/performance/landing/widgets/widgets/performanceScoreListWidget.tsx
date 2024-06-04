@@ -3,7 +3,6 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -18,12 +17,15 @@ import {
 } from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
   GrowLink,
@@ -43,7 +45,7 @@ type DataType = {
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const {ContainerActions, InteractiveTitle} = props;
   const theme = useTheme();
 
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
@@ -60,111 +62,105 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
 
   const order = ORDER_WITH_INP_WITHOUT_FID;
 
-  const getAreaChart = _ =>
-    function () {
-      const segmentColors = theme.charts.getColorPalette(3);
-      return (
-        <Chart
-          stacked
-          height={props.chartHeight}
-          data={formatTimeSeriesResultsToChartData(
-            timeseriesData,
-            segmentColors,
-            false,
-            order
-          )}
-          type={ChartType.AREA}
-          disableXAxis
-          loading={false}
-          grid={{
-            left: 5,
-            right: 5,
-            top: 5,
-            bottom: 0,
-          }}
-          dataMax={100}
-          chartColors={segmentColors}
-        />
-      );
-    };
+  const getAreaChart = _ => {
+    const segmentColors = theme.charts.getColorPalette(3);
+    return (
+      <Chart
+        stacked
+        height={props.chartHeight}
+        data={formatTimeSeriesResultsToChartData(
+          timeseriesData,
+          segmentColors,
+          false,
+          order
+        )}
+        type={ChartType.AREA}
+        disableXAxis
+        loading={false}
+        grid={{
+          left: 5,
+          right: 5,
+          top: 5,
+          bottom: 0,
+        }}
+        dataMax={100}
+        chartColors={segmentColors}
+      />
+    );
+  };
+
+  const moduleURL = useModuleURL('vital');
 
   const getHeaders = _ =>
-    transactionWebVitals.map(
-      listItem =>
-        function () {
-          const transaction = (listItem.transaction as string | undefined) ?? '';
-          const scoreCount = projectScoresData?.data?.[0]?.[
-            'count_scores(measurements.score.total)'
-          ] as number;
-          const opportunity = scoreCount
-            ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
-              scoreCount
-            : 0;
-          return (
-            <Fragment>
-              <GrowLink
-                to={{
-                  pathname: '/performance/browser/pageloads/overview/',
-                  query: {...location.query, transaction},
-                }}
+    transactionWebVitals.map((listItem, i) => {
+      const transaction = (listItem.transaction as string | undefined) ?? '';
+      const scoreCount = projectScoresData?.data?.[0]?.[
+        'count_scores(measurements.score.total)'
+      ] as number;
+      const opportunity = scoreCount
+        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
+        : 0;
+      return (
+        <Fragment key={i}>
+          <GrowLink
+            to={{
+              pathname: `${moduleURL}/overview/`,
+              query: {...location.query, transaction},
+            }}
+          >
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <StyledRightAlignedCell>
+            {listItem.totalScore !== null && (
+              <Tooltip
+                title={
+                  <span>
+                    {t('The overall performance rating of this page.')}
+                    <br />
+                    <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+                isHoverable
               >
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <StyledRightAlignedCell>
-                {listItem.totalScore !== null && (
-                  <Tooltip
-                    title={
-                      <span>
-                        {t('The overall performance rating of this page.')}
-                        <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
-                          {t('How is this calculated?')}
-                        </ExternalLink>
-                      </span>
-                    }
-                    isHoverable
-                  >
-                    <PerformanceBadgeWrapper>
-                      <PerformanceBadge score={listItem.totalScore} />
-                    </PerformanceBadgeWrapper>
-                  </Tooltip>
-                )}
-                {isProjectScoresLoading ? (
-                  <StyledLoadingIndicator size={20} />
-                ) : (
-                  <Tooltip
-                    title={
-                      <span>
-                        {t(
-                          "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
-                        )}
-                        <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
-                          {t('How is this calculated?')}
-                        </ExternalLink>
-                      </span>
-                    }
-                    isHoverable
-                    showUnderline
-                    skipWrapper
-                  >
-                    {Math.round(opportunity * 100) / 100}
-                  </Tooltip>
-                )}
-              </StyledRightAlignedCell>
-            </Fragment>
-          );
-        }
-    );
+                <PerformanceBadgeWrapper>
+                  <PerformanceBadge score={listItem.totalScore} />
+                </PerformanceBadgeWrapper>
+              </Tooltip>
+            )}
+            {isProjectScoresLoading ? (
+              <StyledLoadingIndicator size={20} />
+            ) : (
+              <Tooltip
+                title={
+                  <span>
+                    {t(
+                      "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                    )}
+                    <br />
+                    <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+                isHoverable
+                showUnderline
+                skipWrapper
+              >
+                {Math.round(opportunity * 100) / 100}
+              </Tooltip>
+            )}
+          </StyledRightAlignedCell>
+        </Fragment>
+      );
+    });
 
   const getContainerActions = _ => {
     return (
       <Fragment>
         <div>
-          <LinkButton
-            to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-            size="sm"
-          >
+          <LinkButton to={`${moduleURL}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

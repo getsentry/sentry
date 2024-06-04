@@ -46,7 +46,6 @@ import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
-import {OnboardingTaskKey} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -59,6 +58,7 @@ import {
   IssueAlertConditionType,
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
@@ -1641,7 +1641,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.5;
 `;
 
@@ -1651,7 +1651,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 
@@ -1696,7 +1696,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

@@ -22,15 +22,16 @@ import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
+import {CardinalityLimit} from 'sentry/views/settings/projectMetrics/cardinalityLimit';
 
 type Props = {
   organization: Organization;
@@ -106,11 +107,15 @@ function ProjectMetrics({project, location}: Props) {
 
       <PermissionAlert project={project} />
 
+      <CardinalityLimit project={project} />
+
       <SearchWrapper>
+        <h6>{t('Emitted Metrics')}</h6>
         <SearchBar
           placeholder={t('Search Metrics')}
           onChange={debouncedSearch}
           query={query}
+          size="sm"
         />
       </SearchWrapper>
 
@@ -224,7 +229,15 @@ const TabPanelsWrapper = styled(TabPanels)`
 `;
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: ${space(4)};
+  margin-bottom: ${space(0)};
+
+  & > h6 {
+    margin: 0;
+  }
 `;
 
 const StyledPanelTable = styled(PanelTable)`

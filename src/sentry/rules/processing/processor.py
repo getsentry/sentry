@@ -10,8 +10,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, features
-from sentry.buffer.redis import RedisBuffer
+from sentry import analytics, buffer, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -50,8 +49,8 @@ def is_condition_slow(
     condition: Mapping[str, Any],
 ) -> bool:
     """
-    Returns whether a condition is considered slow. Note that the slow condition
-    mapping take the form on EventFrequencyConditionData.
+    Returns whether a condition is considered slow. Note that slow conditions in
+    the condition Mapping take on the form of EventFrequencyConditionData.
     """
     for slow_conditions in SLOW_CONDITION_MATCHES:
         if slow_conditions in condition["id"]:
@@ -164,7 +163,6 @@ def activate_downstream_actions(
         results = safe_execute(
             action_inst.after,
             event=event,
-            _with_transaction=False,
             notification_uuid=notification_uuid,
         )
         if results is None:
@@ -227,13 +225,7 @@ class RuleProcessor:
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
             logger.warning("Unregistered condition %r", condition["id"])
             return None
-        passes: bool = safe_execute(
-            condition_inst.passes,
-            self.event,
-            state,
-            _with_transaction=False,
-        )
-        return passes
+        return safe_execute(condition_inst.passes, self.event, state) or False
 
     def get_state(self) -> EventState:
         return EventState(
@@ -263,13 +255,12 @@ class RuleProcessor:
             "rule_processor.rule_enqueued",
             extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
         )
-        self.buffer = RedisBuffer()
-        self.buffer.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
+        buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(
             {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
         )
-        self.buffer.push_to_hash(
+        buffer.backend.push_to_hash(
             model=Project,
             filters={"project_id": rule.project.id},
             field=f"{rule.id}:{self.group.id}",

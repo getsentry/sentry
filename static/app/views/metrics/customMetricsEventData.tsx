@@ -10,31 +10,30 @@ import type {
 } from 'sentry/components/events/interfaces/spans/types';
 import {Hovercard} from 'sentry/components/hovercard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import Link from 'sentry/components/links/link';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  MetricsQueryApiResponseLastMeta,
-  MetricType,
-  MRI,
-  Organization,
-} from 'sentry/types';
+import type {MetricsQueryApiResponseLastMeta, MetricType, MRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getDefaultMetricOp, getMetricsUrl} from 'sentry/utils/metrics';
+import {getDefaultAggregate, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricChart} from 'sentry/views/metrics/chart/chart';
 import type {Series} from 'sentry/views/metrics/chart/types';
 import {getChartTimeseries} from 'sentry/views/metrics/widget';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from '../performance/newTraceDetails/traceDrawer/details/styles';
 
 function flattenMetricsSummary(
   metricsSummary: MetricsSummary
@@ -77,6 +76,7 @@ export function CustomMetricsEventData({
   metricsSummary?: MetricsSummary;
 }) {
   const organization = useOrganization();
+
   const start = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS).toISOString();
   const end = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS).toISOString();
 
@@ -90,7 +90,7 @@ export function CustomMetricsEventData({
       metricsSummaryEntries.map((entry, index) => ({
         mri: entry.mri,
         name: index.toString(),
-        op: getDefaultMetricOp(entry.mri),
+        op: getDefaultAggregate(entry.mri),
         query: Object.entries(entry.item.tags ?? {})
           .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
           .join(' '),
@@ -180,73 +180,51 @@ export function CustomMetricsEventData({
     return null;
   }
 
-  return (
-    <table className="table key-value">
-      <tbody>
-        <tr>
-          <td className="key">{t('Emitted Metrics')}</td>
-          <td className="value">
-            <pre>
-              {dataRows.map((dataRow, index) => (
-                <Fragment key={index}>
-                  <MetricRenderer
-                    dataRow={dataRow}
-                    start={start}
-                    end={end}
-                    organization={organization}
-                  />
-                  <br />
-                  <ValueRenderer dataRow={dataRow} />{' '}
-                  <DeviationRenderer dataRow={dataRow} startTimestamp={startTimestamp} />
-                  <br />
-                  <TagsRenderer tags={dataRow.summaryItem.tags} />
-                  <br />
-                  <br />
-                </Fragment>
-              ))}
-            </pre>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  );
-}
+  const items: SectionCardKeyValueList = [];
 
-function MetricRenderer({
-  dataRow,
-  start,
-  end,
-  organization,
-}: {
-  dataRow: DataRow;
-  end: string;
-  organization: Organization;
-  start: string;
-}) {
-  const {mri, summaryItem} = dataRow;
+  dataRows.forEach(dataRow => {
+    const {mri, summaryItem} = dataRow;
+    const name = formatMRI(mri);
+    items.push({
+      key: `metric-${name}`,
+      subject: name,
+      value: (
+        <TraceDrawerComponents.CopyableCardValueWithLink
+          value={
+            <Fragment>
+              <ValueRenderer dataRow={dataRow} />{' '}
+              <DeviationRenderer dataRow={dataRow} startTimestamp={startTimestamp} />
+              <br />
+              <TagsRenderer tags={dataRow.summaryItem.tags} />
+            </Fragment>
+          }
+          linkText={t('View Metric')}
+          linkTarget={getMetricsUrl(organization.slug, {
+            start: normalizeDateTimeString(start),
+            end: normalizeDateTimeString(end),
+            interval: '10s',
+            widgets: [
+              {
+                mri: mri,
+                displayType: MetricDisplayType.LINE,
+                op: getDefaultAggregate(mri),
+                query: Object.entries(summaryItem.tags ?? {})
+                  .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
+                  .join(' '),
+              },
+            ],
+          })}
+        />
+      ),
+    });
+  });
+
   return (
-    <Fragment>
-      {t('Name:')}{' '}
-      <Link
-        to={getMetricsUrl(organization.slug, {
-          start: normalizeDateTimeString(start),
-          end: normalizeDateTimeString(end),
-          interval: '10s',
-          widgets: [
-            {
-              mri: mri,
-              displayType: MetricDisplayType.LINE,
-              op: getDefaultMetricOp(mri),
-              query: Object.entries(summaryItem.tags ?? {})
-                .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
-                .join(' '),
-            },
-          ],
-        })}
-      >
-        {formatMRI(mri)}
-      </Link>
-    </Fragment>
+    <TraceDrawerComponents.SectionCard
+      title={t('Emitted Metrics')}
+      items={items}
+      sortAlphabetically
+    />
   );
 }
 

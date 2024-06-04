@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,48 +10,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {deviceNameMapper} from 'sentry/components/deviceName';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
 import type {EventAttachment} from 'sentry/types/group';
 
 describe('EventTagsAndScreenshot', function () {
-  const contexts = {
-    app: {
-      app_start_time: '2021-08-31T15:14:21Z',
-      device_app_hash: '0b77c3f2567d65fe816e1fa7013779fbe3b51633',
-      build_type: 'test',
-      app_identifier: 'io.sentry.sample.iOS-Swift',
-      app_name: 'iOS-Swift',
-      app_version: '7.2.3',
-      app_build: '390',
-      app_id: 'B2690307-FDD1-3D34-AA1E-E280A9C2406C',
-      type: 'app',
-    },
-    device: {
-      family: 'iOS',
-      model: 'iPhone13,4',
-      model_id: 'D54pAP',
-      memory_size: 5987008512,
-      free_memory: 154435584,
-      usable_memory: 4706893824,
-      storage_size: 127881465856,
-      boot_time: '2021-08-29T06:05:51Z',
-      timezone: 'CEST',
-      type: 'device',
-    },
-    os: {
-      name: 'iOS',
-      version: '14.7.1',
-      build: '18G82',
-      kernel_version:
-        'Darwin Kernel Version 20.6.0: Mon Jun 21 21:23:35 PDT 2021; root:xnu-7195.140.42~10/RELEASE_ARM64_T8101',
-      rooted: false,
-      type: 'os',
-    },
-  };
-
   const user = {
     id: '1',
     email: 'tony1@example.com',
@@ -118,7 +80,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  const event = EventFixture({user});
+  const event = EventFixture({user, tags});
 
   const {organization, project} = initializeOrg({
     organization: {
@@ -161,6 +123,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
+  let mockDetailedProject;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -177,92 +140,137 @@ describe('EventTagsAndScreenshot', function () {
       url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
       body: [],
     });
+    mockDetailedProject = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
   });
 
+  async function assertTagsView() {
+    expect(screen.getByText('Tags')).toBeInTheDocument();
+    const tagsContainer = within(screen.getByTestId('event-tags'));
+    expect(tagsContainer.getAllByRole('radio')).toHaveLength(
+      Object.keys(TagFilter).length
+    );
+
+    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(await tagsContainer.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.getByTestId('event-tags-tree')).toBeInTheDocument();
+  }
+
+  /**
+   * Asserts rendering of the tags portion as both a shared event and regular event
+   */
+  async function assertTagsViewAsShare() {
+    const eventTags = render(
+      <EventTagsAndScreenshot event={event} projectSlug={project.slug} />,
+      {organization}
+    );
+    await assertTagsView();
+    eventTags.unmount();
+
+    const eventTagsAsScreenshot = render(
+      <EventTagsAndScreenshot event={event} projectSlug={project.slug} isShare />,
+      {organization}
+    );
+    await assertTagsView();
+    eventTagsAsScreenshot.unmount();
+
+    const eventTagsWithAttachment = render(
+      <EventTagsAndScreenshot event={event} projectSlug={project.slug} isShare />
+    );
+    await assertTagsView();
+    eventTagsWithAttachment.unmount();
+  }
   describe('renders tags only', function () {
-    beforeEach(() => {
+    it('tags only', async function () {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
       });
+      await assertTagsViewAsShare();
+      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
     });
 
-    it('not shared event - without attachments', async function () {
-      render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization}
-      );
-
-      // Tags Container
-      expect(await screen.findByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.getAllByTestId('context-item');
-      expect(contextItems).toHaveLength(Object.keys(contexts).length);
-
-      // Screenshot Container
-      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
-
-      // Context Item 1
-      const contextItem1 = within(contextItems[0]);
-      expect(contextItem1.getByRole('heading')).toHaveTextContent(user.email);
-      expect(contextItem1.getByTestId('context-sub-title')).toHaveTextContent(
-        `ID:${user.id}`
-      );
-
-      // Context Item 2
-      const contextItem2 = within(contextItems[1]);
-      expect(contextItem2.getByRole('heading')).toHaveTextContent(contexts.os.name);
-      expect(contextItem2.getByTestId('context-sub-title')).toHaveTextContent(
-        `Version:${contexts.os.version}`
-      );
-
-      // Context Item 3
-      const contextItem3 = within(contextItems[2]);
-      expect(contextItem3.getByRole('heading')).toHaveTextContent(
-        deviceNameMapper(contexts.device.model)?.trim() ?? ''
-      );
-      expect(contextItem3.getByTestId('context-sub-title')).toHaveTextContent(
-        'Model:iPhone13,4'
-      );
-
-      // Tags
-      const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
+    it('tags and attachments', async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
+      await assertTagsViewAsShare();
     });
 
-    it('shared event - without attachments', function () {
-      render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-          isShare
-        />,
-        {organization}
-      );
+    it('allows filtering tags', async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      const applicationTags = [
+        {key: 'app', value: 'Sentry'},
+        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
+        {key: 'app.app_name', value: 'com.sentry.app'},
+        {key: 'app.app_version', value: '0.0.2'},
+      ];
+      const customTags = [
+        {key: 'custom', value: 'some-value'},
+        {key: 'custom.nested', value: 'some-other-value'},
+      ];
+      const allTags = applicationTags.concat(customTags);
+      const testEvent = EventFixture({tags: allTags});
+      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
+        organization: organization,
+      });
+      expect(mockDetailedProject).toHaveBeenCalled();
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-      // Screenshot Container
-      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
+      let rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(allTags.length);
 
-      // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId(TagFilter.APPLICATION));
+      rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(applicationTags.length);
+
+      // Hide categories that don't have tags for this event
+      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
+
+      // Always show 'Custom' and 'All' selectors though
+      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
+      rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(customTags.length);
+
+      await userEvent.click(screen.getByTestId(TagFilter.ALL));
+      rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(allTags.length);
     });
 
-    it('shared event - with attachments', function () {
-      render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-          isShare
-        />
-      );
+    it('promotes custom tags', async function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      const applicationTags = [
+        {key: 'app', value: 'Sentry'},
+        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
+        {key: 'app.app_name', value: 'com.sentry.app'},
+        {key: 'app.app_version', value: '0.0.2'},
+      ];
+      const testEvent = EventFixture({tags: applicationTags});
+      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
+        organization: organization,
+      });
+      expect(mockDetailedProject).toHaveBeenCalled();
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-      // Screenshot Container
-      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
+      const rows = screen.getAllByTestId('tag-tree-row');
+      expect(rows).toHaveLength(applicationTags.length);
 
-      // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
+
+      // Even without custom tags, show the banner when category is selected
+      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
+      expect(screen.getByTestId('event-tags-custom-banner')).toBeInTheDocument();
     });
   });
 
@@ -272,14 +280,18 @@ describe('EventTagsAndScreenshot', function () {
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: attachments,
       });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/',
+        body: {},
+      });
     });
 
-    it('no context and no tags', async function () {
+    it('no tags', async function () {
       render(
         <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
-            event={EventFixture({user: {}, contexts: {}})}
+            event={{...event, tags: []}}
             projectSlug={project.slug}
           />
         </Fragment>,
@@ -329,14 +341,11 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('has context, async tags and attachments', async function () {
-      render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization}
-      );
+    it('has tags and attachments', async function () {
+      render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
+        organization,
+      });
+      await assertTagsView();
 
       // Screenshot Container
       expect(await screen.findByText('View screenshot')).toBeInTheDocument();
@@ -354,15 +363,6 @@ describe('EventTagsAndScreenshot', function () {
       expect(
         screen.queryByRole('button', {name: 'Next Screenshot'})
       ).not.toBeInTheDocument();
-
-      // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.getAllByTestId('context-item');
-      expect(contextItems).toHaveLength(Object.keys(contexts).length);
-
-      // Tags
-      const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
     });
 
     it('renders multiple screenshots correctly', async function () {
@@ -387,7 +387,7 @@ describe('EventTagsAndScreenshot', function () {
       });
       render(
         <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
+          event={{...event, tags: []}}
           projectSlug={project.slug}
         />,
         {organization}
@@ -428,7 +428,7 @@ describe('EventTagsAndScreenshot', function () {
       });
       render(
         <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
+          event={{...event, tags: []}}
           projectSlug={project.slug}
         />,
         {organization}
@@ -457,14 +457,11 @@ describe('EventTagsAndScreenshot', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('has context and attachments only', async function () {
-      render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization}
-      );
+    it('attachments only', async function () {
+      render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
+        organization,
+      });
+      await assertTagsView();
 
       // Screenshot Container
       expect(
@@ -475,190 +472,6 @@ describe('EventTagsAndScreenshot', function () {
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
-
-      // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.getAllByTestId('context-item');
-      expect(contextItems).toHaveLength(Object.keys(contexts).length);
-
-      // Tags
-      const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.queryByRole('listitem')).not.toBeInTheDocument();
-    });
-
-    it('has tags and attachments only', async function () {
-      render(
-        <EventTagsAndScreenshot event={{...event, tags}} projectSlug={project.slug} />,
-        {organization}
-      );
-
-      // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
-      expect(screen.getByText('View screenshot')).toBeInTheDocument();
-      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
-        'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
-      );
-
-      // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
-      const contextItems = screen.queryByTestId('context-item');
-      expect(contextItems).not.toBeInTheDocument();
-
-      // Tags
-      const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-    });
-  });
-
-  describe("renders changes for 'event-tags-tree-ui' flag", function () {
-    const featuredOrganization = OrganizationFixture({
-      features: ['event-attachments', 'event-tags-tree-ui'],
-    });
-    const router = RouterFixture({
-      location: {
-        query: {tagsTree: '1'},
-      },
-    });
-    function assertNewTagsView() {
-      expect(screen.getByText('Tags')).toBeInTheDocument();
-      // Ensure context isn't added in tag section
-      const contextItems = screen.queryByTestId('context-item');
-      expect(contextItems).not.toBeInTheDocument();
-      // Ensure tag filter appears
-      const tagsContainer = within(screen.getByTestId('event-tags'));
-      expect(tagsContainer.getAllByRole('radio')).toHaveLength(
-        Object.keys(TagFilter).length
-      );
-    }
-
-    function assertFlagAndQueryParamWork() {
-      const flaggedOrgTags = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization: featuredOrganization}
-      );
-      assertNewTagsView();
-      flaggedOrgTags.unmount();
-
-      const flaggedOrgTagsAsShare = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-          isShare
-        />,
-        {organization: featuredOrganization}
-      );
-      assertNewTagsView();
-      flaggedOrgTagsAsShare.unmount();
-
-      const queryParamTags = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization, router}
-      );
-      assertNewTagsView();
-      queryParamTags.unmount();
-
-      const queryParamTagsAsShare = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-          isShare
-        />,
-        {organization, router}
-      );
-      assertNewTagsView();
-      queryParamTagsAsShare.unmount();
-    }
-
-    it('no context, tags only', function () {
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
-        body: [],
-      });
-      assertFlagAndQueryParamWork();
-    });
-
-    it('no context, tags and screenshot', function () {
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
-        body: attachments,
-      });
-      assertFlagAndQueryParamWork();
-    });
-
-    it("allows filtering with 'event-tags-tree-ui' flag", async function () {
-      MockApiClient.addMockResponse({
-        url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
-        body: [],
-      });
-      const applicationTags = [
-        {key: 'app', value: 'Sentry'},
-        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
-        {key: 'app.app_name', value: 'com.sentry.app'},
-        {key: 'app.app_version', value: '0.0.2'},
-      ];
-      const customTags = [
-        {key: 'custom', value: 'some-value'},
-        {key: 'custom.nested', value: 'some-other-value'},
-      ];
-      const allTags = applicationTags.concat(customTags);
-      const testEvent = EventFixture({tags: allTags});
-      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: featuredOrganization,
-      });
-      let rows = screen.getAllByTestId('tag-tree-row');
-      expect(rows).toHaveLength(allTags.length);
-
-      await userEvent.click(screen.getByTestId(TagFilter.APPLICATION));
-      rows = screen.getAllByTestId('tag-tree-row');
-      expect(rows).toHaveLength(applicationTags.length);
-
-      // Hide categories that don't have tags for this event
-      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
-      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
-
-      // Always show 'Custom' and 'All' selectors though
-      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
-      rows = screen.getAllByTestId('tag-tree-row');
-      expect(rows).toHaveLength(customTags.length);
-
-      await userEvent.click(screen.getByTestId(TagFilter.ALL));
-      rows = screen.getAllByTestId('tag-tree-row');
-      expect(rows).toHaveLength(allTags.length);
-    });
-
-    it("promotes custom tags with 'event-tags-tree-ui' flag", async function () {
-      MockApiClient.addMockResponse({
-        url: `/projects/${featuredOrganization.slug}/${project.slug}/events/${event.id}/attachments/`,
-        body: [],
-      });
-      const applicationTags = [
-        {key: 'app', value: 'Sentry'},
-        {key: 'app.app_start_time', value: '2008-05-08T00:00:00.000Z'},
-        {key: 'app.app_name', value: 'com.sentry.app'},
-        {key: 'app.app_version', value: '0.0.2'},
-      ];
-      const testEvent = EventFixture({tags: applicationTags});
-      render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: featuredOrganization,
-      });
-      const rows = screen.getAllByTestId('tag-tree-row');
-      expect(rows).toHaveLength(applicationTags.length);
-
-      expect(screen.queryByTestId(TagFilter.CLIENT)).not.toBeInTheDocument();
-      expect(screen.queryByTestId(TagFilter.OTHER)).not.toBeInTheDocument();
-
-      // Even without custom tags, show the banner when category is selected
-      await userEvent.click(screen.getByTestId(TagFilter.CUSTOM));
-      expect(screen.getByTestId('event-tags-custom-banner')).toBeInTheDocument();
     });
   });
 });

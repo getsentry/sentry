@@ -11,6 +11,8 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganiza
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
+    RpcOrganizationContext,
+    RpcOrganizationContextList,
 )
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -130,14 +132,14 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_organization_context(
+    def organization_context(
         self,
         *,
         organization_id: int,
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
+    ) -> RpcOrganizationContext:
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
@@ -145,14 +147,14 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_organization_contexts(
+    def organization_contexts(
         self,
         *,
         organization_id: int | None = None,
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+    ) -> RpcOrganizationContextList:
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
         by either integration_id, or a combination of provider and external_id.

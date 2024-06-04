@@ -5,6 +5,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.snuba.sessions import STATS_PERIODS
+
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
 
@@ -94,6 +96,16 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
+class EnvironmentParams:
+    VISIBILITY = OpenApiParameter(
+        name="visibility",
+        location="query",
+        required=False,
+        type=str,
+        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+    )
+
+
 class OrganizationParams:
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
@@ -117,6 +129,107 @@ For example the following are valid parameters:
 - `/?project=1234&project=56789`
 - `/?project=-1`
 """,
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `true` to restrict results to organizations in which you are an owner.""",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
+
+Valid query fields include:
+- `id`: The organization ID
+- `slug`: The organization slug
+- `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
+- `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
+- `platform`: Filter your organizations to those with at least one project using this platform
+- `query`: Filter your organizations by name, slug, and members that contain this substring
+
+Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
+""",
+    )
+    SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by, in descending order. If not specified the results are sorted by the date they were created.
+
+Valid fields include:
+- `members`: By number of members
+- `projects`: By number of projects
+- `events`: By number of events in the past 24 hours
+""",
+    )
+
+
+class ReleaseParams:
+    VERSION = OpenApiParameter(
+        name="version",
+        location="path",
+        required=True,
+        type=str,
+        description="The version identifier of the release",
+    )
+    PROJECT_ID = OpenApiParameter(
+        name="project_id",
+        location="query",
+        required=False,
+        type=str,
+        description="The project id to filter by.",
+    )
+    HEALTH = OpenApiParameter(
+        name="health",
+        location="query",
+        required=False,
+        type=bool,
+        description="Whether or not to include health data with the release. By default, this is false.",
+    )
+    ADOPTION_STAGES = OpenApiParameter(
+        name="adoptionStages",
+        location="query",
+        required=False,
+        type=bool,
+        description="Whether or not to include adoption stages with the release. By default, this is false.",
+    )
+    SUMMARY_STATS_PERIOD = OpenApiParameter(
+        name="summaryStatsPeriod",
+        location="query",
+        required=False,
+        type=str,
+        description="The period of time used to query summary stats for the release. By default, this is 14d.",
+        enum=list(STATS_PERIODS.keys()),
+    )
+    HEALTH_STATS_PERIOD = OpenApiParameter(
+        name="healthStatsPeriod",
+        location="query",
+        required=False,
+        type=str,
+        description="The period of time used to query health stats for the release. By default, this is 24h if health is enabled.",
+        enum=list(STATS_PERIODS.keys()),
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="The field used to sort results by. By default, this is `date`.",
+        enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
+    )
+    STATUS_FILTER = OpenApiParameter(
+        name="status",
+        location="query",
+        required=False,
+        type=str,
+        description="Release statuses that you can filter by.",
+        enum=["open", "archived"],
     )
 
 
@@ -156,7 +269,7 @@ class VisibilityParams:
         location="query",
         required=False,
         type=str,
-        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/).
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
@@ -175,7 +288,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 - A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/).
+- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
 """,
     )
@@ -325,6 +438,25 @@ class TeamParams:
         type=str,
         description="""
 Specify `"0"` to return team details that do not include projects.
+""",
+    )
+    COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt out of certain pieces of data. Supports `organization`.
+""",
+    )
+
+    EXPAND = OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt in to additional data. Supports `projects`, `externalTeams`.
 """,
     )
 

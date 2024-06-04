@@ -9,6 +9,7 @@ from unittest import mock
 import orjson
 from django.db import router
 from django.urls import reverse
+from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
@@ -617,6 +618,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "sentry:replay_hydration_error_issues": True,
             "sentry:replay_rage_click_issues": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
@@ -733,6 +735,7 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("feedback:branding") == "0"
+        assert project.get_option("sentry:replay_hydration_error_issues") is True
         assert project.get_option("sentry:replay_rage_click_issues") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
@@ -751,7 +754,10 @@ class ProjectUpdateTest(APITestCase):
             self.proj_slug,
             relayCustomMetricCardinalityLimit=1000,
         )
-        assert self.project.get_option("relay.cardinality-limiter.limits") == [
+
+        config = self.project.get_option("relay.cardinality-limiter.limits")
+
+        assert config == [
             {
                 "limit": {
                     "id": "project-override-custom",
@@ -762,6 +768,11 @@ class ProjectUpdateTest(APITestCase):
                 }
             }
         ]
+
+        limit = config[0]["limit"]
+        normalized_limit = normalize_cardinality_limit_config(limit)
+        assert normalized_limit == limit
+
         assert resp.data["relayCustomMetricCardinalityLimit"] == 1000
 
     def test_custom_metrics_cardinality_limit_invalid_text(self):
@@ -782,6 +793,17 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
         assert resp.data["relayCustomMetricCardinalityLimit"] == [
             "Cardinality limit must be a non-negative integer."
+        ]
+
+    def test_custom_metrics_cardinality_limit_invalid_too_high(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=4_294_967_296,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == [
+            "Cardinality limit must be smaller or equal to 4,294,967,295."
         ]
 
     def test_custom_metrics_cardinality_limit_accepts_none(self):
@@ -920,39 +942,42 @@ class ProjectUpdateTest(APITestCase):
         ]
 
     def test_highlight_tags(self):
-        # Default with or without flag, ignore update attempt
+        # Unrelated change returns presets
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
+        assert self.project.get_option("sentry:highlight_tags") is None
+        preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightTags"] == preset["tags"]
+        assert resp.data["highlightPreset"] == preset
+
+        # Set to custom
         highlight_tags = ["bears", "beets", "battlestar_galactica"]
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
             highlightTags=highlight_tags,
         )
-        assert self.project.get_option("sentry:highlight_tags") is None
+        assert self.project.get_option("sentry:highlight_tags") == highlight_tags
+        assert resp.data["highlightTags"] == highlight_tags
 
-        preset = get_highlight_preset_for_project(self.project)
-        assert resp.data["highlightTags"] == preset["tags"]
-
-        with self.feature("organizations:event-tags-tree-ui"):
-            # Set to custom
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightTags=highlight_tags,
-            )
-            assert self.project.get_option("sentry:highlight_tags") == highlight_tags
-            assert resp.data["highlightTags"] == highlight_tags
-
-            # Set to empty
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightTags=[],
-            )
-            assert self.project.get_option("sentry:highlight_tags") == []
-            assert resp.data["highlightTags"] == []
+        # Set to empty
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightTags=[],
+        )
+        assert self.project.get_option("sentry:highlight_tags") == []
+        assert resp.data["highlightTags"] == []
+        assert resp.data["highlightPreset"] == preset
 
     def test_highlight_context(self):
-        # Default with or without flag, ignore update attempt
+        # Unrelated change returns presets
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
+        preset = get_highlight_preset_for_project(self.project)
+        assert self.project.get_option("sentry:highlight_context") is None
+        assert resp.data["highlightContext"] == preset["context"]
+        assert resp.data["highlightPreset"] == preset
+
+        # Set to custom
         highlight_context_type = "bird-words"
         highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
         resp = self.get_success_response(
@@ -960,58 +985,48 @@ class ProjectUpdateTest(APITestCase):
             self.proj_slug,
             highlightContext=highlight_context,
         )
-        assert self.project.get_option("sentry:highlight_context") is None
+        option_result = self.project.get_option("sentry:highlight_context")
+        resp_result = resp.data["highlightContext"]
+        for highlight_context_key in highlight_context[highlight_context_type]:
+            assert highlight_context_key in option_result[highlight_context_type]
+            assert highlight_context_key in resp_result[highlight_context_type]
 
-        preset = get_highlight_preset_for_project(self.project)
-        assert resp.data["highlightContext"] == preset["context"]
+        # Filters duplicates
+        assert (
+            len(option_result[highlight_context_type])
+            == len(resp_result[highlight_context_type])
+            == 4
+        )
 
-        with self.feature("organizations:event-tags-tree-ui"):
-            # Set to custom
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext=highlight_context,
-            )
-            option_result = self.project.get_option("sentry:highlight_context")
-            resp_result = resp.data["highlightContext"]
-            for highlight_context_key in highlight_context[highlight_context_type]:
-                assert highlight_context_key in option_result[highlight_context_type]
-                assert highlight_context_key in resp_result[highlight_context_type]
-            # Filters duplicates
-            assert (
-                len(option_result[highlight_context_type])
-                == len(resp_result[highlight_context_type])
-                == 4
-            )
+        # Set to empty
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={},
+        )
+        assert self.project.get_option("sentry:highlight_context") == {}
+        assert resp.data["highlightContext"] == {}
+        assert resp.data["highlightPreset"] == preset
 
-            # Set to empty
-            resp = self.get_success_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext={},
-            )
-            assert self.project.get_option("sentry:highlight_context") == {}
-            assert resp.data["highlightContext"] == {}
-
-            # Checking validation
-            resp = self.get_error_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext=["bird-words", ["red", "blue"]],
-            )
-            assert "Expected a dictionary" in resp.data["highlightContext"][0]
-            resp = self.get_error_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext={"": ["empty", "context", "type"]},
-            )
-            assert "Key '' is invalid" in resp.data["highlightContext"][0]
-            resp = self.get_error_response(
-                self.org_slug,
-                self.proj_slug,
-                highlightContext={"bird-words": ["invalid", 123, "integer"]},
-            )
-            assert "must be a list of strings" in resp.data["highlightContext"][0]
+        # Checking validation
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=["bird-words", ["red", "blue"]],
+        )
+        assert "Expected a dictionary" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"": ["empty", "context", "type"]},
+        )
+        assert "Key '' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"bird-words": ["invalid", 123, "integer"]},
+        )
+        assert "must be a list of strings" in resp.data["highlightContext"][0]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)

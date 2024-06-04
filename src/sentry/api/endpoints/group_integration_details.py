@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationSerializer
-from sentry.integrations import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -101,9 +101,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "Action is required and should be either link or create"})
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -144,9 +146,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -226,9 +230,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -302,9 +308,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "External ID required"}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 

@@ -46,6 +46,7 @@ export type Project = {
   plugins: Plugin[];
 
   processingIssues: number;
+  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
@@ -160,6 +161,7 @@ export type PlatformKey =
   | 'csharp-aspnetcore'
   | 'dart'
   | 'dart-flutter'
+  | 'deno'
   | 'django'
   | 'dotnet'
   | 'dotnet-aspnet'
@@ -178,6 +180,7 @@ export type PlatformKey =
   | 'go'
   | 'go-echo'
   | 'go-fasthttp'
+  | 'go-fiber'
   | 'go-gin'
   | 'go-http'
   | 'go-iris'
@@ -224,8 +227,11 @@ export type PlatformKey =
   | 'node-azurefunctions'
   | 'node-connect'
   | 'node-express'
+  | 'node-fastify'
   | 'node-gcpfunctions'
+  | 'node-hapi'
   | 'node-koa'
+  | 'node-nestjs'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
   | 'objc'
@@ -237,6 +243,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'powershell'
   | 'python'
   | 'python-aiohttp'
   | 'python-asgi'

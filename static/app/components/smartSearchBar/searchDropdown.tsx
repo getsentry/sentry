@@ -13,7 +13,7 @@ import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
@@ -513,7 +513,7 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
@@ -580,7 +580,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};

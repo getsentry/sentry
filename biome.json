@@ -22,7 +22,8 @@
         "useHookAtTopLevel": "error",
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
-        "noInvalidUseBeforeDeclaration": "error"
+        "noInvalidUseBeforeDeclaration": "error",
+        "noNodejsModules": "error"
       },
       "complexity": {
         "useFlatMap": "error",
@@ -31,11 +32,19 @@
         "noUselessLoneBlockStatements": "error",
         "noUselessEmptyExport": "error",
         "noUselessConstructor": "error",
-        "noUselessTypeConstraint": "error"
+        "noUselessTypeConstraint": "error",
+        "noExcessiveNestedTestSuites": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noNodejsModules": "error"
+        "noRestrictedImports": {
+          "level": "warn",
+          "options": {
+            "paths": {
+              "sentry/types": "Please import directly. For example: import type {Organization} from 'sentry/types/organization'"
+            }
+          }
+        }
       },
       "performance": {
         "noBarrelFile": "error"
@@ -59,7 +68,10 @@
         "noApproximativeNumericConstant": "error",
         "noMisrefactoredShorthandAssign": "error",
         "useAwait": "error",
-        "useNamespaceKeyword": "error"
+        "useNamespaceKeyword": "error",
+        "noSkippedTests": "error",
+        "noFocusedTests": "error",
+        "noDuplicateTestHooks": "error"
       },
       "style": {
         "noCommaOperator": "error",
@@ -89,7 +101,7 @@
     ]
   },
   "formatter": {
-    "enabled": false,
+    "enabled": true,
     "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
@@ -103,7 +115,7 @@
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
       "quoteProperties": "asNeeded",
-      "trailingComma": "es5",
+      "trailingCommas": "es5",
       "semicolons": "always",
       "arrowParentheses": "asNeeded",
       "bracketSpacing": false,
@@ -113,18 +125,13 @@
   "json": {
     "formatter": {
       "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   },
   "overrides": [
-    {
-      "include": ["biome.json", "config/tsconfig.*", "tsconfig.json", ".vscode/*"],
-      "json": {
-        "parser": {
-          "allowComments": true,
-          "allowTrailingCommas": true
-        }
-      }
-    },
     {
       "include": [
         "api-docs/*.ts",
@@ -139,7 +146,7 @@
       ],
       "linter": {
         "rules": {
-          "nursery": {
+          "correctness": {
             "noNodejsModules": "off"
           }
         }

@@ -1,5 +1,6 @@
 import logging
 
+import orjson
 from django.conf import settings
 from django.db import models, router, transaction
 from django.urls import reverse
@@ -17,7 +18,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
@@ -124,7 +124,7 @@ class ExportedData(Model):
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,
-                "payload": json.dumps(self.payload),
+                "payload": orjson.dumps(self.payload).decode(),
             },
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",

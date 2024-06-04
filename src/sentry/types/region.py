@@ -265,13 +265,9 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 @control_silo_function
 def get_region_for_organization(organization_id_or_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
-    from sentry.api.utils import id_or_slug_path_params_enabled
     from sentry.models.organizationmapping import OrganizationMapping
 
-    if (
-        id_or_slug_path_params_enabled(organization_id_or_slug=organization_id_or_slug)
-        and organization_id_or_slug.isdecimal()
-    ):
+    if organization_id_or_slug.isdecimal():
         mapping = OrganizationMapping.objects.filter(
             organization_id=organization_id_or_slug
         ).first()

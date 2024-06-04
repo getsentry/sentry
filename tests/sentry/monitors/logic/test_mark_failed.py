@@ -282,7 +282,11 @@ class MarkFailedTestCase(TestCase):
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
-                    {"name": "Failure reason", "value": "incident", "important": True},
+                    {
+                        "name": "Failure reason",
+                        "value": "An error check-in was detected",
+                        "important": True,
+                    },
                     {
                         "name": "Environment",
                         "value": monitor_environment.get_environment().name,
@@ -501,6 +505,12 @@ class MarkFailedTestCase(TestCase):
         occurrence = occurrence.to_dict()
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
 
+        # Human readible failure reason
+        assert (
+            occurrence["evidence_display"][0]["value"]
+            == "3 timeout, 3 missed and 2 error check-ins detected"
+        )
+
         # send another check-in to make sure the incident does not change
         status = next(failure_statuses)
         checkin = MonitorCheckIn.objects.create(
@@ -632,6 +642,9 @@ class MarkFailedTestCase(TestCase):
         occurrence = kwargs["occurrence"]
         occurrence = occurrence.to_dict()
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
+
+        # Human readible failure reason
+        assert occurrence["evidence_display"][0]["value"] == "8 timeout check-ins detected"
 
     # we are duplicating this test as the code paths are different, for now
     @with_feature("organizations:issue-platform")

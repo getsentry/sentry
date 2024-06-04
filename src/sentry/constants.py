@@ -280,7 +280,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -643,6 +642,10 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+ISSUE_ALERTS_THREAD_DEFAULT = True
+METRIC_ALERTS_THREAD_DEFAULT = True
+METRICS_ACTIVATE_PERCENTILES_DEFAULT = False
+METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope

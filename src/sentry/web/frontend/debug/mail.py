@@ -431,7 +431,7 @@ class ActivityMailDebugView(View):
         event_type = get_event_type(data)
 
         event = eventstore.backend.create_event(
-            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
+            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data
         )
 
         group.message = event.search_message
@@ -532,7 +532,7 @@ def digest(request):
             )
 
             event = eventstore.backend.create_event(
-                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
+                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data
             )
             records.append(
                 Record(

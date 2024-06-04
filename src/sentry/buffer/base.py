@@ -1,7 +1,7 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 
-from django.db.models import F
+from django.db.models import Expression, F
 
 from sentry.db import models
 from sentry.signals import buffer_incr_complete
@@ -23,13 +23,26 @@ class Buffer(Service):
     keep up with the updates.
     """
 
-    __all__ = ("get", "incr", "process", "process_pending", "process_batch", "validate")
+    __all__ = (
+        "get",
+        "incr",
+        "process",
+        "process_pending",
+        "process_batch",
+        "validate",
+        "push_to_sorted_set",
+        "push_to_hash",
+        "get_sorted_set",
+        "get_hash",
+        "delete_hash",
+        "delete_key",
+    )
 
     def get(
         self,
         model: type[models.Model],
         columns: list[str],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, Any],
     ) -> dict[str, int]:
         """
         We can't fetch values from Celery, so just assume buffer values are all 0 here.
@@ -43,6 +56,29 @@ class Buffer(Service):
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
+
+    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
+        return None
+
+    def push_to_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        field: str,
+        value: str,
+    ) -> None:
+        return None
+
+    def delete_hash(
+        self,
+        model: type[models.Model],
+        filters: dict[str, models.Model | str | int],
+        fields: list[str],
+    ) -> None:
+        return None
+
+    def delete_key(self, key: str, min: float, max: float) -> None:
+        return None
 
     def incr(
         self,
@@ -78,8 +114,8 @@ class Buffer(Service):
     def process(
         self,
         model: type[models.Model],
-        columns: dict[Any, Any],
-        filters: dict[str, str | datetime | date | int | float],
+        columns: dict[str, int],
+        filters: dict[str, Any],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
@@ -89,7 +125,7 @@ class Buffer(Service):
         created = False
 
         if not signal_only:
-            update_kwargs = {c: F(c) + v for c, v in columns.items()}
+            update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 update_kwargs.update(extra)

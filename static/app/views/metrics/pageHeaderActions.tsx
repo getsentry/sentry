@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
@@ -148,7 +148,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     <ButtonBar gap={1}>
       {showCustomMetricButton && (
         <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
-          {t('Set Up Custom Metrics')}
+          {t('Add Custom Metrics')}
         </Button>
       )}
       <Button

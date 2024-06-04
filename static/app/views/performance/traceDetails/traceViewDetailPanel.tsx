@@ -53,9 +53,9 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
 import {EntryType} from 'sentry/types/event';
-import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -442,7 +442,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           hideBreadCrumbs
         />
       )}
-      {!objectIsEmpty(feedback) && (
+      {!isEmptyObject(feedback) && (
         <Chunk
           key="feedback"
           type="feedback"
@@ -452,7 +452,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           value={feedback}
         />
       )}
-      {user && !objectIsEmpty(user) && (
+      {user && !isEmptyObject(user) && (
         <Chunk
           key="user"
           type="user"
@@ -598,7 +598,7 @@ const Title = styled(FlexBox)`
 
 const TransactionOp = styled('div')`
   font-size: 25px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;

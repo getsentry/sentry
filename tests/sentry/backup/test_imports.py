@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
+import orjson
 import pytest
 import urllib3.exceptions
 from cryptography.fernet import Fernet
@@ -80,7 +81,6 @@ from sentry.testutils.helpers.backups import (
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,
@@ -343,12 +343,9 @@ class SanitizationTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self.create_user("min_user")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
-                json.dump(
-                    self.sort_in_memory_json(models),
-                    tmp_file,
-                )
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             # Import twice, to check that new suffixes are assigned both times.
             with open(tmp_path, "rb") as tmp_file:
@@ -371,14 +368,14 @@ class SanitizationTests(ImportTestCase):
     def test_bad_invalid_user(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify all username to be longer than 128 characters.
                 for model in models:
                     if model["model"] == "sentry.user":
                         model["fields"]["username"] = "x" * 129
-                json.dump(models, tmp_file)
+                tmp_file.write(orjson.dumps(models))
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
@@ -397,14 +394,14 @@ class SanitizationTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the UserIP to be in California, USA.
                 for model in models:
                     if model["model"] == "sentry.userip":
                         model["fields"]["ip_address"] = "8.8.8.8"
-                json.dump(models, tmp_file)
+                tmp_file.write(orjson.dumps(models))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
@@ -434,7 +431,7 @@ class SanitizationTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the UserIP to be in California, USA.
@@ -488,7 +485,7 @@ class SanitizationTests(ImportTestCase):
                     }
                 )
 
-                json.dump(self.sort_in_memory_json(models), tmp_file)
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
@@ -504,14 +501,14 @@ class SanitizationTests(ImportTestCase):
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the IP address to be in invalid.
                 for m in models:
                     if m["model"] == "sentry.userip":
                         m["fields"]["ip_address"] = "0.1.2.3.4.5.6.7.8.9.abc.def"
-                json.dump(list(models), tmp_file)
+                tmp_file.write(orjson.dumps(list(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
@@ -524,7 +521,7 @@ class SanitizationTests(ImportTestCase):
     def test_good_multiple_useremails_per_user_in_user_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
@@ -556,7 +553,7 @@ class SanitizationTests(ImportTestCase):
                     }
                 )
 
-                json.dump(self.sort_in_memory_json(models), tmp_file)
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
@@ -576,7 +573,7 @@ class SanitizationTests(ImportTestCase):
     def test_good_multiple_useremails_per_user_in_global_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
@@ -608,7 +605,7 @@ class SanitizationTests(ImportTestCase):
                     }
                 )
 
-                json.dump(self.sort_in_memory_json(models), tmp_file)
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
@@ -627,14 +624,14 @@ class SanitizationTests(ImportTestCase):
     def test_bad_invalid_user_option(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the `timezone` option to be in invalid.
                 for m in models:
                     if m["model"] == "sentry.useroption" and m["fields"]["key"] == "timezone":
                         m["fields"]["value"] = '"MiddleEarth/Gondor"'
-                json.dump(list(models), tmp_file)
+                tmp_file.write(orjson.dumps(list(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
@@ -856,8 +853,8 @@ class DatabaseResetTests(ImportTestCase):
     def import_empty_backup_file(self, import_fn):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_empty_file_path = tmp_dir + "empty_backup.json"
-            with open(tmp_empty_file_path, "w") as tmp_file:
-                json.dump([], tmp_file)
+            with open(tmp_empty_file_path, "wb") as tmp_file:
+                tmp_file.write(orjson.dumps([]))
             with open(tmp_empty_file_path, "rb") as empty_backup_json:
                 import_fn(empty_backup_json, printer=NOOP_PRINTER)
 
@@ -952,15 +949,15 @@ class DecryptionTests(ImportTestCase):
         with open(tmp_pub_key_path, "wb") as f:
             f.write(pub_key_pem)
 
-        with open(good_file_path) as f:
-            json_data = json.load(f)
+        with open(good_file_path, "rb") as f:
+            json_data = orjson.loads(f.read())
 
         tmp_tarball_path = Path(tmp_dir).joinpath("input.tar")
         with open(tmp_tarball_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
             pem = p.read()
             data_encryption_key = Fernet.generate_key()
             backup_encryptor = Fernet(data_encryption_key)
-            encrypted_json_export = backup_encryptor.encrypt(json.dumps(json_data).encode("utf-8"))
+            encrypted_json_export = backup_encryptor.encrypt(orjson.dumps(json_data))
 
             dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
             sha256 = hashes.SHA256()
@@ -1409,7 +1406,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Monitor)
     def test_colliding_monitor(self, expected_models: list[type[Model]]):
@@ -1440,7 +1437,7 @@ class CollisionTests(ImportTestCase):
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, OrgAuthToken)
     def test_colliding_org_auth_token(self, expected_models: list[type[Model]]):
@@ -1489,7 +1486,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ProjectKey)
     def test_colliding_project_key(self, expected_models: list[type[Model]]):
@@ -1522,7 +1519,7 @@ class CollisionTests(ImportTestCase):
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @pytest.mark.xfail(
         not use_split_dbs(),
@@ -1579,7 +1576,7 @@ class CollisionTests(ImportTestCase):
                 )
 
                 with open(tmp_path, "rb") as tmp_file:
-                    verify_models_in_output(expected_models, json.load(tmp_file))
+                    verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, SavedSearch)
     def test_colliding_saved_search(self, expected_models: list[type[Model]]):
@@ -1609,7 +1606,7 @@ class CollisionTests(ImportTestCase):
             assert SavedSearch.objects.count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
@@ -1705,7 +1702,7 @@ class CollisionTests(ImportTestCase):
                     assert actual_permission == old_user_role_permissions[i]
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_disabled_in_config_scope(
@@ -1797,7 +1794,7 @@ class CollisionTests(ImportTestCase):
                 assert actual_user_role.permissions[0] == "other.admin"
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_user_scope(
@@ -1841,7 +1838,7 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_user_scope(
@@ -1886,7 +1883,7 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_organization_scope(
@@ -1973,7 +1970,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_organization_scope(
@@ -2065,7 +2062,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_enabled_in_config_scope(
@@ -2113,7 +2110,7 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_disabled_in_config_scope(
@@ -2161,7 +2158,7 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
 
 CUSTOM_IMPORT_BEHAVIOR_TESTED: set[NormalizedModelName] = set()
@@ -2185,7 +2182,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             slug="test-org",
             owner=owner,
             member=member,
-            invites={
+            pending_invites={
                 admin: "invited-by-admin@test.com",
                 owner: "invited-by-owner@test.com",
             },
@@ -2241,7 +2238,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             ).exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
     def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]):
@@ -2272,7 +2269,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             assert set(imported_proj_ids) == set(existing_proj_ids)
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
     def test_project_ids_reassigned_in_organization_scope(self, expected_models: list[type[Model]]):
@@ -2303,7 +2300,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             assert set(imported_proj_ids).isdisjoint(set(existing_proj_ids))
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
 
 class BatchingTests(TestCase):
@@ -2314,7 +2311,7 @@ class BatchingTests(TestCase):
     def import_n_users_with_options(self, import_uuid: str, n: int) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w") as tmp_file:
+            with open(tmp_path, "wb") as tmp_file:
                 users = []
                 user_options = []
                 for i in range(1, n + 1):
@@ -2353,7 +2350,7 @@ class BatchingTests(TestCase):
                         }
                     )
 
-                json.dump(users + user_options, tmp_file)
+                tmp_file.write(orjson.dumps(users + user_options))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(

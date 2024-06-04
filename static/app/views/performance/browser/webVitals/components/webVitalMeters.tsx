@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
@@ -109,7 +110,7 @@ export default function WebVitalMeters({
                           }
                         )}
                         <br />
-                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                        <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                           {t('Find out how performance scores are calculated here.')}
                         </ExternalLink>
                       </span>
@@ -219,7 +220,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;

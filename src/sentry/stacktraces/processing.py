@@ -304,14 +304,13 @@ def normalize_stacktraces_for_grouping(
     stacktrace_frames = []
     stacktrace_containers = []
 
-    with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
-        for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-            frames = stacktrace_info.get_frames()
-            if frames:
-                stacktrace_frames.append(frames)
-                stacktrace_containers.append(
-                    stacktrace_info.container if stacktrace_info.is_exception else {}
-                )
+    for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
+        frames = stacktrace_info.get_frames()
+        if frames:
+            stacktrace_frames.append(frames)
+            stacktrace_containers.append(
+                stacktrace_info.container if stacktrace_info.is_exception else {}
+            )
 
     if not stacktrace_frames:
         return
@@ -339,22 +338,21 @@ def normalize_stacktraces_for_grouping(
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
     # we can track the mix with a metric in cases where this event creates a new group
-    with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
-        frame_mixes = {"mixed": 0, "in-app-only": 0, "system-only": 0}
+    frame_mixes = {"mixed": 0, "in-app-only": 0, "system-only": 0}
 
-        for frames in stacktrace_frames:
-            stacktrace_frame_mix = _normalize_in_app(frames)
-            frame_mixes[stacktrace_frame_mix] += 1
+    for frames in stacktrace_frames:
+        stacktrace_frame_mix = _normalize_in_app(frames)
+        frame_mixes[stacktrace_frame_mix] += 1
 
-        event_metadata = data.get("metadata") or {}
-        event_metadata["in_app_frame_mix"] = (
-            "in-app-only"
-            if frame_mixes["in-app-only"] == len(stacktrace_frames)
-            else "system-only"
-            if frame_mixes["system-only"] == len(stacktrace_frames)
-            else "mixed"
-        )
-        data["metadata"] = event_metadata
+    event_metadata = data.get("metadata") or {}
+    event_metadata["in_app_frame_mix"] = (
+        "in-app-only"
+        if frame_mixes["in-app-only"] == len(stacktrace_frames)
+        else "system-only"
+        if frame_mixes["system-only"] == len(stacktrace_frames)
+        else "mixed"
+    )
+    data["metadata"] = event_metadata
 
 
 def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
@@ -386,11 +384,7 @@ def should_process_for_stacktraces(data):
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
         processors = safe_execute(
-            plugin.get_stacktrace_processors,
-            data=data,
-            stacktrace_infos=infos,
-            platforms=platforms,
-            _with_transaction=False,
+            plugin.get_stacktrace_processors, data=data, stacktrace_infos=infos, platforms=platforms
         )
         if processors:
             return True
@@ -412,7 +406,6 @@ def get_processors_for_stacktraces(data, infos):
                 data=data,
                 stacktrace_infos=infos,
                 platforms=platforms,
-                _with_transaction=False,
             )
             or ()
         )

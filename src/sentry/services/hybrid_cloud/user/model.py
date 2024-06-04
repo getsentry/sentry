@@ -50,6 +50,7 @@ class RpcUserProfile(RpcModel):
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
+    is_unclaimed: bool = False
     last_active: datetime.datetime | None = None
     is_sentry_app: bool = False
     password_usable: bool = False
@@ -71,7 +72,7 @@ class RpcUser(RpcUserProfile):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def __str__(self):  # API compatibility with ORM User
+    def __str__(self) -> str:  # API compatibility with ORM User
         return self.get_username()
 
     def by_email(self, email: str) -> "RpcUser":
@@ -121,6 +122,11 @@ class RpcUser(RpcUserProfile):
 
     def has_2fa(self) -> bool:
         return len(self.authenticators) > 0
+
+
+class UserCreateResult(RpcModel):
+    user: RpcUser
+    created: bool
 
 
 class UserSerializeType(IntEnum):  # annoying

@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import responses
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -8,7 +9,6 @@ from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from sentry_plugins.github.client import GithubPluginAppsClient, GithubPluginClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider
 from sentry_plugins.github.testutils import (
@@ -27,7 +27,7 @@ class GitHubPluginTest(TestCase):
     def test_compare_commits(self):
         repo = Repository.objects.create(provider="github", name="example", organization_id=1)
 
-        res = self.provider._format_commits(repo, json.loads(COMPARE_COMMITS_EXAMPLE)["commits"])
+        res = self.provider._format_commits(repo, orjson.loads(COMPARE_COMMITS_EXAMPLE)["commits"])
 
         assert res == [
             {
@@ -42,7 +42,7 @@ class GitHubPluginTest(TestCase):
     def test_get_last_commits(self):
         repo = Repository.objects.create(provider="github", name="example", organization_id=1)
 
-        res = self.provider._format_commits(repo, json.loads(GET_LAST_COMMITS_EXAMPLE)[:10])
+        res = self.provider._format_commits(repo, orjson.loads(GET_LAST_COMMITS_EXAMPLE)[:10])
 
         assert res == [
             {
@@ -80,7 +80,7 @@ class GitHubPluginTest(TestCase):
         }
 
         request = responses.calls[-1].request
-        req_json = json.loads(request.body)
+        req_json = orjson.loads(request.body)
         assert req_json == {
             "active": True,
             "config": {
@@ -178,12 +178,12 @@ class GitHubAppsProviderTest(TestCase):
     @patch.object(
         GithubPluginAppsClient,
         "get_repositories",
-        return_value=json.loads(INSTALLATION_REPOSITORIES_API_RESPONSE),
+        return_value=orjson.loads(INSTALLATION_REPOSITORIES_API_RESPONSE),
     )
     @patch.object(
         GithubPluginClient,
         "get_installations",
-        return_value=json.loads(LIST_INSTALLATION_API_RESPONSE),
+        return_value=orjson.loads(LIST_INSTALLATION_API_RESPONSE),
     )
     def test_link_auth(self, *args):
         user = self.create_user()

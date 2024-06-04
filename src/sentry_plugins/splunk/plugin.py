@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.utils import metrics
@@ -102,7 +102,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         if host:
             return host
 
-        user_interface = event.interfaces.get("sentry.interfaces.User")
+        user_interface = event.interfaces.get("user")
         if user_interface:
             host = user_interface.ip_address
             if host:

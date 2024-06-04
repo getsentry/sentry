@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -13,16 +14,18 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {getFormattedMQL} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,6 +36,7 @@ import {type Field, FIELDS, SORTS} from './data';
 import {
   ProjectRenderer,
   SpanBreakdownSliceRenderer,
+  SpanDescriptionRenderer,
   SpanIdRenderer,
   SpanTimeRenderer,
   TraceBreakdownContainer,
@@ -56,9 +60,24 @@ export function Content() {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
 
+  const removeMetric = useCallback(() => {
+    browserHistory.push({
+      ...location,
+      query: omit(location.query, [
+        'mri',
+        'metricsOp',
+        'metricsQuery',
+        'metricsMax',
+        'metricsMin',
+      ]),
+    });
+  }, [location]);
+
+  const metricsMax = decodeScalar(location.query.metricsMax);
+  const metricsMin = decodeScalar(location.query.metricsMin);
   const metricsOp = decodeScalar(location.query.metricsOp);
-  const mri = decodeScalar(location.query.mri);
   const metricsQuery = decodeScalar(location.query.metricsQuery);
+  const mri = decodeScalar(location.query.mri);
 
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
@@ -113,6 +132,9 @@ export function Content() {
     query: queries,
     sort: SORTS,
     mri: hasMetric ? mri : undefined,
+    metricsMax: hasMetric ? metricsMax : undefined,
+    metricsMin: hasMetric ? metricsMin : undefined,
+    metricsOp: hasMetric ? metricsOp : undefined,
     metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
@@ -124,14 +146,21 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
       {hasMetric && (
-        <StyledAlert type="info" showIcon>
+        <StyledAlert
+          type="info"
+          showIcon
+          trailingItems={<StyledCloseButton onClick={removeMetric} />}
+        >
           {tct('The metric query [metricQuery] is filtering the results below.', {
-            metricQuery: <strong>{`${metricsOp}(${mri}){${metricsQuery || ''}}`}</strong>,
+            metricQuery: (
+              <strong>
+                {getFormattedMQL({mri: mri as MRI, op: metricsOp, query: metricsQuery})}
+              </strong>
+            ),
           })}
         </StyledAlert>
       )}
@@ -147,16 +176,16 @@ export function Content() {
       />
       <StyledPanel>
         <TracePanelContent>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader align="left" lightText>
             {t('Trace ID')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Total Spans')}
+            {t('Matching Spans')}
           </StyledPanelHeader>
-          <StyledPanelHeader align="right" lightText>
+          <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
@@ -180,18 +209,28 @@ export function Content() {
           )}
           {isEmpty && (
             <StyledPanelItem span={7} overflow>
-              <EmptyStateWarning withIcon />
+              <EmptyStateWarning withIcon>
+                <div>{t('No traces available')}</div>
+              </EmptyStateWarning>
             </StyledPanelItem>
           )}
-          {data?.map(trace => <TraceRow key={trace.trace} trace={trace} />)}
+          {data?.map((trace, i) => (
+            <TraceRow key={trace.trace} trace={trace} defaultExpanded={i === 0} />
+          ))}
         </TracePanelContent>
       </StyledPanel>
     </LayoutMain>
   );
 }
 
-function TraceRow({trace}: {trace: TraceResult<Field>}) {
-  const [expanded, setExpanded] = useState<boolean>(false);
+function TraceRow({
+  defaultExpanded,
+  trace,
+}: {
+  defaultExpanded;
+  trace: TraceResult<Field>;
+}) {
+  const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
 
   const setHighlightedSliceName = useMemo(
@@ -216,20 +255,24 @@ function TraceRow({trace}: {trace: TraceResult<Field>}) {
         />
         <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
       </StyledPanelItem>
-      <StyledPanelItem align="left" overflow onClick={onClickExpand}>
+      <StyledPanelItem align="left" overflow>
         <Description>
           {trace.project ? (
             <ProjectRenderer projectSlug={trace.project} hideName />
           ) : null}
           {trace.name ? (
-            trace.name
+            <WrappingText>{trace.name}</WrappingText>
           ) : (
             <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
           )}
         </Description>
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <Count value={trace.numSpans} />
+        {tct('[numerator][space]of[space][denominator]', {
+          numerator: <Count value={trace.matchingSpans} />,
+          denominator: <Count value={trace.numSpans} />,
+          space: <Fragment>&nbsp;</Fragment>,
+        })}
       </StyledPanelItem>
       <BreakdownPanelItem
         align="right"
@@ -295,6 +338,14 @@ function SpanTable({
               setHighlightedSliceName={setHighlightedSliceName}
             />
           ))}
+          {spans.length < trace.matchingSpans && (
+            <MoreMatchingSpans span={5}>
+              {tct('[more][space]more matching spans can be found in the trace.', {
+                more: <Count value={trace.matchingSpans - spans.length} />,
+                space: <Fragment>&nbsp;</Fragment>,
+              })}
+            </MoreMatchingSpans>
+          )}
         </SpanPanelContent>
       </StyledPanel>
     </SpanTablePanelItem>
@@ -324,12 +375,7 @@ function SpanRow({
         />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="left" overflow>
-        <Description>
-          <ProjectRenderer projectSlug={span.project} hideName />
-          <strong>{span['span.op']}</strong>
-          <em>{'\u2014'}</em>
-          {span['span.description']}
-        </Description>
+        <SpanDescriptionRenderer span={span} />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="right" onMouseLeave={() => setHighlightedSliceName('')}>
         <TraceBreakdownContainer>
@@ -368,6 +414,7 @@ export interface TraceResult<F extends string> {
   breakdowns: TraceBreakdownResult[];
   duration: number;
   end: number;
+  matchingSpans: number;
   name: string | null;
   numErrors: number;
   numOccurrences: number;
@@ -408,6 +455,9 @@ interface UseTracesOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
+  metricsMax?: string;
+  metricsMin?: string;
+  metricsOp?: string;
   metricsQuery?: string;
   mri?: string;
   query?: string | string[];
@@ -421,6 +471,9 @@ function useTraces<F extends string>({
   enabled,
   limit,
   mri,
+  metricsMax,
+  metricsMin,
+  metricsOp,
   metricsQuery,
   query,
   suggestedQuery,
@@ -443,8 +496,11 @@ function useTraces<F extends string>({
       per_page: limit,
       breakdownSlices: 40,
       minBreakdownPercentage: 1 / 40,
-      maxSpansPerTrace: 5,
+      maxSpansPerTrace: 10,
       mri,
+      metricsMax,
+      metricsMin,
+      metricsOp,
       metricsQuery,
     },
   };
@@ -476,13 +532,12 @@ const TracePanelContent = styled('div')`
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 141px 85px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 133px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
-  padding: ${space(2)} ${space(1)};
 `;
 
 const Description = styled('div')`
@@ -499,7 +554,7 @@ const StyledPanelItem = styled(PanelItem)<{
   span?: number;
 }>`
   align-items: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
   ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
   ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
@@ -510,7 +565,17 @@ const StyledPanelItem = styled(PanelItem)<{
       : p.align === 'left' || p.align === 'right'
         ? `text-align: ${p.align};`
         : undefined}
-  ${p => p.span && `grid-column: auto / span ${p.span}`}
+  ${p => p.span && `grid-column: auto / span ${p.span};`}
+  white-space: nowrap;
+`;
+
+const MoreMatchingSpans = styled(StyledPanelItem)`
+  color: ${p => p.theme.gray300};
+`;
+
+const WrappingText = styled('div')`
+  width: 100%;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledSpanPanelItem = styled(StyledPanelItem)`
@@ -555,4 +620,8 @@ const EmptyValueContainer = styled('span')`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
+`;
+
+const StyledCloseButton = styled(IconClose)`
+  cursor: pointer;
 `;

@@ -42,7 +42,10 @@ interface VirtualizedViewManagerEvents {
   ['divider resize end']: (list_width: number) => void;
   ['virtualized list init']: () => void;
 }
-
+type VerticalIndicator = {
+  ref: HTMLElement | null;
+  timestamp: number | undefined;
+};
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -87,6 +90,7 @@ export class VirtualizedViewManager {
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
+  reset_zoom_button: HTMLButtonElement | null = null;
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
   horizontal_scrollbar_container: HTMLElement | null = null;
@@ -126,6 +130,8 @@ export class VirtualizedViewManager {
   private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
 
+  vertical_indicators: {[key: string]: VerticalIndicator} = {};
+
   timers: {
     onFovChange: {id: number} | null;
     onRowIntoView: number | null;
@@ -157,6 +163,7 @@ export class VirtualizedViewManager {
       },
     };
 
+    this.registerResetZoomRef = this.registerResetZoomRef.bind(this);
     this.registerContainerRef = this.registerContainerRef.bind(this);
     this.registerHorizontalScrollBarContainerRef =
       this.registerHorizontalScrollBarContainerRef.bind(this);
@@ -212,6 +219,25 @@ export class VirtualizedViewManager {
       // @ts-expect-error
       handler(...args);
     }
+  }
+
+  updateTraceSpace(start: number, width: number) {
+    if (this.trace_space.width === width && this.to_origin === start) {
+      return;
+    }
+
+    this.to_origin = start;
+
+    // If view is scaled all the way out, then lets update it to match the new space, else
+    // we are implicitly zooming in, which may be even more confusing.
+    const preventImplicitZoom = this.trace_view.width === this.trace_space.width;
+    this.trace_space = new TraceView(0, 0, width, 1);
+    if (preventImplicitZoom) {
+      this.setTraceView({x: 0, width});
+    }
+
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPxMatrix();
   }
 
   initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
@@ -332,6 +358,10 @@ export class VirtualizedViewManager {
     } else {
       this.teardown();
     }
+  }
+
+  registerResetZoomRef(ref: HTMLButtonElement | null) {
+    this.reset_zoom_button = ref;
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {
@@ -486,6 +516,13 @@ export class VirtualizedViewManager {
     if (ref) {
       this.timeline_indicators[index] = ref;
       this.drawTimelineInterval(ref, index);
+    }
+  }
+
+  registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
+    if (indicator.ref) {
+      this.vertical_indicators[key] = indicator;
+      this.drawVerticalIndicator(indicator);
     }
   }
 
@@ -744,6 +781,7 @@ export class VirtualizedViewManager {
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPxMatrix();
     this.enqueueFOVQueryParamSync();
+    this.syncResetZoomButton();
   }
 
   enqueueFOVQueryParamSync() {
@@ -775,6 +813,26 @@ export class VirtualizedViewManager {
       child.style.width =
         Math.round(max - this.scrollbar_width + this.ROW_PADDING_PX) + 'px';
     }
+  }
+
+  syncResetZoomButton() {
+    if (!this.reset_zoom_button) return;
+    this.reset_zoom_button.disabled =
+      this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
+  }
+
+  maybeSyncViewWithVerticalIndicator(key: string) {
+    const indicator = this.vertical_indicators[key];
+    if (!indicator || typeof indicator.timestamp !== 'number') {
+      return;
+    }
+
+    const timestamp = indicator.timestamp - this.to_origin;
+    this.setTraceView({
+      x: timestamp - this.trace_view.width / 2,
+      width: this.trace_view.width,
+    });
+    this.draw();
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
@@ -1274,7 +1332,8 @@ export class VirtualizedViewManager {
 
       const outside_left =
         span.space[0] - this.to_origin + span.space[1] < this.trace_view.x - error_margin;
-      const outside_right = span.space[0] - this.to_origin > this.trace_view.right;
+      const outside_right =
+        span.space[0] - this.to_origin - error_margin > this.trace_view.right;
 
       if (outside_left || outside_right) {
         this.hideSpanBar(this.span_bars[i], this.span_text[i]);
@@ -1378,6 +1437,7 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
+    this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
 
@@ -1438,6 +1498,27 @@ export class VirtualizedViewManager {
         span_arrow.ref.className = 'TraceArrow';
       }
     }
+  }
+
+  drawVerticalIndicators() {
+    for (const key in this.vertical_indicators) {
+      this.drawVerticalIndicator(this.vertical_indicators[key]);
+    }
+  }
+
+  drawVerticalIndicator(indicator: VerticalIndicator) {
+    if (!indicator.ref) {
+      return;
+    }
+
+    if (indicator.timestamp === undefined) {
+      indicator.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
+    indicator.ref.style.opacity = '1';
+    indicator.ref.style.transform = `translateX(${placement}px)`;
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {

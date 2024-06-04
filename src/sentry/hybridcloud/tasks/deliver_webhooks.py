@@ -2,6 +2,7 @@ import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import orjson
 import sentry_sdk
 from django.db.models import Min, Subquery
 from django.utils import timezone
@@ -23,7 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_region_by_name
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -378,7 +379,7 @@ def perform_request(payload: WebhookPayload) -> None:
             logging_context["request_method"] = payload.request_method
             logging_context["request_path"] = payload.request_path
 
-            headers = json.loads(payload.request_headers)
+            headers = orjson.loads(payload.request_headers)
             response = client.request(
                 method=payload.request_method,
                 path=payload.request_path,

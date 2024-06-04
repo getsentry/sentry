@@ -53,6 +53,7 @@ from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
+from .groupsearchview import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
@@ -90,6 +91,7 @@ from .projectownership import ProjectOwnership  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectteam import ProjectTeam  # noqa
+from .projecttemplate import ProjectTemplate  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
@@ -113,7 +115,6 @@ from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
-from .sentryfunction import *  # NOQA
 from .sentryshot import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA

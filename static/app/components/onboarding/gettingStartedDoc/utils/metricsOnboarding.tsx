@@ -13,12 +13,14 @@ import {getInstallConfig as getNodeInstallConfig} from 'sentry/utils/gettingStar
 const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
-  integrations: [
-    Sentry.metrics.metricsAggregatorIntegration(),
-  ],
+  // Only needed for SDK versions < 8.0.0
+  // integrations: [
+  //   Sentry.metrics.metricsAggregatorIntegration(),
+  // ],
 });`;
 
 const JSExampleConfig = {
+  description: t('Try out these examples:'),
   code: [
     {
       label: 'Counter',
@@ -99,22 +101,13 @@ export const getReactNativeMetricsOnboarding = ({
 const getJSMetricsOnboardingConfigure = (params: DocsParams) => [
   {
     type: StepType.CONFIGURE,
-    description: tct(
-      'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
-      {
-        codeNamespace: <code />,
-      }
+    description: t(
+      'With the default snippet in place, there is no need for any further configuration.'
     ),
     configurations: [
       {
-        code: [
-          {
-            label: 'Counter',
-            value: 'counter',
-            language: 'javascript',
-            code: getJSConfigureSnippet(params),
-          },
-        ],
+        code: getJSConfigureSnippet(params),
+        language: 'javascript',
       },
     ],
   },
@@ -134,6 +127,9 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
       }
     ),
     configurations: [
+      {
+        description: metricTagsExplanation,
+      },
       JSExampleConfig,
       {
         description: t(
@@ -155,9 +151,10 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
 const getJSServerConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
-  _experiments: {
-    metricsAggregator: true,
-  },
+  // Only needed for SDK versions < 8.0.0
+  // _experiments: {
+  //   metricsAggregator: true,
+  // },
 });`;
 
 export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
@@ -179,23 +176,13 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
+      description: t(
+        'With the default snippet in place, there is no need for any further configuration.'
       ),
       configurations: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getJSServerConfigureSnippet(params),
-            },
-          ],
+          code: getJSServerConfigureSnippet(params),
+          language: 'javascript',
         },
       ],
     },
@@ -214,6 +201,9 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
         }
       ),
       configurations: [
+        {
+          description: metricTagsExplanation,
+        },
         JSExampleConfig,
         {
           description: t(
@@ -431,22 +421,22 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Kotlin',
-                  value: 'kotlin',
-                  language: 'java',
-                  code: getJvmKotlinVerifySnippet(),
-                },
-                {
-                  label: 'Java',
-                  value: 'java',
-                  language: 'java',
-                  code: getJvmJavaVerifySnippet(),
-                },
-              ],
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
+              code: getJvmKotlinVerifySnippet(),
+            },
+            {
+              label: 'Java',
+              value: 'java',
+              language: 'java',
+              code: getJvmJavaVerifySnippet(),
             },
           ],
         },
@@ -529,22 +519,22 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
       ),
       configurations: [
         {
-          configurations: [
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
             {
-              code: [
-                {
-                  label: 'Java',
-                  value: 'java',
-                  language: 'java',
-                  code: getJvmJavaVerifySnippet(),
-                },
-                {
-                  label: 'Kotlin',
-                  value: 'kotlin',
-                  language: 'java',
-                  code: getJvmKotlinVerifySnippet(),
-                },
-              ],
+              label: 'Java',
+              value: 'java',
+              language: 'java',
+              code: getJvmJavaVerifySnippet(),
+            },
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'java',
+              code: getJvmKotlinVerifySnippet(),
             },
           ],
         },

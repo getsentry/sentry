@@ -29,15 +29,15 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.processing_errors import (
-    CheckinValidationError,
-    ProcessingError,
-    ProcessingErrorType,
-)
+from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
+
+
+class ExpectNoProcessingError:
+    pass
 
 
 class MonitorConsumerTest(TestCase):
@@ -73,7 +73,7 @@ class MonitorConsumerTest(TestCase):
         guid: str | None = None,
         ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
-        expected_error: CheckinValidationError | None = None,
+        expected_error: ProcessingErrorsException | ExpectNoProcessingError | None = None,
         expected_monitor_slug: str | None = None,
         **overrides: Any,
     ) -> None:
@@ -120,7 +120,7 @@ class MonitorConsumerTest(TestCase):
     def check_processing_errors(
         self,
         expected_checkin: CheckIn,
-        expected_error: CheckinValidationError | None,
+        expected_error: ProcessingErrorsException | ExpectNoProcessingError | None,
         expected_monitor_slug: str | None,
     ) -> Generator:
         if expected_error is None:
@@ -133,6 +133,10 @@ class MonitorConsumerTest(TestCase):
             yield
 
             args_list = handle_processing_errors.call_args_list
+            if isinstance(expected_error, ExpectNoProcessingError):
+                assert len(args_list) == 0
+                return
+
             assert len(args_list) == 1
 
             checkin_item, error = args_list[0][0]
@@ -386,7 +390,31 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
-    def test_check_in_update_terminal(self):
+    def test_check_in_update_terminal_in_progress(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, duration=10.0)
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="in_progress",
+            expected_error=ExpectNoProcessingError(),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.duration == int(10.0 * 1000)
+
+        self.send_checkin(monitor.slug, duration=20.0, status="error")
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="in_progress",
+            expected_error=ExpectNoProcessingError(),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.duration == int(20.0 * 1000)
+
+    def test_check_in_update_terminal_user_terminal(self):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(monitor.slug, duration=10.0)
         self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
@@ -395,7 +423,14 @@ class MonitorConsumerTest(TestCase):
         assert checkin.duration == int(10.0 * 1000)
 
         self.send_checkin(monitor.slug, duration=20.0, status="error")
-        self.send_checkin(monitor.slug, guid=self.guid, status="in_progress")
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="ok",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.CHECKIN_FINISHED}], monitor
+            ),
+        )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration == int(20.0 * 1000)
@@ -594,8 +629,8 @@ class MonitorConsumerTest(TestCase):
             self.send_checkin(
                 "my-monitor",
                 ts=now,
-                expected_error=CheckinValidationError(
-                    [ProcessingError(ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED)]
+                expected_error=ProcessingErrorsException(
+                    [{"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED}]
                 ),
             )
 
@@ -626,12 +661,12 @@ class MonitorConsumerTest(TestCase):
             guid=self.guid,
             status="ok",
             environment="test",
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
-                        {"existing_environment": "production"},
-                    )
+                    {
+                        "type": ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH,
+                        "existingEnvironment": "production",
+                    }
                 ],
                 monitor,
             ),
@@ -652,21 +687,19 @@ class MonitorConsumerTest(TestCase):
             "my-monitor",
             guid=self.guid,
             duration=-(1.0 / 1000),
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
-                        {
-                            "errors": {
-                                "duration": [
-                                    ErrorDetail(
-                                        string="Ensure this value is greater than or equal to 0.",
-                                        code="min_value",
-                                    )
-                                ]
-                            }
+                    {
+                        "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        "errors": {
+                            "duration": [
+                                ErrorDetail(
+                                    string="Ensure this value is greater than or equal to 0.",
+                                    code="min_value",
+                                )
+                            ]
                         },
-                    )
+                    }
                 ],
             ),
         )
@@ -674,21 +707,19 @@ class MonitorConsumerTest(TestCase):
             "my-monitor",
             guid=self.guid,
             duration=((BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000),
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
-                        {
-                            "errors": {
-                                "duration": [
-                                    ErrorDetail(
-                                        string="Ensure this value is less than or equal to 2147483647.",
-                                        code="max_value",
-                                    )
-                                ]
-                            }
+                    {
+                        "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        "errors": {
+                            "duration": [
+                                ErrorDetail(
+                                    string="Ensure this value is less than or equal to 2147483647.",
+                                    code="max_value",
+                                )
+                            ]
                         },
-                    )
+                    }
                 ],
             ),
         )
@@ -697,42 +728,38 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(
             "my-monitor",
             duration=-(1.0 / 1000),
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
-                        {
-                            "errors": {
-                                "duration": [
-                                    ErrorDetail(
-                                        string="Ensure this value is greater than or equal to 0.",
-                                        code="min_value",
-                                    )
-                                ]
-                            }
+                    {
+                        "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        "errors": {
+                            "duration": [
+                                ErrorDetail(
+                                    string="Ensure this value is greater than or equal to 0.",
+                                    code="min_value",
+                                )
+                            ]
                         },
-                    )
+                    }
                 ],
             ),
         )
         self.send_checkin(
             "my-monitor",
             duration=(BoundedPositiveIntegerField.MAX_VALUE + 1.0) / 1000,
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
-                        {
-                            "errors": {
-                                "duration": [
-                                    ErrorDetail(
-                                        string="Ensure this value is less than or equal to 2147483647.",
-                                        code="max_value",
-                                    )
-                                ]
-                            }
+                    {
+                        "type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED,
+                        "errors": {
+                            "duration": [
+                                ErrorDetail(
+                                    string="Ensure this value is less than or equal to 2147483647.",
+                                    code="max_value",
+                                )
+                            ]
                         },
-                    )
+                    }
                 ],
             ),
         )
@@ -827,22 +854,22 @@ class MonitorConsumerTest(TestCase):
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * * *"}},
             environment="my-environment",
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
-                        {
-                            "errors": {
-                                "schedule": [
-                                    ErrorDetail(
-                                        string="Only 5 field crontab syntax is supported",
-                                        code="invalid",
-                                    )
-                                ]
-                            }
+                    {
+                        "type": ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                        "errors": {
+                            "schedule": [
+                                ErrorDetail(
+                                    string="Only 5 field crontab syntax is supported",
+                                    code="invalid",
+                                )
+                            ]
                         },
-                    ),
-                    ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND),
+                    },
+                    {
+                        "type": ProcessingErrorType.MONITOR_NOT_FOUND,
+                    },
                 ],
             ),
         )
@@ -854,19 +881,17 @@ class MonitorConsumerTest(TestCase):
             "my-invalid-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "* * 31 2 *"}},
             environment="my-environment",
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_CONFIG,
-                        {
-                            "errors": {
-                                "schedule": [
-                                    ErrorDetail(string="Schedule is invalid", code="invalid")
-                                ]
-                            },
+                    {
+                        "type": ProcessingErrorType.MONITOR_INVALID_CONFIG,
+                        "errors": {
+                            "schedule": [ErrorDetail(string="Schedule is invalid", code="invalid")]
                         },
-                    ),
-                    ProcessingError(ProcessingErrorType.MONITOR_NOT_FOUND),
+                    },
+                    {
+                        "type": ProcessingErrorType.MONITOR_NOT_FOUND,
+                    },
                 ],
             ),
         )
@@ -878,14 +903,12 @@ class MonitorConsumerTest(TestCase):
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
             expected_error = None
             if i > settings.MAX_MONITORS_PER_ORG:
-                expected_error = CheckinValidationError(
+                expected_error = ProcessingErrorsException(
                     [
-                        ProcessingError(
-                            ProcessingErrorType.MONITOR_LIMIT_EXCEEDED,
-                            {
-                                "reason": f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization"
-                            },
-                        )
+                        {
+                            "type": ProcessingErrorType.MONITOR_LIMIT_EXCEEDED,
+                            "reason": f"You may not exceed {settings.MAX_MONITORS_PER_ORG} monitors per organization",
+                        }
                     ]
                 )
             self.send_checkin(
@@ -903,14 +926,12 @@ class MonitorConsumerTest(TestCase):
         for i in range(settings.MAX_ENVIRONMENTS_PER_MONITOR + 2):
             expected_error = None
             if i > settings.MAX_ENVIRONMENTS_PER_MONITOR:
-                expected_error = CheckinValidationError(
+                expected_error = ProcessingErrorsException(
                     [
-                        ProcessingError(
-                            ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED,
-                            {
-                                "reason": f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor"
-                            },
-                        )
+                        {
+                            "type": ProcessingErrorType.MONITOR_ENVIRONMENT_LIMIT_EXCEEDED,
+                            "reason": f"You may not exceed {settings.MAX_ENVIRONMENTS_PER_MONITOR} environments per monitor",
+                        }
                     ],
                 )
             self.send_checkin(
@@ -935,13 +956,13 @@ class MonitorConsumerTest(TestCase):
             monitor_slug,
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment=f"my-environment-{invalid_name}",
-            expected_error=CheckinValidationError(
+            expected_error=ProcessingErrorsException(
                 [
-                    ProcessingError(
-                        ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT,
-                        {"reason": "Environment name too long"},
-                    )
-                ],
+                    {
+                        "type": ProcessingErrorType.MONITOR_INVALID_ENVIRONMENT,
+                        "reason": "Environment name too long",
+                    }
+                ]
             ),
             expected_monitor_slug=monitor_slug,
         )
@@ -956,9 +977,9 @@ class MonitorConsumerTest(TestCase):
         monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
         self.send_checkin(
             "my-monitor",
-            expected_error=CheckinValidationError(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED)],
-                monitor=monitor,
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_DISABLED}],
+                monitor,
             ),
         )
 
@@ -975,8 +996,8 @@ class MonitorConsumerTest(TestCase):
         with self.options({"crons.organization.disable-check-in": opt_val}):
             self.send_checkin(
                 monitor.slug,
-                expected_error=CheckinValidationError(
-                    [ProcessingError(ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED)],
+                expected_error=ProcessingErrorsException(
+                    [{"type": ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED}]
                 ),
             )
 
@@ -1049,8 +1070,8 @@ class MonitorConsumerTest(TestCase):
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin(
             monitor.slug,
-            expected_error=CheckinValidationError(
-                [ProcessingError(ProcessingErrorType.MONITOR_OVER_QUOTA)],
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}],
             ),
         )
 
@@ -1108,8 +1129,8 @@ class MonitorConsumerTest(TestCase):
             "my-monitor",
             monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
             environment="my-environment",
-            expected_error=CheckinValidationError(
-                [ProcessingError(ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA)],
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA}]
             ),
             expected_monitor_slug="my-monitor",
         )

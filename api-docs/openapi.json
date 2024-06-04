@@ -87,14 +87,8 @@
     }
   ],
   "paths": {
-    "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/": {
-      "$ref": "paths/teams/by-slug.json"
-    },
     "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/stats/": {
       "$ref": "paths/teams/stats.json"
-    },
-    "/api/0/organizations/": {
-      "$ref": "paths/organizations/index.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {
       "$ref": "paths/organizations/event-id-lookup.json"
@@ -167,9 +161,6 @@
     },
     "/api/0/organizations/{organization_id_or_slug}/releases/": {
       "$ref": "paths/releases/organization-releases.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/": {
-      "$ref": "paths/releases/organization-release.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/": {
       "$ref": "paths/releases/release-files.json"

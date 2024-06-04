@@ -1,7 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -29,6 +28,7 @@ describe('AssigneeSelectorDropdown', () => {
   let PROJECT_1;
   let GROUP_1;
   let GROUP_2;
+  let GROUP_3;
 
   beforeEach(() => {
     USER_1 = UserFixture({
@@ -85,6 +85,18 @@ describe('AssigneeSelectorDropdown', () => {
       ],
     });
 
+    GROUP_3 = GroupFixture({
+      id: '1339',
+      project: PROJECT_1,
+      owners: [
+        {
+          type: 'suspectCommit',
+          owner: `user:${USER_4.id}`,
+          date_added: '',
+        },
+      ],
+    });
+
     TeamStore.reset();
     TeamStore.setTeams([TEAM_1, TEAM_2]);
     GroupStore.reset();
@@ -94,9 +106,7 @@ describe('AssigneeSelectorDropdown', () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     MemberListStore.reset();
-  });
 
-  beforeEach(() => {
     ProjectsStore.loadInitialData([PROJECT_1]);
   });
 
@@ -563,6 +573,34 @@ describe('AssigneeSelectorDropdown', () => {
     });
   });
 
+  it('shows the suggested assignee even if they would be cut off by the size limit', async () => {
+    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_3);
+
+    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
+
+    render(
+      <AssigneeSelectorDropdown
+        group={GROUP_3}
+        loading={false}
+        onAssign={newAssignee => updateGroup(GROUP_3, newAssignee)}
+        sizeLimit={2}
+      />
+    );
+
+    expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
+    // Hover over avatar
+    await userEvent.hover(await screen.findByTestId('letter_avatar-avatar'));
+    expect(await screen.findByText('Suggestion: Git Hub')).toBeInTheDocument();
+    expect(await screen.findByText('commit data')).toBeInTheDocument();
+
+    await openMenu();
+    // User 4, Git Hub, would have normally been cut off by the the size limit since it is
+    // alphabetically last, but it should still be shown because it is a suggested assignee
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveTextContent('GH');
+  });
+
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     render(
@@ -570,10 +608,7 @@ describe('AssigneeSelectorDropdown', () => {
         group={GROUP_1}
         loading={false}
         onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
-      />,
-      {
-        context: RouterContextFixture(),
-      }
+      />
     );
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
@@ -582,7 +617,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
-    (ConfigStore.get as jest.Mock).mockRestore();
+    jest.mocked(ConfigStore.get).mockRestore();
   });
 
   it('renders unassigned', async () => {

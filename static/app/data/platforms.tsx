@@ -61,6 +61,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/dart/',
   },
   {
+    id: 'deno',
+    name: 'Deno',
+    type: 'language',
+    language: 'deno',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/deno/',
+  },
+  {
     id: 'dotnet',
     name: '.NET',
     type: 'language',
@@ -170,6 +177,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     id: 'go-fasthttp',
     name: 'FastHTTP',
+    language: 'go',
+  },
+  {
+    link: 'https://docs.sentry.io/platforms/go/guides/fiber/',
+    type: 'framework',
+    id: 'go-fiber',
+    name: 'Fiber',
     language: 'go',
   },
   {
@@ -397,6 +411,20 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/express/',
   },
   {
+    id: 'node-fastify',
+    name: 'Fastify',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/fastify/',
+  },
+  {
+    id: 'node-hapi',
+    name: 'Hapi',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/',
+  },
+  {
     id: 'node-gcpfunctions',
     name: 'Google Cloud Functions (Node)',
     type: 'framework',
@@ -409,6 +437,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/koa/',
+  },
+  {
+    id: 'node-nestjs',
+    name: 'Nest.js',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/',
   },
   {
     id: 'php',
@@ -430,6 +465,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'php',
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
+  },
+  {
+    id: 'powershell',
+    name: 'PowerShell',
+    type: 'language',
+    language: 'powershell',
+    link: 'https://docs.sentry.io/platforms/powershell/',
   },
   {
     id: 'python',

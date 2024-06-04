@@ -35,7 +35,7 @@ class SlugMismatchException(Exception):
 
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-):
+) -> RegionOutbox:
     return RegionOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,
@@ -49,7 +49,7 @@ def create_organization_provisioning_outbox(
     organization_id: int,
     region_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
-):
+) -> ControlOutbox:
     payload = org_provision_payload.json() if org_provision_payload is not None else None
     return ControlOutbox(
         region_name=region_name,
@@ -254,12 +254,15 @@ class DatabaseBackedControlOrganizationProvisioningService(
         return primary_slug
 
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
+        self,
+        *,
+        region_name: str,
+        slug_mapping: dict[int, str],
     ) -> None:
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
-            for org_id, slug in organization_ids_and_slugs:
+            for org_id, slug in slug_mapping.items():
                 slug_reservation = OrganizationSlugReservation(
                     slug=self._generate_org_slug(slug=slug, region_name=region_name),
                     organization_id=org_id,

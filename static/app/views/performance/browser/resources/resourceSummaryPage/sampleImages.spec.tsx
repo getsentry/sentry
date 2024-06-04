@@ -6,7 +6,6 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {DetailedOrganization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -16,15 +15,14 @@ const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('SampleImages', function () {
   const organization = OrganizationFixture({
-    features: ['starfish-view', 'spans-first-ui'],
+    features: ['insights-initial-modules'],
   });
 
   beforeEach(() => {
-    setupMocks(organization);
+    setupMocks();
   });
 
   afterEach(function () {
@@ -36,7 +34,7 @@ describe('SampleImages', function () {
       setupMockRequests(organization, {enableImages: true});
     });
     it('should render images', async () => {
-      render(<SampleImages groupId="group123" projectId={2} />);
+      render(<SampleImages groupId="group123" projectId={2} />, {organization});
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
       const sampleImages = screen.queryAllByTestId('sample-image');
@@ -52,7 +50,7 @@ describe('SampleImages', function () {
     });
 
     it('should ask to enable images', async () => {
-      render(<SampleImages groupId="group123" projectId={2} />);
+      render(<SampleImages groupId="group123" projectId={2} />, {organization});
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
       expect(screen.queryByTestId('sample-image')).not.toBeInTheDocument();
       expect(screen.queryByTestId('enable-sample-images-button')).toBeInTheDocument();
@@ -60,7 +58,7 @@ describe('SampleImages', function () {
   });
 });
 
-const setupMocks = (organization: DetailedOrganization) => {
+const setupMocks = () => {
   const mockProjects = [ProjectFixture()];
   ProjectsStore.loadInitialData(mockProjects);
 
@@ -90,8 +88,6 @@ const setupMocks = (organization: DetailedOrganization) => {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 };
 
 const setupMockRequests = (

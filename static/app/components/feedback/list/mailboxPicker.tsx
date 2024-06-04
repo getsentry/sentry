@@ -1,7 +1,7 @@
 import Badge from 'sentry/components/badge/badge';
+import {Flex} from 'sentry/components/container/flex';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
-import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -24,10 +24,7 @@ export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
 
-  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
-  const filteredMailboxes = hasSpamFeature
-    ? MAILBOXES
-    : MAILBOXES.filter(i => i.key !== 'ignored');
+  const filteredMailboxes = MAILBOXES;
 
   return (
     <Flex justify="flex-end" flex="1 0 auto">

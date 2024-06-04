@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
@@ -38,12 +37,11 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -437,11 +435,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in ret["blocks"]:
             assert section["type"] != "actions"
 
-    @patch(
-        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
-        return_value="https://github.com/meowmeow/cats/pull/1",
-    )
-    def test_issue_alert_with_suspect_commits(self, mock_external_url):
+    def test_issue_alert_with_suspect_commits(self):
         self.login_as(user=self.user)
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -450,7 +444,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             name="example",
             integration_id=self.integration.id,
             url="http://www.github.com/meowmeow/cats",
-            provider="github",
+            provider="integrations:github",
         )
         commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -473,18 +467,18 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "fingerprint": ["group1"],
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
             project_id=self.project.id,
             assert_no_errors=False,
+            event_type=EventType.ERROR,
         )
         assert event.group
         group = event.group
 
         GroupOwner.objects.create(
-            group=event.group,
+            group=group,
             user_id=self.user.id,
             project=self.project,
             organization=self.organization,
@@ -492,13 +486,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
-        commits = get_commits(self.project, event)
+        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{pull_request.get_external_url()}|View Pull Request>"
 
         assert SlackIssuesMessageBuilder(
             group,
             event.for_group(group),
-            commits=commits,
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -508,11 +500,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suggested_assignees=commit_author.email,
         )
 
-    @patch(
-        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
-        return_value="https://unknown.com/meowmeow/cats/pull/1",
-    )
-    def test_issue_alert_with_suspect_commits_unknown_provider(self, mock_external_url):
+    def test_issue_alert_with_suspect_commits_unknown_provider(self):
         self.login_as(user=self.user)
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -531,7 +519,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             key="asdfwreqr",
             message="placeholder commit message",
         )
-        pull_request = PullRequest.objects.create(
+        PullRequest.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
             key="9",
@@ -544,18 +532,18 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "fingerprint": ["group1"],
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
             project_id=self.project.id,
             assert_no_errors=False,
+            event_type=EventType.ERROR,
         )
         assert event.group
         group = event.group
 
         GroupOwner.objects.create(
-            group=event.group,
+            group=group,
             user_id=self.user.id,
             project=self.project,
             organization=self.organization,
@@ -563,13 +551,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
-        commits = get_commits(self.project, event)
+        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email}"
 
         assert SlackIssuesMessageBuilder(
             group,
             event.for_group(group),
-            commits=commits,
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -650,7 +636,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
         suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.email}"  # no commit link because there is no PR
 
-        commits = get_commits(self.project, event)
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -662,9 +647,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert (
-            SlackIssuesMessageBuilder(
-                group, event.for_group(group), tags={"foo"}, commits=commits
-            ).build()
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
         )
 
@@ -682,11 +665,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             initial_assignee=self.user,
             suspect_commit_text=suspect_commit_text,
         )
-        commits = get_commits(self.project, event)
         assert (
-            SlackIssuesMessageBuilder(
-                group, event.for_group(group), tags={"foo"}, commits=commits
-            ).build()
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
         )
 

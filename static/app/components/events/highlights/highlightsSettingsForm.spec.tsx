@@ -7,7 +7,7 @@ import HighlightsSettingsForm from 'sentry/components/events/highlights/highligh
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsSettingForm', function () {
-  const organization = OrganizationFixture({features: ['event-tags-tree-ui']});
+  const organization = OrganizationFixture();
   const highlightTags = ['environment', 'handled', 'release', 'url'];
   const highlightContext = {
     user: ['email'],
@@ -16,16 +16,17 @@ describe('HighlightsSettingForm', function () {
   const project = ProjectFixture({highlightContext, highlightTags});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  beforeEach(async function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags, highlightContext},
     });
-    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
-    await screen.findByText('Highlights');
   });
 
-  it('should render with highlights from detailed project', function () {
+  it('should render with highlights from detailed project', async function () {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
     expect(screen.getByText('Highlighted Tags')).toBeInTheDocument();
     const tagInput = screen.getByRole('textbox', {name: 'Highlighted Tags'});
     expect(tagInput).toHaveValue(highlightTags.join('\n'));
@@ -36,6 +37,9 @@ describe('HighlightsSettingForm', function () {
   });
 
   it('should allow the Highlight Tags field to mutate highlights', async function () {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
     const newTag = 'orchid';
     const url = `/projects/${organization.slug}/${project.slug}/`;
     const updateProjectMock = MockApiClient.addMockResponse({
@@ -62,6 +66,9 @@ describe('HighlightsSettingForm', function () {
   });
 
   it('should allow the Highlight Context field to mutate highlights', async function () {
+    render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
+    await screen.findByText('Highlights');
+
     const newContext = {flower: ['leafCount', 'petalCount']};
     const url = `/projects/${organization.slug}/${project.slug}/`;
     const updateProjectMock = MockApiClient.addMockResponse({

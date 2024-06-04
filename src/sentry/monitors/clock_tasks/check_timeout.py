@@ -29,24 +29,32 @@ def dispatch_check_timeout(ts: datetime):
 
     This will dispatch MarkTimeout messages into monitors-clock-tasks.
     """
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts)[
-        :CHECKINS_LIMIT
-    ]
-    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1.0)
+    timed_out_checkins = list(
+        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts,).values(
+            "id", "monitor_environment_id"
+        )[:CHECKINS_LIMIT]
+    )
+
+    metrics.gauge(
+        "sentry.monitors.tasks.check_timeout.count",
+        len(timed_out_checkins),
+        sample_rate=1.0,
+    )
+
     # check for any monitors which are still running and have exceeded their maximum runtime
-    for checkin in qs:
+    for checkin in timed_out_checkins:
         message: MarkTimeout = {
             "type": "mark_timeout",
             "ts": ts.timestamp(),
-            "monitor_environment_id": checkin.monitor_environment_id,
-            "checkin_id": checkin.id,
+            "monitor_environment_id": checkin["monitor_environment_id"],
+            "checkin_id": checkin["id"],
         }
         # XXX(epurkhiser): Partitioning by monitor_environment.id is important
         # here as these task messages will be consumed in a multi-consumer
         # setup. If we backlogged clock-ticks we may produce multiple timeout
         # tasks for the same monitor_environment. These MUST happen in-order.
         payload = KafkaPayload(
-            str(checkin.monitor_environment_id).encode(),
+            str(checkin["monitor_environment_id"]).encode(),
             MONITORS_CLOCK_TASKS_CODEC.encode(message),
             [],
         )
@@ -87,6 +95,10 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime):
         status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
     ).exists()
     if not has_newer_result:
+        # The status was updated in the database. Update the field without
+        # needing to reload the check-in
+        checkin.status = CheckInStatus.TIMEOUT
+
         # Similar to mark_missed we compute when the most recent check-in should
         # have happened to use as our reference time for mark_failed.
         #

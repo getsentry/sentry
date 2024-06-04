@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import os
 import random
@@ -9,12 +10,14 @@ from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from enum import Enum
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -150,9 +153,14 @@ from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
-from sentry.utils import json, loremipsum
+from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
+
+
+class EventType(Enum):
+    ERROR = "error"
+    DEFAULT = "default"
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -285,7 +293,7 @@ DEFAULT_EVENT_DATA = {
 
 def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
-        manifest = json.load(fp)
+        manifest = orjson.loads(fp.read())
     if org:
         manifest["org"] = org
     if release:
@@ -294,7 +302,7 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
         manifest["project"] = project
     for path in extra_files or {}:
         manifest["files"][path] = {"url": path}
-    return json.dumps(manifest)
+    return orjson.dumps(manifest).decode()
 
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
@@ -898,10 +906,19 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def store_event(
-        data, project_id: int, assert_no_errors: bool = True, sent_at: datetime | None = None
+        data,
+        project_id: int,
+        assert_no_errors: bool = True,
+        event_type: EventType = EventType.DEFAULT,
+        sent_at: datetime | None = None,
     ) -> Event:
-        # Like `create_event`, but closer to how events are actually
-        # ingested. Prefer to use this method over `create_event`
+        """
+        Like `create_event`, but closer to how events are actually
+        ingested. Prefer to use this method over `create_event`
+        """
+        if event_type == EventType.ERROR:
+            data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:

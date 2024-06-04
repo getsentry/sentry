@@ -10,6 +10,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.types.actor import Actor, ActorType
@@ -72,13 +73,16 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_subscriptions_for_projects(
+    def subscriptions_for_projects(
         self,
         *,
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
+    ) -> Mapping[int, RpcSubscriptionStatus]:
+        """
+        Returns a mapping of project_id to the subscription status for the provided user_id
+        """
         pass
 
     @rpc_method

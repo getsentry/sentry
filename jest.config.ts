@@ -215,7 +215,7 @@ const config: Config.InitialOptions = {
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
-    '^sentry-fixture/(.*)': '<rootDir>/fixtures/js-stubs/$1',
+    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
@@ -274,7 +274,8 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
-  testEnvironment: 'jsdom',
+  // To disable the sentry jest integration, set this to 'jsdom'
+  testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
@@ -284,8 +285,8 @@ const config: Config.InitialOptions = {
           : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 1 : 0.5,
-        profilesSampleRate: CI ? 0.1 : 0,
+        tracesSampleRate: CI ? 0.75 : 0,
+        profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
       transactionOptions: {

@@ -58,6 +58,15 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
@@ -74,6 +83,15 @@ describe('IssueDiff', function () {
         project={project}
         organization={organization}
         shouldBeGrouped="Yes"
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
 
@@ -103,6 +121,15 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
 

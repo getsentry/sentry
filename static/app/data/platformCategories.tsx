@@ -56,6 +56,7 @@ export const mobile: PlatformKey[] = [
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const backend: PlatformKey[] = [
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -63,6 +64,7 @@ export const backend: PlatformKey[] = [
   'go',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
@@ -87,6 +89,7 @@ export const backend: PlatformKey[] = [
   'php-laravel',
   'php-monolog',
   'php-symfony',
+  'powershell',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -159,6 +162,7 @@ export const sourceMaps: PlatformKey[] = [
 
 export const performance: PlatformKey[] = [
   'bun',
+  'deno',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -272,6 +276,7 @@ export const releaseHealth: PlatformKey[] = [
   'dart-flutter',
   // backend
   'bun',
+  'deno',
   'native',
   'node',
   'node-express',
@@ -305,11 +310,13 @@ export const releaseHealth: PlatformKey[] = [
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
 export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'deno',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go',
   'go-gin',
   'go-http',
@@ -454,6 +461,7 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dart',
+  'deno',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-awslambda',

@@ -19,7 +19,7 @@ import {
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
 import ModalStore from 'sentry/stores/modalStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 
 describe('EditHighlightsModal', function () {
@@ -80,14 +80,14 @@ describe('EditHighlightsModal', function () {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ModalStore.reset();
-    renderGlobalModal();
   });
 
   it('should renders with basic functions', async function () {
     renderModal({highlightContext: {}, highlightTags: []});
+    renderGlobalModal();
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-preview-section')).toBeInTheDocument();
-    expect(screen.getByTestId('highlights-empty-message')).toBeInTheDocument();
+    expect(screen.getByTestId('highlights-empty-preview')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-save-info')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-tag-section')).toBeInTheDocument();
     expect(screen.getByTestId('highlights-context-section')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('EditHighlightsModal', function () {
       'highlights.edit_modal.use_default_clicked',
       expect.anything()
     );
-    expect(screen.queryByTestId('highlights-empty-message')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
 
     const updateProjectMock = MockApiClient.addMockResponse({
       url,
@@ -134,10 +134,11 @@ describe('EditHighlightsModal', function () {
       body: project,
     });
     renderModal();
+    renderGlobalModal();
 
     // Existing Tags and Context Keys should be highlighted
     const previewSection = screen.getByTestId('highlights-preview-section');
-    expect(screen.queryByTestId('highlights-empty-message')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
     highlightTags.forEach(tag => {
       const tagItem = within(previewSection).getByText(tag, {selector: 'div'});
       expect(tagItem).toBeInTheDocument();
@@ -203,6 +204,7 @@ describe('EditHighlightsModal', function () {
       body: project,
     });
     renderModal({highlightContext: {}});
+    renderGlobalModal();
 
     const tagSection = screen.getByTestId('highlights-tag-section');
     const previewSection = screen.getByTestId('highlights-preview-section');
@@ -263,6 +265,7 @@ describe('EditHighlightsModal', function () {
       body: project,
     });
     renderModal({highlightTags: []});
+    renderGlobalModal();
 
     const ctxSection = screen.getByTestId('highlights-context-section');
     const previewSection = screen.getByTestId('highlights-preview-section');
@@ -344,11 +347,16 @@ describe('EditHighlightsModal', function () {
 
   it('should update sections from search input', async function () {
     renderModal();
+    renderGlobalModal();
     const tagCount = TEST_EVENT_TAGS.length;
     expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
     const tagInput = screen.getByTestId('highlights-tag-search');
     await userEvent.type(tagInput, 'le');
     expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(3); // handled, level, release
+    await userEvent.clear(tagInput);
+    await userEvent.type(tagInput, 'gibberish');
+    expect(screen.queryAllByTestId('highlight-tag-option')).toHaveLength(0);
+    expect(screen.getByTestId('highlights-empty-tags')).toBeInTheDocument();
     await userEvent.clear(tagInput);
     expect(screen.getAllByTestId('highlight-tag-option')).toHaveLength(tagCount);
 
@@ -359,6 +367,10 @@ describe('EditHighlightsModal', function () {
     const contextInput = screen.getByTestId('highlights-context-search');
     await userEvent.type(contextInput, 'name'); // client_os.name, runtime.name
     expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(2);
+    await userEvent.clear(contextInput);
+    await userEvent.type(contextInput, 'gibberish');
+    expect(screen.queryAllByTestId('highlight-context-option')).toHaveLength(0);
+    expect(screen.getByTestId('highlights-empty-context')).toBeInTheDocument();
     await userEvent.clear(contextInput);
     expect(screen.getAllByTestId('highlight-context-option')).toHaveLength(ctxCount);
   });

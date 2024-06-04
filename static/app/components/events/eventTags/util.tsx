@@ -1,8 +1,5 @@
-import {type RefObject, useCallback, useState} from 'react';
+import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
-
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
@@ -156,16 +153,6 @@ export function getSentryDefaultTags() {
   );
 }
 
-export function useHasNewTagsUI() {
-  const location = useLocation();
-  const organization = useOrganization();
-  return (
-    location.query.tagsTree === '1' ||
-    location.query.traceView === '1' ||
-    organization.features.includes('event-tags-tree-ui')
-  );
-}
-
 const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
   {minWidth: 1950, columnCount: 3},
   {minWidth: 700, columnCount: 2},
@@ -188,6 +175,13 @@ export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): 
   }, [elementRef]);
 
   const [columnCount, setColumnCount] = useState(calculateColumnCount());
+
+  // If the ref was undefined, calculate the column count again
+  useLayoutEffect(() => {
+    if (elementRef.current) {
+      setColumnCount(calculateColumnCount());
+    }
+  }, [calculateColumnCount, elementRef]);
 
   const onResize = useCallback(() => {
     const count = calculateColumnCount();

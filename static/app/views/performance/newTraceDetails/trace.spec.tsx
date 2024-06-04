@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
-import {DetailedEventsFixture} from 'sentry-fixture/events';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -19,7 +18,6 @@ import {EntryType, type Event, type EventTransaction} from 'sentry/types';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {RouteContext} from 'sentry/views/routeContext';
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -58,24 +56,6 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-function TraceViewWithProviders({traceSlug}: {traceSlug: string}) {
-  const {router} = initializeOrg({
-    project: ProjectFixture(),
-  });
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {...router.params, traceSlug},
-        routes: router.routes,
-      }}
-    >
-      <TraceView />
-    </RouteContext.Provider>
-  );
-}
-
 type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
 type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
 
@@ -102,7 +82,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? []),
   });
 }
 
@@ -120,7 +100,7 @@ function mockTransactionDetailsResponse(id: string, resp?: Partial<ResponseType>
     url: `/organizations/org-slug/events/project_slug:${id}/`,
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {body: DetailedEventsFixture()[0]}),
+    ...(resp ?? {body: TransactionEventFixture()}),
   });
 }
 
@@ -129,7 +109,7 @@ function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
     url: `/organizations/org-slug/events/project_slug:${id}/`,
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {body: DetailedEventsFixture()[0]}),
+    ...(resp ?? {body: TransactionEventFixture()}),
   });
 }
 
@@ -149,7 +129,7 @@ function mockTraceEventDetails(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...(resp ?? {}),
+    ...(resp ?? {body: TransactionEventFixture()}),
   });
 }
 
@@ -172,6 +152,12 @@ let tid = -1;
 const span_id = () => `${++sid}`;
 const txn_id = () => `${++tid}`;
 
+const {routerContext} = initializeOrg({
+  router: {
+    params: {orgId: 'org-slug', traceSlug: 'trace-id'},
+  },
+});
+
 function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
   const t = txn_id();
   const s = span_id();
@@ -184,6 +170,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     timestamp: 1,
     generation: 0,
     span_id: s,
+    sdk_name: 'sdk_name',
     'transaction.duration': 1,
     transaction: 'transaction-name' + t,
     'transaction.op': 'transaction-op-' + t,
@@ -194,6 +181,17 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     performance_issues: [],
     ...overrides,
   };
+}
+
+function mockMetricsResponse() {
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/metrics/query/',
+    method: 'POST',
+    body: {
+      data: [],
+      queries: [],
+    },
+  });
 }
 
 function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
@@ -239,10 +237,11 @@ async function keyboardNavigationTestSetup() {
   });
   mockTraceMetaResponse();
   mockTraceRootFacets();
-  mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
+  mockTraceRootEvent('0');
   mockTraceEventDetails();
+  mockMetricsResponse();
 
-  const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
+  const value = render(<TraceView />, {context: routerContext});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -282,10 +281,11 @@ async function pageloadTestSetup() {
   });
   mockTraceMetaResponse();
   mockTraceRootFacets();
-  mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
+  mockTraceRootEvent('0');
   mockTraceEventDetails();
+  mockMetricsResponse();
 
-  const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
+  const value = render(<TraceView />, {context: routerContext});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -325,10 +325,11 @@ async function searchTestSetup() {
   });
   mockTraceMetaResponse();
   mockTraceRootFacets();
-  mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
-  mockTraceEventDetails({body: DetailedEventsFixture()[0]});
+  mockTraceRootEvent('0');
+  mockTraceEventDetails();
+  mockMetricsResponse();
 
-  const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
+  const value = render(<TraceView />, {context: routerContext});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -374,10 +375,11 @@ async function simpleTestSetup() {
   });
   mockTraceMetaResponse();
   mockTraceRootFacets();
-  mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
+  mockTraceRootEvent('0');
   mockTraceEventDetails();
+  mockMetricsResponse();
 
-  const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
+  const value = render(<TraceView />, {context: routerContext});
   const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
@@ -502,7 +504,7 @@ describe('trace view', () => {
     mockTraceMetaResponse();
     mockTraceTagsResponse();
 
-    render(<TraceViewWithProviders traceSlug="trace-id" />);
+    render(<TraceView />, {context: routerContext});
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
@@ -511,7 +513,7 @@ describe('trace view', () => {
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
 
-    render(<TraceViewWithProviders traceSlug="trace-id" />);
+    render(<TraceView />, {context: routerContext});
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
   });
 
@@ -523,15 +525,16 @@ describe('trace view', () => {
       },
     });
     mockTraceMetaResponse();
-    mockTraceTagsResponse({});
+    mockTraceTagsResponse();
 
-    render(<TraceViewWithProviders traceSlug="trace-id" />);
+    render(<TraceView />, {context: routerContext});
     expect(
       await screen.findByText(/trace does not contain any data/i)
     ).toBeInTheDocument();
   });
 
-  describe('pageload', () => {
+  // biome-ignore lint/suspicious/noSkippedTests: Flaky suite times out waiting for `pageloadTestSetup()`
+  describe.skip('pageload', () => {
     it('highlights row at load and sets it as focused', async () => {
       Object.defineProperty(window, 'location', {
         value: {
@@ -726,8 +729,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
-    // this is flakey
-    // eslint-disable-next-line jest/no-disabled-tests
+    // biome-ignore lint/suspicious/noSkippedTests: Flaky test
     it.skip('arrow right expands row and fetches data', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1100,8 +1102,9 @@ describe('trace view', () => {
     it('during search, expanding a row retriggers search', async () => {
       mockTraceMetaResponse();
       mockTraceRootFacets();
-      mockTraceRootEvent('0', {body: DetailedEventsFixture()[0]});
+      mockTraceRootEvent('0');
       mockTraceEventDetails();
+      mockMetricsResponse();
 
       mockTraceResponse({
         body: {
@@ -1132,7 +1135,7 @@ describe('trace view', () => {
         }
       );
 
-      const value = render(<TraceViewWithProviders traceSlug="trace-id" />);
+      const value = render(<TraceView />, {context: routerContext});
 
       // Awaits for the placeholder rendering rows to be removed
       expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();

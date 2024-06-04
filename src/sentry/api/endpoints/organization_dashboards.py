@@ -17,6 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models.dashboard import Dashboard
+from sentry.models.organization import Organization
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -29,6 +30,17 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+
+    def has_object_permission(self, request: Request, view, obj):
+        if isinstance(obj, Organization):
+            return super().has_object_permission(request, view, obj)
+
+        if isinstance(obj, Dashboard):
+            for project in obj.projects.all():
+                if not request.access.has_project_access(project):
+                    return False
+
+        return True
 
 
 @region_silo_endpoint

@@ -23,7 +23,8 @@ import {
   type EventTransaction,
   type Meta,
 } from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
@@ -113,6 +114,7 @@ export function Request({event}: {event: EventTransaction}) {
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.query, meta?.query)}
               title={t('Query String')}
+              sortAlphabetically
             />
           ) : null}
           {defined(data.fragment) ? (
@@ -138,18 +140,21 @@ export function Request({event}: {event: EventTransaction}) {
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.cookies, meta)}
               title={t('Cookies')}
+              sortAlphabetically
             />
           ) : null}
           {defined(data.headers) ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.headers, meta)}
               title={t('Headers')}
+              sortAlphabetically
             />
           ) : null}
           {defined(data.env) ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.env, meta)}
               title={t('Environment')}
+              sortAlphabetically
             />
           ) : null}
         </TraceDrawerComponents.SectionCardGroup>
@@ -207,7 +212,8 @@ function RequestBodySection({
                   depth={0}
                 />
               ),
-              subject: null,
+              subject: t('Body'),
+              subjectNode: null,
             },
           ]}
           title={t('Body')}
@@ -252,7 +258,8 @@ function RequestBodySection({
                   maxDefaultDepth={2}
                 />
               ),
-              subject: null,
+              subject: t('Body'),
+              subjectNode: null,
             },
           ]}
           title={t('Body')}
@@ -285,7 +292,7 @@ const Monospace = styled('span')`
 const Path = styled('span')`
   color: ${p => p.theme.textColor};
   text-transform: none;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   & strong {
     margin-right: ${space(0.5)};

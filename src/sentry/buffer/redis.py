@@ -69,13 +69,13 @@ class BufferHookRegistry:
     def has(self, key: BufferHookEvent) -> bool:
         return self._registry.get(key) is not None
 
-    def callback(self, buffer_hook_event: BufferHookEvent, data: RedisBuffer) -> bool:
+    def callback(self, buffer_hook_event: BufferHookEvent) -> bool:
         try:
             callback = self._registry[buffer_hook_event]
         except KeyError:
-            return False
+            logger.exception("buffer_hook_event.missing")
 
-        return callback(data)
+        return callback()
 
 
 redis_buffer_registry = BufferHookRegistry()
@@ -136,9 +136,7 @@ class RedisBuffer(Buffer):
             value = value.pk
         return force_bytes(value, errors="replace")
 
-    def _make_key(
-        self, model: type[models.Model], filters: dict[str, models.Model | str | int]
-    ) -> str:
+    def _make_key(self, model: type[models.Model], filters: dict[str, Any]) -> str:
         """
         Returns a Redis-compatible key for the model given filters.
         """
@@ -213,7 +211,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: list[str],
-        filters: dict[str, models.Model | str | int],
+        filters: dict[str, Any],
     ) -> dict[str, int]:
         """
         Fetches buffered values for a model/filter. Passed columns must be integer columns.
@@ -243,6 +241,8 @@ class RedisBuffer(Buffer):
     def _execute_redis_operation(
         self, key: str, operation: RedisOperation, *args: Any, **kwargs: Any
     ) -> Any:
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str)
         pipe = self.get_redis_connection(self.pending_key)
         getattr(pipe, operation.value)(key, *args, **kwargs)
         if args:
@@ -250,7 +250,8 @@ class RedisBuffer(Buffer):
         return pipe.execute()[0]
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
-        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, {value: time()})
+        value_dict = {value: time()}
+        self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         redis_set = self._execute_redis_operation(
@@ -312,7 +313,7 @@ class RedisBuffer(Buffer):
 
     def process_batch(self) -> None:
         try:
-            redis_buffer_registry.callback(BufferHookEvent.FLUSH, self)
+            redis_buffer_registry.callback(BufferHookEvent.FLUSH)
         except Exception:
             logger.exception("process_batch.error")
 
@@ -435,7 +436,7 @@ class RedisBuffer(Buffer):
         self,
         model: type[models.Model],
         columns: dict[str, int],
-        filters: dict[str, str | datetime | date | int | float],
+        filters: dict[str, Any],
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> Any:

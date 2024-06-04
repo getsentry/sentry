@@ -1,4 +1,12 @@
 import {
+  FilterType,
+  joinQuery,
+  parseSearch,
+  type SearchConfig,
+  Token,
+} from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils';
+import {
   MetricSeriesFilterUpdateType,
   type MetricsQuery,
 } from 'sentry/utils/metrics/types';
@@ -31,6 +39,45 @@ export function extendQueryWithGroupBys(
 }
 
 /**
+ * Wraps text filters of a search string in quotes if they are not already.
+ */
+export function ensureQuotedTextFilters(
+  query: string,
+  configOverrides?: Partial<SearchConfig>
+) {
+  const parsedSearch = parseSearch(query, configOverrides);
+
+  if (!parsedSearch) {
+    return query;
+  }
+
+  for (let i = 0; i < parsedSearch.length; i++) {
+    const token = parsedSearch[i];
+    if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
+      // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of its value
+      if (!token.value.quoted) {
+        token.text = `${token.negated ? '!' : ''}${token.key.text}:"${token.value.text}"`;
+      }
+
+      const spaceToken = parsedSearch[i + 1];
+      const afterSpaceToken = parsedSearch[i + 2];
+      if (
+        spaceToken &&
+        afterSpaceToken &&
+        spaceToken.type === Token.SPACES &&
+        spaceToken.text === '' &&
+        afterSpaceToken.type === Token.FILTER
+      ) {
+        // Ensure there is a space between two filters
+        spaceToken.text = ' ';
+      }
+    }
+  }
+
+  return joinQuery(parsedSearch);
+}
+
+/**
  * Used when a user clicks on filter button in the series summary table. Applies
  * tag values to the filter string of the query. Removes the tags from query groupyBy
  */
@@ -47,7 +94,7 @@ export function updateQueryWithSeriesFilter(
 
   const groupByEntries = Object.entries(groupBys);
   groupByEntries.forEach(([key, value]) => {
-    if (!value) {
+    if (!defined(value)) {
       return;
     }
     updateType === MetricSeriesFilterUpdateType.ADD
@@ -60,7 +107,7 @@ export function updateQueryWithSeriesFilter(
 
   return {
     ...query,
-    query: extendedQuery,
+    query: ensureQuotedTextFilters(extendedQuery),
     groupBy: newGroupBy,
   };
 }

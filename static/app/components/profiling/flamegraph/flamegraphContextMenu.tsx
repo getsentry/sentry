@@ -3,9 +3,9 @@ import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Flex} from 'sentry/components/profiling/flex';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,

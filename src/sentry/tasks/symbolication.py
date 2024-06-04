@@ -22,7 +22,7 @@ from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_da
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -135,7 +135,7 @@ class SymbolicationTimeout(Exception):
 def _do_symbolicate_event(
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
-    start_time: int | None,
+    start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
     queue_switches: int = 0,
@@ -152,23 +152,9 @@ def _do_symbolicate_event(
         error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
         return
 
-    data = CanonicalKeyDict(data)
     event_id = str(data["event_id"])
     project_id = data["project"]
     has_changed = False
-
-    stacktraces = find_stacktraces_in_data(data)
-
-    # Backwards compatibility: If the current platform is JS, we may need to do
-    # native afterwards. Otherwise we don't do anything.
-    if symbolicate_platforms is None:
-        if (
-            task_kind.platform == SymbolicatorPlatform.js
-            and get_native_symbolication_function(data, stacktraces) is not None
-        ):
-            symbolicate_platforms = [SymbolicatorPlatform.native]
-        else:
-            symbolicate_platforms = []
 
     set_current_event_project(project_id)
 
@@ -218,6 +204,7 @@ def _do_symbolicate_event(
         )
 
     try:
+        stacktraces = find_stacktraces_in_data(data)
         symbolication_function = get_symbolication_function_for_platform(
             task_kind.platform, data, stacktraces
         )
@@ -355,7 +342,7 @@ def submit_symbolicate(
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
     event_id: str | None,
-    start_time: int | None,
+    start_time: float | None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
@@ -403,7 +390,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
     )
     def symbolication_fn(
         cache_key: str,
-        start_time: int | None = None,
+        start_time: float | None = None,
         event_id: str | None = None,
         data: Event | None = None,
         queue_switches: int = 0,

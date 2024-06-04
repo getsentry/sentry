@@ -20,6 +20,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
     Request,
+    Storage,
     Timeseries,
 )
 from snuba_sdk.formula import FormulaParameterGroup
@@ -585,7 +586,7 @@ def _query_meta_table(
         conditions.append(extra_condition)
 
     counters_query = (
-        Query(Entity("generic_metrics_counters_meta"))
+        Query(Storage("generic_metrics_counters_meta"))
         .set_select([Column("project_id"), Column(column_name)])
         .set_groupby([Column("project_id"), Column(column_name)])
         .set_where(conditions)
@@ -649,7 +650,7 @@ def fetch_metric_tag_values(
     if parsed_mri is None:
         raise InvalidParams(f"'{mri}' is not a valid MRI")
 
-    entity = {
+    metric_type = {
         "c": "counters",
         "d": "distributions",
         "g": "gauges",
@@ -673,7 +674,7 @@ def fetch_metric_tag_values(
         conditions.append(Condition(Column("tag_value"), Op.LIKE, f"{tag_value_prefix}%"))
 
     tag_values_query = (
-        Query(Entity(f"generic_metrics_{entity}_meta_tag_values"))
+        Query(Storage(f"generic_metrics_{metric_type}_meta_tag_values"))
         .set_select([Column("tag_value")])
         .set_groupby([Column("tag_value")])
         .set_where(conditions)

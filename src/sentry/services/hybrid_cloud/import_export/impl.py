@@ -29,6 +29,8 @@ from sentry.backup.scopes import ExportScope
 from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
@@ -189,8 +191,15 @@ class UniversalImportExportService(ImportExportService):
                 logger.info("import_by_model.already_imported", extra=extra)
                 return existing_import_chunk
 
+            # We don't need the control and region silo synced into the correct `*Replica` tables
+            # immediately. The locally silo-ed versions of the models are written by the scripts
+            # themselves, and the remote versions will be synced a few minutes later, well before
+            # any users are likely ot need to get ahold of them to view actual data in the UI.
             using = router.db_for_write(model)
-            with transaction.atomic(using=using):
+            # HACK(azaslavsky): Need to figure out why `OrganizationMemberTeam` in particular is failing, but we can just use async outboxes for it for now.
+            with outbox_context(
+                transaction.atomic(using=using), flush=model_name != "sentry.organizationmemberteam"
+            ):
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
@@ -493,6 +502,17 @@ class UniversalImportExportService(ImportExportService):
                         for field, foreign_field in deps[model_name].foreign_keys.items():
                             dependency_model_name = get_model_name(foreign_field.model)
                             field_id = field if field.endswith("_id") else f"{field}_id"
+
+                            # Special case: We never want to filter on
+                            # `OrganizationMember.inviter_id`, since the inviter could be the
+                            # `user_id` of a `User` who is not in this `Organization`, and is
+                            # therefore not being exported. There is probably a more generic and
+                            # broadly applicable way to handle exceptional cases like this, but
+                            # since it is a one off for now, it seems easiest to just handle it
+                            # explicitly.
+                            if model == OrganizationMember and field_id == "inviter_id":
+                                continue
+
                             fk = getattr(item, field_id, None)
                             if fk is None:
                                 # Null deps are allowed.

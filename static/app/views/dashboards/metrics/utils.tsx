@@ -267,25 +267,3 @@ export function defaultMetricWidget(): Widget {
     DisplayType.LINE
   );
 }
-
-export function filterQueriesByDisplayType(
-  queries: DashboardMetricsQuery[],
-  displayType: DisplayType
-) {
-  // Big number can display only one query
-  if (displayType === DisplayType.BIG_NUMBER) {
-    return queries.slice(0, 1);
-  }
-  return queries;
-}
-
-export function filterEquationsByDisplayType(
-  equations: DashboardMetricsEquation[],
-  displayType: DisplayType
-) {
-  // Big number can display only one query
-  if (displayType === DisplayType.BIG_NUMBER) {
-    return [];
-  }
-  return equations;
-}

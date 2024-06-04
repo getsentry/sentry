@@ -5,15 +5,18 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {TraceTimeline} from './traceTimeline';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
+jest.mock('sentry/utils/analytics');
 
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture();
+  // This creates the ApiException event
   const event = EventFixture({
     dateCreated: '2024-01-24T09:09:03+00:00',
     contexts: {
@@ -28,8 +31,11 @@ describe('TraceTimeline', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
+        // In issuePlatform, we store the subtitle within the message
+        message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
+
         project: project.slug,
         'project.name': project.name,
         title: 'Slow DB Query',
@@ -42,6 +48,7 @@ describe('TraceTimeline', () => {
   const discoverBody: TraceEventResponse = {
     data: [
       {
+        message: 'This is the subtitle of the issue',
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
         project: project.slug,
@@ -78,6 +85,7 @@ describe('TraceTimeline', () => {
     await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false,
       trace_timeline_status: 'shown',
     });
   });
@@ -96,6 +104,7 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -116,6 +125,7 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -151,5 +161,87 @@ describe('TraceTimeline', () => {
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
+  });
+
+  it('skips the timeline and shows related issues (2 issues)', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    // I believe the call to projects is to determine what projects a user belongs to
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    render(<TraceTimeline event={event} />, {
+      organization: OrganizationFixture({
+        features: ['related-issues-issue-details-page'],
+      }),
+    });
+
+    // Instead of a timeline, we should see the other related issue
+    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+
+    // Test analytics
+    await userEvent.click(await screen.findByText('Slow DB Query'));
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.related_trace_issue.trace_issue_clicked',
+      {
+        group_id: issuePlatformBody.data[0]['issue.id'],
+        organization: OrganizationFixture({
+          features: ['related-issues-issue-details-page'],
+        }),
+      }
+    );
+  });
+
+  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      // Only 1 issue
+      body: discoverBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    // I believe the call to projects is to determine what projects a user belongs to
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    render(<TraceTimeline event={event} />, {
+      organization: OrganizationFixture({
+        features: ['related-issues-issue-details-page'],
+      }),
+    });
+
+    // We do not display any related issues because we only have 1 issue
+    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
+    expect(
+      await screen.queryByText('AttributeError: Something Failed')
+    ).not.toBeInTheDocument();
+
+    // We do not display the timeline because we only have 1 event
+    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false,
+      trace_timeline_status: 'empty',
+    });
   });
 });

@@ -5,7 +5,7 @@ import Alert from 'sentry/components/alert';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
 const SUPPORTED_KEYS: TagCollection = {
@@ -20,7 +20,20 @@ const SUPPORTED_KEYS: TagCollection = {
     name: 'Assigned To',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['me', 'unassigned', 'person@sentry.io'],
+    values: [
+      {
+        title: 'Suggested',
+        type: 'header',
+        icon: null,
+        children: [{value: 'me'}, {value: 'unassigned'}],
+      },
+      {
+        title: 'All',
+        type: 'header',
+        icon: null,
+        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+      },
+    ],
   },
   [FieldKey.BROWSER_NAME]: {
     key: FieldKey.BROWSER_NAME,

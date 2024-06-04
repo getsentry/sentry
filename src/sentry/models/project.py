@@ -85,6 +85,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "go",
     "go-echo",
     "go-fasthttp",
+    "go-fiber",
     "go-gin",
     "go-http",
     "go-iris",
@@ -122,7 +123,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-hapi",
     "node-koa",
     "node-nestjs",
-    "node-serverlesscloud",
     "php",
     "php-laravel",
     "php-symfony",
@@ -246,6 +246,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
+    template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list

@@ -3,17 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PageOverview from 'sentry/views/performance/browser/webVitals/pageOverview';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
-    features: ['spans-first-ui'],
+    features: ['insights-initial-modules'],
   });
 
   let eventsMock;
@@ -44,8 +42,6 @@ describe('PageOverview', function () {
         projects: [],
       },
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
-
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -66,6 +62,69 @@ describe('PageOverview', function () {
     jest.clearAllMocks();
   });
 
+  it('renders', () => {
+    render(<PageOverview />, {organization});
+    // Raw web vital metric tile queries
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'p75(measurements.inp)',
+            'p75(transaction.duration)',
+            'count_web_vitals(measurements.lcp, any)',
+            'count_web_vitals(measurements.fcp, any)',
+            'count_web_vitals(measurements.cls, any)',
+            'count_web_vitals(measurements.fid, any)',
+            'count_web_vitals(measurements.ttfb, any)',
+            'count()',
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+    // Project performance score ring query
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.cls)',
+            `performance_score(measurements.score.inp)`,
+            'performance_score(measurements.score.ttfb)',
+            'avg(measurements.score.total)',
+            'avg(measurements.score.weight.lcp)',
+            'avg(measurements.score.weight.fcp)',
+            'avg(measurements.score.weight.cls)',
+            `avg(measurements.score.weight.inp)`,
+            'avg(measurements.score.weight.ttfb)',
+            'count()',
+            'count_scores(measurements.score.total)',
+            'count_scores(measurements.score.lcp)',
+            'count_scores(measurements.score.fcp)',
+            'count_scores(measurements.score.cls)',
+            'count_scores(measurements.score.ttfb)',
+            `count_scores(measurements.score.inp)`,
+          ],
+          query:
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+        }),
+      })
+    );
+  });
+
   it('renders FID deprecation alert', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -76,7 +135,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />);
+    render(<PageOverview />, {organization});
     await screen.findByText(/\(Interaction to Next Paint\) will replace/);
     await screen.findByText(
       /\(First Input Delay\) in our performance score calculation./
@@ -85,9 +144,8 @@ describe('PageOverview', function () {
 
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['spans-first-ui'],
+      features: ['insights-initial-modules'],
     });
-    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -97,7 +155,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />);
+    render(<PageOverview />, {organization: organizationWithInp});
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -130,9 +188,8 @@ describe('PageOverview', function () {
 
   it('escapes transaction name before querying discover', async () => {
     const organizationWithInp = OrganizationFixture({
-      features: ['spans-first-ui'],
+      features: ['insights-initial-modules'],
     });
-    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -146,7 +203,7 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />);
+    render(<PageOverview />, {organization: organizationWithInp});
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',

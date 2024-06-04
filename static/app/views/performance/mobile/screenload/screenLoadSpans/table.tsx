@@ -13,7 +13,6 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -27,19 +26,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
 } from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {
-  DEFAULT_PLATFORM,
-  PLATFORM_LOCAL_STORAGE_KEY,
-  PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/mobile/screenload/settings';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -56,7 +51,6 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
 
 type Props = {
   primaryRelease?: string;
-  project?: Project | null;
   secondaryRelease?: string;
   transaction?: string;
 };
@@ -65,23 +59,18 @@ export function ScreenLoadSpansTable({
   transaction,
   primaryRelease,
   secondaryRelease,
-  project,
 }: Props) {
+  const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
-
-  const hasPlatformSelectFeature = organization.features.includes('spans-first-ui');
-  const platform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
 
   const queryStringPrimary = useMemo(() => {
     const searchQuery = new MutableSearch([
@@ -93,17 +82,16 @@ export function ScreenLoadSpansTable({
         : [`span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`]),
     ]);
 
-    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
-      searchQuery.addFilterValue('os.name', platform);
+    if (isProjectCrossPlatform) {
+      searchQuery.addFilterValue('os.name', selectedPlatform);
     }
 
     return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
   }, [
-    hasPlatformSelectFeature,
-    platform,
+    isProjectCrossPlatform,
     primaryRelease,
-    project,
     secondaryRelease,
+    selectedPlatform,
     spanOp,
     transaction,
   ]);
@@ -169,9 +157,7 @@ export function ScreenLoadSpansTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/screens/spans/`
-      );
+      const pathname = `${moduleURL}/spans/`;
       const query = {
         ...location.query,
         transaction,
@@ -199,7 +185,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href={`${MODULE_DOC_LINK}#ttid-and-ttfd-affecting-spans`} />
             ),
           }
         );
@@ -215,7 +201,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTFD and may affect final display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href={`${MODULE_DOC_LINK}#ttid-and-ttfd-affecting-spans`} />
             ),
           }
         );
@@ -230,7 +216,7 @@ export function ScreenLoadSpansTable({
         'This span may not be contributing to TTID or TTFD. [link: Learn more.]',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
+            <ExternalLink href={`${MODULE_DOC_LINK}#ttid-and-ttfd-affecting-spans`} />
           ),
         }
       );
@@ -252,7 +238,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href={`${MODULE_DOC_LINK}#ttid-and-ttfd-affecting-spans`} />
             ),
           }
         );
@@ -267,7 +253,7 @@ export function ScreenLoadSpansTable({
         'This span may not affect initial display. [link: Learn more.]',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
+            <ExternalLink href={`${MODULE_DOC_LINK}#ttid-and-ttfd-affecting-spans`} />
           ),
         }
       );
@@ -383,7 +369,9 @@ export function ScreenLoadSpansTable({
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          ...(organization.features.includes('spans-first-ui') ? ['affects'] : []),
+          ...(organization.features.includes('insights-initial-modules')
+            ? ['affects']
+            : []),
           ...['count()', 'time_spent_percentage()'],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};

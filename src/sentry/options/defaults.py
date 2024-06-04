@@ -97,7 +97,12 @@ register(
 )
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-
+# Enable date-util parsing for timestamps
+register(
+    "system.use-date-util-timestamps",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Redis
 register(
     "redis.clusters",
@@ -291,20 +296,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Enable EA endpoints to work with id or slug as path parameters
-register(
-    "api.id-or-slug-enabled-ea-endpoints",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# EA option limiting to certain specific organizations for endpoints where organization is available
-register(
-    "api.id-or-slug-enabled-ea-org",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # API Tokens
 register(
@@ -318,13 +309,6 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "api.remove-non-webhook-control-path-gitlab-parser",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls the rate of using the hashed value of User API tokens for lookups when logging in
@@ -435,6 +419,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Configuration Options
+register(
+    "configurations.storage.backend",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "configurations.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Replay Options
 #
 # Replay storage backend configuration (only applicable if the direct-storage driver is used)
@@ -479,19 +476,6 @@ register(
 register(
     "feedback.ingest-topic.rollout-rate",
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
-register(
-    "feedback.ingest-inline-attachments",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Let spam detection run but don't take action on it.
-register(
-    "feedback.spam-detection-actions",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -835,6 +819,67 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for all Seer services
+#
+# TODO: So far this is only being checked when calling the Seer similar issues service during
+# ingestion
+register(
+    "seer.global-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitches for individual Seer services
+#
+# TODO: Most of these are not yet being used. The one current exception is the similarity service
+# killswitch, which is checked before calling Seer when potentially creating a  new group as part of
+# ingestion.
+register(
+    "seer.similarity-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.severity-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.breakpoint-detection-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.autofix-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.anomaly-detection-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "seer.similarity.global-rate-limit",
+    type=Dict,
+    default={"limit": 20, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity.per-project-rate-limit",
+    type=Dict,
+    default={"limit": 5, "window": 1},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 register(
     "issues.similarity-embeddings.projects-allowlist",
     type=Sequence,
@@ -878,6 +923,14 @@ register(
     "embeddings-grouping.seer.ratelimit",
     type=Int,
     default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# seer embeddings backfill batch size
+register(
+    "embeddings-grouping.seer.backfill-batch-size",
+    type=Int,
+    default=10,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -940,6 +993,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Switch for new logic for release health metrics, based on filtering on org & project ids
+register(
+    "release-health.use-org-and-project-filter",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Switch for more performant project counter incr
 register(
     "store.projectcounter-modern-upsert-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -966,6 +1027,12 @@ register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMAT
 # Percentage sample rate for `EventAttachment`s that should use direct blob storage.
 register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Percentage sample rate for "small" `EventAttachment`s to be stored inline.
+register("eventattachments.store-small-inline", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage rollout rate to avoid sending `attachment_chunk`s for small indvidual attachments.
+register("relay.inline-attachments.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -978,9 +1045,6 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 
 # Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
-#
-# Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
-# needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Override to set a list of limits into passive mode by organization.
 #
@@ -1174,18 +1238,6 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# A slow rollout option for writing "new" cache keys
-# as the transition from UseCaseKey to UseCaseID occurs
-register(
-    "sentry-metrics.indexer.cache-key-rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# A option for double writing old and new cache keys
-# for the same transition
-register(
-    "sentry-metrics.indexer.cache-key-double-write", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # An option to tune the percentage of cache keys that gets replenished during indexer resolve
 register(
     "sentry-metrics.indexer.disable-memcache-replenish-rollout",
@@ -1223,18 +1275,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control whether or not we raise ValidationErrors in the indexer
-# (Temporary) raising the error would mean we skip the processing or DLQing of these
-# invalid messages
-register(
-    "sentry-metrics.indexer.raise-validation-errors",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to enable orjson for JSON parsing in reconstruct_messages function
 register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+
+# Option to remove support for percentiles on a per-use case basis.
+# Add the use case name (e.g. "custom") to this list
+# to disable percentiles storage for the use case
+register(
+    "sentry-metrics.drop-percentiles.per-use-case",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Global and per-organization limits on the writes to the string indexer's DB.
@@ -1322,11 +1375,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # per-organization limits on the number of timeseries that can be observed in
 # each window.
 #
@@ -1341,20 +1389,6 @@ register(
 #
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
     default=[
@@ -1398,29 +1432,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.10s-granularity",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry-metrics.producer-schema-validation.release-health.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.producer-schema-validation.performance.rollout-rate",
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1440,6 +1453,31 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.monitor-queue-time",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1710,6 +1748,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.trace-explorer-skip-floating-spans",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
@@ -1737,6 +1781,12 @@ register(
     "performance.spans-tags-values.max",
     type=Int,
     default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.spans-tags-values.search",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1803,6 +1853,9 @@ register(
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# RPC optimization
+register("sentryapps.get_installation_cached", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -1964,18 +2017,6 @@ register(
 )
 
 register(
-    "delightful_metrics.enable_envelope_forwarding",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.enable_envelope_serialization",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "delightful_metrics.enable_capture_envelope",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1983,24 +2024,6 @@ register(
 
 register(
     "delightful_metrics.enable_common_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_incr",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_timing",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "delightful_metrics.allow_all_gauge",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2117,6 +2140,26 @@ register(
 
 register(
     "issues.sdk_crash_detection.native.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.dart.sample_rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2369,6 +2412,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# temporary option for logging canonical key fallback stacktraces
+register(
+    "canonical-fallback.send-error-to-sentry",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Standalone spans
 register(
     "standalone-spans.process-spans-consumer.enable",
@@ -2515,4 +2565,19 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register(
     "api.organization-activity.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+
+register(
+    "sentry.save-event-attachments.project-per-5-minute-limit",
+    type=Int,
+    default=2000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.save-event-attachments.project-per-sec-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

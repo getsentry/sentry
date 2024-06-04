@@ -1,25 +1,33 @@
-import Feature from 'sentry/components/acl/feature';
-import useOrganization from 'sentry/utils/useOrganization';
 import AppStartup from 'sentry/views/performance/mobile/appStarts/screens';
 import {StartTypeSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+} from 'sentry/views/performance/mobile/appStarts/settings';
 import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {ModuleName} from 'sentry/views/starfish/types';
 
-export default function InitializationModule() {
-  const organization = useOrganization();
-
+export function InitializationModule() {
   return (
-    <Feature features="spans-first-ui" organization={organization}>
-      <ScreensTemplate
-        additionalSelectors={<StartTypeSelector />}
-        compatibilityProps={{
-          compatibleSDKNames: ['sentry.cocoa', 'sentry.java.android'],
-          docsUrl:
-            'https://docs.sentry.io/product/performance/mobile-vitals/app-starts/#minimum-sdk-requirements',
-        }}
-        content={<AppStartup chartHeight={200} />}
-        title={ROUTE_NAMES['app-startup']}
-      />
-    </Feature>
+    <ScreensTemplate
+      additionalSelectors={<StartTypeSelector />}
+      content={<AppStartup chartHeight={200} />}
+      moduleName={ModuleName.APP_START}
+      moduleDescription={MODULE_DESCRIPTION}
+      moduleDocLink={MODULE_DOC_LINK}
+      title={MODULE_TITLE}
+    />
   );
 }
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders moduleName="app_start" features="insights-initial-modules">
+      <InitializationModule />
+    </ModulePageProviders>
+  );
+}
+
+export default PageWithProviders;

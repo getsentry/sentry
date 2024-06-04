@@ -1493,6 +1493,7 @@ class BaseSpansTestCase(SnubaTestCase):
         timestamp: datetime | None = None,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
+        op: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1528,6 +1529,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
             payload["sentry_tags"]["sdk.name"] = sdk_name
+        if op is not None:
+            payload["sentry_tags"]["op"] = op
 
         self.store_span(payload)
 
@@ -1538,7 +1541,7 @@ class BaseSpansTestCase(SnubaTestCase):
         self,
         project_id: int,
         trace_id: str,
-        transaction_id: str,
+        transaction_id: str | None,  # Nones are permitted for INP spans
         span_id: str | None = None,
         parent_span_id: str | None = None,
         profile_id: str | None = None,
@@ -3318,6 +3321,7 @@ class TraceTestCase(SpanTestCase):
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         data["contexts"]["profile"] = {"profile_id": uuid4().hex}
+        data["sdk"] = {"name": "sentry.test.sdk", "version": "1.0"}
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
         if measurements:
@@ -3406,7 +3410,11 @@ class TraceTestCase(SpanTestCase):
 
         return span_data
 
-    def load_errors(self, project: Project, span_id: str) -> list[Event]:
+    def load_errors(
+        self,
+        project: Project,
+        span_id: str | None = None,
+    ) -> list[Event]:
         """Generates trace with errors across two projects."""
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(
@@ -3416,7 +3424,7 @@ class TraceTestCase(SpanTestCase):
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": self.trace_id,
-            "span_id": span_id,
+            "span_id": span_id or uuid4().hex[:16],
         }
         error_data["level"] = "fatal"
         error = self.store_event(error_data, project_id=project.id)

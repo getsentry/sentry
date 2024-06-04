@@ -5,9 +5,9 @@ import beautify from 'js-beautify';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
-import {Flex} from 'sentry/components/profiling/flex';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   Provider as ReplayContextProvider,
@@ -235,7 +235,7 @@ const DiffHeader = styled('div')`
   flex-direction: row;
   align-items: center;
   flex: 1;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.2;
 
   div {
