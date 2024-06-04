@@ -439,7 +439,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## Telemetry Experience
 /src/sentry/api/endpoints/organization_ddm.py                                    @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_ddm_meta.py                        @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_metric*                                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
