@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from datetime import timedelta
 
+from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import SnubaTSResult
@@ -10,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns: Sequence[str],
-    query: str,
-    params: dict[str, str],
+    selected_columns,
+    query,
+    params,
     snuba_params=None,
     equations=None,
     orderby=None,
@@ -67,16 +68,16 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, str],
+    params: ParamsType,
     rollup: int,
-    referrer: str,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
-    has_metrics: bool = True,
-    use_metrics_layer: bool = False,
-    on_demand_metrics_enabled: bool = False,
+    allow_metric_aggregates=False,
+    has_metrics=False,
+    use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
 ) -> SnubaTSResult:
     """
