@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Iterable
 from typing import Any
 
 from . import base
@@ -16,9 +15,6 @@ class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def record_project_duration(self, project_id: int, duration: float) -> None:
         pass
-
-    def projects(self) -> Iterable[int]:
-        yield from ()
 
     def is_lpq_project(self, project_id: int) -> bool:
         return False
