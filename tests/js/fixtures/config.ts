@@ -25,7 +25,6 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     // Maintain isOnPremise key for backcompat (plugins?).
     isOnPremise: false,
     isSelfHosted: false,
-    isSelfHostedErrorsOnly: false,
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
     initialTrace: {
