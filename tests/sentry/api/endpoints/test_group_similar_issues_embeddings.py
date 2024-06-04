@@ -222,6 +222,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
+            "read_only": True,
             "k": 1,
         }
 
@@ -329,6 +330,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
@@ -463,6 +465,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
+                    "read_only": True,
                 }
             ]
         }
@@ -485,6 +488,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
@@ -509,6 +513,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                     "k": 1,
                 },
             ).decode(),
@@ -519,30 +524,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         response = self.client.get(
             self.path,
             data={"threshold": "0.01"},
-        )
-        assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
-        )
-
-        mock_seer_request.assert_called_with(
-            "POST",
-            SEER_SIMILAR_ISSUES_URL,
-            body=orjson.dumps(
-                {
-                    "threshold": 0.01,
-                    "hash": NonNone(self.event.get_primary_hash()),
-                    "project_id": self.project.id,
-                    "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
-                },
-            ).decode(),
-            headers={"Content-Type": "application/json;charset=utf-8"},
-        )
-
-        # Include read_only
-        response = self.client.get(
-            self.path,
-            data={"read_only": "True"},
         )
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
