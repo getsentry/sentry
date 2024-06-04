@@ -9,7 +9,6 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
         from sentry.incidents.models.incident import IncidentProject
         from sentry.models.activity import Activity
-        from sentry.models.appconnectbuilds import AppConnectBuild
         from sentry.models.artifactbundle import ProjectArtifactBundle
         from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
         from sentry.models.environment import EnvironmentProject
@@ -27,7 +26,6 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.models.integrations.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
-        from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
         from sentry.models.projectbookmark import ProjectBookmark
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectkey import ProjectKey
@@ -52,7 +50,6 @@ class ProjectDeletionTask(ModelDeletionTask):
         for m in (
             Activity,
             AlertRuleProjects,
-            AppConnectBuild,
             EnvironmentProject,
             GroupAssignee,
             GroupBookmark,
@@ -63,7 +60,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             GroupSeen,
             GroupShare,
             GroupSubscription,
-            LatestAppConnectBuildsCheck,
             ProjectBookmark,
             ProjectKey,
             ReleaseThreshold,

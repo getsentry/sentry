@@ -47,33 +47,6 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
-APP_STORE_CONNECT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "type": {"type": "string", "enum": ["appStoreConnect"]},
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string"},
-        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
-        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": {"type": "string"},
-        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "appId": {"type": "string", "minLength": 1},
-        "bundleId": {"type": "string", "minLength": 1},
-    },
-    "required": [
-        "type",
-        "id",
-        "name",
-        "appconnectIssuer",
-        "appconnectKey",
-        "appconnectPrivateKey",
-        "appName",
-        "appId",
-        "bundleId",
-    ],
-    "additionalProperties": False,
-}
-
 HTTP_SOURCE_SCHEMA = {
     "type": "object",
     "properties": dict(
@@ -121,7 +94,6 @@ SOURCE_SCHEMA = {
         HTTP_SOURCE_SCHEMA,
         S3_SOURCE_SCHEMA,
         GCS_SOURCE_SCHEMA,
-        APP_STORE_CONNECT_SCHEMA,
     ]
 }
 
@@ -156,9 +128,6 @@ def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
     return copy
 
 
-REDACTED_APP_STORE_CONNECT_SCHEMA = _redact_schema(
-    APP_STORE_CONNECT_SCHEMA, ["appConnectPrivateKey"]
-)
 REDACTED_HTTP_SOURCE_SCHEMA = _redact_schema(HTTP_SOURCE_SCHEMA, ["password"])
 REDACTED_S3_SOURCE_SCHEMA = _redact_schema(S3_SOURCE_SCHEMA, ["secret_key"])
 REDACTED_GCS_SOURCE_SCHEMA = _redact_schema(GCS_SOURCE_SCHEMA, ["private_key"])
@@ -168,7 +137,6 @@ REDACTED_SOURCE_SCHEMA = {
         REDACTED_HTTP_SOURCE_SCHEMA,
         REDACTED_S3_SOURCE_SCHEMA,
         REDACTED_GCS_SOURCE_SCHEMA,
-        REDACTED_APP_STORE_CONNECT_SCHEMA,
     ]
 }
 
@@ -336,9 +304,7 @@ def secret_fields(source_type):
     """
     Returns a string list of all of the fields that contain a secret in a given source.
     """
-    if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey"]
-    elif source_type == "http":
+    if source_type == "http":
         yield "password"
     elif source_type == "s3":
         yield "secret_key"
@@ -366,7 +332,7 @@ def validate_sources(sources):
         ids.add(source["id"])
 
 
-def parse_sources(config, filter_appconnect=True):
+def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
     """
@@ -380,10 +346,6 @@ def parse_sources(config, filter_appconnect=True):
         raise InvalidSourcesError(f"{e}")
 
     validate_sources(sources)
-
-    # remove App Store Connect sources (we don't need them in Symbolicator)
-    if filter_appconnect:
-        filter(lambda src: src.get("type") != "appStoreConnect", sources)
 
     return sources
 
@@ -477,11 +439,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(
-                normalize_user_source(source)
-                for source in custom_sources
-                if source["type"] != "appStoreConnect"
-            )
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop

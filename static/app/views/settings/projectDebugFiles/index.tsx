@@ -2,13 +2,11 @@ import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
@@ -99,18 +97,6 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
       query: {...location.query, cursor: undefined, query},
     });
   };
-
-  async fetchProject() {
-    const {organization, params} = this.props;
-    try {
-      const updatedProject = await this.api.requestPromise(
-        `/projects/${organization.slug}/${params.projectId}/`
-      );
-      ProjectsStore.onUpdateSuccess(updatedProject);
-    } catch {
-      addErrorMessage(t('An error occurred while fetching project data'));
-    }
-  }
 
   getQuery() {
     const {query} = this.props.location.query;

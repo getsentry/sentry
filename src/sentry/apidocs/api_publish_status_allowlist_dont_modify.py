@@ -736,19 +736,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stacktrace-link/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/grouping-configs/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/": {"POST"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/apps/": {
-        "POST"
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/status/": {
-        "GET"
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/{credentials_id}/": {
-        "POST"
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/appstoreconnect/{credentials_id}/refresh/": {
-        "POST"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/profiling/functions/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/profiling/profiles/{profile_id}/": {
         "GET"
