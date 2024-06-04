@@ -87,10 +87,12 @@ class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
     @classmethod
-    def _add_metadata(cls, kwargs: dict[str, Any]) -> None:
+    def _add_metadata(cls, kwargs: dict[str, Any] | None) -> None:
         """
         Helper method that adds relevant metadata
         """
+        if kwargs is None:
+            return None
         # Add the start time when the task was kicked off for async processing by the calling code
         kwargs["__start_time"] = datetime.now().timestamp()
 
