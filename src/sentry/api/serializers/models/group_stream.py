@@ -78,7 +78,7 @@ def get_available_issue_plugins(request: Request, group):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
                 continue
-            plugin_issues = safe_execute(plugin.plugin_issues, request, group, plugin_issues)
+            safe_execute(plugin.plugin_issues, request, group, plugin_issues)
     return plugin_issues
 
 

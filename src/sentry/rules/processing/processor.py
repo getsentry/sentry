@@ -225,8 +225,7 @@ class RuleProcessor:
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
             logger.warning("Unregistered condition %r", condition["id"])
             return None
-        passes: bool = safe_execute(condition_inst.passes, self.event, state)
-        return passes
+        return safe_execute(condition_inst.passes, self.event, state) or False
 
     def get_state(self) -> EventState:
         return EventState(
