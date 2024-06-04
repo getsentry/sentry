@@ -445,7 +445,10 @@ class UsageStatsOrganization<
             : group.by.category;
 
         // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`)) {
+        const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(
+          data => data.plural === dataCategory
+        );
+        if (fullDataCategory?.apiName !== category) {
           return;
         }
 
