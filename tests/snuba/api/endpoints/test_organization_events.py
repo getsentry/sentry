@@ -686,32 +686,40 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "username": "user.username",
         }
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        for key, value in self.transaction_data["user"].items():
-            field = fields[key]
-            query = {
-                "field": ["project", "user"],
-                "query": f"{field}:{value}",
-                "statsPeriod": "14d",
-            }
-            response = self.do_request(query, features=features)
-            assert response.status_code == 200, response.content
-            assert len(response.data["data"]) == 1
-            assert response.data["data"][0]["project"] == self.project.slug
-            assert response.data["data"][0]["user"] == "id:123"
+        for dataset in ["discover", "transactions"]:
+            for key, value in self.transaction_data["user"].items():
+                field = fields[key]
+                query = {
+                    "field": ["project", "user"],
+                    "query": f"{field}:{value}",
+                    "statsPeriod": "14d",
+                    "dataset": dataset,
+                }
+                response = self.do_request(query, features=features)
+                assert response.status_code == 200, response.content
+                assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["project"] == self.project.slug
+                assert response.data["data"][0]["user"] == "id:123"
 
     def test_has_user(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        for value in self.transaction_data["user"].values():
-            query = {"field": ["project", "user"], "query": "has:user", "statsPeriod": "14d"}
-            response = self.do_request(query, features=features)
+        for dataset in ["discover", "transactions"]:
+            for value in self.transaction_data["user"].values():
+                query = {
+                    "field": ["project", "user"],
+                    "query": "has:user",
+                    "statsPeriod": "14d",
+                    "dataset": dataset,
+                }
+                response = self.do_request(query, features=features)
 
-            assert response.status_code == 200, response.content
-            assert len(response.data["data"]) == 1
-            assert response.data["data"][0]["user"] == "ip:{}".format(
-                self.transaction_data["user"]["ip_address"]
-            )
+                assert response.status_code == 200, response.content
+                assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["user"] == "ip:{}".format(
+                    self.transaction_data["user"]["ip_address"]
+                )
 
     def test_team_param_no_access(self):
         org = self.create_organization(
@@ -797,16 +805,21 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         event = self.store_event(self.transaction_data, project_id=self.project.id)
         duration = int(event.data.get("timestamp") - event.data.get("start_timestamp")) * 1000
 
-        query = {"field": ["transaction"], "query": f"transaction.duration:{duration}"}
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["id"] == event.event_id
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["transaction"],
+                "query": f"transaction.duration:{duration}",
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["id"] == event.event_id
 
-        query = {"field": ["transaction"], "query": f"!transaction.duration:{duration}"}
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 0
+            query = {"field": ["transaction"], "query": f"!transaction.duration:{duration}"}
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 0
 
     def test_has_issue(self):
         event = self.store_event({"timestamp": self.ten_mins_ago_iso}, project_id=self.project.id)
@@ -903,18 +916,20 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.store_event(data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {
-            "field": ["project", "user"],
-            "query": '!user:"id:undefined"',
-            "statsPeriod": "14d",
-        }
-        response = self.do_request(query, features=features)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["project", "user"],
+                "query": '!user:"id:undefined"',
+                "statsPeriod": "14d",
+                "dataset": dataset,
+            }
+            response = self.do_request(query, features=features)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["user"] == "id:{}".format(user_data["id"])
-        assert "user.email" not in response.data["data"][0]
-        assert "user.id" not in response.data["data"][0]
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["user"] == "id:{}".format(user_data["id"])
+            assert "user.email" not in response.data["data"][0]
+            assert "user.id" not in response.data["data"][0]
 
     def test_not_project_in_query(self):
         project1 = self.create_project()
@@ -1560,23 +1575,33 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["contexts"]["trace"]["status"] = "unauthenticated"
             self.store_event(data, project_id=self.project.id)
 
-        query = {"field": ["failure_rate()"], "query": "event.type:transaction"}
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["failure_rate()"],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["failure_rate()"] == 0.75
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            data = response.data["data"]
+            assert data[0]["failure_rate()"] == 0.75
 
     def test_count_miserable_alias_field(self):
         self._setup_user_misery()
-        query = {"field": ["count_miserable(user, 300)"], "query": "event.type:transaction"}
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["count_miserable(user, 300)"],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["count_miserable(user, 300)"] == 3
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            data = response.data["data"]
+            assert data[0]["count_miserable(user, 300)"] == 3
 
     @mock.patch(
         "sentry.search.events.fields.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
@@ -2588,30 +2613,33 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_transaction_event_type(self):
         self.store_event(data=self.transaction_data, project_id=self.project.id)
 
-        query = {
-            "field": ["transaction", "transaction.duration", "transaction.status"],
-            "query": "event.type:transaction",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["meta"]["fields"]["transaction.duration"] == "duration"
-        assert response.data["meta"]["fields"]["transaction.status"] == "string"
-        assert response.data["meta"]["units"]["transaction.duration"] == "millisecond"
-        assert response.data["data"][0]["transaction.status"] == "ok"
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["transaction", "transaction.duration", "transaction.status"],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["meta"]["fields"]["transaction.duration"] == "duration"
+            assert response.data["meta"]["fields"]["transaction.status"] == "string"
+            assert response.data["meta"]["units"]["transaction.duration"] == "millisecond"
+            assert response.data["data"][0]["transaction.status"] == "ok"
 
     def test_trace_columns(self):
         self.store_event(data=self.transaction_data, project_id=self.project.id)
 
-        query = {"field": ["trace"], "query": "event.type:transaction"}
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["meta"]["fields"]["trace"] == "string"
-        assert (
-            response.data["data"][0]["trace"]
-            == self.transaction_data["contexts"]["trace"]["trace_id"]
-        )
+        for dataset in ["discover", "transactions"]:
+            query = {"field": ["trace"], "query": "event.type:transaction", "dataset": dataset}
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["meta"]["fields"]["trace"] == "string"
+            assert (
+                response.data["data"][0]["trace"]
+                == self.transaction_data["contexts"]["trace"]["trace_id"]
+            )
 
     def test_issue_in_columns(self):
         project1 = self.create_project()
@@ -3070,34 +3098,38 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {
-            "field": ["event.type", "count(id)"],
-            "query": "event.type:transaction has:transaction.status",
-            "sort": "-count(id)",
-            "statsPeriod": "24h",
-        }
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["count(id)"] == 1
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["event.type", "count(id)"],
+                "query": "event.type:transaction has:transaction.status",
+                "sort": "-count(id)",
+                "statsPeriod": "24h",
+                "dataset": dataset,
+            }
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count(id)"] == 1
 
     @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_not_has_transaction_status(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {
-            "field": ["event.type", "count(id)"],
-            "query": "event.type:transaction !has:transaction.status",
-            "sort": "-count(id)",
-            "statsPeriod": "24h",
-        }
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["count(id)"] == 0
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["event.type", "count(id)"],
+                "query": "event.type:transaction !has:transaction.status",
+                "sort": "-count(id)",
+                "statsPeriod": "24h",
+                "dataset": dataset,
+            }
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count(id)"] == 0
 
     def test_tag_that_looks_like_aggregation(self):
         data = {
@@ -3340,18 +3372,19 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.transaction_data["transaction"] = "/no_users/1"
         self.store_event(self.transaction_data, project_id=self.project.id)
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["user_misery(300)"],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
 
-        query = {
-            "field": ["user_misery(300)"],
-            "query": "event.type:transaction",
-        }
-
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        meta = response.data["meta"]["fields"]
-        assert meta["user_misery(300)"] == "number"
-        data = response.data["data"]
-        assert data[0]["user_misery(300)"] == 0
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            meta = response.data["meta"]["fields"]
+            assert meta["user_misery(300)"] == "number"
+            data = response.data["data"]
+            assert data[0]["user_misery(300)"] == 0
 
     @requires_not_arm64
     def test_null_user_misery_new_returns_zero(self):
@@ -3362,17 +3395,19 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "organizations:discover-basic": True,
         }
 
-        query = {
-            "field": ["user_misery()"],
-            "query": "event.type:transaction",
-        }
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["user_misery()"],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
 
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        meta = response.data["meta"]["fields"]
-        assert meta["user_misery()"] == "number"
-        data = response.data["data"]
-        assert data[0]["user_misery()"] == 0
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            meta = response.data["meta"]["fields"]
+            assert meta["user_misery()"] == "number"
+            data = response.data["data"]
+            assert data[0]["user_misery()"] == 0
 
     def test_all_aggregates_in_query(self):
         data = self.load_data(
@@ -3763,12 +3798,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["issue.id"] == event.group_id
         assert data[0]["count(id)"] == 2
 
-    def run_test_in_query(self, query, expected_events, expected_negative_events=None):
-        params = {
-            "field": ["id"],
-            "query": query,
-            "orderby": "id",
-        }
+    def run_test_in_query(
+        self, query, expected_events, expected_negative_events=None, dataset="discover"
+    ):
+        params = {"field": ["id"], "query": query, "orderby": "id", "dataset": dataset}
         response = self.do_request(
             params, {"organizations:discover-basic": True, "organizations:global-views": True}
         )
@@ -3899,11 +3932,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data["contexts"]["trace"]["status"] = "already_exists"
         transaction_3 = self.store_event(data, project_id=self.project.id)
 
-        self.run_test_in_query(
-            "transaction.status:[aborted, already_exists]",
-            [transaction_2, transaction_3],
-            [transaction_1],
-        )
+        for dataset in ["discover", "transactions"]:
+            self.run_test_in_query(
+                "transaction.status:[aborted, already_exists]",
+                [transaction_2, transaction_3],
+                [transaction_1],
+                dataset=dataset,
+            )
 
     def test_messed_up_function_values(self):
         # TODO (evanh): It would be nice if this surfaced an error to the user.
@@ -4042,14 +4077,19 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["contexts"]["trace"]["status"] = "unauthenticated"
             self.store_event(data, project_id=self.project.id)
 
-        query = {"field": ["count()", "failure_count()"], "query": "event.type:transaction"}
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["count()", "failure_count()"],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["count()"] == 8
-        assert data[0]["failure_count()"] == 6
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            data = response.data["data"]
+            assert data[0]["count()"] == 8
+            assert data[0]["failure_count()"] == 6
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
@@ -4092,99 +4132,109 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     def test_percentile_function_meta_types(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
 
-        query = {
-            "field": [
-                "transaction",
-                "percentile(transaction.duration, 0.95)",
-                "percentile(measurements.fp, 0.95)",
-                "percentile(measurements.fcp, 0.95)",
-                "percentile(measurements.lcp, 0.95)",
-                "percentile(measurements.fid, 0.95)",
-                "percentile(measurements.ttfb, 0.95)",
-                "percentile(measurements.ttfb.requesttime, 0.95)",
-                "percentile(measurements.cls, 0.95)",
-                "percentile(measurements.foo, 0.95)",
-                "percentile(measurements.bar, 0.95)",
-            ],
-            "query": "",
-            "orderby": ["transaction"],
-        }
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": [
+                    "transaction",
+                    "percentile(transaction.duration, 0.95)",
+                    "percentile(measurements.fp, 0.95)",
+                    "percentile(measurements.fcp, 0.95)",
+                    "percentile(measurements.lcp, 0.95)",
+                    "percentile(measurements.fid, 0.95)",
+                    "percentile(measurements.ttfb, 0.95)",
+                    "percentile(measurements.ttfb.requesttime, 0.95)",
+                    "percentile(measurements.cls, 0.95)",
+                    "percentile(measurements.foo, 0.95)",
+                    "percentile(measurements.bar, 0.95)",
+                ],
+                "query": "",
+                "orderby": ["transaction"],
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        meta = response.data["meta"]["fields"]
-        assert meta["percentile(transaction.duration, 0.95)"] == "duration"
-        assert meta["percentile(measurements.fp, 0.95)"] == "duration"
-        assert meta["percentile(measurements.fcp, 0.95)"] == "duration"
-        assert meta["percentile(measurements.lcp, 0.95)"] == "duration"
-        assert meta["percentile(measurements.fid, 0.95)"] == "duration"
-        assert meta["percentile(measurements.ttfb, 0.95)"] == "duration"
-        assert meta["percentile(measurements.ttfb.requesttime, 0.95)"] == "duration"
-        assert meta["percentile(measurements.cls, 0.95)"] == "number"
-        assert meta["percentile(measurements.foo, 0.95)"] == "number"
-        assert meta["percentile(measurements.bar, 0.95)"] == "number"
+            assert response.status_code == 200, response.content
+            meta = response.data["meta"]["fields"]
+            assert meta["percentile(transaction.duration, 0.95)"] == "duration"
+            assert meta["percentile(measurements.fp, 0.95)"] == "duration"
+            assert meta["percentile(measurements.fcp, 0.95)"] == "duration"
+            assert meta["percentile(measurements.lcp, 0.95)"] == "duration"
+            assert meta["percentile(measurements.fid, 0.95)"] == "duration"
+            assert meta["percentile(measurements.ttfb, 0.95)"] == "duration"
+            assert meta["percentile(measurements.ttfb.requesttime, 0.95)"] == "duration"
+            assert meta["percentile(measurements.cls, 0.95)"] == "number"
+            assert meta["percentile(measurements.foo, 0.95)"] == "number"
+            assert meta["percentile(measurements.bar, 0.95)"] == "number"
 
-        units = response.data["meta"]["units"]
-        assert units["percentile(transaction.duration, 0.95)"] == "millisecond"
-        assert units["percentile(measurements.fp, 0.95)"] == "millisecond"
-        assert units["percentile(measurements.fcp, 0.95)"] == "millisecond"
-        assert units["percentile(measurements.lcp, 0.95)"] == "millisecond"
-        assert units["percentile(measurements.fid, 0.95)"] == "millisecond"
-        assert units["percentile(measurements.ttfb, 0.95)"] == "millisecond"
-        assert units["percentile(measurements.ttfb.requesttime, 0.95)"] == "millisecond"
+            units = response.data["meta"]["units"]
+            assert units["percentile(transaction.duration, 0.95)"] == "millisecond"
+            assert units["percentile(measurements.fp, 0.95)"] == "millisecond"
+            assert units["percentile(measurements.fcp, 0.95)"] == "millisecond"
+            assert units["percentile(measurements.lcp, 0.95)"] == "millisecond"
+            assert units["percentile(measurements.fid, 0.95)"] == "millisecond"
+            assert units["percentile(measurements.ttfb, 0.95)"] == "millisecond"
+            assert units["percentile(measurements.ttfb.requesttime, 0.95)"] == "millisecond"
 
     def test_count_at_least_query(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({"field": "count_at_least(measurements.fcp, 0)"})
-        assert response.status_code == 200
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["count_at_least(measurements.fcp, 0)"] == 1
+        for dataset in ["discover", "transactions"]:
+            response = self.do_request(
+                {"field": "count_at_least(measurements.fcp, 0)", "dataset": dataset}
+            )
+            assert response.status_code == 200
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["count_at_least(measurements.fcp, 0)"] == 1
 
-        # a value that's a little bigger than the stored fcp
-        fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
-        response = self.do_request({"field": f"count_at_least(measurements.fcp, {fcp})"})
-        assert response.status_code == 200
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0][f"count_at_least(measurements.fcp, {fcp})"] == 0
+            # a value that's a little bigger than the stored fcp
+            fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
+            response = self.do_request(
+                {"field": f"count_at_least(measurements.fcp, {fcp})", "dataset": dataset}
+            )
+            assert response.status_code == 200
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0][f"count_at_least(measurements.fcp, {fcp})"] == 0
 
     def test_measurements_query(self):
         self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "measurements.fp",
-                "measurements.fcp",
-                "measurements.lcp",
-                "measurements.fid",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        for field in query["field"]:
-            measure = field.split(".", 1)[1]
-            assert (
-                response.data["data"][0][field]
-                == self.transaction_data["measurements"][measure]["value"]
-            )
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": [
+                    "measurements.fp",
+                    "measurements.fcp",
+                    "measurements.lcp",
+                    "measurements.fid",
+                ],
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            for field in query["field"]:
+                measure = field.split(".", 1)[1]
+                assert (
+                    response.data["data"][0][field]
+                    == self.transaction_data["measurements"][measure]["value"]
+                )
 
-        query = {
-            "field": [
-                "measurements.fP",
-                "measurements.Fcp",
-                "measurements.LcP",
-                "measurements.FID",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        for field in query["field"]:
-            measure = field.split(".", 1)[1].lower()
-            assert (
-                response.data["data"][0][field]
-                == self.transaction_data["measurements"][measure]["value"]
-            )
+            query = {
+                "field": [
+                    "measurements.fP",
+                    "measurements.Fcp",
+                    "measurements.LcP",
+                    "measurements.FID",
+                ],
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            for field in query["field"]:
+                measure = field.split(".", 1)[1].lower()
+                assert (
+                    response.data["data"][0][field]
+                    == self.transaction_data["measurements"][measure]["value"]
+                )
 
     def test_measurements_aggregations(self):
         self.store_event(self.transaction_data, self.project.id)
@@ -4192,57 +4242,62 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # should try all the potential aggregates
         # Skipped tests for stddev and var since sampling one data point
         # results in nan.
-        query = {
-            "field": [
-                "percentile(measurements.fcp, 0.5)",
-                "count_unique(measurements.fcp)",
-                "min(measurements.fcp)",
-                "max(measurements.fcp)",
-                "avg(measurements.fcp)",
-                "sum(measurements.fcp)",
-            ],
-        }
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": [
+                    "percentile(measurements.fcp, 0.5)",
+                    "count_unique(measurements.fcp)",
+                    "min(measurements.fcp)",
+                    "max(measurements.fcp)",
+                    "avg(measurements.fcp)",
+                    "sum(measurements.fcp)",
+                ],
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert (
-            response.data["data"][0]["percentile(measurements.fcp, 0.5)"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
-        assert response.data["data"][0]["count_unique(measurements.fcp)"] == 1
-        assert (
-            response.data["data"][0]["min(measurements.fcp)"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
-        assert (
-            response.data["data"][0]["max(measurements.fcp)"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
-        assert (
-            response.data["data"][0]["avg(measurements.fcp)"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
-        assert (
-            response.data["data"][0]["sum(measurements.fcp)"]
-            == self.transaction_data["measurements"]["fcp"]["value"]
-        )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert (
+                response.data["data"][0]["percentile(measurements.fcp, 0.5)"]
+                == self.transaction_data["measurements"]["fcp"]["value"]
+            )
+            assert response.data["data"][0]["count_unique(measurements.fcp)"] == 1
+            assert (
+                response.data["data"][0]["min(measurements.fcp)"]
+                == self.transaction_data["measurements"]["fcp"]["value"]
+            )
+            assert (
+                response.data["data"][0]["max(measurements.fcp)"]
+                == self.transaction_data["measurements"]["fcp"]["value"]
+            )
+            assert (
+                response.data["data"][0]["avg(measurements.fcp)"]
+                == self.transaction_data["measurements"]["fcp"]["value"]
+            )
+            assert (
+                response.data["data"][0]["sum(measurements.fcp)"]
+                == self.transaction_data["measurements"]["fcp"]["value"]
+            )
 
-    def get_measurement_condition_response(self, query_str, field):
+    def get_measurement_condition_response(self, query_str, field, dataset="discover"):
         query = {
             "field": ["transaction", "count()"] + (field if field else []),
             "query": query_str,
+            "dataset": dataset,
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         return response
 
-    def assert_measurement_condition_without_results(self, query_str, field=None):
-        response = self.get_measurement_condition_response(query_str, field)
+    def assert_measurement_condition_without_results(
+        self, query_str, field=None, dataset="discover"
+    ):
+        response = self.get_measurement_condition_response(query_str, field, dataset=dataset)
         assert len(response.data["data"]) == 0
 
-    def assert_measurement_condition_with_results(self, query_str, field=None):
-        response = self.get_measurement_condition_response(query_str, field)
+    def assert_measurement_condition_with_results(self, query_str, field=None, dataset="discover"):
+        response = self.get_measurement_condition_response(query_str, field, dataset=dataset)
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
         assert response.data["data"][0]["count()"] == 1
@@ -4252,22 +4307,35 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         fcp = self.transaction_data["measurements"]["fcp"]["value"]
 
-        # equality condition
-        # We use json dumps here to ensure precision when converting from float to str
-        # This is necessary because equality on floating point values need to be precise
-        self.assert_measurement_condition_with_results(f"measurements.fcp:{json.dumps(fcp)}")
+        for dataset in ["discover", "transactions"]:
+            # equality condition
+            # We use json dumps here to ensure precision when converting from float to str
+            # This is necessary because equality on floating point values need to be precise
+            self.assert_measurement_condition_with_results(
+                f"measurements.fcp:{json.dumps(fcp)}", dataset=dataset
+            )
 
-        # greater than condition
-        self.assert_measurement_condition_with_results(f"measurements.fcp:>{fcp - 1}")
-        self.assert_measurement_condition_without_results(f"measurements.fcp:>{fcp + 1}")
+            # greater than condition
+            self.assert_measurement_condition_with_results(
+                f"measurements.fcp:>{fcp - 1}", dataset=dataset
+            )
+            self.assert_measurement_condition_without_results(
+                f"measurements.fcp:>{fcp + 1}", dataset=dataset
+            )
 
-        # less than condition
-        self.assert_measurement_condition_with_results(f"measurements.fcp:<{fcp + 1}")
-        self.assert_measurement_condition_without_results(f"measurements.fcp:<{fcp - 1}")
+            # less than condition
+            self.assert_measurement_condition_with_results(
+                f"measurements.fcp:<{fcp + 1}", dataset=dataset
+            )
+            self.assert_measurement_condition_without_results(
+                f"measurements.fcp:<{fcp - 1}", dataset=dataset
+            )
 
-        # has condition
-        self.assert_measurement_condition_with_results("has:measurements.fcp")
-        self.assert_measurement_condition_without_results("!has:measurements.fcp")
+            # has condition
+            self.assert_measurement_condition_with_results("has:measurements.fcp", dataset=dataset)
+            self.assert_measurement_condition_without_results(
+                "!has:measurements.fcp", dataset=dataset
+            )
 
     def test_measurements_aggregation_conditions(self):
         self.store_event(self.transaction_data, self.project.id)
@@ -4281,50 +4349,59 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "sum(measurements.fcp)",
         ]
 
-        for function in functions:
-            self.assert_measurement_condition_with_results(
-                f"{function}:>{fcp - 1}", field=[function]
-            )
-            self.assert_measurement_condition_without_results(
-                f"{function}:>{fcp + 1}", field=[function]
-            )
-            self.assert_measurement_condition_with_results(
-                f"{function}:<{fcp + 1}", field=[function]
-            )
-            self.assert_measurement_condition_without_results(
-                f"{function}:<{fcp - 1}", field=[function]
-            )
+        for dataset in ["discover", "transactions"]:
+            for function in functions:
+                self.assert_measurement_condition_with_results(
+                    f"{function}:>{fcp - 1}", field=[function], dataset=dataset
+                )
+                self.assert_measurement_condition_without_results(
+                    f"{function}:>{fcp + 1}", field=[function], dataset=dataset
+                )
+                self.assert_measurement_condition_with_results(
+                    f"{function}:<{fcp + 1}", field=[function], dataset=dataset
+                )
+                self.assert_measurement_condition_without_results(
+                    f"{function}:<{fcp - 1}", field=[function], dataset=dataset
+                )
 
-        count_unique = "count_unique(measurements.fcp)"
-        self.assert_measurement_condition_with_results(f"{count_unique}:1", field=[count_unique])
-        self.assert_measurement_condition_without_results(f"{count_unique}:0", field=[count_unique])
+            count_unique = "count_unique(measurements.fcp)"
+            self.assert_measurement_condition_with_results(
+                f"{count_unique}:1", field=[count_unique], dataset=dataset
+            )
+            self.assert_measurement_condition_without_results(
+                f"{count_unique}:0", field=[count_unique], dataset=dataset
+            )
 
     def test_compare_numeric_aggregate(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        query = {
-            "field": [
-                "p75(measurements.fcp)",
-                "compare_numeric_aggregate(p75_measurements_fcp,greater,0)",
-            ],
-        }
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": [
+                    "p75(measurements.fcp)",
+                    "compare_numeric_aggregate(p75_measurements_fcp,greater,0)",
+                ],
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert (
-            response.data["data"][0]["compare_numeric_aggregate(p75_measurements_fcp,greater,0)"]
-            == 1
-        )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert (
+                response.data["data"][0][
+                    "compare_numeric_aggregate(p75_measurements_fcp,greater,0)"
+                ]
+                == 1
+            )
 
-        query = {
-            "field": ["p75()", "compare_numeric_aggregate(p75,equals,0)"],
-        }
-        response = self.do_request(query)
+            query = {
+                "field": ["p75()", "compare_numeric_aggregate(p75,equals,0)"],
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["compare_numeric_aggregate(p75,equals,0)"] == 0
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["compare_numeric_aggregate(p75,equals,0)"] == 0
 
     def test_no_team_key_transactions(self):
         transactions = [
@@ -4337,32 +4414,34 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
 
-        query = {
-            "team": "myteams",
-            "project": [self.project.id],
-            # use the order by to ensure the result order
-            "orderby": "transaction",
-            "field": [
-                "team_key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
-        response = self.do_request(query)
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                # use the order by to ensure the result order
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+                "dataset": dataset,
+            }
+            response = self.do_request(query)
 
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["team_key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["team_key_transaction"] == 0
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["team_key_transaction"] == 0
-        assert data[2]["transaction"] == "/zoo_transaction/"
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert data[0]["team_key_transaction"] == 0
+            assert data[0]["transaction"] == "/blah_transaction/"
+            assert data[1]["team_key_transaction"] == 0
+            assert data[1]["transaction"] == "/foo_transaction/"
+            assert data[2]["team_key_transaction"] == 0
+            assert data[2]["transaction"] == "/zoo_transaction/"
 
     def test_team_key_transactions_my_teams(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -4391,57 +4470,60 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
-        query = {
-            "team": "myteams",
-            "project": [self.project.id],
-            "field": [
-                "team_key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+                "dataset": dataset,
+            }
 
-        query["orderby"] = ["team_key_transaction", "transaction"]
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["team_key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["team_key_transaction"] == 0
-        assert data[1]["transaction"] == "/zoo_transaction/"
-        assert data[2]["team_key_transaction"] == 1
-        assert data[2]["transaction"] == "/foo_transaction/"
+            query["orderby"] = ["team_key_transaction", "transaction"]
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert data[0]["team_key_transaction"] == 0
+            assert data[0]["transaction"] == "/blah_transaction/"
+            assert data[1]["team_key_transaction"] == 0
+            assert data[1]["transaction"] == "/zoo_transaction/"
+            assert data[2]["team_key_transaction"] == 1
+            assert data[2]["transaction"] == "/foo_transaction/"
 
-        # not specifying any teams should use my teams
-        query = {
-            "project": [self.project.id],
-            "field": [
-                "team_key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
+            # not specifying any teams should use my teams
+            query = {
+                "project": [self.project.id],
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+                "dataset": dataset,
+            }
 
-        query["orderby"] = ["team_key_transaction", "transaction"]
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["team_key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["team_key_transaction"] == 0
-        assert data[1]["transaction"] == "/zoo_transaction/"
-        assert data[2]["team_key_transaction"] == 1
-        assert data[2]["transaction"] == "/foo_transaction/"
+            query["orderby"] = ["team_key_transaction", "transaction"]
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert data[0]["team_key_transaction"] == 0
+            assert data[0]["transaction"] == "/blah_transaction/"
+            assert data[1]["team_key_transaction"] == 0
+            assert data[1]["transaction"] == "/zoo_transaction/"
+            assert data[2]["team_key_transaction"] == 1
+            assert data[2]["transaction"] == "/foo_transaction/"
 
     def test_team_key_transactions_orderby(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -4468,45 +4550,47 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
-        query = {
-            "team": "myteams",
-            "project": [self.project.id],
-            "field": [
-                "team_key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+                "dataset": dataset,
+            }
 
-        # test ascending order
-        query["orderby"] = ["team_key_transaction", "transaction"]
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["team_key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["team_key_transaction"] == 1
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["team_key_transaction"] == 1
-        assert data[2]["transaction"] == "/zoo_transaction/"
+            # test ascending order
+            query["orderby"] = ["team_key_transaction", "transaction"]
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert data[0]["team_key_transaction"] == 0
+            assert data[0]["transaction"] == "/blah_transaction/"
+            assert data[1]["team_key_transaction"] == 1
+            assert data[1]["transaction"] == "/foo_transaction/"
+            assert data[2]["team_key_transaction"] == 1
+            assert data[2]["transaction"] == "/zoo_transaction/"
 
-        # test descending order
-        query["orderby"] = ["-team_key_transaction", "-transaction"]
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["team_key_transaction"] == 1
-        assert data[0]["transaction"] == "/zoo_transaction/"
-        assert data[1]["team_key_transaction"] == 1
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["team_key_transaction"] == 0
-        assert data[2]["transaction"] == "/blah_transaction/"
+            # test descending order
+            query["orderby"] = ["-team_key_transaction", "-transaction"]
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 3
+            assert data[0]["team_key_transaction"] == 1
+            assert data[0]["transaction"] == "/zoo_transaction/"
+            assert data[1]["team_key_transaction"] == 1
+            assert data[1]["transaction"] == "/foo_transaction/"
+            assert data[2]["team_key_transaction"] == 0
+            assert data[2]["transaction"] == "/blah_transaction/"
 
     def test_team_key_transactions_query(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -4535,62 +4619,63 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 ),
                 transaction=transaction,
             )
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                # use the order by to ensure the result order
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+                "dataset": dataset,
+            }
 
-        query = {
-            "team": "myteams",
-            "project": [self.project.id],
-            # use the order by to ensure the result order
-            "orderby": "transaction",
-            "field": [
-                "team_key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
+            # key transactions
+            query["query"] = "has:team_key_transaction"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            assert data[0]["team_key_transaction"] == 1
+            assert data[0]["transaction"] == "/foo_transaction/"
+            assert data[1]["team_key_transaction"] == 1
+            assert data[1]["transaction"] == "/zoo_transaction/"
 
-        # key transactions
-        query["query"] = "has:team_key_transaction"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
-        assert data[0]["team_key_transaction"] == 1
-        assert data[0]["transaction"] == "/foo_transaction/"
-        assert data[1]["team_key_transaction"] == 1
-        assert data[1]["transaction"] == "/zoo_transaction/"
+            # key transactions
+            query["query"] = "team_key_transaction:true"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            assert data[0]["team_key_transaction"] == 1
+            assert data[0]["transaction"] == "/foo_transaction/"
+            assert data[1]["team_key_transaction"] == 1
+            assert data[1]["transaction"] == "/zoo_transaction/"
 
-        # key transactions
-        query["query"] = "team_key_transaction:true"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
-        assert data[0]["team_key_transaction"] == 1
-        assert data[0]["transaction"] == "/foo_transaction/"
-        assert data[1]["team_key_transaction"] == 1
-        assert data[1]["transaction"] == "/zoo_transaction/"
+            # not key transactions
+            query["query"] = "!has:team_key_transaction"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["team_key_transaction"] == 0
+            assert data[0]["transaction"] == "/blah_transaction/"
 
-        # not key transactions
-        query["query"] = "!has:team_key_transaction"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["team_key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-
-        # not key transactions
-        query["query"] = "team_key_transaction:false"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["team_key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
+            # not key transactions
+            query["query"] = "team_key_transaction:false"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["team_key_transaction"] == 0
+            assert data[0]["transaction"] == "/blah_transaction/"
 
     def test_too_many_team_key_transactions(self):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
@@ -4618,30 +4703,31 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
                 ]
             )
+            for dataset in ["discover", "transactions"]:
+                query = {
+                    "team": "myteams",
+                    "project": [self.project.id],
+                    "orderby": "transaction",
+                    "field": [
+                        "team_key_transaction",
+                        "transaction",
+                        "transaction.status",
+                        "project",
+                        "epm()",
+                        "failure_rate()",
+                        "percentile(transaction.duration, 0.95)",
+                    ],
+                    "dataset": dataset,
+                }
 
-            query = {
-                "team": "myteams",
-                "project": [self.project.id],
-                "orderby": "transaction",
-                "field": [
-                    "team_key_transaction",
-                    "transaction",
-                    "transaction.status",
-                    "project",
-                    "epm()",
-                    "failure_rate()",
-                    "percentile(transaction.duration, 0.95)",
-                ],
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 2
-            assert (
-                sum(row["team_key_transaction"] for row in data)
-                == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
-            )
+                response = self.do_request(query)
+                assert response.status_code == 200, response.content
+                data = response.data["data"]
+                assert len(data) == 2
+                assert (
+                    sum(row["team_key_transaction"] for row in data)
+                    == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+                )
 
     def test_no_pagination_param(self):
         self.store_event(
@@ -4673,24 +4759,26 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
         self.store_event(data=event_data, project_id=self.project.id)
 
-        query = {
-            "field": ["spans.http", "equation|spans.http / 3"],
-            "project": [self.project.id],
-            "query": "event.type:transaction",
-        }
-        response = self.do_request(
-            query,
-            {
-                "organizations:discover-basic": True,
-            },
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert (
-            response.data["data"][0]["equation|spans.http / 3"]
-            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
-        )
-        assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["spans.http", "equation|spans.http / 3"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(
+                query,
+                {
+                    "organizations:discover-basic": True,
+                },
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert (
+                response.data["data"][0]["equation|spans.http / 3"]
+                == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+            )
+            assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
 
     def test_equation_sort(self):
         event_data = self.transaction_data.copy()
@@ -4701,59 +4789,65 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         event_data2["breakdowns"] = {"span_ops": {"ops.http": {"value": 2000}}}
         self.store_event(data=event_data2, project_id=self.project.id)
 
-        query = {
-            "field": ["spans.http", "equation|spans.http / 3"],
-            "project": [self.project.id],
-            "orderby": "equation|spans.http / 3",
-            "query": "event.type:transaction",
-        }
-        response = self.do_request(
-            query,
-            {
-                "organizations:discover-basic": True,
-            },
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-        assert (
-            response.data["data"][0]["equation|spans.http / 3"]
-            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
-        )
-        assert (
-            response.data["data"][1]["equation|spans.http / 3"]
-            == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
-        )
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["spans.http", "equation|spans.http / 3"],
+                "project": [self.project.id],
+                "orderby": "equation|spans.http / 3",
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(
+                query,
+                {
+                    "organizations:discover-basic": True,
+                },
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 2
+            assert (
+                response.data["data"][0]["equation|spans.http / 3"]
+                == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+            )
+            assert (
+                response.data["data"][1]["equation|spans.http / 3"]
+                == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+            )
 
     def test_equation_operation_limit(self):
-        query = {
-            "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
-            "project": [self.project.id],
-            "query": "event.type:transaction",
-        }
-        response = self.do_request(
-            query,
-            {
-                "organizations:discover-basic": True,
-            },
-        )
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(
+                query,
+                {
+                    "organizations:discover-basic": True,
+                },
+            )
 
-        assert response.status_code == 400
+            assert response.status_code == 400
 
     @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
     def test_equation_field_limit(self):
-        query = {
-            "field": ["spans.http", "transaction.duration", "equation|5 * 2"],
-            "project": [self.project.id],
-            "query": "event.type:transaction",
-        }
-        response = self.do_request(
-            query,
-            {
-                "organizations:discover-basic": True,
-            },
-        )
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["spans.http", "transaction.duration", "equation|5 * 2"],
+                "project": [self.project.id],
+                "query": "event.type:transaction",
+                "dataset": dataset,
+            }
+            response = self.do_request(
+                query,
+                {
+                    "organizations:discover-basic": True,
+                },
+            )
 
-        assert response.status_code == 400
+            assert response.status_code == 400
 
     def test_count_if(self):
         unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
