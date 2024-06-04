@@ -14,6 +14,8 @@ from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
+    DELETED_FIELDS,
+    DELETED_MODELS,
     ImportKind,
     ModelRelations,
     NormalizedModelName,
@@ -40,7 +42,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -52,33 +53,6 @@ __all__ = (
 )
 
 logger = logging.getLogger(__name__)
-
-# We have to be careful when removing fields from our model schemas, since exports created using
-# the old-but-still-in-the-support-window versions could have those fields set in the data they
-# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
-# valid in at least one of the versions we support. For example, since our current version
-# support window is two minor versions back, if we delete a field at version 24.5.N, we must
-# include an entry in this map for that field until that version is out of the support window
-# (in this case, we can remove shim once version 24.7.0 is released).
-#
-# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
-# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
-# the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[str, set[str]] = {
-    # The actor field should be retained until 24.6.0
-    "sentry.team": {"actor"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.rule": {"owner"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.alertrule": {"owner"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.grouphistory": {"actor"},
-}
-
-# When models are removed from the application, they will continue to be in exports
-# from previous releases. Models in this list are elided from data as imports are processed.
-DELETED_MODELS = {"sentry.actor"}
 
 # The maximum number of models that may be sent at a time.
 MAX_BATCH_SIZE = 20
@@ -179,10 +153,9 @@ def _import(
     )
 
     if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove fields and models that we have marked for deletion in the
-        # function.
+        # Parse the content JSON and remove fields and models that we have marked for deletion in
+        # the function.
         content_as_json = orjson.loads(content)
-
         shimmed_models = set(DELETED_FIELDS.keys())
         for i, json_model in enumerate(content_as_json):
             if json_model["model"] in shimmed_models:
@@ -294,7 +267,11 @@ def _import(
                 batch = []
                 last_seen_model_name = model_name
             if len(batch) >= MAX_BATCH_SIZE:
-                yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+                yield (
+                    last_seen_model_name,
+                    orjson.dumps(batch, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS).decode(),
+                    num_current_model_instances_yielded,
+                )
                 num_current_model_instances_yielded += len(batch)
                 batch = []
 

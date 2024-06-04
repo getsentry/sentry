@@ -27,7 +27,6 @@ const {
   routerContext,
   organization: org,
   router,
-  project,
 } = initializeOrg({
   organization,
   router: {
@@ -280,14 +279,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
+    const context = RouterContextFixture([{router: newRouter}]);
 
     render(<TestComponent router={newRouter} />, {
       context,
@@ -334,14 +326,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
+    const context = RouterContextFixture([{router: newRouter}]);
 
     render(<TestComponent router={newRouter} />, {
       context,
@@ -389,14 +374,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
+    const context = RouterContextFixture([{router: newRouter}]);
 
     render(<TestComponent router={newRouter} />, {
       context,

@@ -1,5 +1,13 @@
 import type React from 'react';
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -7,6 +15,7 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {replayPlayerTimestampEmitter} from 'sentry/components/replays/replayContext';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -25,10 +34,7 @@ import {
   type VirtualizedRow,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {
-  TraceReducerAction,
-  TraceReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceReducerState} from 'sentry/views/performance/newTraceDetails/traceState';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
@@ -40,6 +46,7 @@ import {
   TraceTree,
   type TraceTreeNode,
 } from './traceModels/traceTree';
+import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -159,9 +166,7 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
-  trace_dispatch: React.Dispatch<TraceReducerAction>;
   trace_id: string;
-  trace_state: TraceReducerState;
 }
 
 export function Trace({
@@ -174,15 +179,15 @@ export function Trace({
   onTraceSearch,
   onTraceLoad,
   rerender,
-  trace_state,
   initializedRef,
-  trace_dispatch,
   forceRerender,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
 
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
@@ -197,8 +202,8 @@ export function Trace({
   const treeRef = useRef<TraceTree>(trace);
   treeRef.current = trace;
 
-  const traceStateRef = useRef<TraceReducerState>(trace_state);
-  traceStateRef.current = trace_state;
+  const traceStateRef = useRef<TraceReducerState>(traceState);
+  traceStateRef.current = traceState;
 
   useLayoutEffect(() => {
     if (initializedRef.current) {
@@ -255,7 +260,7 @@ export function Trace({
     trace_id,
     manager,
     onTraceLoad,
-    trace_dispatch,
+    traceDispatch,
     scrollQueueRef,
     initializedRef,
     organization,
@@ -335,7 +340,7 @@ export function Trace({
           treeRef.current.list.length - 1
         );
 
-        trace_dispatch({
+        traceDispatch({
           type: 'set roving index',
           index: nextIndex,
           node: treeRef.current.list[nextIndex],
@@ -350,7 +355,7 @@ export function Trace({
         else if (node.expanded && node.canFetch) onNodeZoomIn(event, node, true);
       }
     },
-    [manager, onNodeExpand, onNodeZoomIn, trace_dispatch]
+    [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
   );
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
@@ -387,9 +392,9 @@ export function Trace({
           index={n.index}
           organization={organization}
           previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-          tabIndex={trace_state.rovingTabIndex.node === n.item ? 0 : -1}
-          isSearchResult={trace_state.search.resultsLookup.has(n.item)}
-          searchResultsIteratorIndex={trace_state.search.resultIndex}
+          tabIndex={traceState.rovingTabIndex.node === n.item ? 0 : -1}
+          isSearchResult={traceState.search.resultsLookup.has(n.item)}
+          searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
           trace_id={trace_id}
           projects={projectLookup}
@@ -415,10 +420,10 @@ export function Trace({
       onRowClick,
       organization,
       projectLookup,
-      trace_state.rovingTabIndex.node,
-      trace_state.search.resultIteratorIndex,
-      trace_state.search.resultsLookup,
-      trace_state.search.resultIndex,
+      traceState.rovingTabIndex.node,
+      traceState.search.resultIteratorIndex,
+      traceState.search.resultsLookup,
+      traceState.search.resultIndex,
       theme,
       trace_id,
       trace.type,
@@ -439,6 +444,9 @@ export function Trace({
     container: scrollContainer,
     render: render,
   });
+
+  const traceNode = trace.root.children[0];
+  const traceStartTimestamp = traceNode?.space?.[0];
 
   return (
     <TraceStylingWrapper
@@ -497,6 +505,12 @@ export function Trace({
             </div>
           );
         })}
+        {traceNode && traceStartTimestamp ? (
+          <VerticalTimestampIndicators
+            viewmanager={manager}
+            traceStartTimestamp={traceStartTimestamp}
+          />
+        ) : null}
       </div>
       <div
         ref={setScrollContainer}
@@ -1624,6 +1638,79 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   );
 }
 
+function VerticalTimestampIndicators({
+  viewmanager,
+  traceStartTimestamp,
+}: {
+  traceStartTimestamp: number;
+  viewmanager: VirtualizedViewManager;
+}) {
+  useEffect(() => {
+    function replayTimestampListener({
+      currentTime,
+      currentHoverTime,
+    }: {
+      currentHoverTime: number | undefined;
+      currentTime: number;
+    }) {
+      if (viewmanager.vertical_indicators['replay_timestamp.current']) {
+        viewmanager.vertical_indicators['replay_timestamp.current'].timestamp =
+          traceStartTimestamp + currentTime;
+      }
+
+      if (viewmanager.vertical_indicators['replay_timestamp.hover']) {
+        viewmanager.vertical_indicators['replay_timestamp.hover'].timestamp =
+          currentHoverTime ? traceStartTimestamp + currentHoverTime : undefined;
+      }
+
+      // When timestamp is changing, it needs to be redrawn
+      // if it is out of bounds, we need to scroll to it
+      viewmanager.drawVerticalIndicators();
+      viewmanager.maybeSyncViewWithVerticalIndicator('replay_timestamp.current');
+    }
+
+    replayPlayerTimestampEmitter.on('replay timestamp change', replayTimestampListener);
+
+    return () => {
+      replayPlayerTimestampEmitter.off(
+        'replay timestamp change',
+        replayTimestampListener
+      );
+    };
+  }, [traceStartTimestamp, viewmanager]);
+
+  const registerReplayCurrentTimestampRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      viewmanager.registerVerticalIndicator('replay_timestamp.current', {
+        ref,
+        timestamp: undefined,
+      });
+    },
+    [viewmanager]
+  );
+
+  const registerReplayHoverTimestampRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      viewmanager.registerVerticalIndicator('replay_timestamp.hover', {
+        ref,
+        timestamp: undefined,
+      });
+    },
+    [viewmanager]
+  );
+
+  return (
+    <Fragment>
+      <div ref={registerReplayCurrentTimestampRef} className="TraceIndicator Timeline">
+        <div className="Indicator CurrentReplayTimestamp" />
+      </div>
+      <div ref={registerReplayHoverTimestampRef} className="TraceIndicator Timeline">
+        <div className="Indicator HoverReplayTimestamp" />
+      </div>
+    </Fragment>
+  );
+}
+
 /**
  * This is a wrapper around the Trace component to apply styles
  * to the trace tree. It exists because we _do not_ want to trigger
@@ -1660,6 +1747,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceIndicatorLine {
         top: 30px;
+      }
+
+      .Indicator {
+        top: 44px;
       }
     }
   }
@@ -1795,6 +1886,23 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+    }
+
+    .Indicator {
+      width: 1px;
+      height: 100%;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-2px);
+      top: 26px;
+
+      &.CurrentReplayTimestamp {
+        background: ${p => p.theme.purple300};
+      }
+
+      &.HoverReplayTimestamp {
+        background: ${p => p.theme.purple200};
+      }
     }
 
     &.Errored {

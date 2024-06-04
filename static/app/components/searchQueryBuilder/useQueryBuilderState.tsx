@@ -1,5 +1,6 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
+import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {
   type ParseResultToken,
   TermOperator,
@@ -9,8 +10,15 @@ import {
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 
 type QueryBuilderState = {
+  focusOverride: FocusOverride | null;
   query: string;
 };
+
+type ClearAction = {type: 'CLEAR'};
+
+type UpdateQueryAction = {query: string; type: 'UPDATE_QUERY'};
+
+type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
 type DeleteTokenAction = {
   token: ParseResultToken;
@@ -21,6 +29,7 @@ type UpdateFreeTextAction = {
   text: string;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
   type: 'UPDATE_FREE_TEXT';
+  focusOverride?: FocusOverride;
 };
 
 type UpdateFilterOpAction = {
@@ -47,6 +56,9 @@ type DeleteLastMultiSelectFilterValueAction = {
 };
 
 export type QueryBuilderActions =
+  | ClearAction
+  | UpdateQueryAction
+  | ResetFocusOverrideAction
   | DeleteTokenAction
   | UpdateFreeTextAction
   | UpdateFilterOpAction
@@ -68,14 +80,11 @@ function modifyFilterOperator(
 ): string {
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
-  token.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
-  token.negated = isNotEqual;
+  const newToken: TokenResult<Token.FILTER> = {...token};
+  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  newToken.negated = isNotEqual;
 
-  return (
-    query.substring(0, token.location.start.offset) +
-    stringifyToken(token) +
-    query.substring(token.location.end.offset)
-  );
+  return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function replaceQueryToken(
@@ -91,7 +100,7 @@ function replaceQueryToken(
 
 // Ensures that the replaced token is separated from the rest of the query
 // and cleans up any extra whitespace
-function replaceTokenWithPadding(
+export function replaceTokenWithPadding(
   query: string,
   token: TokenResult<Token>,
   value: string
@@ -111,6 +120,8 @@ function updateFreeText(
   return {
     ...state,
     query: newQuery,
+    focusOverride:
+      action.focusOverride === undefined ? state.focusOverride : action.focusOverride,
   };
 }
 
@@ -179,23 +190,41 @@ function deleteLastMultiSelectTokenValue(
 }
 
 export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
-  const initialState: QueryBuilderState = {query: initialQuery};
+  const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       switch (action.type) {
+        case 'CLEAR':
+          return {
+            ...state,
+            query: '',
+          };
+        case 'UPDATE_QUERY':
+          return {
+            ...state,
+            query: action.query,
+          };
+        case 'RESET_FOCUS_OVERRIDE':
+          return {
+            ...state,
+            focusOverride: null,
+          };
         case 'DELETE_TOKEN':
           return {
+            ...state,
             query: removeQueryToken(state.query, action.token),
           };
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
         case 'UPDATE_FILTER_OP':
           return {
+            ...state,
             query: modifyFilterOperator(state.query, action.token, action.op),
           };
         case 'UPDATE_TOKEN_VALUE':
           return {
+            ...state,
             query: replaceQueryToken(state.query, action.token, action.value),
           };
         case 'TOGGLE_FILTER_VALUE':

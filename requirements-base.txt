@@ -67,6 +67,7 @@ sentry-ophio==0.2.7
 sentry-redis-tools>=0.1.7
 sentry-relay>=0.8.67
 sentry-sdk>=2.2.1
+slack-sdk>=3.27.2
 snuba-sdk>=2.0.33
 simplejson>=3.17.6
 sqlparse>=0.4.4
@@ -80,7 +81,7 @@ ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=2
 brotli>=1.0.9
-pyuwsgi==2.0.23
+pyuwsgi==2.0.23.post0
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 orjson>=3.10.3

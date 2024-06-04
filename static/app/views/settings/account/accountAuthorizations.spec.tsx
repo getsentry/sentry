@@ -1,5 +1,4 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -27,10 +26,7 @@ describe('AccountAuthorizations', function () {
         routes={router.routes}
         route={router.routes[0]}
         router={router}
-      />,
-      {
-        context: RouterContextFixture(),
-      }
+      />
     );
   });
 });

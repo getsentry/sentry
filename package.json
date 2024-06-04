@@ -50,7 +50,7 @@
     "@react-stately/tabs": "^3.6.3",
     "@react-stately/tree": "^3.7.5",
     "@react-types/shared": "^3.22.0",
-    "@rsdoctor/webpack-plugin": "^0.1.10",
+    "@rsdoctor/webpack-plugin": "^0.2.5",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry-internal/react-inspector": "6.0.1-4",
     "@sentry-internal/rrweb": "2.12.0",
@@ -107,7 +107,7 @@
     "css-loader": "^7.1.1",
     "css-minimizer-webpack-plugin": "^6.0.0",
     "diff": "5.1.0",
-    "dompurify": "^3.0.6",
+    "dompurify": "^3.1.5",
     "downsample": "1.4.0",
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
@@ -174,7 +174,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.7.3",
+    "@biomejs/biome": "^1.8.0",
     "@codecov/webpack-plugin": "^0.0.1-beta.8",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.11",
     "@sentry/jest-environment": "6.0.0",
@@ -224,7 +224,7 @@
     "lint:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --check --log-level=error",
     "fix": "yarn fix:biome && yarn fix:prettier && yarn fix:eslint",
     "fix:eslint": "eslint . --ext .js,.ts,.tsx --fix",
-    "fix:biome": "biome check . --apply",
+    "fix:biome": "biome check . --write",
     "fix:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --write --log-level=error",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 webpack serve",
@@ -260,9 +260,7 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": [
-      "current node"
-    ]
+    "test": ["current node"]
   },
   "volta": {
     "extends": ".volta.json"

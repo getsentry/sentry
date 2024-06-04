@@ -6,6 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
@@ -60,13 +61,7 @@ export const useProjectWebVitalsScoresQuery = ({
           : []),
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:[pageload,""]',
-        'span.op:[ui.interaction.click,""]',
-        search.formatString(),
-      ]
-        .join(' ')
-        .trim(),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       version: 2,
       dataset: dataset ?? DiscoverDatasets.METRICS,
     },

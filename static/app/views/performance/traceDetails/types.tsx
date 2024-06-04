@@ -27,7 +27,7 @@ export type TraceInfo = {
   startTimestamp: number;
   /**
    * The number of events that are not transactions,
-   * appearing as it's own row in the trace view
+   * appearing as its own row in the trace view
    */
   trailingOrphansCount: number;
   /**

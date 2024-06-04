@@ -183,7 +183,7 @@ export function WebVitalsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="vital" features="spans-first-ui">
+    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );

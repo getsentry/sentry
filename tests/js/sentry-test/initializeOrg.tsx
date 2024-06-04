@@ -36,7 +36,7 @@ interface InitializeOrgOptions<RouterParams> {
  *   - a project or projects
  *   - organization owning above projects
  *   - router
- *   - context that contains org + projects + router
+ *   - context that contains router
  */
 export function initializeOrg<RouterParams = {orgId: string; projectId: string}>({
   organization: additionalOrg,
@@ -65,14 +65,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     },
   });
 
-  const routerContext: any = RouterContextFixture([
-    {
-      organization,
-      project,
-      router,
-      location: router.location,
-    },
-  ]);
+  const routerContext: any = RouterContextFixture([{router}]);
 
   /**
    * A collection of router props that are passed to components by react-router
@@ -88,7 +81,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     router,
     route: router.routes[0],
     routes: router.routes,
-    location: routerContext.context.location,
+    location: router.location,
   };
 
   return {

@@ -1,17 +1,17 @@
-import startCase from 'lodash/startCase';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
+import * as utils from 'sentry/components/events/contexts/utils';
 
 describe('ContextCard', function () {
+  const group = GroupFixture();
+  const project = ProjectFixture();
   it('renders the card with formatted context data', function () {
     const event = EventFixture();
-    const group = GroupFixture();
-    const {project} = initializeOrg();
     const alias = 'Things in my Vicinity';
     const simpleContext = {
       snack: 'peanut',
@@ -42,7 +42,7 @@ describe('ContextCard', function () {
       />
     );
 
-    expect(screen.getByText(startCase(alias))).toBeInTheDocument();
+    expect(screen.getByText(alias)).toBeInTheDocument();
     Object.entries(simpleContext).forEach(([key, value]) => {
       expect(screen.getByText(key)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
@@ -53,6 +53,47 @@ describe('ContextCard', function () {
         screen.getByText(`${Object.values(value).length} items`)
       ).toBeInTheDocument();
     });
+  });
+
+  it('renders with icons if able', function () {
+    const event = EventFixture();
+    const iconSpy = jest.spyOn(utils, 'getContextIcon');
+
+    const browserContext = {
+      type: 'browser',
+      name: 'firefox',
+      version: 'Infinity',
+    };
+    const browserCard = render(
+      <ContextCard
+        type="browser"
+        alias="browser"
+        value={browserContext}
+        event={event}
+        group={group}
+        project={project}
+      />
+    );
+    expect(iconSpy.mock.results[0].value.props.name).toBe('firefox');
+    iconSpy.mockReset();
+    browserCard.unmount();
+
+    const unknownContext = {
+      type: 'default',
+      organization: 'acme',
+      tier: 'gold',
+    };
+    render(
+      <ContextCard
+        type="default"
+        alias="organization"
+        value={unknownContext}
+        event={event}
+        group={group}
+        project={project}
+      />
+    );
+    expect(iconSpy.mock.results[0].value).toBeUndefined();
   });
 
   it('renders the annotated text and errors', function () {
@@ -92,8 +133,6 @@ describe('ContextCard', function () {
         },
       },
     });
-    const group = GroupFixture();
-    const {project} = initializeOrg();
     const errorContext = {
       error: '',
       redacted: '',

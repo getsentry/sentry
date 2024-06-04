@@ -11,6 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -45,6 +46,8 @@ export function EventSamples({
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
+
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
   const startType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
@@ -68,6 +71,10 @@ export function EventSamples({
     //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     // }`,
   ]);
+
+  if (isProjectCrossPlatform) {
+    searchQuery.addFilterValue('os.name', selectedPlatform);
+  }
 
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 

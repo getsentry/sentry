@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event} from 'sentry/types';
+import {EntryType, type Event} from 'sentry/types/event';
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   type VirtualizedList,
@@ -92,7 +92,8 @@ function makeSingleTransactionTree(): TraceTree {
           event_id: 'event_id',
         }),
       ],
-    })
+    }),
+    null
   );
 }
 
@@ -312,7 +313,8 @@ describe('VirtualizedViewManger', () => {
         makeTrace({
           transactions: [makeTransaction()],
           orphan_errors: [],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -335,7 +337,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -367,7 +370,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -402,7 +406,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -437,7 +442,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -478,7 +484,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -682,7 +689,8 @@ describe('VirtualizedViewManger', () => {
               timestamp: 1,
             },
           ],
-        })
+        }),
+        null
       );
 
       const result = await TraceTree.ExpandToPath(tree, ['error-ded'], () => void 0, {

@@ -93,6 +93,7 @@ export function TransactionNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
+  replayRecord,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
   const {projects} = useProjects();
@@ -181,7 +182,7 @@ export function TransactionNodeDetails({
 
       {project ? <EventEvidence event={event} project={project} /> : null}
 
-      <ReplayPreview event={event} organization={organization} />
+      {replayRecord ? <ReplayPreview event={event} organization={organization} /> : null}
 
       <BreadCrumbs event={event} organization={organization} />
 

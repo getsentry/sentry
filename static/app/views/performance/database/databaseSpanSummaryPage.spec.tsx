@@ -311,7 +311,7 @@ describe('DatabaseSpanSummaryPage', function () {
         query: {
           dataset: 'spansIndexed',
           environment: [],
-          field: ['transaction.id', 'project', 'span_id', 'span.self_time'],
+          field: ['timestamp', 'transaction.id', 'project', 'span_id', 'span.self_time'],
           per_page: 1,
           project: [],
           query: 'span.group:1756baf8fd19c116',
