@@ -133,8 +133,7 @@ def circuit_breaker_context(
 ) -> Iterator[None]:
     """
     A context manager version of `with_circuit_breaker`. This is useful when you want to ensure that
-    the circuit breaker is activated for the duration of a block of code, but don't want to raise an
-    exception if the circuit breaker is tripped.
+    the circuit breaker is activated for the duration of a block of code.
 
     Example usage:
 
@@ -153,16 +152,16 @@ def circuit_breaker_context(
     config: CircuitBreakerConfig = {**CIRCUIT_BREAKER_DEFAULTS, **(custom_config or {})}
     error_count_key = ERROR_COUNT_CACHE_KEY(key)
 
-    if _should_call_callback(key, error_count_key, config):
-        try:
-            yield
-        except Exception:
-            _update_error_count(error_count_key, config["error_limit_window"])
-            raise
-        else:
-            _update_error_count(error_count_key, config["error_limit_window"], reset=True)
-    else:
+    if not _should_call_callback(key, error_count_key, config):
         raise CircuitBreakerTripped
+
+    try:
+        yield
+    except Exception:
+        _update_error_count(error_count_key, config["error_limit_window"])
+        raise
+    else:
+        _update_error_count(error_count_key, config["error_limit_window"], reset=True)
 
 
 def _should_call_callback(
