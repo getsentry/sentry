@@ -2,7 +2,7 @@ from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri

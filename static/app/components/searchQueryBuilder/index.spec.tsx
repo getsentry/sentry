@@ -154,36 +154,6 @@ describe('SearchQueryBuilder', function () {
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
     });
-
-    // biome-ignore lint/suspicious/noSkippedTests: This test flakes in CI due to an act warning in Tooltip
-    it.skip('can switch between interfaces', async function () {
-      render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
-      );
-
-      // Displays in tokenized mode by default
-      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Switch to plain text'}));
-
-      // No longer displays tokens, has an input instead
-      await waitFor(() => {
-        expect(
-          screen.queryByRole('row', {name: 'browser.name:firefox'})
-        ).not.toBeInTheDocument();
-      });
-      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
-
-      // Switching back should restore the tokens
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Switch to tokenized search'})
-      );
-      await waitFor(() => {
-        expect(
-          screen.getByRole('row', {name: 'browser.name:firefox'})
-        ).toBeInTheDocument();
-      });
-    });
   });
 
   describe('plain text interface', function () {
@@ -201,6 +171,7 @@ describe('SearchQueryBuilder', function () {
           {...defaultProps}
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
+          queryInterface={QueryInterfaceType.TEXT}
         />
       );
 

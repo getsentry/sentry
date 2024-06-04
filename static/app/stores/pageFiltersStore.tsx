@@ -2,6 +2,7 @@ import {createStore} from 'reflux';
 
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -159,7 +160,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updateProjects(projects = [], environments = null) {
-    if (arrayIsEqual(this.state.selection.projects, projects)) {
+    if (valueIsEqual(this.state.selection.projects, projects)) {
       return;
     }
 
@@ -200,7 +201,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updateEnvironments(environments) {
-    if (arrayIsEqual(this.state.selection.environments, environments)) {
+    if (valueIsEqual(this.state.selection.environments, environments)) {
       return;
     }
 

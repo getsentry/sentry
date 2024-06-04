@@ -371,9 +371,9 @@ class IssueTrackingPlugin2(Plugin):
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
 
-    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs):
+    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
         if not self.is_configured(request=request, project=group.project):
-            return plugin_issues
+            return
 
         item = {
             "slug": self.slug,
@@ -390,7 +390,6 @@ class IssueTrackingPlugin2(Plugin):
 
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
-        return plugin_issues
 
     def get_config(self, *args, **kwargs):
         # TODO(dcramer): update existing plugins to just use get_config

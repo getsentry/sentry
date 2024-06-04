@@ -1,5 +1,5 @@
 from sentry.exceptions import PluginError
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.interfaces.contexts import ContextType
 from sentry.models.project import Project
 from sentry.plugins.base import Plugin2

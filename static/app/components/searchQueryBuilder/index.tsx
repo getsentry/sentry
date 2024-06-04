@@ -11,18 +11,14 @@ import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTex
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {
-  collapseTextTokens,
-  INTERFACE_TYPE_LOCALSTORAGE_KEY,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {collapseTextTokens} from 'sentry/components/searchQueryBuilder/utils';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import {IconClose, IconSearch, IconSync} from 'sentry/icons';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 interface SearchQueryBuilderProps {
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
@@ -39,37 +35,14 @@ interface SearchQueryBuilderProps {
    * Called when the user presses enter
    */
   onSearch?: (query: string) => void;
+  queryInterface?: QueryInterfaceType;
 }
 
 function ActionButtons() {
-  const {parsedQuery, dispatch} = useSearchQueryBuilder();
-  const [queryInterface, setQueryInterface] = useSyncedLocalStorageState(
-    INTERFACE_TYPE_LOCALSTORAGE_KEY,
-    QueryInterfaceType.TOKENIZED
-  );
-
-  const interfaceToggleText =
-    queryInterface === QueryInterfaceType.TEXT
-      ? t('Switch to tokenized search')
-      : t('Switch to plain text');
+  const {dispatch} = useSearchQueryBuilder();
 
   return (
     <ButtonsWrapper>
-      <ActionButton
-        title={!parsedQuery ? t('Search query parsing failed') : interfaceToggleText}
-        aria-label={interfaceToggleText}
-        size="zero"
-        icon={<IconSync />}
-        borderless
-        onClick={() =>
-          setQueryInterface(
-            queryInterface === QueryInterfaceType.TEXT
-              ? QueryInterfaceType.TOKENIZED
-              : QueryInterfaceType.TEXT
-          )
-        }
-        disabled={!parsedQuery}
-      />
       <ActionButton
         aria-label={t('Clear search query')}
         size="zero"
@@ -90,12 +63,9 @@ export function SearchQueryBuilder({
   onChange,
   onSearch,
   onBlur,
+  queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
-  const [queryInterface] = useSyncedLocalStorageState(
-    INTERFACE_TYPE_LOCALSTORAGE_KEY,
-    QueryInterfaceType.TOKENIZED
-  );
 
   const parsedQuery = useMemo(
     () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),

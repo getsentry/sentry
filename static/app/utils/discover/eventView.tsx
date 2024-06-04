@@ -41,6 +41,7 @@ import {
   type SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
@@ -49,7 +50,6 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
-import {statsPeriodToDays} from '../dates';
 import type {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
 

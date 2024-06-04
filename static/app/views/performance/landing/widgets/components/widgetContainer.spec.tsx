@@ -1074,7 +1074,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.ttfb)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,""] avg(measurements.score.total):>=0',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );

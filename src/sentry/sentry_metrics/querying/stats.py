@@ -16,7 +16,6 @@ from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.dates import parse_stats_period
 
 METRIC_OUTCOME_AGGREGATE = "sum(c:metric_stats/volume@none)"
-METRIC_HOURS_AGGREGATE = "max(g:metric_stats/cardinality@none){cardinality.window:60}"
 METRIC_CARDINALITY_AGGREGATE = "max(g:metric_stats/cardinality@none){cardinality.window:3600}"
 
 
@@ -52,31 +51,6 @@ def _run_metrics_outcomes_query(
         start=start,
         end=end,
         interval=int(3600 if interval is None else interval.total_seconds()),
-        organization=organization,
-        projects=projects,
-        environments=environments,
-        referrer=Referrer.OUTCOMES_TIMESERIES.value,
-    ).apply_transformer(MetricsOutcomesTransformer())
-
-    return rows
-
-
-def _run_estimated_metrics_hours_query(
-    start: datetime,
-    end: datetime,
-    group_by: Sequence[str],
-    organization: Organization,
-    projects: Sequence[Project],
-    environments: Sequence[Environment],
-):
-    mql_string = _get_mql_string(METRIC_HOURS_AGGREGATE, group_by)
-
-    rows = run_queries(
-        mql_queries=[MQLQuery(mql_string)],
-        start=start,
-        end=end,
-        # metrics hours queries have to be bucketed by 1h
-        interval=int(3600),
         organization=organization,
         projects=projects,
         environments=environments,
@@ -138,15 +112,6 @@ def run_metric_stats_query(
             end=end,
             group_by=group_by,
             interval=interval,
-            environments=environments,
-            organization=organization,
-            projects=projects,
-        )
-    elif category == "metricHour":
-        return _run_estimated_metrics_hours_query(
-            start=start,
-            end=end,
-            group_by=group_by,
             environments=environments,
             organization=organization,
             projects=projects,

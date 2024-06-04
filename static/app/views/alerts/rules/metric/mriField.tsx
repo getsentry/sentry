@@ -16,7 +16,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 interface Props {
   aggregate: string;
