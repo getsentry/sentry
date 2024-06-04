@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Iterable
 from urllib.parse import urljoin
 
 from requests import RequestException
@@ -58,6 +57,3 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def validate(self) -> None:
         pass
-
-    def projects(self) -> Iterable[int]:
-        yield from ()
