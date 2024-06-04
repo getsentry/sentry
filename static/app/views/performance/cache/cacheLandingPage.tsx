@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -11,10 +11,18 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {
+  DismissId,
+  PageAlert,
+  PageAlertProvider,
+  usePageAlert,
+} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
@@ -35,6 +43,7 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
+import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -45,8 +54,15 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
+const SDK_UPDATE_ALERT = t(
+  `If you're noticing missing cache data, try updating to the latest SDK.`
+);
+
+const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
+
 export function CacheLandingPage() {
   const location = useLocation();
+  const {setPageInfo, pageAlert} = usePageAlert();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
@@ -117,6 +133,36 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_DURATION
   );
 
+  const {hasData, isLoading: isHasDataLoading} = useHasData(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    Referrer.LANDING_CACHE_ONBOARDING
+  );
+  const onboardingProject = useOnboardingProject();
+
+  useEffect(() => {
+    const hasMissingDataError =
+      cacheHitRateError?.message === CACHE_ERROR_MESSAGE ||
+      transactionsListError?.message === CACHE_ERROR_MESSAGE;
+
+    if (onboardingProject || isHasDataLoading || !hasData) {
+      setPageInfo(undefined);
+      return;
+    }
+    if (pageAlert?.message !== SDK_UPDATE_ALERT) {
+      if (hasMissingDataError && hasData && !isHasDataLoading) {
+        setPageInfo(SDK_UPDATE_ALERT, {dismissId: DismissId.CACHE_SDK_UPDATE_ALERT});
+      }
+    }
+  }, [
+    cacheHitRateError?.message,
+    transactionsListError?.message,
+    setPageInfo,
+    hasData,
+    isHasDataLoading,
+    pageAlert?.message,
+    onboardingProject,
+  ]);
+
   const transactionDurationsMap = keyBy(transactionDurationData, 'transaction');
 
   const transactionsListWithDuration =
@@ -156,6 +202,7 @@ export function CacheLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
+          <PageAlert />
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <PageFilterBar condensed>
@@ -211,7 +258,9 @@ function PageWithProviders() {
       moduleName="cache"
       features={['insights-addon-modules', 'performance-cache-view']}
     >
-      <CacheLandingPage />
+      <PageAlertProvider>
+        <CacheLandingPage />
+      </PageAlertProvider>
     </ModulePageProviders>
   );
 }
