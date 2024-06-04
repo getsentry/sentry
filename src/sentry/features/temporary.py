@@ -145,8 +145,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable tag improvements in the issue details page
     manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable issue platform
-    manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable issue priority in the UI
     manager.add("organizations:issue-priority-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Whether to allow issue only search on the issue list
