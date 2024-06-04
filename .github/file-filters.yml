@@ -15,7 +15,7 @@ lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'yarn.lock'
-  - added|deleted|modified: 'stylelint.*'
+  - added|deleted|modified: 'biome.json'
 
 # Provides list of changed files to lint against (eslint)
 lintable_modified: &lintable_modified

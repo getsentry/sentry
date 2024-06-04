@@ -14,7 +14,6 @@
 !now.json
 !package.json
 !biome.json
-!stylelint.config.js
 !tsconfig.json
 !config
 !config/tsconfig.build.json

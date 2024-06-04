@@ -37,14 +37,13 @@
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noRestrictedImports": {
-          "level": "warn",
-          "options": {
-            "paths": {
-              "sentry/types": "Please import directly. For example: import type {Organization} from 'sentry/types/organization'"
-            }
-          }
-        }
+        "noDuplicateFontNames": "error",
+        "noDuplicateSelectorsKeyframeBlock": "error",
+        "noImportantInKeyframe": "error",
+        "noDuplicateAtImportRules": "error",
+        "noInvalidPositionAtImportRule": "error",
+        "noUnmatchableAnbSelector": "error",
+        "noUnknownSelectorPseudoElement": "error"
       },
       "performance": {
         "noBarrelFile": "error"
@@ -97,7 +96,8 @@
       "**/*.sourcemap.js",
       "**/*.min.js",
       "fixtures",
-      ".devenv"
+      ".devenv",
+      "src/sentry/templates/sentry/integrations/**/*.css"
     ]
   },
   "formatter": {
@@ -129,6 +129,18 @@
     "parser": {
       "allowComments": true,
       "allowTrailingCommas": true
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true
+    },
+    "parser": {
+      "allowWrongLineComments": false,
+      "cssModules": true
+    },
+    "linter": {
+      "enabled": true
     }
   },
   "overrides": [

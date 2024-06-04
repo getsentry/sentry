@@ -47,14 +47,18 @@
     "editor.formatOnSave": false
   },
 
-  "[less]": {
+  "[json]": {
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 2,
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "quickfix.biome": "explicit"
     }
   },
 
-  "[json]": {
+  "[css, less]": {
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.tabSize": 2,

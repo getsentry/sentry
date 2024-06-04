@@ -88,10 +88,6 @@ jobs:
         if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_rules_changed == 'true'
         run: yarn lint:js
 
-      - name: stylelint (all files)
-        if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.lintable_css_in_js_rules_changed == 'true'
-        run: yarn lint:css
-
       # When on a PR branch, we only need to look at the changed files
       - name: biome (fix)
         if: github.ref != 'refs/heads/master'
@@ -104,10 +100,6 @@ jobs:
       - name: eslint (changed files only)
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_rules_changed != 'true' && needs.files-changed.outputs.lintable_modified == 'true'
         run: yarn eslint --fix ${{ needs.files-changed.outputs.lintable_modified_files }}
-
-      - name: stylelint (changed files only)
-        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.lintable_css_in_js_rules_changed != 'true' && needs.files-changed.outputs.lintable_css_in_js_modified == 'true'
-        run: yarn stylelint ${{ needs.files-changed.outputs.lintable_css_in_js_modified_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
