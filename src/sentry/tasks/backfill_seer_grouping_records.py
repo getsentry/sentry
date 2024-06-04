@@ -19,7 +19,6 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
-from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.backfill import (
     CreateGroupingRecordData,
@@ -221,12 +220,8 @@ def backfill_seer_grouping_records(
                     group_id_batch.remove(group_id)
                     del group_id_message_batch_filtered[group_id]
 
-        group_hashes = GroupHash.objects.filter(
-            project_id=project.id, group_id__in=group_id_batch
-        ).distinct("group_id")
-        group_hashes_dict = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
         data = lookup_group_data_stacktrace_bulk_with_fallback(
-            project, rows, group_id_message_batch_filtered, group_hashes_dict
+            project, rows, group_id_message_batch_filtered
         )
 
         # If nodestore returns no data
@@ -244,6 +239,11 @@ def backfill_seer_grouping_records(
                 dry_run,
             )
             return
+
+        group_hashes_dict = {
+            group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
+            for group_stacktrace_data in data["data"]
+        }
 
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
@@ -332,19 +332,19 @@ def backfill_seer_grouping_records(
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
-    project: Project, rows: list[GroupEventRow], messages: dict[int, str], hashes: dict[int, str]
+    project: Project, rows: list[GroupEventRow], messages: dict[int, str]
 ) -> GroupStacktraceData:
     (
         bulk_event_ids,
         invalid_event_ids,
         bulk_group_data_stacktraces,
-    ) = lookup_group_data_stacktrace_bulk(project, rows, messages, hashes)
+    ) = lookup_group_data_stacktrace_bulk(project, rows, messages)
     for row in rows:
         event_id, group_id = row["event_id"], row["group_id"]
         if event_id not in bulk_event_ids and event_id not in invalid_event_ids:
             try:
                 group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-                    project, event_id, int(group_id), messages[group_id], hashes[group_id]
+                    project, event_id, int(group_id), messages[group_id]
                 )
                 if group_data and stacktrace_string:
                     bulk_group_data_stacktraces["data"].append(group_data)
@@ -374,7 +374,7 @@ def lookup_group_data_stacktrace_bulk_with_fallback(
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
 def lookup_group_data_stacktrace_bulk(
-    project: Project, rows: list[GroupEventRow], messages: dict[int, str], hashes: dict[int, str]
+    project: Project, rows: list[GroupEventRow], messages: dict[int, str]
 ) -> tuple[set[str], set[str], GroupStacktraceData]:
     project_id = project.id
     node_id_to_group_data = {
@@ -421,18 +421,23 @@ def lookup_group_data_stacktrace_bulk(
                 )
                 event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
                 event.data = data
-                if event and event.data and event.data.get("exception") and hashes.get(group_id):
+                if event and event.data and event.data.get("exception"):
                     grouping_info = get_grouping_info(None, project=project, event=event)
                     stacktrace_string = get_stacktrace_string(grouping_info)
                     if stacktrace_string == "":
                         invalid_event_ids.add(event_id)
                         continue
+                    primary_hash = event.get_primary_hash()
+                    if not primary_hash:
+                        invalid_event_ids.add(event_id)
+                        continue
+
                     group_data.append(
                         CreateGroupingRecordData(
                             group_id=group_id,
                             project_id=project_id,
                             message=messages[group_id],
-                            hash=hashes[group_id],
+                            hash=event.get_primary_hash(),
                         )
                     )
                     stacktrace_strings.append(stacktrace_string)
@@ -455,7 +460,7 @@ def lookup_group_data_stacktrace_bulk(
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_single")
 def lookup_group_data_stacktrace_single(
-    project: Project, event_id: str, group_id: int, message: str, hash: str
+    project: Project, event_id: str, group_id: int, message: str
 ) -> tuple[CreateGroupingRecordData | None, str]:
     project_id = project.id
     try:
@@ -487,9 +492,12 @@ def lookup_group_data_stacktrace_single(
         stacktrace_string = get_stacktrace_string(grouping_info)
         group_data = (
             CreateGroupingRecordData(
-                group_id=group_id, hash=hash, project_id=project_id, message=message
+                group_id=group_id,
+                hash=event.get_primary_hash(),
+                project_id=project_id,
+                message=message,
             )
-            if stacktrace_string != ""
+            if stacktrace_string != "" and event.get_primary_hash()
             else None
         )
 
