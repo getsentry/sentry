@@ -30,6 +30,7 @@ export function useFullSpanFromTrace(
       limit: 1,
       enabled,
       fields: [
+        SpanIndexedField.TIMESTAMP,
         SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.PROJECT,
         SpanIndexedField.ID,
