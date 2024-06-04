@@ -258,7 +258,7 @@ def backfill_seer_grouping_records(
             groups_with_neighbor = response["groups_with_neighbor"]
             groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
             for group in groups:
-                seer_similarity = {
+                seer_similarity: dict[str, Any] = {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": group_hashes_dict[group.id],
                 }
@@ -437,7 +437,7 @@ def lookup_group_data_stacktrace_bulk(
                             group_id=group_id,
                             project_id=project_id,
                             message=messages[group_id],
-                            hash=event.get_primary_hash(),
+                            hash=primary_hash,
                         )
                     )
                     stacktrace_strings.append(stacktrace_string)
@@ -490,16 +490,20 @@ def lookup_group_data_stacktrace_single(
         with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
             grouping_info = get_grouping_info(None, project=project, event=event)
         stacktrace_string = get_stacktrace_string(grouping_info)
-        group_data = (
-            CreateGroupingRecordData(
-                group_id=group_id,
-                hash=event.get_primary_hash(),
-                project_id=project_id,
-                message=message,
+        primary_hash = event.get_primary_hash()
+        if not primary_hash:
+            group_data = None
+        else:
+            group_data = (
+                CreateGroupingRecordData(
+                    group_id=group_id,
+                    hash=primary_hash,
+                    project_id=project_id,
+                    message=message,
+                )
+                if stacktrace_string != ""
+                else None
             )
-            if stacktrace_string != "" and event.get_primary_hash()
-            else None
-        )
 
         return (group_data, stacktrace_string)
 
