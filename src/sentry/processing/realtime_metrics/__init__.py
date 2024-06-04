@@ -19,5 +19,4 @@ if TYPE_CHECKING:
     __realtime_metrics_store__ = RealtimeMetricsStore()
     validate = __realtime_metrics_store__.validate
     record_project_duration = __realtime_metrics_store__.record_project_duration
-    projects = __realtime_metrics_store__.projects
     is_lpq_project = __realtime_metrics_store__.is_lpq_project

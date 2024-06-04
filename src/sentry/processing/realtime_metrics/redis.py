@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Iterable
 from time import time
 
 from django.conf import settings
@@ -93,28 +92,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.incrby(key, duration)
             pipeline.expire(key, self._budget_time_window + self._budget_bucket_size)
             pipeline.execute()
-
-    def projects(self) -> Iterable[int]:
-        """
-        Returns IDs of all projects for which metrics have been recorded in the store.
-
-        This may throw an exception if there is some sort of issue scanning the redis store for
-        projects.
-        """
-
-        already_seen = set()
-        all_keys = self.cluster.scan_iter(
-            match=self._budget_key_prefix() + ":*",
-        )
-
-        for item in all_keys:
-            # Because this could be one of two patterns, this splits based on the most basic
-            # delimiter ":" instead of splitting on known prefixes
-            _prefix, _metric_type, _bucket_size, project_id_raw, _else = item.split(":", maxsplit=4)
-            project_id = int(project_id_raw)
-            if project_id not in already_seen:
-                already_seen.add(project_id)
-                yield project_id
 
     def is_lpq_project(self, project_id: int) -> bool:
         """

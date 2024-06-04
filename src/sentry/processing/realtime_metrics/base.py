@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 from sentry.utils.services import Service
 
 
@@ -9,7 +7,6 @@ class RealtimeMetricsStore(Service):
     __all__ = (
         "validate",
         "record_project_duration",
-        "projects",
         "is_lpq_project",
     )
 
@@ -46,12 +43,6 @@ class RealtimeMetricsStore(Service):
 
         This method will "punish" slow events in particular, as our main goal is
         to maintain throughput with limited concurrency.
-        """
-        raise NotImplementedError
-
-    def projects(self) -> Iterable[int]:
-        """
-        Returns IDs of all projects that should be considered for the low priority queue.
         """
         raise NotImplementedError
 
