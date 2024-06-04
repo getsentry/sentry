@@ -46,8 +46,9 @@ class TraceInterval(TypedDict):
     sdkName: str | None
     start: int
     end: int
-    startIndex: int
-    endIndex: int
+    sliceStart: int
+    sliceEnd: int
+    sliceWidth: int
     kind: Literal["project", "missing", "other"]
     duration: int
     isRoot: bool
@@ -1058,8 +1059,9 @@ def new_trace_interval(row) -> TraceInterval:
         "sdkName": row["sdk.name"],
         "start": row["quantized.start_ts"],
         "end": row["quantized.finish_ts"],
-        "startIndex": row["start_index"],
-        "endIndex": row["end_index"],
+        "sliceStart": row["start_index"],
+        "sliceEnd": row["end_index"],
+        "sliceWidth": row["end_index"] - row["start_index"],
         "duration": 0,
         "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
         "isRoot": not bool(row.get("parent_span")),
@@ -1122,7 +1124,7 @@ def process_breakdowns(data, traces_range):
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
-            last_interval["endIndex"] = max(interval["endIndex"], last_interval["endIndex"])
+            last_interval["sliceEnd"] = max(interval["sliceEnd"], last_interval["sliceEnd"])
 
             # need to update the components of the last interval by merging
             # current interval into it
@@ -1278,6 +1280,8 @@ def process_breakdowns(data, traces_range):
             interval["duration"] = (
                 component_duration if component_duration > 0 else interval_duration
             )
+
+            interval["sliceWidth"] = interval["sliceEnd"] - interval["sliceStart"]
 
     return breakdowns
 
