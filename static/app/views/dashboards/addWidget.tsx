@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -43,44 +44,46 @@ function AddWidget({onAddWidget}: Props) {
   const organization = useOrganization();
 
   return (
-    <WidgetWrapper
-      key="add"
-      ref={setNodeRef}
-      displayType={DisplayType.BIG_NUMBER}
-      layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
-      style={{originX: 0, originY: 0}}
-      animate={
-        transform
-          ? {
-              x: transform.x,
-              y: transform.y,
-              scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
-              scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
-            }
-          : initialStyles
-      }
-      transition={{
-        duration: 0.25,
-      }}
-    >
-      {hasCustomMetrics(organization) ? (
-        <InnerWrapper>
-          <AddWidgetButton
-            onAddWidget={onAddWidget}
-            aria-label={t('Add Widget')}
-            data-test-id="widget-add"
-          />
-        </InnerWrapper>
-      ) : (
-        <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
-          <AddButton
-            data-test-id="widget-add"
-            icon={<IconAdd size="lg" isCircled color="inactive" />}
-            aria-label={t('Add widget')}
-          />
-        </InnerWrapper>
-      )}
-    </WidgetWrapper>
+    <Feature features={'dashboards-edit'}>
+      <WidgetWrapper
+        key="add"
+        ref={setNodeRef}
+        displayType={DisplayType.BIG_NUMBER}
+        layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
+        style={{originX: 0, originY: 0}}
+        animate={
+          transform
+            ? {
+                x: transform.x,
+                y: transform.y,
+                scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
+                scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
+              }
+            : initialStyles
+        }
+        transition={{
+          duration: 0.25,
+        }}
+      >
+        {hasCustomMetrics(organization) ? (
+          <InnerWrapper>
+            <AddWidgetButton
+              onAddWidget={onAddWidget}
+              aria-label={t('Add Widget')}
+              data-test-id="widget-add"
+            />
+          </InnerWrapper>
+        ) : (
+          <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
+            <AddButton
+              data-test-id="widget-add"
+              icon={<IconAdd size="lg" isCircled color="inactive" />}
+              aria-label={t('Add widget')}
+            />
+          </InnerWrapper>
+        )}
+      </WidgetWrapper>
+    </Feature>
   );
 }
 
