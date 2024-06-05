@@ -505,15 +505,28 @@ class TraceSamplesExecutor:
                 ),
             )
 
+            trace_conditions = []
             for user_query in self.user_queries:
                 # We want to ignore all the aggregate conditions here because we're strictly
                 # searching on span attributes, not aggregates
                 where, _ = query.resolve_conditions(user_query)
+                if len(where) == 1:
+                    trace_conditions.extend(where)
+                elif len(where) > 1:
+                    trace_conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
 
                 # Transform the condition into it's aggregate form so it can be used to
                 # match on the trace.
                 new_condition = generate_trace_condition(where)
-                query.having.append(new_condition)
+                if new_condition:
+                    query.having.append(new_condition)
+
+            if len(trace_conditions) == 1:
+                # This should never happen since it should use a flat query
+                # but handle it just in case.
+                query.where.extend(trace_conditions)
+            elif len(trace_conditions) > 1:
+                query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
 
         return query, timestamp_column
 

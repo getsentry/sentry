@@ -111,12 +111,10 @@ describe('SearchQueryBuilder', function () {
     it('displays the key alias instead of the actual value', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
 
-      expect(
-        await screen.findByRole('button', {name: 'Edit filter key: status'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('status')).toBeInTheDocument();
     });
 
-    it('when adding a filter by typing, replaces aliases tokens', async function () {
+    it('when adding a filter by typing, replaces aliased tokens', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="" onChange={mockOnChange} />
@@ -126,9 +124,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('status:');
 
       // Component should display alias `status`
-      expect(
-        await screen.findByRole('button', {name: 'Edit filter key: status'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('status')).toBeInTheDocument();
       // Query should use the actual key `is`
       expect(mockOnChange).toHaveBeenCalledWith('is:');
     });
@@ -137,22 +133,27 @@ describe('SearchQueryBuilder', function () {
   describe('actions', function () {
     it('can clear the query', async function () {
       const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
+          onSearch={mockOnSearch}
         />
       );
       userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('');
+        expect(mockOnSearch).toHaveBeenCalledWith('');
       });
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
+
+      expect(screen.getByRole('combobox')).toHaveFocus();
     });
   });
 
@@ -389,6 +390,15 @@ describe('SearchQueryBuilder', function () {
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
+
+    it('can remove boolean ops by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+
+      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+
+      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+    });
   });
 
   describe('new search tokens', function () {
@@ -466,14 +476,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
-      // Should have a free text token "some free text"
-      expect(screen.getByRole('row', {name: 'some free text'})).toBeInTheDocument();
-
-      // Should have a filter token with key "browser.name"
-      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
-
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      await userEvent.keyboard('foo{enter}');
+
+      // Should have a free text token "some free text"
+      expect(
+        await screen.findByRole('row', {name: /some free text/})
+      ).toBeInTheDocument();
+
+      // Should have a filter token "browser.name:foo"
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -561,12 +574,6 @@ describe('SearchQueryBuilder', function () {
         screen.getByRole('button', {name: 'Edit operator for filter: assigned'})
       ).toHaveFocus();
 
-      // Left again focuses the assigned key
-      await userEvent.keyboard('{arrowleft}');
-      expect(
-        screen.getByRole('button', {name: 'Edit filter key: assigned'})
-      ).toHaveFocus();
-
       // Left again goes to the next text input between tokens
       await userEvent.keyboard('{arrowleft}');
       expect(
@@ -604,6 +611,20 @@ describe('SearchQueryBuilder', function () {
       expect(document.body).toHaveFocus();
     });
 
+    it('converts pasted text into tokens', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.paste('browser.name:firefox');
+
+      // Should have tokenized the pasted text
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+      // Focus should be at the end of the pasted text
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
+    });
+
     it('can remove parens with the keyboard', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
 
@@ -613,6 +634,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('can remove boolean ops with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
+
+      expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: 'and'})).not.toBeInTheDocument();
     });
 
     it('exits filter value when pressing escape', async function () {

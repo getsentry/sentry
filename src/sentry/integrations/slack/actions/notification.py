@@ -8,6 +8,7 @@ import orjson
 
 from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
@@ -23,6 +24,7 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules.actions import IntegrationEventAction
@@ -129,6 +131,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             if (
                 features.has(
                     "organizations:slack-thread-issue-alert", event.group.project.organization
+                )
+                and OrganizationOption.objects.get_value(
+                    organization=self.project.organization,
+                    key="sentry:issue_alerts_thread_flag",
+                    default=ISSUE_ALERTS_THREAD_DEFAULT,
                 )
                 and rule_action_uuid
                 and rule_id
