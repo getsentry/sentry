@@ -120,7 +120,6 @@ export function QueriesTable({response, sort}: Props) {
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
         }}
-        location={location}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </VisuallyCompleteWithData>

@@ -177,7 +177,6 @@ function ResourceSummaryTable() {
             }),
           renderBodyCell,
         }}
-        location={location}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>

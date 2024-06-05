@@ -135,7 +135,6 @@ export function PipelineSpansTable({groupId}: Props) {
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
         }}
-        location={location}
       />
     </VisuallyCompleteWithData>
   );

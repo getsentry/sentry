@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
@@ -29,26 +28,8 @@ export default storyBook(GridEditable, story => {
     ...backend.slice(0, 3).map(name => ({name, category: 'backend' as const})),
   ];
 
-  const mockLocation: Location = {
-    key: '',
-    search: '',
-    hash: '',
-    action: 'PUSH',
-    state: null,
-    query: {},
-    pathname: '/mock-pathname/',
-  };
-
   story('Minimal', () => {
-    return (
-      <GridEditable
-        data={[]}
-        columnOrder={columns}
-        columnSortBy={[]}
-        grid={{}}
-        location={mockLocation}
-      />
-    );
+    return <GridEditable data={[]} columnOrder={columns} columnSortBy={[]} grid={{}} />;
   });
 
   const columnsWithWidth: GridColumnOrder<keyof ExampleDataItem | 'other'>[] =
@@ -86,7 +67,6 @@ export default storyBook(GridEditable, story => {
             renderHeadCell,
             renderBodyCell,
           }}
-          location={mockLocation}
         />
       </Fragment>
     );
@@ -104,7 +84,6 @@ export default storyBook(GridEditable, story => {
           columnOrder={columns}
           columnSortBy={[]}
           grid={{}}
-          location={mockLocation}
         />
       </div>
       <div>
@@ -117,7 +96,6 @@ export default storyBook(GridEditable, story => {
           columnOrder={columns}
           columnSortBy={[]}
           grid={{}}
-          location={mockLocation}
         />
       </div>
     </SideBySide>
@@ -143,7 +121,6 @@ export default storyBook(GridEditable, story => {
           columnOrder={columns}
           columnSortBy={[]}
           grid={{}}
-          location={mockLocation}
           onRowMouseOver={(_dataRow, key) => {
             setActiveRowKey(key);
           }}
@@ -208,7 +185,6 @@ export default storyBook(GridEditable, story => {
                 renderBodyCell,
                 onResizeColumn: statefulColumnResize.handleResizeColumn,
               }}
-              location={mockLocation}
             />
           </div>
           <div>
@@ -225,7 +201,6 @@ export default storyBook(GridEditable, story => {
                 renderBodyCell,
                 onResizeColumn: queryBasedColumnResize.handleResizeColumn,
               }}
-              location={mockLocation}
             />
           </div>
         </SideBySide>
@@ -242,7 +217,6 @@ export default storyBook(GridEditable, story => {
         renderHeadCell,
         renderBodyCell,
       }}
-      location={mockLocation}
       height={200}
       stickyHeader
     />
@@ -256,7 +230,6 @@ export default storyBook(GridEditable, story => {
         columnOrder: [columns],
         columnSortBy: [[]],
         grid: [{}],
-        location: [mockLocation],
         headerButtons: [undefined, () => <Button>Take Action</Button>],
         title: [undefined, 'GridEditable Title'],
       }}

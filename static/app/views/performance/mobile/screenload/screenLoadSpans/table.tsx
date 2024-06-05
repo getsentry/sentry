@@ -377,7 +377,6 @@ export function ScreenLoadSpansTable({
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
         columnSortBy={columnSortBy}
-        location={location}
         grid={{
           renderHeadCell: column => renderHeadCell(column, data?.meta),
           renderBodyCell,

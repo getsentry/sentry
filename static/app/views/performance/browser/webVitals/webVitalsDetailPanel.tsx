@@ -249,7 +249,6 @@ export function WebVitalsDetailPanel({
               renderHeadCell,
               renderBodyCell,
             }}
-            location={location}
           />
         </TableContainer>
         <PageAlert />

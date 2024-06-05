@@ -638,7 +638,7 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {error, eventView, isLoading, location, tableData} = props;
+  const {error, eventView, isLoading, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -665,7 +665,6 @@ function TableView(props: TableViewProps) {
         prependColumnWidths,
       }}
       headerButtons={renderHeaderButtons}
-      location={location}
     />
   );
 }

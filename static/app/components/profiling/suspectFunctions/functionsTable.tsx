@@ -101,7 +101,6 @@ function FunctionsTable(props: FunctionsTableProps) {
         }),
         renderBodyCell: renderFunctionsTableCell,
       }}
-      location={location}
     />
   );
 }

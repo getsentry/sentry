@@ -224,7 +224,6 @@ export default function SpanSummaryTable(props: Props) {
               isTxnDurationDataLoading || isTxnDurationError
             ),
           }}
-          location={location}
         />
       </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

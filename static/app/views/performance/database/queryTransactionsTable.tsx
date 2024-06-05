@@ -129,7 +129,6 @@ export function QueryTransactionsTable({
           renderBodyCell: (column, row) =>
             renderBodyCell(moduleURL, column, row, meta, span, location, organization),
         }}
-        location={location}
       />
 
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

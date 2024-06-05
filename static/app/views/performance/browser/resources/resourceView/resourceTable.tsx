@@ -207,7 +207,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             }),
           renderBodyCell,
         }}
-        location={location}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>

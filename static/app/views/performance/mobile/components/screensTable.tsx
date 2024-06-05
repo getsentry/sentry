@@ -128,7 +128,6 @@ export function ScreensTable({
           };
         })}
         columnSortBy={defaultSort}
-        location={location}
         grid={{
           renderHeadCell,
           renderBodyCell,

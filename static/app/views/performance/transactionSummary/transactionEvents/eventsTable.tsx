@@ -517,7 +517,6 @@ class EventsTable extends Component<Props, State> {
                             ) as any,
                             renderBodyCell: this.renderBodyCellWithData(tableData) as any,
                           }}
-                          location={location}
                         />
                       </VisuallyCompleteWithData>
                       <Pagination
