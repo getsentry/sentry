@@ -126,9 +126,6 @@ class CustomRulesEndpoint(OrganizationEndpoint):
     permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:investigation-bias", organization, actor=request.user):
-            return Response(status=404)
-
         serializer = CustomRulesInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
