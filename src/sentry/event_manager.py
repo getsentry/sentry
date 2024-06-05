@@ -1491,7 +1491,7 @@ def _save_aggregate(
             if existing_grouphash is None:
                 seer_matched_group = None
 
-                if should_call_seer_for_grouping(event, project):
+                if should_call_seer_for_grouping(event, project, primary_hashes):
                     try:
                         # If the `projects:similarity-embeddings-grouping` feature is disabled,
                         # we'll still get back result metadata, but `seer_matched_group` will be None
