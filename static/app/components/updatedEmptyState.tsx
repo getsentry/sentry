@@ -346,7 +346,7 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  height: 600px;
+  height: 500px;
   border: 0;
 `;
 
