@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from functools import partial
 from typing import Literal
 
+import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -74,7 +75,7 @@ from sentry.monitors.utils import (
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.types.actor import parse_and_validate_actor
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -975,7 +976,7 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
             ts=item.timestamp,
             partition=item.partition.index,
             message=wrapper,
-            payload=json.loads(wrapper["payload"]),
+            payload=orjson.loads(wrapper["payload"]),
         )
         checkin_mapping[item.processing_key].append(item)
 
@@ -1022,7 +1023,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
             ts=ts,
             partition=partition,
             message=wrapper,
-            payload=json.loads(wrapper["payload"]),
+            payload=orjson.loads(wrapper["payload"]),
         )
         process_checkin(item)
     except Exception:
