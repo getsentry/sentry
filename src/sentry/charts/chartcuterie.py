@@ -52,7 +52,13 @@ class Chartcuterie(ChartRenderer):
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
+<<<<<<< HEAD
     def generate_chart(self, style: ChartType, data: Any, size: ChartSize | None = None) -> str:
+=======
+    def generate_chart(
+        self, style: ChartType, data: Any, upload: bool = True, size: ChartSize | None = None
+    ) -> str | bytes:
+>>>>>>> d2698bef8da (mypy)
         request_id = uuid4().hex
 
         payload = {

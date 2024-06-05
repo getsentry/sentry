@@ -81,14 +81,18 @@ class TestSlackImageBlockBuilder(
         mock_escape_transaction.return_value = "Test Transaction"
         group = self._create_endpoint_regression_issue()
         image_blocks = []
-        for _ in range(3):
+        for _ in range(5):
             with self.feature(self.features):
                 image_blocks.append(ImageBlockBuilder(group=group).build_image_block())
 
         assert mock_escape_transaction.call_count == 1
-        assert len(image_blocks) == 3
-        for i in range(3):
-            assert image_blocks[i]["image_url"] == image_blocks[2]["image_url"]
+        assert len(image_blocks) == 5
+
+        assert image_blocks[0]
+        image_url = image_blocks[0]["image_url"]
+        for image_block in image_blocks:
+            assert image_block is not None
+            assert image_block["image_url"] == image_url
 
     @with_feature("organizations:slack-function-regression-image")
     def test_image_block_for_function_regression(self):
