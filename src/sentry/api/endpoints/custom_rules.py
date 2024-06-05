@@ -5,7 +5,6 @@ import orjson
 import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
@@ -94,7 +94,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
-class CustomRulePermission(BasePermission):
+class CustomRulePermission(OrganizationPermission):
     scope_map = {
         "GET": [
             "org:read",
