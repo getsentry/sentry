@@ -36,6 +36,8 @@ logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
+_RPC_METHOD_TIMEOUT_OVERRIDE_ATTR = "__rpc_method_timeout"
+_RPC_METHOD_RETRY_COUNT_ATTR = "__rpc_method_retry_count"
 _REGION_RESOLUTION_ATTR = "__region_resolution"
 _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
 
@@ -159,14 +161,36 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
         return self._signatures.values()
 
 
-def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
+def rpc_method(
+    method: Callable[..., _T] | None = None,
+    *,
+    timeout_override_seconds: int | None = None,
+    retry_count_override: int | None = None,
+) -> Callable[..., _T]:
     """Decorate methods to be exposed as part of the RPC interface.
 
     Should be applied only to methods of an RpcService subclass.
     """
 
-    setattr(method, _IS_RPC_METHOD_ATTR, True)
-    return method
+    def wrap_func(method: [Callable[..., _T]]):
+        setattr(method, _IS_RPC_METHOD_ATTR, True)
+        if timeout_override_seconds is not None:
+            setattr(method, _RPC_METHOD_TIMEOUT_OVERRIDE_ATTR, timeout_override_seconds)
+
+        if retry_count_override is not None:
+            setattr(method, _RPC_METHOD_RETRY_COUNT_ATTR, retry_count_override)
+
+        return method
+
+    if method is not None:
+        setattr(method, _IS_RPC_METHOD_ATTR, True)
+        return method
+
+    return wrap_func
+
+
+class RpcTestDecorator:
+    pass
 
 
 def regional_rpc_method(

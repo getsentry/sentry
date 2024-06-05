@@ -31,7 +31,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         """
 
     @abstractmethod
-    @rpc_method
+    @rpc_method(timeout_override_seconds=15, retry_count_override=1)
     def idempotent_provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
     ) -> RpcOrganizationSlugReservation | None:
