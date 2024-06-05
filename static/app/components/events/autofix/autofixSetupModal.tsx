@@ -120,7 +120,7 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
   );
 }
 
-function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
+export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
   if (repo.provider === 'github' || repo.provider.split(':')[1] === 'github') {
     return (
       <RepoLinkItem>
@@ -412,7 +412,7 @@ export function AutofixSetupModal({
   );
 }
 
-const AutofixSetupDone = styled('div')`
+export const AutofixSetupDone = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
