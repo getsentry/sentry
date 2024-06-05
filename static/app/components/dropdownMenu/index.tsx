@@ -166,6 +166,7 @@ function DropdownMenu({
     offset,
     position,
     isDismissable,
+    disableTrigger: isDisabled,
     shouldCloseOnBlur,
     shouldCloseOnInteractOutside,
     onInteractOutside,
@@ -179,14 +180,15 @@ function DropdownMenu({
     {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
+
   // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
   // Avoids the menu from focusing before popper has placed it in the correct position
   menuProps.autoFocus = false;
 
   const {buttonProps} = useButton(
     {
-      isDisabled,
       ...menuTriggerProps,
+      isDisabled,
     },
     triggerRef
   );
