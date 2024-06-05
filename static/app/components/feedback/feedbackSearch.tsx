@@ -104,6 +104,7 @@ export default function FeedbackSearch({className, style}: Props) {
     <SearchContainer className={className} style={style}>
       <SmartSearchBar
         hasRecentSearches
+        isMultiProject={projectIdStrings.length > 1}
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}

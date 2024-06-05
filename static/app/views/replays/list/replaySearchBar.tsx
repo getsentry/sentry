@@ -118,6 +118,7 @@ function ReplaySearchBar(props: Props) {
       savedSearchType={SavedSearchType.REPLAY}
       maxMenuHeight={500}
       hasRecentSearches
+      isMultiProject={projectIdStrings.length > 1}
       fieldDefinitionGetter={getReplayFieldDefinition}
       mergeSearchGroupWith={{
         click: {

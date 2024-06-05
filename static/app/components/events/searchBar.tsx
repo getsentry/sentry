@@ -310,6 +310,7 @@ function SearchBar(props: SearchBarProps) {
         <SmartSearchBar
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
+          isMultiProject={(projectIds ?? []).length > 1}
           onGetTagValues={getEventFieldValues}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)

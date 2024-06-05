@@ -189,6 +189,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
+                    isMultiProject={projects.length > 1}
                     searchSource="profile_landing"
                     supportedTags={profileFilters}
                     query={query}

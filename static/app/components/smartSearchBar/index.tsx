@@ -285,6 +285,10 @@ type Props = WithRouterProps &
      */
     inlineLabel?: React.ReactNode;
     /**
+     * Whether search is performed over multiple projects
+     */
+    isMultiProject?: boolean;
+    /**
      * Maximum height for the search dropdown menu
      */
     maxMenuHeight?: number;
@@ -571,6 +575,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     trackAnalytics('search.searched', {
       organization,
       query,
+      is_multi_project: this.props.isMultiProject,
       search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: searchSource,
     });
@@ -1862,6 +1867,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       trackAnalytics('search.searched', {
         organization: this.props.organization,
         query: replaceText,
+        is_multi_project: this.props.isMultiProject,
         search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
         search_source: 'recent_search',
       });

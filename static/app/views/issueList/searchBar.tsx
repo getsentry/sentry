@@ -166,6 +166,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   return (
     <SmartSearchBar
       hasRecentSearches
+      isMultiProject={pageFilters.projects.length > 1}
       savedSearchType={SavedSearchType.ISSUE}
       onGetTagValues={getTagValues}
       excludedTags={EXCLUDED_TAGS}
