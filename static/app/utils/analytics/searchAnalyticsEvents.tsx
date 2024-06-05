@@ -62,6 +62,10 @@ export type SearchEventParameters = {
   'search.saved_search_sidebar_toggle_clicked': {open: boolean};
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase;
+  'search.searched_filter': SearchEventBase & {
+    key: string;
+    values: string[];
+  };
   'search.shortcut_used': SearchEventBase & {
     shortcut_method: 'hotkey' | 'click';
     shortcut_type: ShortcutType;
@@ -78,6 +82,7 @@ export type SearchEventKey = keyof SearchEventParameters;
 
 export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
+  'search.searched_filter': 'Search: Performed search filter',
   'search.key_autocompleted': 'Search: Key Autocompleted',
   'search.shortcut_used': 'Search: Shortcut Used',
   'search.docs_opened': 'Search: Docs Opened',

@@ -46,6 +46,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -559,13 +560,14 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     this.blur();
 
     const query = removeSpace(this.state.query);
-    const {organization, savedSearchType, searchSource} = this.props;
+    const {organization, savedSearchType, searchSource, isMultiProject} = this.props;
+    const searchType = savedSearchType === 0 ? 'issues' : 'events';
 
     if (!this.hasValidSearch) {
       trackAnalytics('search.search_with_invalid', {
         organization,
         query,
-        search_type: savedSearchType === 0 ? 'issues' : 'events',
+        search_type: searchType,
         search_source: searchSource,
       });
       return;
@@ -575,9 +577,22 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     trackAnalytics('search.searched', {
       organization,
       query,
-      is_multi_project: this.props.isMultiProject,
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      is_multi_project: isMultiProject,
+      search_type: searchType,
       search_source: searchSource,
+    });
+
+    // track the individual key-values filters in the search query
+    Object.entries(new MutableSearch(query).filters).forEach(([key, values]) => {
+      trackAnalytics('search.searched_filter', {
+        organization,
+        query,
+        key,
+        values,
+        is_multi_project: isMultiProject,
+        search_type: searchType,
+        search_source: searchSource,
+      });
     });
 
     onSearch?.(query);
@@ -1863,16 +1878,33 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   };
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
+    const {organization, savedSearchType, searchSource, isMultiProject} = this.props;
+    const searchType = savedSearchType === 0 ? 'issues' : 'events';
+    const query = replaceText;
+
     if (item.type === ItemType.RECENT_SEARCH) {
       trackAnalytics('search.searched', {
-        organization: this.props.organization,
-        query: replaceText,
-        is_multi_project: this.props.isMultiProject,
-        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        organization,
+        query,
+        is_multi_project: isMultiProject,
+        search_type: searchType,
         search_source: 'recent_search',
       });
 
-      this.setState(this.makeQueryState(replaceText), () => {
+      // track the individual key-values filters in the search query
+      Object.entries(new MutableSearch(query).filters).forEach(([key, values]) => {
+        trackAnalytics('search.searched_filter', {
+          organization,
+          query,
+          key,
+          values,
+          is_multi_project: isMultiProject,
+          search_type: searchType,
+          search_source: searchSource,
+        });
+      });
+
+      this.setState(this.makeQueryState(query), () => {
         // Propagate onSearch and save to recent searches
         this.doSearch();
       });
@@ -1886,13 +1918,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       item.type === ItemType.RECOMMENDED
     ) {
       trackAnalytics('search.key_autocompleted', {
-        organization: this.props.organization,
-        search_operator: replaceText,
-        search_source: this.props.searchSource,
+        organization,
+        search_operator: query,
+        search_source: searchSource,
         item_name: item.title ?? item.value?.split(':')[0],
         item_kind: item.kind,
         item_type: item.type,
-        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+        search_type: searchType,
       });
     }
 
