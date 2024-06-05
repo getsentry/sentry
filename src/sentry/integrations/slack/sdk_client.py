@@ -16,18 +16,7 @@ SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 logger = logging.getLogger(__name__)
 
 
-def track_response_data(
-    response: SlackResponse | None = None, error: SlackApiError | None = None
-) -> None:
-    if response and error or not (response or error):
-        raise ValueError("Only one of response or error should be provided")
-
-    if error:
-        response = error.response
-
-    if not response:
-        return
-
+def track_response_data(response: SlackResponse, error: str | None = None) -> None:
     is_ok = response.get("ok", False)
     code = response.status_code
 
@@ -40,7 +29,7 @@ def track_response_data(
     extra = {
         "integration": "slack",
         "status_string": str(code),
-        "error": str(error)[:256] if error else None,
+        "error": error,
     }
     logger.info("integration.http_response", extra=extra)
 
@@ -53,7 +42,10 @@ def wrapper(method):
             if isinstance(response, SlackResponse):
                 track_response_data(response=response)
         except SlackApiError as e:
-            track_response_data(error=e)
+            if e.response:
+                track_response_data(response=e.response, error=str(e))
+            else:
+                logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
             raise
 
         return response
