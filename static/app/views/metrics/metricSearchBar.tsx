@@ -16,7 +16,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ensureQuotedTextFilters} from 'sentry/views/metrics/utils';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
-interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
+interface MetricSearchBarProps extends Partial<Omit<SmartSearchBarProps, 'projectIds'>> {
   onChange: (value: string) => void;
   blockedTags?: string[];
   disabled?: boolean;
