@@ -22,7 +22,6 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import json, metrics
-from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
 PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
@@ -193,10 +192,6 @@ class NotifyEventServiceAction(EventAction):
             if not isinstance(plugin, NotificationPlugin):
                 continue
             results.append(PluginService(plugin))
-
-        for plugin in plugins.for_project(self.project, version=2):
-            for notifier in safe_execute(plugin.get_notifiers) or ():
-                results.append(PluginService(notifier))
 
         return results
 

@@ -25,10 +25,6 @@ class NotifyEventAction(EventAction):
                 continue
             results.append(LegacyPluginService(plugin))
 
-        for plugin in plugins.for_project(self.project, version=2):
-            for notifier in safe_execute(plugin.get_notifiers) or ():
-                results.append(LegacyPluginService(notifier))
-
         return results
 
     def after(
