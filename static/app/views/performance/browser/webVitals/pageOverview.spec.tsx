@@ -179,7 +179,7 @@ describe('PageOverview', function () {
               'span.description',
             ],
             query:
-              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
+              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
           }),
         })
       )
@@ -227,7 +227,7 @@ describe('PageOverview', function () {
               'span.description',
             ],
             query:
-              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
+              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
           }),
         })
       )

@@ -30,6 +30,8 @@ export function useInpSpanSamplesWebVitalsQuery({
   const {data, isLoading, ...rest} = useSpansIndexed(
     {
       search: MutableSearch.fromQueryObject({
+        has: 'message',
+        [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
         'span.op': 'ui.interaction.click',
         'measurements.score.weight.inp': '>0',
         ...(transaction !== undefined
