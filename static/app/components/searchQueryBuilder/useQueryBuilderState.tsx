@@ -2,6 +2,10 @@ import {type Reducer, useCallback, useReducer} from 'react';
 
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {
+  makeTokenKey,
+  parseQueryBuilderValue,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {
   type ParseResultToken,
   TermOperator,
   Token,
@@ -30,6 +34,12 @@ type UpdateFreeTextAction = {
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
   type: 'UPDATE_FREE_TEXT';
   focusOverride?: FocusOverride;
+};
+
+type PasteFreeTextAction = {
+  text: string;
+  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+  type: 'PASTE_FREE_TEXT';
 };
 
 type UpdateFilterOpAction = {
@@ -61,6 +71,7 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | UpdateFreeTextAction
+  | PasteFreeTextAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
   | MultiSelectFilterValueAction
@@ -122,6 +133,26 @@ function updateFreeText(
     query: newQuery,
     focusOverride:
       action.focusOverride === undefined ? state.focusOverride : action.focusOverride,
+  };
+}
+
+function pasteFreeText(
+  state: QueryBuilderState,
+  action: PasteFreeTextAction
+): QueryBuilderState {
+  const newQuery = replaceTokenWithPadding(state.query, action.token, action.text);
+  const cursorPosition = action.token.location.start.offset + action.text.length;
+  const newParsedQuery = parseQueryBuilderValue(newQuery);
+  const focusedToken = newParsedQuery?.find(
+    token =>
+      token.type === Token.FREE_TEXT && token.location.start.offset >= cursorPosition
+  );
+  const focusedItemKey = focusedToken ? makeTokenKey(focusedToken, newParsedQuery) : null;
+
+  return {
+    ...state,
+    query: newQuery,
+    focusOverride: focusedItemKey ? {itemKey: focusedItemKey} : null,
   };
 }
 
@@ -217,6 +248,8 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           };
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
+        case 'PASTE_FREE_TEXT':
+          return pasteFreeText(state, action);
         case 'UPDATE_FILTER_OP':
           return {
             ...state,
