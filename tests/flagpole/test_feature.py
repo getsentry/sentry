@@ -8,7 +8,7 @@ from flagpole.conditions import ConditionOperatorKind
 
 
 @dataclass
-class ContextData:
+class SimpleTestContextData:
     pass
 
 
@@ -110,7 +110,7 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
-        assert feature.match(context_builder.build(ContextData()))
+        assert feature.match(context_builder.build(SimpleTestContextData()))
 
     def test_disabled_feature(self):
         feature = Feature.from_feature_config_json(
@@ -134,4 +134,4 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
-        assert not feature.match(context_builder.build(ContextData()))
+        assert not feature.match(context_builder.build(SimpleTestContextData()))
