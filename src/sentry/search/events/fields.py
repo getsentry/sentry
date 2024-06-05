@@ -2111,6 +2111,29 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     return f"{match.group(1)}({aggregate_arg})"
 
 
+def custom_time_processor(interval, time_column):
+    """For when snuba doesn't have a time processor for a dataset"""
+    return Function(
+        "toDateTime",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [
+                            time_column,
+                            interval,
+                        ],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        "time",
+    )
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
