@@ -78,7 +78,7 @@ def get_available_issue_plugins(request: Request, group):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
                 continue
-            plugin_issues = safe_execute(plugin.plugin_issues, request, group, plugin_issues)
+            safe_execute(plugin.plugin_issues, request, group, plugin_issues)
     return plugin_issues
 
 
@@ -403,10 +403,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
             for item in item_list:
                 latest_event = item.get_latest_event()
-                num_attachments = EventAttachment.objects.filter(
-                    project_id=latest_event.project_id, event_id=latest_event.event_id
-                ).count()
-                attrs[item].update({"latestEventHasAttachments": num_attachments > 0})
+                if latest_event is not None:
+                    num_attachments = EventAttachment.objects.filter(
+                        project_id=latest_event.project_id, event_id=latest_event.event_id
+                    ).count()
+                    attrs[item].update({"latestEventHasAttachments": num_attachments > 0})
 
         return attrs
 
@@ -466,7 +467,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self._expand("sentryAppIssues"):
             result["sentryAppIssues"] = attrs["sentryAppIssues"]
 
-        if self._expand("latestEventHasAttachments"):
+        if self._expand("latestEventHasAttachments") and "latestEventHasAttachments" in attrs:
             result["latestEventHasAttachments"] = attrs["latestEventHasAttachments"]
 
         return result

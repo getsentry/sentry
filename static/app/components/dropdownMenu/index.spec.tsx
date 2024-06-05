@@ -204,4 +204,38 @@ describe('DropdownMenu', function () {
       'false'
     );
   });
+
+  it('renders disabled', async function () {
+    const onAction = jest.fn();
+
+    render(
+      <DropdownMenu
+        isDisabled
+        items={[
+          {
+            key: 'item1',
+            label: 'Item',
+            isSubmenu: true,
+            children: [
+              {
+                key: 'subitem',
+                label: 'Sub Item',
+                onAction,
+              },
+            ],
+          },
+          {
+            key: 'item2',
+            label: 'Item Two',
+          },
+        ]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+    // Items should not appear
+    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+  });
 });

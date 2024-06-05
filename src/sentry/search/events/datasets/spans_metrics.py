@@ -178,7 +178,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     calculated_args=[resolve_metric_id],
                     snql_gauge=self._resolve_avg,
                     snql_distribution=self._resolve_avg,
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),

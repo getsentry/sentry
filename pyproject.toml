@@ -33,10 +33,6 @@ filterwarnings = [
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
 
-  # TODO: we should fix these, but for now there's a lot
-  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
-  "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
-
   # The following warning filters are for pytest only.
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
@@ -46,7 +42,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
   "pydantic.mypy",
@@ -450,7 +446,6 @@ module = [
     "sentry.utils.auth",
     "sentry.utils.committers",
     "sentry.utils.services",
-    "sentry.utils.snowflake",
     "sentry.web.forms.accounts",
     "sentry.web.frontend.account_identity",
     "sentry.web.frontend.auth_close",
@@ -647,6 +642,7 @@ module = [
     "sentry.utils.redis_metrics",
     "sentry.utils.sentry_apps.*",
     "sentry.utils.sms",
+    "sentry.utils.snowflake",
     "sentry.utils.urls",
     "sentry.utils.uwsgi",
     "sentry.utils.zip",

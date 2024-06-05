@@ -7,7 +7,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
   project: undefined,
   projects: [
@@ -45,7 +45,7 @@ describe('EnvironmentPageFilter', function () {
 
   it('renders & handles single selection', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -69,7 +69,7 @@ describe('EnvironmentPageFilter', function () {
 
   it('handles multiple selection', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -93,7 +93,7 @@ describe('EnvironmentPageFilter', function () {
   it('handles reset', async function () {
     const onReset = jest.fn();
     render(<EnvironmentPageFilter onReset={onReset} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -117,7 +117,7 @@ describe('EnvironmentPageFilter', function () {
 
   it('responds to page filter changes, async e.g. from back button nav', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -132,11 +132,7 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('displays a desynced state message', async function () {
-    const {
-      organization: desyncOrganization,
-      router: desyncRouter,
-      routerContext: desyncRouterContext,
-    } = initializeOrg({
+    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
       project: undefined,
       projects: [
@@ -164,7 +160,7 @@ describe('EnvironmentPageFilter', function () {
     });
 
     render(<EnvironmentPageFilter />, {
-      context: desyncRouterContext,
+      router: desyncRouter,
       organization: desyncOrganization,
     });
 
