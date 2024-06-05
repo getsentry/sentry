@@ -184,12 +184,6 @@ export function SpanBreakdownSliceRenderer({
   const traceDuration = trace.end - trace.start;
 
   const sliceDuration = sliceEnd - sliceStart;
-
-  if (sliceNumberWidth === 0 && sliceNumberWidth === undefined && sliceDuration <= 0) {
-    // No slice width or no duration width if it's a regular span.
-    return null;
-  }
-
   const pixelsPerSlice = BREAKDOWN_SIZE_PX / BREAKDOWN_SLICES;
   const relativeSliceStart = sliceStart - trace.start;
 
