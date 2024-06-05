@@ -336,7 +336,7 @@ class EventManager:
 
     def __init__(
         self,
-        data: dict[str, Any],
+        data: MutableMapping[str, Any],
         version: str = "5",
         project: Project | None = None,
         grouping_config: GroupingConfig | None = None,
