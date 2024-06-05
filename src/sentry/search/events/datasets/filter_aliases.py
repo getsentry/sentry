@@ -18,7 +18,7 @@ from sentry.search.events.filter import (
     translate_transaction_status,
 )
 from sentry.search.events.types import WhereType
-from sentry.search.utils import DEVICE_CLASS, parse_release
+from sentry.search.utils import DEVICE_CLASS, parse_release, validate_snuba_array_parameter
 from sentry.utils.strings import oxfordize_list
 
 
@@ -156,6 +156,11 @@ def release_stage_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "Your semantic release.stage filter cannot be handled, please try again with a more narrow filter"
+        )
+
     return Condition(builder.column("release"), Op.IN, versions)
 
 
@@ -222,6 +227,11 @@ def semver_filter_converter(
             final_operator = Op.NOT_IN
             versions = exclude_versions
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "Your semantic release.version filter cannot be handled, please try again with a more narrow filter"
+        )
+
     if not versions:
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
@@ -252,6 +262,11 @@ def semver_package_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "Your semantic release.package filter cannot be handled, please try again with a more narrow filter"
+        )
+
     return Condition(builder.column("release"), Op.IN, versions)
 
 
@@ -280,6 +295,11 @@ def semver_build_filter_converter(
             negated=negated,
         ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
     )
+
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "Your semantic release.build filter cannot be handled, please try again with a more narrow filter"
+        )
 
     if not versions:
         # XXX: Just return a filter that will return no results if we have no versions
