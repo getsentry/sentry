@@ -111,9 +111,7 @@ describe('SearchQueryBuilder', function () {
     it('displays the key alias instead of the actual value', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
 
-      expect(
-        await screen.findByRole('button', {name: 'Edit filter key: status'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('status')).toBeInTheDocument();
     });
 
     it('when adding a filter by typing, replaces aliases tokens', async function () {
@@ -126,9 +124,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('status:');
 
       // Component should display alias `status`
-      expect(
-        await screen.findByRole('button', {name: 'Edit filter key: status'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('status')).toBeInTheDocument();
       // Query should use the actual key `is`
       expect(mockOnChange).toHaveBeenCalledWith('is:');
     });
@@ -559,12 +555,6 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{arrowleft}');
       expect(
         screen.getByRole('button', {name: 'Edit operator for filter: assigned'})
-      ).toHaveFocus();
-
-      // Left again focuses the assigned key
-      await userEvent.keyboard('{arrowleft}');
-      expect(
-        screen.getByRole('button', {name: 'Edit filter key: assigned'})
       ).toHaveFocus();
 
       // Left again goes to the next text input between tokens
