@@ -101,6 +101,21 @@ const generateOpAutocompleteGroup = (
   };
 };
 
+function isMultiProject(projectIds: number[] | Readonly<number[] | undefined>) {
+  /**
+   * Returns true if projectIds is:
+   * - [] (My Projects)
+   * - [-1] (All Projects)
+   * - [a, b, ...] (two or more projects)
+   */
+  if (projectIds === undefined) return false;
+  return (
+    projectIds.length === 0 ||
+    (projectIds.length === 1 && projectIds[0] === -1) ||
+    projectIds.length >= 2
+  );
+}
+
 function maybeFocusInput(input: HTMLTextAreaElement | null) {
   // Cannot focus if there is no input or if the input is already focused
   if (!input || document.activeElement === input) {
@@ -286,10 +301,6 @@ type Props = WithRouterProps &
      */
     inlineLabel?: React.ReactNode;
     /**
-     * Whether search is performed over multiple projects
-     */
-    isMultiProject?: boolean;
-    /**
      * Maximum height for the search dropdown menu
      */
     maxMenuHeight?: number;
@@ -355,6 +366,10 @@ type Props = WithRouterProps &
      * Prepare query value before filtering dropdown items
      */
     prepareQuery?: (query: string) => string;
+    /**
+     * Projects that the search bar queries over
+     */
+    projectIds?: number[] | Readonly<number[]>;
     /**
      * Indicates the usage of the search bar for analytics
      */
@@ -560,7 +575,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     this.blur();
 
     const query = removeSpace(this.state.query);
-    const {organization, savedSearchType, searchSource, isMultiProject} = this.props;
+    const {organization, savedSearchType, searchSource, projectIds} = this.props;
     const searchType = savedSearchType === 0 ? 'issues' : 'events';
 
     if (!this.hasValidSearch) {
@@ -577,7 +592,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     trackAnalytics('search.searched', {
       organization,
       query,
-      is_multi_project: isMultiProject,
+      is_multi_project: isMultiProject(projectIds),
       search_type: searchType,
       search_source: searchSource,
     });
@@ -589,7 +604,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         query,
         key,
         values,
-        is_multi_project: isMultiProject,
+        is_multi_project: isMultiProject(projectIds),
         search_type: searchType,
         search_source: searchSource,
       });
@@ -1878,7 +1893,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   };
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
-    const {organization, savedSearchType, searchSource, isMultiProject} = this.props;
+    const {organization, savedSearchType, searchSource, projectIds} = this.props;
     const searchType = savedSearchType === 0 ? 'issues' : 'events';
     const query = replaceText;
 
@@ -1886,7 +1901,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       trackAnalytics('search.searched', {
         organization,
         query,
-        is_multi_project: isMultiProject,
+        is_multi_project: isMultiProject(projectIds),
         search_type: searchType,
         search_source: 'recent_search',
       });
@@ -1898,7 +1913,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           query,
           key,
           values,
-          is_multi_project: isMultiProject,
+          is_multi_project: isMultiProject(projectIds),
           search_type: searchType,
           search_source: 'recent_search',
         });

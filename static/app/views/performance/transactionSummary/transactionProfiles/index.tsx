@@ -106,7 +106,7 @@ function Profiles(): React.ReactElement {
               </PageFilterBar>
               <SmartSearchBar
                 organization={organization}
-                isMultiProject={projects.projects.length > 1}
+                projectIds={projects.projects.map(p => parseInt(p.id, 10))}
                 hasRecentSearches
                 searchSource="profile_landing"
                 supportedTags={profileFilters}

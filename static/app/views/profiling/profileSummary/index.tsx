@@ -260,7 +260,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
         <SmartSearchBar
           organization={props.organization}
           hasRecentSearches
-          isMultiProject={props.projectIds.length > 1}
+          projectIds={props.projectIds}
           searchSource="profile_summary"
           supportedTags={profileFilters}
           query={props.query}

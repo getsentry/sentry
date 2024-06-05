@@ -35,7 +35,6 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
         query={query}
         placeholder={t('Search by release version, build, package, or stage')}
         hasRecentSearches={false}
-        isMultiProject={false}
         supportedTags={{
           ...SEMVER_TAGS,
           release: {
