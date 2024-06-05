@@ -199,6 +199,9 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return {
             ...state,
             query: '',
+            focusOverride: {
+              itemKey: `${Token.FREE_TEXT}:0`,
+            },
           };
         case 'UPDATE_QUERY':
           return {

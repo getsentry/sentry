@@ -30,6 +30,7 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
   useLayoutEffect(() => {
     if (focusOverride && !focusOverride.part) {
+      state.selectionManager.setFocused(true);
       state.selectionManager.setFocusedKey(focusOverride.itemKey);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }

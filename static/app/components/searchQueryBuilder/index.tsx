@@ -39,7 +39,7 @@ interface SearchQueryBuilderProps {
 }
 
 function ActionButtons() {
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, onSearch} = useSearchQueryBuilder();
 
   return (
     <ButtonsWrapper>
@@ -48,7 +48,10 @@ function ActionButtons() {
         size="zero"
         icon={<IconClose />}
         borderless
-        onClick={() => dispatch({type: 'CLEAR'})}
+        onClick={() => {
+          dispatch({type: 'CLEAR'});
+          onSearch?.('');
+        }}
       />
     </ButtonsWrapper>
   );
