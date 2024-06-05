@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
+
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.interfaces.contexts import ContextType
 from sentry.models.project import Project
-from sentry.plugins.base import Plugin2
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.utils.settings import is_self_hosted
 from sentry_plugins.base import CorePluginMixin
 
@@ -150,7 +155,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
 
         return configurations
 
-    def get_event_preprocessors(self, data, **kwargs):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         context = SessionStackContextType.primary_value_for_data(data)
         if not context:
             return []
@@ -163,7 +168,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
         if not self.is_enabled(project):
             return []
 
-        def preprocess_event(event):
+        def preprocess_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
             sessionstack_client = SessionStackClient(
                 account_email=self.get_option("account_email", project),
                 api_token=self.get_option("api_token", project),
@@ -178,11 +183,11 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
 
             context["session_url"] = session_url
 
-            contexts = event.get("contexts") or {}
+            contexts = data.get("contexts") or {}
             contexts["sessionstack"] = context
-            event["contexts"] = contexts
+            data["contexts"] = contexts
 
-            return event
+            return data
 
         return [preprocess_event]
 
