@@ -546,7 +546,7 @@ function Sidebar() {
       icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
       label={t('Metrics')}
       to={metricsPath}
-      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
       isBeta
     />
