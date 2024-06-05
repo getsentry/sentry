@@ -301,10 +301,10 @@ describe('Sidebar', function () {
       ConfigStore.set('user', user);
     });
 
-    it('renders navigation', function () {
+    it('renders navigation', async function () {
       renderSidebar({organization});
 
-      waitFor(function () {
+      await waitFor(function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -313,12 +313,12 @@ describe('Sidebar', function () {
       ).toBeInTheDocument();
     });
 
-    it('in self-hosted-errors-only mode, only shows links to basic features', function () {
+    it('in self-hosted-errors-only mode, only shows links to basic features', async function () {
       ConfigStore.set('isSelfHostedErrorsOnly', true);
 
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
 
-      waitFor(function () {
+      await waitFor(function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -335,17 +335,17 @@ describe('Sidebar', function () {
         'Stats',
         'Settings',
         'Help',
-        "What's new",
+        /What's new/,
         'Service status',
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
     });
 
-    it('in regular mode, also shows links to Performance and Crons', function () {
+    it('in regular mode, also shows links to Performance and Crons', async function () {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
 
-      waitFor(function () {
+      await waitFor(function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -379,17 +379,17 @@ describe('Sidebar', function () {
         'Stats',
         'Settings',
         'Help',
-        "What's new",
+        /What's new/,
         'Service status',
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
     });
 
-    it('if Insights are on, shows links to Explore and Insights', function () {
+    it('if Insights are on, shows links to Explore and Insights', async function () {
       renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES, 'performance-insights']);
 
-      waitFor(function () {
+      await waitFor(function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
       });
 
@@ -425,7 +425,7 @@ describe('Sidebar', function () {
         'Stats',
         'Settings',
         'Help',
-        "What's new",
+        /What's new/,
         'Service status',
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
