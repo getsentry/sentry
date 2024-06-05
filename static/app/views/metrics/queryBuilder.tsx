@@ -235,10 +235,12 @@ export const QueryBuilder = memo(function QueryBuilder({
         );
         const trailingItems: React.ReactNode[] = [];
         if (isDuplicateWithDifferentUnit) {
-          trailingItems.push(<IconWarning size="xs" color="yellow400" />);
+          trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
         if (parseMRI(metric.mri)?.useCase === 'custom' && !mriMode) {
-          trailingItems.push(<CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>);
+          trailingItems.push(
+            <CustomMetricInfoText key="text">{t('Custom')}</CustomMetricInfoText>
+          );
         }
         return {
           label: mriMode
