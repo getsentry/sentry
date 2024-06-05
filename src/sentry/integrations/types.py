@@ -21,8 +21,8 @@ class ExternalProviders(ValueEqualityEnum):
     CUSTOM = 700
 
     @property
-    def name(self) -> str | None:
-        return EXTERNAL_PROVIDERS.get(ExternalProviders(self.value), None)
+    def name(self) -> str:
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(self.value), "")
 
 
 class ExternalProviderEnum(Enum):
