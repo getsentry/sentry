@@ -302,6 +302,8 @@ describe('Sidebar', function () {
       ConfigStore.init();
       ConfigStore.set('features', new Set([]));
       ConfigStore.set('user', user);
+
+      mockUseLocation.mockReturnValue(LocationFixture());
     });
 
     it('renders navigation', async function () {
