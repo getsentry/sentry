@@ -28,7 +28,13 @@ from sentry.utils.services import build_instance_from_options_of_type
 
 logger = logging.getLogger("sentry.chartcuterie")
 locks = LockManager(
+<<<<<<< HEAD
     build_instance_from_options_of_type(LockBackend, settings.SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS)
+=======
+    build_instance_from_options_of_type(
+        LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
+    )
+>>>>>>> 68609b27e1d (addressed feedback)
 )
 
 
@@ -111,7 +117,6 @@ class IssueAlertImageBuilder:
                 "evidenceData": event.occurrence.evidence_data,
                 "percentileData": resp.data["p95(transaction.duration)"]["data"],
             },
-            cache_key=self.cache_key,
         )
 
     def _get_function_regression_image_url(self) -> str | None:
@@ -149,5 +154,4 @@ class IssueAlertImageBuilder:
                 "evidenceData": evidence_data,
                 "rawResponse": resp.data,
             },
-            cache_key=self.cache_key,
         )
