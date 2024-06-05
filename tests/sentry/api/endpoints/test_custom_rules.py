@@ -14,7 +14,6 @@ from sentry.api.endpoints.custom_rules import (
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import Feature
 
 
 class CustomRulesGetEndpoint(APITestCase):
