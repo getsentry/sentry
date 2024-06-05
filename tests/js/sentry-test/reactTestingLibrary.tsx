@@ -19,12 +19,7 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 
-type ProviderOptions = {
-  /**
-   * Sets legacy context providers. This value is directly passed to a
-   * `getChildContext`.
-   */
-  context?: Record<string, any>;
+interface ProviderOptions {
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -33,9 +28,9 @@ type ProviderOptions = {
    * Sets the RouterContext
    */
   router?: Partial<InjectedRouter>;
-};
+}
 
-type Options = ProviderOptions & rtl.RenderOptions;
+interface Options extends ProviderOptions, rtl.RenderOptions {}
 
 function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
   const {organization, router} = initializeOrg(initializeOrgOptions as any);
@@ -90,26 +85,19 @@ function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
  *
  * render(<TestedComponent />);
  *
- * If your component requires routerContext or organization to render, pass it
- * via context options argument. render(<TestedComponent />, {context:
- * routerContext, organization});
+ * If your component requires additional context you can pass it in the
+ * options.
  */
-function render(ui: React.ReactElement, options?: Options) {
-  options = options ?? {};
-  const {context, organization, ...otherOptions} = options;
-  let {router} = options;
-
-  if (router === undefined && context?.context?.router) {
-    router = context.context.router;
-  }
-
+function render(
+  ui: React.ReactElement,
+  {router, organization, ...rtlOptions}: Options = {}
+) {
   const AllTheProviders = makeAllTheProviders({
-    context,
     organization,
     router,
   });
 
-  return rtl.render(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
 }
 
 /**
