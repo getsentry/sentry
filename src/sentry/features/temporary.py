@@ -154,10 +154,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable the updated empty state for issues
     manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable the new assignee dropdown trigger on issue stream
-    manager.add("organizations:issue-stream-new-assignee-dropdown-trigger", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Enable new events graph design for issue stream
-    manager.add("organizations:issue-stream-new-events-graph", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable issue stream performance improvements
     manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the new issue stream search bar UI
