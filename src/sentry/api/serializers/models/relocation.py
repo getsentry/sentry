@@ -92,15 +92,7 @@ class RelocationSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "uuid": str(obj.uuid),
             "creator": creator,
-            # TODO(azaslavsky): delete these 3 fields after clients are migrated
-            "creatorEmail": creator["email"] if creator else None,
-            "creatorId": creator["id"] if creator else None,
-            "creatorUsername": creator["username"] if creator else None,
             "owner": owner,
-            # TODO(azaslavsky): delete these 3 fields after clients are migrated
-            "ownerEmail": owner["email"] if owner else None,
-            "ownerId": owner["id"] if owner else None,
-            "ownerUsername": owner["username"] if owner else None,
             "status": Relocation.Status(obj.status).name,
             "step": Relocation.Step(obj.step).name,
             "failureReason": obj.failure_reason,

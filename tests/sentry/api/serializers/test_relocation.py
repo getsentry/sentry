@@ -76,17 +76,9 @@ class RelocationSerializerTest(TestCase):
         assert result["creator"]["id"] == str(self.superuser.id)
         assert result["creator"]["email"] == str(self.superuser.email)
         assert result["creator"]["username"] == str(self.superuser.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["creatorId"] == str(self.superuser.id)
-        assert result["creatorEmail"] == self.superuser.email
-        assert result["creatorUsername"] == self.superuser.username
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["ownerId"] == str(self.owner.id)
-        assert result["ownerEmail"] == self.owner.email
-        assert result["ownerUsername"] == self.owner.username
         assert result["status"] == Relocation.Status.IN_PROGRESS.name
         assert result["step"] == Relocation.Step.UPLOADING.name
         assert not result["failureReason"]
@@ -123,17 +115,9 @@ class RelocationSerializerTest(TestCase):
         assert result["creator"]["id"] == str(self.superuser.id)
         assert result["creator"]["email"] == str(self.superuser.email)
         assert result["creator"]["username"] == str(self.superuser.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["creatorId"] == str(self.superuser.id)
-        assert result["creatorEmail"] == self.superuser.email
-        assert result["creatorUsername"] == self.superuser.username
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["ownerId"] == str(self.owner.id)
-        assert result["ownerEmail"] == self.owner.email
-        assert result["ownerUsername"] == self.owner.username
         assert result["status"] == Relocation.Status.PAUSE.name
         assert result["step"] == Relocation.Step.IMPORTING.name
         assert not result["failureReason"]
@@ -174,17 +158,9 @@ class RelocationSerializerTest(TestCase):
         assert result["creator"]["id"] == str(self.superuser.id)
         assert result["creator"]["email"] == str(self.superuser.email)
         assert result["creator"]["username"] == str(self.superuser.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["creatorId"] == str(self.superuser.id)
-        assert result["creatorEmail"] == self.superuser.email
-        assert result["creatorUsername"] == self.superuser.username
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["ownerId"] == str(self.owner.id)
-        assert result["ownerEmail"] == self.owner.email
-        assert result["ownerUsername"] == self.owner.username
         assert result["status"] == Relocation.Status.SUCCESS.name
         assert result["step"] == Relocation.Step.COMPLETED.name
         assert not result["failureReason"]
@@ -225,17 +201,9 @@ class RelocationSerializerTest(TestCase):
         assert result["creator"]["id"] == str(self.superuser.id)
         assert result["creator"]["email"] == str(self.superuser.email)
         assert result["creator"]["username"] == str(self.superuser.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["creatorId"] == str(self.superuser.id)
-        assert result["creatorEmail"] == self.superuser.email
-        assert result["creatorUsername"] == self.superuser.username
         assert result["owner"]["id"] == str(self.owner.id)
         assert result["owner"]["email"] == str(self.owner.email)
         assert result["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert result["ownerId"] == str(self.owner.id)
-        assert result["ownerEmail"] == self.owner.email
-        assert result["ownerUsername"] == self.owner.username
         assert result["status"] == Relocation.Status.FAILURE.name
         assert result["step"] == Relocation.Step.VALIDATING.name
         assert result["failureReason"] == "Some failure reason"
