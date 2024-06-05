@@ -48,6 +48,52 @@ describe('Autofix', () => {
     expect(screen.getByText('Try Autofix')).toBeInTheDocument();
   });
 
+  it('shows the setup button when setup is not complete', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+        codebaseIndexing: {ok: false},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/`,
+      body: null,
+    });
+
+    render(<Autofix event={event} group={group} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Set up Autofix'})
+    ).toBeInTheDocument();
+  });
+
+  it('allows autofix to be started without github app installation', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: false},
+        codebaseIndexing: {ok: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/autofix/`,
+      body: null,
+    });
+
+    render(<Autofix event={event} group={group} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Get root causes'})
+    ).toBeInTheDocument();
+  });
+
   it('renders steps with logs', async () => {
     const autofixData = AutofixDataFixture({
       steps: [

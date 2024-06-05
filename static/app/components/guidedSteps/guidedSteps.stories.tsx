@@ -31,7 +31,7 @@ export default storyBook(GuidedSteps, story => {
             This is the second step.
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
-          <GuidedSteps.Step title="Step 3 Title" stepKey="step-3">
+          <GuidedSteps.Step title="Step 3 Title" stepKey="step-3" optional>
             This is the third step.
             <GuidedSteps.StepButtons />
           </GuidedSteps.Step>
