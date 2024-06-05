@@ -18,7 +18,6 @@ class ApiOwner(Enum):
     ML_AI = "machine-learning-ai"
     OPEN_SOURCE = "open-source"
     OWNERS_INGEST = "ingest"
-    OWNERS_NATIVE = "owners-native"
     OWNERS_SNUBA = "owners-snuba"
     PERFORMANCE = "performance"
     PROCESSING = "processing"
