@@ -3,7 +3,6 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, NodeField, region_silo_model, sane_repr
-from sentry.utils.canonical import CanonicalKeyView
 
 
 def ref_func(x):
@@ -17,9 +16,7 @@ class RawEvent(Model):
     project = FlexibleForeignKey("sentry.Project")
     event_id = models.CharField(max_length=32, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
-    data = NodeField(
-        blank=True, null=True, ref_func=ref_func, ref_version=1, wrapper=CanonicalKeyView
-    )
+    data = NodeField(blank=True, null=True, ref_func=ref_func, ref_version=1)
 
     class Meta:
         app_label = "sentry"

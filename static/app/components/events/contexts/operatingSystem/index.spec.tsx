@@ -47,7 +47,7 @@ describe('operating system event context', function () {
       },
     });
 
-    expect(screen.getByText('Raw Description')).toBeInTheDocument(); // subject
+    expect(screen.getByText('raw_description')).toBeInTheDocument(); // subject
     await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
