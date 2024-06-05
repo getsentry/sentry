@@ -68,6 +68,49 @@ function useMriMode() {
   return mriMode;
 }
 
+/**
+ * Returns a set of MRIs that have duplicate names but different units
+ */
+export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
+  const metricNameMap = new Map<string, MRI[]>();
+  const duplicateNames: string[] = [];
+
+  for (const metric of metrics) {
+    const metricName = parseMRI(metric.mri)?.name;
+    if (!metricName) {
+      continue;
+    }
+
+    if (metricNameMap.has(metricName)) {
+      const mapEntry = metricNameMap.get(metricName);
+      mapEntry?.push(metric.mri);
+      duplicateNames.push(metricName);
+    } else {
+      metricNameMap.set(metricName, [metric.mri]);
+    }
+  }
+
+  const duplicateMetrics = new Set<MRI>();
+  for (const name of duplicateNames) {
+    const duplicates = metricNameMap.get(name);
+    if (!duplicates) {
+      continue;
+    }
+    duplicates.forEach(duplicate => duplicateMetrics.add(duplicate));
+  }
+
+  return duplicateMetrics;
+}
+
+/**
+ * Returns a set of MRIs that have duplicate names but different units
+ */
+function useMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
+  return useMemo(() => {
+    return getMetricsWithDuplicateNames(metrics);
+  }, [metrics]);
+}
+
 export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
   projects: projectIds,
@@ -92,6 +135,8 @@ export const QueryBuilder = memo(function QueryBuilder({
       projects: projectIds,
     }
   );
+
+  const metricsWithDuplicateNames = useMetricsWithDuplicateNames(meta);
 
   const selectedProjects = useMemo(
     () =>
@@ -228,11 +273,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
-        const isDuplicateWithDifferentUnit = displayedMetrics.some(
-          displayedMetric =>
-            metric.mri !== displayedMetric.mri &&
-            parseMRI(metric.mri)?.name === parseMRI(displayedMetric.mri)?.name
-        );
+        const isDuplicateWithDifferentUnit = metricsWithDuplicateNames.has(metric.mri);
         const trailingItems: React.ReactNode[] = [];
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
@@ -267,7 +308,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           trailingItems,
         };
       }),
-    [displayedMetrics, mriMode, onChange, selectedProjects]
+    [displayedMetrics, metricsWithDuplicateNames, mriMode, onChange, selectedProjects]
   );
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
