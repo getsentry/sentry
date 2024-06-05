@@ -130,7 +130,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         query = serializer.validated_data["query"]
-        projects = serializer.validated_data.get("projects")
+        project_ids = serializer.validated_data.get("projects")
 
         try:
             condition = get_rule_condition(query)
@@ -145,7 +145,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 condition=condition,
                 start=start,
                 end=end,
-                project_ids=projects,
+                project_ids=project_ids,
                 organization_id=organization.id,
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
@@ -154,7 +154,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             )
 
             # schedule update for affected project configs
-            _schedule_invalidate_project_configs(organization, projects)
+            _schedule_invalidate_project_configs(organization, project_ids)
 
             return _rule_to_response(rule)
         except UnsupportedSearchQuery as e:
