@@ -129,7 +129,7 @@ class RuleSerializer(Serializer):
                 )
                 if sentry_app_uuid is not None
             ]
-            install_contexts = app_service.get_component_context(
+            install_contexts = app_service.get_component_contexts(
                 filter={"uuids": sentry_app_uuids}, component_type="alert-rule-action"
             )
             sentry_app_installations_by_uuid = {
