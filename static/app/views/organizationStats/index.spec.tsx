@@ -25,7 +25,7 @@ describe('OrganizationStats', function () {
     },
   };
   const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
     projects,
     project: undefined,
@@ -67,13 +67,13 @@ describe('OrganizationStats', function () {
   it('renders header state without tabs', async () => {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
     });
     expect(await screen.findByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
   it('renders header state with tabs', async () => {
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
     expect(await screen.findByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('OrganizationStats', function () {
    * Base + Error Handling
    */
   it('renders the base view', async () => {
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('OrganizationStats', function () {
       url: endpoint,
       statusCode: 500,
     });
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('OrganizationStats', function () {
       statusCode: 400,
       body: {detail: 'No projects available'},
     });
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe('OrganizationStats', function () {
    * Router Handling
    */
   it('pushes state changes to the route', async () => {
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     await userEvent.click(await screen.findByText('Category'));
     await userEvent.click(screen.getByText('Attachments'));
@@ -215,7 +215,7 @@ describe('OrganizationStats', function () {
       {query: {}}
     );
     render(<OrganizationStats {...defaultProps} location={dummyLocation as any} />, {
-      context: routerContext,
+      router,
     });
 
     const projectLinks = await screen.findAllByTestId('badge-display-name');
@@ -237,7 +237,7 @@ describe('OrganizationStats', function () {
     newOrg.organization.features = ['team-insights'];
 
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
       organization: newOrg.organization,
     });
 
@@ -251,7 +251,7 @@ describe('OrganizationStats', function () {
     newOrg.organization.features = ['global-views', 'team-insights'];
     OrganizationStore.onUpdate(newOrg.organization, {replace: true});
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
       organization: newOrg.organization,
     });
 
@@ -286,7 +286,7 @@ describe('OrganizationStats', function () {
         selection={newSelection}
       />,
       {
-        context: newOrg.routerContext,
+        router: newOrg.router,
         organization: newOrg.organization,
       }
     );
@@ -326,7 +326,7 @@ describe('OrganizationStats', function () {
         selection={newSelection}
       />,
       {
-        context: newOrg.routerContext,
+        router: newOrg.router,
         organization: newOrg.organization,
       }
     );
@@ -355,7 +355,7 @@ describe('OrganizationStats', function () {
     const newOrg = initializeOrg();
     newOrg.organization.features = ['global-views', 'team-insights'];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
       organization: newOrg.organization,
     });
     await userEvent.click(screen.getByTestId('proj-1'));
@@ -382,7 +382,7 @@ describe('OrganizationStats', function () {
           selection={newSelection}
         />,
         {
-          context: newOrg.routerContext,
+          router: newOrg.router,
           organization: newOrg.organization,
         }
       );

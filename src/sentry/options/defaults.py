@@ -879,21 +879,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-register(
-    "issues.similarity-embeddings.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.similarity-embeddings-grouping.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # seer nearest neighbour endpoint timeout
 register(
     "embeddings-grouping.seer.nearest-neighbour-timeout",

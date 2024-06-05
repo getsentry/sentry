@@ -1,40 +1,26 @@
-import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ComboBox} from 'sentry/components/comboBox';
-import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  getDefaultAggregate,
-  isAllowedOp,
-  isCustomMetric,
-  isSpanDuration,
-  isSpanMeasurement,
-  isTransactionDuration,
-  isTransactionMeasurement,
-} from 'sentry/utils/metrics';
-import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {getDefaultAggregate, isAllowedOp} from 'sentry/utils/metrics';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
-import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
-import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {MetricListItemDetails} from 'sentry/views/metrics/metricListItemDetails';
 import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
+import {MRISelect} from 'sentry/views/metrics/mriSelect';
 
 type QueryBuilderProps = {
   index: number;
@@ -42,31 +28,6 @@ type QueryBuilderProps = {
   onChange: (data: Partial<MetricsQuery>) => void;
   projects: number[];
 };
-
-const isVisibleTransactionMetric = (metric: MetricMeta) =>
-  isTransactionDuration(metric) || isTransactionMeasurement(metric);
-
-const isVisibleSpanMetric = (metric: MetricMeta) =>
-  isSpanDuration(metric) || isSpanMeasurement(metric);
-
-const isShownByDefault = (metric: MetricMeta) =>
-  isCustomMetric(metric) ||
-  isVisibleTransactionMetric(metric) ||
-  isVisibleSpanMetric(metric);
-
-function useMriMode() {
-  const [mriMode, setMriMode] = useState(false);
-  const mriModeKeyPressed = useKeyPress('`', undefined, true);
-
-  useEffect(() => {
-    if (mriModeKeyPressed) {
-      setMriMode(value => !value);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mriModeKeyPressed]);
-
-  return mriMode;
-}
 
 export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
@@ -76,7 +37,6 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {projects} = useProjects();
 
   const {
     data: meta,
@@ -84,25 +44,12 @@ export const QueryBuilder = memo(function QueryBuilder({
     isRefetching: isMetaRefetching,
     refetch: refetchMeta,
   } = useMetricsMeta(pageFilters.selection);
-  const mriMode = useMriMode();
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,
     {
       projects: projectIds,
     }
-  );
-
-  const selectedProjects = useMemo(
-    () =>
-      projects.filter(project =>
-        projectIds[0] === -1
-          ? true
-          : projectIds.length === 0
-            ? project.isMember
-            : projectIds.includes(parseInt(project.id, 10))
-      ),
-    [projectIds, projects]
   );
 
   const groupByOptions = useMemo(() => {
@@ -115,31 +62,6 @@ export const QueryBuilder = memo(function QueryBuilder({
     }));
   }, [tagsData, metricsQuery.query]);
 
-  const displayedMetrics = useMemo(() => {
-    const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
-    const result = meta
-      .filter(metric => isShownByDefault(metric) || isSelected(metric))
-      .sort(metric => (isSelected(metric) ? -1 : 1));
-
-    // Add the selected metric to the top of the list if it's not already there
-    if (result[0]?.mri !== metricsQuery.mri) {
-      const parsedMri = parseMRI(metricsQuery.mri)!;
-      return [
-        {
-          mri: metricsQuery.mri,
-          type: parsedMri.type,
-          unit: parsedMri.unit,
-          operations: [],
-          projectIds: [],
-          blockingStatus: [],
-        } satisfies MetricMeta,
-        ...result,
-      ];
-    }
-
-    return result;
-  }, [meta, metricsQuery.mri]);
-
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
   }, [meta, metricsQuery.mri]);
@@ -149,9 +71,9 @@ export const QueryBuilder = memo(function QueryBuilder({
   });
 
   const handleMRIChange = useCallback(
-    ({value}) => {
+    (mriValue: MRI) => {
       const currentMRI = parseMRI(metricsQuery.mri);
-      const newMRI = parseMRI(value);
+      const newMRI = parseMRI(mriValue);
 
       if (!currentMRI || !newMRI) {
         return;
@@ -162,13 +84,13 @@ export const QueryBuilder = memo(function QueryBuilder({
       // If the type is the same, we can keep the current aggregate
       if (currentMRI.type === newMRI.type) {
         queryChanges = {
-          mri: value,
+          mri: mriValue,
           groupBy: undefined,
         };
       } else {
         queryChanges = {
-          mri: value,
-          op: getDefaultAggregate(value),
+          mri: mriValue,
+          op: getDefaultAggregate(mriValue),
           groupBy: undefined,
         };
       }
@@ -216,6 +138,13 @@ export const QueryBuilder = memo(function QueryBuilder({
     [incrementQueryMetric, onChange, organization]
   );
 
+  const handleMetricTagClick = useCallback(
+    (mri: MRI, tag: string) => {
+      onChange({mri, groupBy: [tag]});
+    },
+    [onChange]
+  );
+
   const handleOpenMetricsMenu = useCallback(
     (isOpen: boolean) => {
       if (isOpen && !isMetaLoading && !isMetaRefetching) {
@@ -225,69 +154,20 @@ export const QueryBuilder = memo(function QueryBuilder({
     [isMetaLoading, isMetaRefetching, refetchMeta]
   );
 
-  const mriOptions = useMemo(
-    () =>
-      displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
-        const isDuplicateWithDifferentUnit = displayedMetrics.some(
-          displayedMetric =>
-            metric.mri !== displayedMetric.mri &&
-            parseMRI(metric.mri)?.name === parseMRI(displayedMetric.mri)?.name
-        );
-        const trailingItems: React.ReactNode[] = [];
-        if (isDuplicateWithDifferentUnit) {
-          trailingItems.push(<IconWarning size="xs" color="yellow400" />);
-        }
-        if (parseMRI(metric.mri)?.useCase === 'custom' && !mriMode) {
-          trailingItems.push(<CustomMetricInfoText>{t('Custom')}</CustomMetricInfoText>);
-        }
-        return {
-          label: mriMode
-            ? metric.mri
-            : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
-          textValue: mriMode
-            ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-              `${metric.mri}${getReadableMetricType(metric.type)}`
-            : // enable search in the full formatted string
-              formatMRI(metric.mri),
-          value: metric.mri,
-          details:
-            metric.projectIds.length > 0 ? (
-              <MetricListItemDetails
-                metric={metric}
-                selectedProjects={selectedProjects}
-                onTagClick={(mri, tag) => {
-                  onChange({mri, groupBy: [tag]});
-                }}
-                isDuplicateWithDifferentUnit={isDuplicateWithDifferentUnit}
-              />
-            ) : null,
-          showDetailsInOverlay: true,
-          trailingItems,
-        };
-      }),
-    [displayedMetrics, mriMode, onChange, selectedProjects]
-  );
-
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
 
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
         <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
-          <MetricComboBox
-            aria-label={t('Metric')}
-            placeholder={t('Select a metric')}
-            loadingMessage={t('Loading metrics...')}
-            sizeLimit={100}
-            size="md"
-            menuSize="sm"
-            isLoading={isMetaLoading}
-            onOpenChange={handleOpenMetricsMenu}
-            options={mriOptions}
-            value={metricsQuery.mri}
+          <MRISelect
             onChange={handleMRIChange}
-            growingInput
-            menuWidth="450px"
+            onTagClick={handleMetricTagClick}
+            onOpenMenu={handleOpenMetricsMenu}
+            isLoading={isMetaLoading}
+            metricsMeta={meta}
+            projects={projectIds}
+            value={metricsQuery.mri}
           />
         </GuideAnchor>
         <FlexBlock>
@@ -357,10 +237,6 @@ const TooltipIconWrapper = styled('span')`
   margin-top: ${space(0.25)};
 `;
 
-const CustomMetricInfoText = styled('span')`
-  color: ${p => p.theme.subText};
-`;
-
 const QueryBuilderWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
@@ -372,11 +248,6 @@ const FlexBlock = styled('div')`
   display: flex;
   gap: ${space(1)};
   flex-wrap: wrap;
-`;
-
-const MetricComboBox = styled(ComboBox)`
-  min-width: 200px;
-  max-width: min(500px, 100%);
 `;
 
 const OpSelect = styled(CompactSelect)`

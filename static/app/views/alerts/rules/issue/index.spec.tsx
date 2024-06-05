@@ -82,7 +82,7 @@ const projectAlertRuleDetailsRoutes: PlainRoute<any>[] = [
 ];
 
 const createWrapper = (props = {}) => {
-  const {organization, project, routerContext, router} = initializeOrg(props);
+  const {organization, project, router} = initializeOrg(props);
   const params = {
     projectId: project.slug,
     organizationId: organization.slug,
@@ -109,7 +109,7 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {context: routerContext, organization}
+    {router, organization}
   );
 
   return {

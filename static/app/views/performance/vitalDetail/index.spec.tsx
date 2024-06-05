@@ -2,7 +2,6 @@ import type {InjectedRouter} from 'react-router';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -23,11 +22,7 @@ const organization = OrganizationFixture({
   projects: [ProjectFixture()],
 });
 
-const {
-  routerContext,
-  organization: org,
-  router,
-} = initializeOrg({
+const {organization: org, router} = initializeOrg({
   organization,
   router: {
     location: {
@@ -222,7 +217,7 @@ describe('Performance > VitalDetail', function () {
 
   it('renders basic UI elements', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -247,7 +242,7 @@ describe('Performance > VitalDetail', function () {
 
   it('triggers a navigation on search', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -279,15 +274,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -331,15 +319,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -384,15 +365,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -417,7 +391,7 @@ describe('Performance > VitalDetail', function () {
 
   it('renders LCP vital correctly', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -432,7 +406,7 @@ describe('Performance > VitalDetail', function () {
 
   it('correctly renders which browsers support LCP', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -452,7 +426,7 @@ describe('Performance > VitalDetail', function () {
     };
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -477,7 +451,7 @@ describe('Performance > VitalDetail', function () {
     });
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -502,7 +476,7 @@ describe('Performance > VitalDetail', function () {
     });
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 

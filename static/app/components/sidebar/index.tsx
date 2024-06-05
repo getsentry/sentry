@@ -48,7 +48,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {canSeeMetricsPage, hasRolledOutMetrics} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -130,6 +130,7 @@ function Sidebar() {
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -538,9 +539,8 @@ function Sidebar() {
   );
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-  const isNewFeatureBadge = organization && hasRolledOutMetrics(organization);
 
-  const metrics = hasOrganization && canSeeMetricsPage(organization) && (
+  const metrics = hasOrganization && hasCustomMetrics(organization) && (
     <SidebarItem
       {...sidebarItemProps}
       icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
@@ -548,8 +548,7 @@ function Sidebar() {
       to={metricsPath}
       search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
-      isBeta={!isNewFeatureBadge}
-      isNew={!!isNewFeatureBadge}
+      isBeta
     />
   );
 
@@ -671,7 +670,7 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                {hasNewSidebarHierarchy && (
+                {hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
                   <Fragment>
                     <SidebarSection>
                       {explore}
@@ -689,7 +688,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                {!hasNewSidebarHierarchy && (
+                {!hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
                   <Fragment>
                     <SidebarSection>
                       {performance}
@@ -703,6 +702,18 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
+                      {discover2}
+                      {dashboards}
+                      {releases}
+                      {userFeedback}
+                    </SidebarSection>
+                  </Fragment>
+                )}
+
+                {isSelfHostedErrorsOnly && (
+                  <Fragment>
+                    <SidebarSection>
+                      {alerts}
                       {discover2}
                       {dashboards}
                       {releases}

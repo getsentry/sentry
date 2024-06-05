@@ -252,7 +252,7 @@ describe('withDomainRequired', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router, route} = initializeOrg({
       organization,
       router: {
         params,
@@ -268,7 +268,7 @@ describe('withDomainRequired', function () {
         routeParams={router.params}
         route={route}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -301,7 +301,7 @@ describe('withDomainRequired', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router, route} = initializeOrg({
       organization,
       router: {
         params,
@@ -317,7 +317,7 @@ describe('withDomainRequired', function () {
         routeParams={router.params}
         route={route}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -350,7 +350,7 @@ describe('withDomainRequired', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router, route} = initializeOrg({
       organization,
       router: {
         params,
@@ -366,7 +366,7 @@ describe('withDomainRequired', function () {
         routeParams={router.params}
         route={route}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();

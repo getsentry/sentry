@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
@@ -18,12 +19,7 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 
-type ProviderOptions = {
-  /**
-   * Sets legacy context providers. This value is directly passed to a
-   * `getChildContext`.
-   */
-  context?: Record<string, any>;
+interface ProviderOptions {
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -32,31 +28,26 @@ type ProviderOptions = {
    * Sets the RouterContext
    */
   router?: Partial<InjectedRouter>;
-};
+}
 
-type Options = ProviderOptions & rtl.RenderOptions;
+interface Options extends ProviderOptions, rtl.RenderOptions {}
 
-function createProvider(contextDefs: Record<string, any>) {
-  return class ContextProvider extends Component<{children?: React.ReactNode}> {
-    static childContextTypes = contextDefs.childContextTypes;
+function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
+  const {organization, router} = initializeOrg(initializeOrgOptions as any);
+
+  class LegacyRouterProvider extends Component<{children?: React.ReactNode}> {
+    static childContextTypes = {
+      router: SentryPropTypeValidators.isObject,
+    };
 
     getChildContext() {
-      return contextDefs.context;
+      return {router};
     }
 
     render() {
       return this.props.children;
     }
-  };
-}
-
-function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions) {
-  const {organization, router, routerContext} = initializeOrg(
-    initializeOrgOptions as any
-  );
-  const ContextProvider = context
-    ? createProvider(context)
-    : createProvider(routerContext);
+  }
 
   // In some cases we may want to not provide an organization at all
   const optionalOrganization =
@@ -64,7 +55,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
 
   return function ({children}: {children?: React.ReactNode}) {
     return (
-      <ContextProvider>
+      <LegacyRouterProvider>
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
@@ -83,7 +74,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
-      </ContextProvider>
+      </LegacyRouterProvider>
     );
   };
 }
@@ -94,26 +85,19 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
  *
  * render(<TestedComponent />);
  *
- * If your component requires routerContext or organization to render, pass it
- * via context options argument. render(<TestedComponent />, {context:
- * routerContext, organization});
+ * If your component requires additional context you can pass it in the
+ * options.
  */
-function render(ui: React.ReactElement, options?: Options) {
-  options = options ?? {};
-  const {context, organization, ...otherOptions} = options;
-  let {router} = options;
-
-  if (router === undefined && context?.context?.router) {
-    router = context.context.router;
-  }
-
+function render(
+  ui: React.ReactElement,
+  {router, organization, ...rtlOptions}: Options = {}
+) {
   const AllTheProviders = makeAllTheProviders({
-    context,
     organization,
     router,
   });
 
-  return rtl.render(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
 }
 
 /**

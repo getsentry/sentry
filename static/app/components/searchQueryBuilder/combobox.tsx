@@ -41,6 +41,7 @@ type SearchQueryBuilderComboboxProps = {
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
   shouldCloseOnInteractOutside?: (el: Element) => boolean;
@@ -67,6 +68,7 @@ export const SearchQueryBuilderCombobox = forwardRef(
       tabIndex = -1,
       maxOptions,
       shouldCloseOnInteractOutside,
+      onPaste,
     }: SearchQueryBuilderComboboxProps,
     ref
   ) => {
@@ -186,6 +188,7 @@ export const SearchQueryBuilderCombobox = forwardRef(
           value={inputValue}
           onChange={onInputChange}
           tabIndex={tabIndex}
+          onPaste={onPaste}
         />
         <StyledPositionWrapper
           {...overlayProps}

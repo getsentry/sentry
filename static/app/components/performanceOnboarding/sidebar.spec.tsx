@@ -20,7 +20,7 @@ import {generateDocKeys} from './utils';
 jest.mock('sentry/utils/useServiceIncidents');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
-  const {organization, routerContext, router} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {
       location: {query: {}, search: '', pathname: '/test/'},
     },
@@ -38,7 +38,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   };
 
   const renderSidebar = props =>
-    render(getElement(), {organization: props.organization, context: routerContext});
+    render(getElement(), {organization: props.organization, router});
 
   beforeEach(function () {
     jest.resetAllMocks();

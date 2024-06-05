@@ -111,9 +111,7 @@ describe('SearchQueryBuilder', function () {
     it('displays the key alias instead of the actual value', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
 
-      expect(
-        await screen.findByRole('button', {name: 'Edit filter key: status'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('status')).toBeInTheDocument();
     });
 
     it('when adding a filter by typing, replaces aliased tokens', async function () {
@@ -135,22 +133,27 @@ describe('SearchQueryBuilder', function () {
   describe('actions', function () {
     it('can clear the query', async function () {
       const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
+          onSearch={mockOnSearch}
         />
       );
       userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('');
+        expect(mockOnSearch).toHaveBeenCalledWith('');
       });
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
+
+      expect(screen.getByRole('combobox')).toHaveFocus();
     });
   });
 
@@ -562,12 +565,6 @@ describe('SearchQueryBuilder', function () {
         screen.getByRole('button', {name: 'Edit operator for filter: assigned'})
       ).toHaveFocus();
 
-      // Left again focuses the assigned key
-      await userEvent.keyboard('{arrowleft}');
-      expect(
-        screen.getByRole('button', {name: 'Edit filter key: assigned'})
-      ).toHaveFocus();
-
       // Left again goes to the next text input between tokens
       await userEvent.keyboard('{arrowleft}');
       expect(
@@ -603,6 +600,20 @@ describe('SearchQueryBuilder', function () {
       // Shift-tabbing should exit the component
       await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
       expect(document.body).toHaveFocus();
+    });
+
+    it('converts pasted text into tokens', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.paste('browser.name:firefox');
+
+      // Should have tokenized the pasted text
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+      // Focus should be at the end of the pasted text
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
     });
 
     it('can remove parens with the keyboard', async function () {

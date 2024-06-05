@@ -288,3 +288,16 @@ def test_parameterize_regex_experiment_cached_compiled():
 )
 def test_fail_parameterize(name, input, expected, parameterizer):
     assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"
+
+
+# These are test cases were we're too aggressive
+@pytest.mark.xfail()
+@pytest.mark.parametrize(
+    ("name", "input", "expected"),
+    [
+        ("Not an Int", "Encoding: utf-8", "Encoding: utf-8"),  # produces "Encoding: utf<int>"
+        ("Not a Uniq ID", "X-Amz-Apigw-Id", "X-Amz-Apigw-Id"),  # produces "<uniq_id>"
+    ],
+)
+def test_too_aggressive_parameterize(name, input, expected, parameterizer):
+    assert expected == parameterizer.parameterize_all(input), f"Case {name} Failed"

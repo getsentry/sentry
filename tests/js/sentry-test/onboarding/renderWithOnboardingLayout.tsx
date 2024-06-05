@@ -30,7 +30,7 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {
       location: {
         query: selectedOptions,
@@ -54,7 +54,7 @@ export function renderWithOnboardingLayout<
     />,
     {
       organization,
-      context: routerContext,
+      router,
     }
   );
 }

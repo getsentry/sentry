@@ -22,7 +22,7 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization: org, routerContext, routerProps} = initializeOrg();
+  const {organization: org, router, routerProps} = initializeOrg();
 
   describe('Renders view', function () {
     beforeEach(() => {
@@ -53,7 +53,7 @@ describe('IntegrationListDirectory', function () {
           hideHeader={false}
         />,
         {
-          context: routerContext,
+          router,
         }
       );
 
@@ -78,7 +78,7 @@ describe('IntegrationListDirectory', function () {
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe('IntegrationListDirectory', function () {
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
