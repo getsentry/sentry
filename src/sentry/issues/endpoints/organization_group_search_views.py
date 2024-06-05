@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +13,7 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializer,
+    GroupSearchViewRestSerializer,
     GroupSearchViewSerializerResponse,
 )
 from sentry.models.groupsearchview import GroupSearchView
@@ -33,13 +36,22 @@ DEFAULT_VIEWS: list[GroupSearchViewSerializerResponse] = [
 class MemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write"],
+        "PUT": ["member:read", "member:write"],
     }
+
+
+class View(TypedDict):
+    id: str | None
+    name: str
+    query: str
+    query_sort: SortOptions
 
 
 @region_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
@@ -72,3 +84,66 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             order_by="position",
             on_results=lambda x: serialize(x, request.user, serializer=GroupSearchViewSerializer()),
         )
+
+    def put(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:issue-stream-custom-views", organization):
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        serializer = GroupSearchViewRestSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        validated_data = serializer.validated_data
+        bulk_update_views(organization, request.user.id, validated_data)
+
+        query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
+
+        return self.paginate(
+            request=request,
+            queryset=query,
+            order_by="position",
+            on_results=lambda x: serialize(x, request.user, serializer=GroupSearchViewSerializer()),
+        )
+
+
+def bulk_update_views(org: Organization, user_id: int, validated_data):
+    views = validated_data.get("views")
+
+    existing_view_ids = [view["id"] for view in views if "id" in view]
+
+    _delete_missing_views(org, user_id, view_ids_to_keep=existing_view_ids)
+
+    updated_views = []
+    for idx, view in enumerate(validated_data["views"]):
+        if "id" not in view:
+            updated_views.append(_create_view(org, user_id, view, position=idx))
+        else:
+            updated_views.append(_update_existing_view(view, position=idx))
+    return updated_views
+
+
+def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[int]):
+    GroupSearchView.objects.filter(organization=org, user_id=user_id).exclude(
+        id__in=view_ids_to_keep
+    ).delete()
+
+
+def _update_existing_view(view: View, position: int):
+    GroupSearchView.objects.filter(id=view["id"]).update(
+        name=view["name"],
+        query=view["query"],
+        query_sort=view["query_sort"],
+        position=position,
+    )
+
+
+def _create_view(org: Organization, user_id: int, view, position: int):
+    GroupSearchView.objects.create(
+        organization=org,
+        user_id=user_id,
+        name=view["name"],
+        query=view["query"],
+        query_sort=view.get("query_sort", SortOptions.DATE),
+        position=position,
+    )
