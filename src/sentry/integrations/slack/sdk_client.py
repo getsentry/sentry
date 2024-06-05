@@ -1,12 +1,84 @@
-from slack_sdk import WebClient
+import logging
+from functools import wraps
+from types import FunctionType
 
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
+
+from sentry import metrics
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
 
+SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
-class SlackSdkClient(WebClient):
-    def __init__(self, integration_id: int) -> None:
+logger = logging.getLogger(__name__)
+
+
+def track_response_data(
+    response: SlackResponse | None = None, error: SlackApiError | None = None
+) -> None:
+    if response and error or not (response or error):
+        raise ValueError("Only one of response or error should be provided")
+
+    if error:
+        response = error.response
+
+    is_ok = response.get("ok", False)
+    code = response.status_code
+
+    metrics.incr(
+        SLACK_DATADOG_METRIC,
+        sample_rate=1.0,
+        tags={"ok": is_ok, "status": code},
+    )
+
+    extra = {
+        "integration": "slack",
+        "status_string": str(code),
+        "error": str(error)[:256] if error else None,
+    }
+    logger.info("integration.http_response", extra=extra)
+
+
+def wrapper(method):
+    @wraps(method)
+    def wrapped(*args, **kwargs):
+        try:
+            response = method(*args, **kwargs)
+            if isinstance(response, SlackResponse):
+                track_response_data(response=response)
+        except SlackApiError as e:
+            track_response_data(error=e)
+            raise
+
+        return response
+
+    return wrapped
+
+
+def wrap_methods_in_class(cls):
+    for name, attribute in vars(cls).items():
+        if isinstance(attribute, FunctionType):
+            setattr(cls, name, wrapper(attribute))
+
+    for base in cls.__bases__:
+        wrap_methods_in_class(base)
+
+
+class MetaClass(type):
+    def __new__(meta, name, bases, dct):
+        cls = super().__new__(meta, name, bases, dct)
+        wrap_methods_in_class(cls)
+        return cls
+
+    def __init__(cls, name, bases, dct):
+        super().__init__(name, bases, dct)
+
+
+class SlackSdkClient(WebClient, metaclass=MetaClass):
+    def __init__(self, integration_id: int):
         integration = None
         if SiloMode.get_current_mode() == SiloMode.REGION:
             integration = integration_service.get_integration(integration_id=integration_id)

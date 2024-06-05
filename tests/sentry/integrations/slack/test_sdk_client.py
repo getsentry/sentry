@@ -4,7 +4,7 @@ import orjson
 import pytest
 from slack_sdk.errors import SlackApiError
 
-from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC, SlackSdkClient
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -32,8 +32,9 @@ class SlackClientTest(TestCase):
         with pytest.raises(ValueError):
             SlackSdkClient(integration_id=self.integration.id)
 
+    @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_authorize(self, mock_api_call):
+    def test_authorize_success(self, mock_api_call, mock_metrics):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -43,16 +44,28 @@ class SlackClientTest(TestCase):
         client = SlackSdkClient(integration_id=self.integration.id)
 
         client.chat_postMessage(channel="#announcements", text="hello")
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": True, "status": 200},
+        )
 
+    @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_authorize_error(self, mock_api_call):
+    def test_authorize_error(self, mock_api_call, mock_metrics):
         mock_api_call.return_value = {
-            "body": orjson.dumps({"ok": True}).decode() + "'",
+            "body": orjson.dumps({"ok": False}).decode() + "'",
             "headers": {},
-            "status": 200,
+            "status": 500,
         }
 
         client = SlackSdkClient(integration_id=self.integration.id)
 
         with pytest.raises(SlackApiError):
             client.chat_postMessage(channel="#announcements", text="hello")
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": False, "status": 500},
+        )
