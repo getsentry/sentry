@@ -5,6 +5,7 @@ export const DEBUG_SOURCE_LAYOUTS = {
   ssqp: 'Microsoft SSQP',
   unified: 'Unified Symbol Server Layout',
   debuginfod: 'debuginfod',
+  slashsymbols: '/symbols',
 } as const;
 
 export const DEBUG_SOURCE_CASINGS = {
