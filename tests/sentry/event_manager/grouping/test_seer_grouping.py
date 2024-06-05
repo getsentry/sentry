@@ -169,15 +169,13 @@ class SeerEventManagerGroupingTest(TestCase):
             assert mock_with_circuit_breaker.call_count == 2  # increased
             assert mock_get_seer_similar_issues.call_count == 1  # didn't increase
 
-    @with_feature("projects:similarity-embeddings-metadata")
-    @patch("sentry.grouping.ingest.seer.event_content_is_seer_eligible", return_value=True)
+    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.event_manager.get_seer_similar_issues", return_value=({}, None))
     def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
         save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
-    @with_feature("projects:similarity-embeddings-metadata")
-    @patch("sentry.grouping.ingest.seer.event_content_is_seer_eligible", return_value=True)
+    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.event_manager.get_seer_similar_issues", return_value=({}, None))
     def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -187,8 +185,7 @@ class SeerEventManagerGroupingTest(TestCase):
         assert existing_event.group_id == new_event.group_id
         assert mock_get_seer_similar_issues.call_count == 1  # didn't get called again
 
-    @with_feature("projects:similarity-embeddings-metadata")
-    @patch("sentry.grouping.ingest.seer.event_content_is_seer_eligible", return_value=True)
+    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
     def test_stores_seer_results_in_metadata(self, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
@@ -215,7 +212,7 @@ class SeerEventManagerGroupingTest(TestCase):
         assert new_event.data["seer_similarity"] == expected_metadata
 
     @with_feature("projects:similarity-embeddings-grouping")
-    @patch("sentry.grouping.ingest.seer.event_content_is_seer_eligible", return_value=True)
+    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
     def test_assigns_event_to_neighbor_group_if_found(self, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
