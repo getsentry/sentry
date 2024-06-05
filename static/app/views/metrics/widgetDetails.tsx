@@ -160,7 +160,7 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>
+            <TabList.Item textValue={t('Span Samples')} key={Tab.SAMPLES}>
               <GuideAnchor target="metrics_table" position="top">
                 {t('Span Samples')}
               </GuideAnchor>
