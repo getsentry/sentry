@@ -20,6 +20,7 @@ from sentry.profiles.flamegraph import (
     get_profile_ids_with_spans,
     get_profiles_with_function,
 )
+from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
@@ -94,4 +95,25 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             method="POST",
             path=f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
             json_data=profile_ids,
+        )
+
+
+@region_silo_endpoint
+class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        params = self.get_snuba_params(request, organization, check_global_views=False)
+        if len(params.get("project_id")) != 1:
+            raise ParseError(detail="one project_id must be specified.")
+        profiler_id = request.query_params.get("profiler_id")
+        chunk_ids = get_chunk_ids(params, profiler_id)
+        return proxy_profiling_service(
+            method="POST",
+            path=f"/organizations/{organization.id}/projects/{params.get('project_id')[0]}/chunks",
+            json_data={
+                "profiler_id": profiler_id,
+                "chunk_ids": [el["chunk_id"] for el in chunk_ids],
+            },
         )
