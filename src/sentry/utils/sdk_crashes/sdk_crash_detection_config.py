@@ -290,6 +290,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 path_patterns={
                     r"package:sentry/**",  # sentry-dart
                     r"package:sentry_flutter/**",  # sentry-dart-flutter
+                    # sentry-dart packages
+                    r"package:sentry_logging/**",
+                    r"package:sentry_dio/**",
+                    r"package:sentry_file/**",
+                    r"package:sentry_sqflite/**",
+                    r"package:sentry_drift/**",
+                    r"package:sentry_hive/**",
+                    r"package:sentry_isar/**",
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),

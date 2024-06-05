@@ -87,6 +87,41 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             "some/path/package/flutter/src/gestures/recognizer.dart",
             False,
         ),
+        (
+            "package:sentry_logging/src/sentry_logging.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_dio/src/sentry_dio.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_file/src/sentry_file.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_sqflite/src/sentry_sqflite.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_drift/src/sentry_drift.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_hive/src/sentry_hive.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_isar/src/sentry_isar.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
     ],
 )
 @decorators
