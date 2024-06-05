@@ -158,7 +158,7 @@ def release_stage_filter_converter(
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
-            "Your semantic release.stage filter cannot be handled, please try again with a more narrow filter"
+            "There are too many releases that match your release.stage filter, please try again with a narrower range"
         )
 
     return Condition(builder.column("release"), Op.IN, versions)
@@ -229,7 +229,7 @@ def semver_filter_converter(
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
-            "Your semantic release.version filter cannot be handled, please try again with a more narrow filter"
+            "There are too many releases that match your release.version filter, please try again with a narrower range"
         )
 
     if not versions:
@@ -264,7 +264,7 @@ def semver_package_filter_converter(
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
-            "Your semantic release.package filter cannot be handled, please try again with a more narrow filter"
+            "There are too many releases that match your release.package filter, please try again with a narrower range"
         )
 
     return Condition(builder.column("release"), Op.IN, versions)
@@ -298,7 +298,7 @@ def semver_build_filter_converter(
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
-            "Your semantic release.build filter cannot be handled, please try again with a more narrow filter"
+            "There are too many releases that match your release.build filter, please try again with a narrower range"
         )
 
     if not versions:
