@@ -9,7 +9,6 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -126,9 +125,6 @@ class CustomRulesEndpoint(OrganizationEndpoint):
     permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:investigation-bias", organization, actor=request.user):
-            return Response(status=404)
-
         serializer = CustomRulesInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
