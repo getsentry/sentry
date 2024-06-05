@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import orjson
 import pytest
 from slack_sdk.errors import SlackApiError
 
@@ -29,9 +32,27 @@ class SlackClientTest(TestCase):
         with pytest.raises(ValueError):
             SlackSdkClient(integration_id=self.integration.id)
 
-    def test_authorize(self):
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_authorize(self, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        client = SlackSdkClient(integration_id=self.integration.id)
+
+        client.chat_postMessage(channel="#announcements", text="hello")
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_authorize_error(self, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode() + "'",
+            "headers": {},
+            "status": 200,
+        }
+
         client = SlackSdkClient(integration_id=self.integration.id)
 
         with pytest.raises(SlackApiError):
-            # error raised because it's actually trying to POST
             client.chat_postMessage(channel="#announcements", text="hello")
