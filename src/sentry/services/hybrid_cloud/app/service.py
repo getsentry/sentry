@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponentContext
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -140,6 +141,19 @@ class AppService(RpcService):
         group_by: str = "sentry_app_id",
     ) -> Mapping[str, Any]:
         pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_component_contexts(
+        self, *, filter: SentryAppInstallationFilterArgs, component_type: str
+    ) -> list[RpcSentryAppComponentContext]:
+        """
+        Get a context object for sentryapp components of a certain type.
+        Used for building sentryapp actions for alerts.
+
+        :param filter: The filtering conditions, same conditions as get_many()
+        :param component_type: The sentry-app component to get
+        """
 
     @rpc_method
     @abc.abstractmethod

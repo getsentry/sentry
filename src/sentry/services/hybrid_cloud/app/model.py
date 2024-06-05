@@ -91,6 +91,11 @@ class RpcSentryAppComponent(RpcModel):
     app_schema: Mapping[str, Any] = Field(default_factory=dict)
 
 
+class RpcSentryAppComponentContext(RpcModel):
+    installation: RpcSentryAppInstallation
+    component: RpcSentryAppComponent
+
+
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
