@@ -60,13 +60,8 @@ def has_staff_option(user) -> bool:
         return True
 
     if (email := getattr(user, "email", None)) is None:
-        logger.info("staff.missing-email", extra={"user_id": getattr(user, "id", None)})
         return False
-
-    allowed_emails = options.get("staff.user-email-allowlist")
-
-    logger.info("staff.email", extra={"email": email, "allowed_emails": allowed_emails})
-    return email in allowed_emails
+    return email in options.get("staff.user-email-allowlist")
 
 
 def _seconds_to_timestamp(seconds: str) -> datetime:
