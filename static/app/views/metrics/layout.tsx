@@ -24,7 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
-import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
@@ -47,8 +47,11 @@ export const MetricsLayout = memo(() => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const selectedProjects = pageFilters.selection.projects.join();
-  const {hasCustomMetrics, hasPerformanceMetrics, isHasMetricsLoading} =
-    useMetricsContext();
+  const {
+    hasCustomMetrics: hasSentCustomMetrics,
+    hasPerformanceMetrics,
+    isHasMetricsLoading,
+  } = useMetricsContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
   const {dismiss: emptyStateDismiss, isDismissed: isEmptyStateDismissed} =
     useDismissAlert({
@@ -58,7 +61,7 @@ export const MetricsLayout = memo(() => {
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const [isBannerDismissed] = useLocalStorageState('metrics-banner-dismissed', false);
 
-  const showOnboardingPanel = !isEmptyStateDismissed && !hasCustomMetrics;
+  const showOnboardingPanel = !isEmptyStateDismissed && !hasSentCustomMetrics;
 
   const addCustomMetric = useCallback(
     (referrer: 'header' | 'onboarding_panel' | 'banner') => {
@@ -84,7 +87,7 @@ export const MetricsLayout = memo(() => {
     emptyStateDismiss();
   }, [emptyStateDismiss, organization]);
 
-  if (!canSeeMetricsPage(organization)) {
+  if (!hasCustomMetrics(organization)) {
     return (
       <Layout.Page withPadding>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -112,7 +115,7 @@ export const MetricsLayout = memo(() => {
           {!showOnboardingPanel ? (
             <PageHeaderActions
               showCustomMetricButton={
-                hasCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
+                hasSentCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
               }
               addCustomMetric={() => addCustomMetric('header')}
             />
@@ -122,7 +125,7 @@ export const MetricsLayout = memo(() => {
       <Layout.Body>
         <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
-          {isEmptyStateDismissed && !hasCustomMetrics && (
+          {isEmptyStateDismissed && !hasSentCustomMetrics && (
             <Banner
               title={t('Custom Metrics')}
               subtitle={t(
