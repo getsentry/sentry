@@ -59,11 +59,15 @@ class ProjectConfigurationEndpoint(ProjectEndpoint):
         ):
             return Response("Disabled", status=404)
 
-        remote_config = make_api_backend(project).get()
+        remote_config, source = make_api_backend(project).get()
         if remote_config is None:
             return Response("Not found.", status=404)
 
-        return Response({"data": remote_config}, status=200)
+        return Response(
+            {"data": remote_config},
+            status=200,
+            headers={"X-Sentry-Data-Source": source},
+        )
 
     def post(self, request: Request, project: Project) -> Response:
         """Set remote configuration in project options."""
@@ -127,7 +131,7 @@ class ProjectConfigurationProxyEndpoint(Endpoint):
             metrics.incr("remote_config.configuration.flag_disabled")
             return Response("Disabled", status=404)
 
-        result = make_configuration_backend(project).get()
+        result, source = make_configuration_backend(project).get()
         if result is None:
             metrics.incr("remote_config.configuration.not_found")
             return Response("Not found", status=404)
@@ -143,5 +147,6 @@ class ProjectConfigurationProxyEndpoint(Endpoint):
             headers={
                 "Cache-Control": "public, max-age=3600",
                 "ETag": hashlib.sha1(result_str.encode()).hexdigest(),
+                "X-Sentry-Data-Source": source,
             },
         )

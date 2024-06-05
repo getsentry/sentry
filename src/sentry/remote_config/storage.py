@@ -103,14 +103,14 @@ class ConfigurationBackend:
         self.cache = ConfigurationCache(self.key)
         self.storage = ConfigurationStorage(self.key)
 
-    def get(self) -> StorageFormat | None:
+    def get(self) -> tuple[StorageFormat | None, str]:
         cache_result = self.cache.get()
         if cache_result is not None:
-            return cache_result
+            return (cache_result, "cache")
 
         storage_result = self.storage.get()
         self.cache.set(storage_result)
-        return storage_result
+        return (storage_result, "store")
 
     def set(self, value: StorageFormat) -> None:
         self.storage.set(value)
@@ -125,8 +125,9 @@ class APIBackendDecorator:
     def __init__(self, backend: ConfigurationBackend) -> None:
         self.driver = backend
 
-    def get(self) -> APIFormat | None:
-        return self._deserialize(self.driver.get())
+    def get(self) -> tuple[APIFormat | None, str]:
+        result, source = self.driver.get()
+        return self._deserialize(result), source
 
     def set(self, value: APIFormat) -> None:
         self.driver.set(self._serialize(value))
