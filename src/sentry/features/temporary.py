@@ -132,9 +132,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Allow tenant type installations through issue alert actions
     manager.add("organizations:integrations-msteams-tenant", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
-    # temporary boost the sample rate of particular transactions)
-    manager.add("organizations:investigation-bias", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable inviting members to organizations.
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable rate limits for inviting members.
