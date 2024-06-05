@@ -17,6 +17,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
+from sentry.newsletter.dummy import DummyNewsletter
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -440,14 +441,10 @@ class AuthLoginNewsletterTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
-    def setUp(self):
-        super().setUp()
-
-        def disable_newsletter():
-            newsletter.backend.disable()
-
-        self.addCleanup(disable_newsletter)
-        newsletter.backend.enable()
+    @pytest.fixture(autouse=True)
+    def enable_newsletter(self):
+        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
+            yield
 
     def test_registration_requires_subscribe_choice_with_newsletter(self):
         with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
