@@ -7,6 +7,7 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
 import {
   IconClose,
   IconCopy,
@@ -18,14 +19,14 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement, isCustomMetric, isGaugeMetric} from 'sentry/utils/metrics';
+import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
   getWidgetAsQueryParams,
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -83,8 +84,8 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
-        label: t('Create Alert'),
-        disabled: !createAlert,
+        label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
+        disabled: !createAlert || !hasMetricAlertFeature(organization),
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -188,7 +189,6 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
     !metricsQuery.mri ||
     !metricsQuery.op ||
     isCustomMeasurement(metricsQuery) ||
-    isGaugeMetric(metricsQuery) ||
     !organization.access.includes('alerts:write')
   ) {
     return undefined;

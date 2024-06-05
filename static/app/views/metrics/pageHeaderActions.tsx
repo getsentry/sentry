@@ -7,6 +7,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
 import {
   IconBookmark,
   IconDashboard,
@@ -19,7 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
@@ -158,27 +159,32 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       >
         {isDefaultQuery ? t('Remove Default') : t('Save as default')}
       </Button>
-      {alertItems.length === 1 ? (
-        <Button
-          size="sm"
-          icon={<IconSiren />}
-          disabled={!alertItems[0].onAction}
-          onClick={alertItems[0].onAction}
-        >
-          {t('Create Alert')}
-        </Button>
-      ) : (
-        <DropdownMenu
-          items={alertItems}
-          triggerLabel={t('Create Alert')}
-          triggerProps={{
-            size: 'sm',
-            showChevron: false,
-            icon: <IconSiren direction="down" size="sm" />,
-          }}
-          position="bottom-end"
-        />
-      )}
+      <CreateMetricAlertFeature>
+        {({hasFeature}) =>
+          alertItems.length === 1 ? (
+            <Button
+              size="sm"
+              icon={<IconSiren />}
+              disabled={!alertItems[0].onAction || !hasFeature}
+              onClick={alertItems[0].onAction}
+            >
+              {t('Create Alert')}
+            </Button>
+          ) : (
+            <DropdownMenu
+              items={alertItems}
+              triggerLabel={t('Create Alert')}
+              isDisabled={!hasFeature}
+              triggerProps={{
+                size: 'sm',
+                showChevron: false,
+                icon: <IconSiren direction="down" size="sm" />,
+              }}
+              position="bottom-end"
+            />
+          )
+        }
+      </CreateMetricAlertFeature>
       <DropdownMenu
         items={items}
         triggerProps={{

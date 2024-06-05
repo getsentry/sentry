@@ -9,9 +9,7 @@ export const DESTINATION_TITLE = t('Destination Summary');
 export const RELEASE_LEVEL: BadgeType = 'beta';
 
 export const releaseLevelAsBadgeProps = {
-  isAlpha: (RELEASE_LEVEL as BadgeType) === 'alpha',
-  isBeta: (RELEASE_LEVEL as BadgeType) === 'beta',
-  isNew: (RELEASE_LEVEL as BadgeType) === 'new',
+  isNew: true,
 };
 
 export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';

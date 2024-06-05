@@ -14,10 +14,10 @@ from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from sentry import integrations
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
+from sentry.integrations.manager import default_manager as integrations
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,

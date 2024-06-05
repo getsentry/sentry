@@ -244,6 +244,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');
       }
+      if (DATA_CATEGORY_INFO.profileDuration.plural === opt.value) {
+        return organization.features.includes('continuous-profiling');
+      }
       return true;
     });
 

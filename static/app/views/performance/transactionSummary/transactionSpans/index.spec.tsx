@@ -87,7 +87,7 @@ describe('Performance > Transaction Spans', function () {
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -110,7 +110,7 @@ describe('Performance > Transaction Spans', function () {
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -140,7 +140,7 @@ describe('Performance > Transaction Spans', function () {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
         render(<TransactionSpans location={initialData.router.location} />, {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         });
 
@@ -156,7 +156,7 @@ describe('Performance > Transaction Spans', function () {
     it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
       render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       });
 

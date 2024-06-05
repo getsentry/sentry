@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
 from hashlib import sha1
 from typing import ClassVar
 
@@ -14,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.models.rawevent import RawEvent
 from sentry.models.release import Release
 
 
@@ -51,20 +55,17 @@ class ProcessingIssueManager(BaseManager["ProcessingIssue"]):
         Resolves all processing issues.
         """
         self.resolve_all_processing_issue(project)
-        from sentry.models.rawevent import RawEvent
         from sentry.models.reprocessingreport import ReprocessingReport
 
         RawEvent.objects.filter(project_id=project.id).delete()
         ReprocessingReport.objects.filter(project_id=project.id).delete()
 
-    def find_resolved_queryset(self, project_ids):
-        from sentry.models.rawevent import RawEvent
-
+    def find_resolved_queryset(self, project_ids: Sequence[int]) -> models.QuerySet[RawEvent]:
         return RawEvent.objects.filter(
             project_id__in=project_ids, eventprocessingissue__isnull=True
         )
 
-    def find_resolved(self, project_id, limit=100):
+    def find_resolved(self, project_id: int, limit: int = 100) -> tuple[list[RawEvent], bool]:
         """Returns a list of raw events that generally match the given
         processing issue and no longer have any issues remaining.  Returns
         a list of raw events that are now resolved and a bool that indicates
@@ -80,7 +81,7 @@ class ProcessingIssueManager(BaseManager["ProcessingIssue"]):
             has_more = False
 
         rv = list(rv)
-        eventstore.backend.bind_nodes(rv, "data")
+        eventstore.backend.bind_nodes(rv)
         return rv, has_more
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):

@@ -10,7 +10,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 

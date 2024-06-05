@@ -39,6 +39,7 @@ const BLOCK_COMMENT_SYNTAX_BY_LANGUAGE: Record<string, BlockCommentSyntax[]> = {
   julia: [{start: '#=', end: '=#'}],
   lua: [{start: '--[[', end: ']]'}],
   perl: [{start: {example: '=comment', search: /^\s*?=\S+/m}, end: '=cut'}],
+  powershell: [{start: '<#', end: '#>'}],
   python: [
     {start: '"""', end: '"""'},
     {start: "'''", end: "'''"},

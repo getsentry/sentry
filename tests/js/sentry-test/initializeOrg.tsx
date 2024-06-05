@@ -3,7 +3,6 @@ import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import type {Organization as TOrganization} from 'sentry/types/organization';
@@ -36,7 +35,7 @@ interface InitializeOrgOptions<RouterParams> {
  *   - a project or projects
  *   - organization owning above projects
  *   - router
- *   - context that contains org + projects + router
+ *   - context that contains router
  */
 export function initializeOrg<RouterParams = {orgId: string; projectId: string}>({
   organization: additionalOrg,
@@ -65,14 +64,6 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     },
   });
 
-  const routerContext: any = RouterContextFixture([
-    {
-      project,
-      router,
-      location: router.location,
-    },
-  ]);
-
   /**
    * A collection of router props that are passed to components by react-router
    *
@@ -87,7 +78,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     router,
     route: router.routes[0],
     routes: router.routes,
-    location: routerContext.context.location,
+    location: router.location,
   };
 
   return {
@@ -95,7 +86,6 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     project,
     projects,
     router,
-    routerContext,
     routerProps,
     // @deprecated - not sure what purpose this serves
     route: {},

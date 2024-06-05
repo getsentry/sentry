@@ -1,119 +1,10 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {
   descopeFeatureName,
   escapeDoubleQuotes,
   explodeSlug,
   extractMultilineFields,
   parseRepo,
-  sortProjects,
-  valueIsEqual,
 } from 'sentry/utils';
-
-describe('utils.valueIsEqual', function () {
-  it('should return true when objects are deeply equal', function () {
-    const isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
-      },
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
-      },
-      true
-    );
-    expect(isEqual).toBe(true);
-  });
-
-  it('should return false when objects are not deeply equal', function () {
-    const isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
-      },
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'notGravatar',
-          avatarUuid: null,
-        },
-      },
-      true
-    );
-    expect(isEqual).toBe(false);
-  });
-
-  it('should return true when objects are shallowly equal', function () {
-    const isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'gravatar',
-      },
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'gravatar',
-      },
-      false
-    );
-    expect(isEqual).toBe(true);
-  });
-
-  it('should return false when objects are not shallowly equal', function () {
-    const isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'gravatar',
-      },
-      {
-        username: 'foo',
-        team: 'bar',
-        avatar: 'notGravatar',
-      },
-      false
-    );
-    expect(isEqual).toBe(false);
-  });
-
-  it('should not blow up when comparing null value to an object', function () {
-    let isEqual = valueIsEqual(null, {username: 'foo'}, true);
-    expect(isEqual).toBe(false);
-
-    isEqual = valueIsEqual(
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: null,
-      },
-      {
-        username: 'foo',
-        teams: ['bar', 'baz'],
-        avatar: {
-          avatarType: 'notGravatar',
-          avatarUuid: null,
-        },
-      },
-      true
-    );
-    expect(isEqual).toBe(false);
-  });
-});
 
 describe('utils.extractMultilineFields', function () {
   it('should work for basic, simple values', function () {
@@ -173,32 +64,6 @@ describe('utils.parseRepo', function () {
 describe('utils.explodeSlug', function () {
   it('replaces slug special chars with whitespace', function () {
     expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
-  });
-});
-
-describe('utils.projectDisplayCompare', function () {
-  it('sorts by bookmark and project slug', function () {
-    const projects = [
-      ProjectFixture({isBookmarked: true, slug: 'm'}),
-      ProjectFixture({isBookmarked: false, slug: 'm'}),
-      ProjectFixture({isBookmarked: false, slug: 'a'}),
-      ProjectFixture({isBookmarked: true, slug: 'a'}),
-      ProjectFixture({isBookmarked: true, slug: 'z'}),
-      ProjectFixture({isBookmarked: false, slug: 'z'}),
-    ];
-
-    const expected = [
-      expect.objectContaining({isBookmarked: true, slug: 'a'}),
-      expect.objectContaining({isBookmarked: true, slug: 'm'}),
-      expect.objectContaining({isBookmarked: true, slug: 'z'}),
-      expect.objectContaining({isBookmarked: false, slug: 'a'}),
-      expect.objectContaining({isBookmarked: false, slug: 'm'}),
-      expect.objectContaining({isBookmarked: false, slug: 'z'}),
-    ];
-
-    const sortedProjects = sortProjects(projects);
-
-    expect(sortedProjects).toEqual(expected);
   });
 });
 

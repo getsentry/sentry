@@ -15,7 +15,7 @@ describe('BreadcrumbTitle', function () {
   ];
 
   it('renders settings breadcrumbs and replaces title', function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         routes: testRoutes,
       },
@@ -26,7 +26,7 @@ describe('BreadcrumbTitle', function () {
         <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
       </BreadcrumbContextProvider>,
-      {context: routerContext}
+      {router}
     );
 
     const crumbs = screen.getAllByRole('link');
@@ -36,7 +36,7 @@ describe('BreadcrumbTitle', function () {
   });
 
   it('cleans up routes', () => {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         routes: testRoutes,
       },
@@ -50,7 +50,7 @@ describe('BreadcrumbTitle', function () {
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
       </BreadcrumbContextProvider>,
-      {context: routerContext}
+      {router}
     );
 
     const crumbs = screen.getAllByRole('link');

@@ -10,8 +10,9 @@ import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -40,7 +41,7 @@ const DEFAULT_PROPS: DefaultProps = {
 export default class TableField extends Component<InputFieldProps> {
   static defaultProps = DEFAULT_PROPS;
 
-  hasValue = value => defined(value) && !objectIsEmpty(value);
+  hasValue = value => defined(value) && !isEmptyObject(value);
 
   renderField = (props: RenderProps) => {
     const {

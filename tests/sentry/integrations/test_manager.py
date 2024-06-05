@@ -1,4 +1,4 @@
-from sentry import integrations
+from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
 from sentry.testutils.cases import TestCase
 

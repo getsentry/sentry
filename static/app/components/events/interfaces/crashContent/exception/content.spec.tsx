@@ -46,11 +46,7 @@ describe('Exception Content', function () {
       body: projectDetails,
     });
 
-    const {
-      organization: org,
-      router,
-      routerContext,
-    } = initializeOrg({
+    const {organization: org, router} = initializeOrg({
       router: {
         location: {query: {project: project.id}},
       },
@@ -145,7 +141,7 @@ describe('Exception Content', function () {
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization: org, router, context: routerContext}
+      {organization: org, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);

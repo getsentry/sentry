@@ -18,7 +18,7 @@ import type {
 } from 'sentry/types';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {isNotSharedOrganization} from 'sentry/types/utils';
-import {objectIsEmpty} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
 import {EventContexts} from './contexts';
@@ -71,7 +71,7 @@ function EventEntries({
     );
   }
 
-  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const hasContext = !isEmptyObject(event.user ?? {}) || !isEmptyObject(event.contexts);
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
     organization,

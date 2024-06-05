@@ -1,6 +1,5 @@
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -34,14 +33,9 @@ describe('AccountSecurityEnroll', function () {
       ],
     });
 
-    const routerContext = RouterContextFixture([
-      {
-        router: {
-          ...RouterFixture(),
-          params: {authId: authenticator.authId},
-        },
-      },
-    ]);
+    const router = RouterFixture({
+      params: {authId: authenticator.authId},
+    });
 
     let location;
     beforeEach(function () {
@@ -66,7 +60,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('does not have enrolled circle indicator', function () {
-      render(<AccountSecurityEnroll />, {context: routerContext});
+      render(<AccountSecurityEnroll />, {router});
 
       expect(
         screen.getByRole('status', {name: 'Authentication Method Inactive'})
@@ -74,7 +68,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('has qrcode component', function () {
-      render(<AccountSecurityEnroll />, {context: routerContext});
+      render(<AccountSecurityEnroll />, {router});
 
       expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
@@ -99,7 +93,7 @@ describe('AccountSecurityEnroll', function () {
         body: [usorg],
       });
 
-      render(<AccountSecurityEnroll />, {context: routerContext});
+      render(<AccountSecurityEnroll />, {router});
 
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
@@ -137,7 +131,7 @@ describe('AccountSecurityEnroll', function () {
         body: [usorg],
       });
 
-      render(<AccountSecurityEnroll />, {context: routerContext});
+      render(<AccountSecurityEnroll />, {router});
 
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
@@ -164,16 +158,12 @@ describe('AccountSecurityEnroll', function () {
       });
 
       const pushMock = jest.fn();
-      const routerContextWithMock = RouterContextFixture([
-        {
-          router: {
-            ...RouterFixture({push: pushMock}),
-            params: {authId: authenticator.authId},
-          },
-        },
-      ]);
+      const routerWithMock = RouterFixture({
+        push: pushMock,
+        params: {authId: authenticator.authId},
+      });
 
-      render(<AccountSecurityEnroll />, {context: routerContextWithMock});
+      render(<AccountSecurityEnroll />, {router: routerWithMock});
 
       expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
     });

@@ -35,7 +35,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         }}
         onClick={() => {
           trackAnalytics(`${referrer}.trace_issue_clicked`, {
-            organization: organization.slug,
+            organization,
             group_id: issueId,
           });
         }}
@@ -92,7 +92,7 @@ const TraceIssueLinkContainer = styled(Link)`
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.backgroundTertiary};
     color: ${p => p.theme.textColor};
   }
 `;

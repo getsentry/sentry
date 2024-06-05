@@ -1,87 +1,11 @@
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
-function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
-  // if the other array is a falsy value, return
-  if (!arr && !other) {
-    return true;
-  }
-
-  if (!arr || !other) {
-    return false;
-  }
-
-  // compare lengths - can save a lot of time
-  if (arr.length !== other.length) {
-    return false;
-  }
-
-  return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
-}
-
-export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
-  if (value === other) {
-    return true;
-  }
-  if (Array.isArray(value) || Array.isArray(other)) {
-    if (arrayIsEqual(value, other, deep)) {
-      return true;
-    }
-  } else if (
-    (value && typeof value === 'object') ||
-    (other && typeof other === 'object')
-  ) {
-    if (objectMatchesSubset(value, other, deep)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function objectMatchesSubset(obj?: object, other?: object, deep?: boolean): boolean {
-  let k: string;
-
-  if (obj === other) {
-    return true;
-  }
-
-  if (!obj || !other) {
-    return false;
-  }
-
-  if (deep !== true) {
-    for (k in other) {
-      if (obj[k] !== other[k]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  for (k in other) {
-    if (!valueIsEqual(obj[k], other[k], deep)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 export function intcomma(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-export function objectIsEmpty(obj = {}): boolean {
-  for (const prop in obj) {
-    if (obj.hasOwnProperty(prop)) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 /**
@@ -216,18 +140,6 @@ export function convertMultilineFieldValue<T extends string | string[]>(
   }
 
   return '';
-}
-
-function projectDisplayCompare(a: Project, b: Project): number {
-  if (a.isBookmarked !== b.isBookmarked) {
-    return a.isBookmarked ? -1 : 1;
-  }
-  return a.slug.localeCompare(b.slug);
-}
-
-// Sort a list of projects by bookmarkedness, then by id
-export function sortProjects(projects: Array<Project>): Array<Project> {
-  return projects.sort(projectDisplayCompare);
 }
 
 // build actorIds
