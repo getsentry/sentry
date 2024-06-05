@@ -45,7 +45,8 @@ def test_find_alertable_services() -> None:
 
 
 @django_db_all(transaction=True)
-def test_get_component_context() -> None:
+@all_silo_test
+def test_get_component_contexts() -> None:
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
     other_org = Factories.create_organization(owner=user)
@@ -75,11 +76,11 @@ def test_get_component_context() -> None:
         slug=app.slug,
     )
     # wrong component type
-    result = app_service.get_component_context(filter={"app_ids": [app.id]}, component_type="derp")
+    result = app_service.get_component_contexts(filter={"app_ids": [app.id]}, component_type="derp")
     assert len(result) == 0
 
     # filter by app_id gets all installs
-    result = app_service.get_component_context(
+    result = app_service.get_component_contexts(
         filter={"app_ids": [app.id]}, component_type="alert-rule-trigger"
     )
     assert len(result) == 2
@@ -90,7 +91,7 @@ def test_get_component_context() -> None:
         assert row.component.app_schema
 
     # filter by install_uuid gets only one
-    result = app_service.get_component_context(
+    result = app_service.get_component_contexts(
         filter={"uuids": [install.uuid]}, component_type="alert-rule-trigger"
     )
     assert len(result) == 1

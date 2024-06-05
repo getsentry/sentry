@@ -144,7 +144,7 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_component_context(
+    def get_component_contexts(
         self, *, filter: SentryAppInstallationFilterArgs, component_type: str
     ) -> list[RpcSentryAppComponentContext]:
         """
