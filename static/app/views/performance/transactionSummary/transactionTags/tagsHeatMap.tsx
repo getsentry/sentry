@@ -243,7 +243,8 @@ function TagsHeatMap(
 
     const newTransactionEventView = eventView.clone();
 
-    newTransactionEventView.fields = [{field: aggregateColumn}];
+    // We need the traceSlug here to navigate to the transaction in the trace view.
+    newTransactionEventView.fields = [{field: aggregateColumn}, {field: 'trace'}];
     const [_, tagValue] = bucket.value;
 
     if (histogramBucketInfo && histogramData) {
