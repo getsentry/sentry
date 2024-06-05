@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from django.conf import settings
 from django.core.cache import cache
 
 from sentry.api import client
@@ -19,9 +20,18 @@ from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.backends import LockBackend
+from sentry.utils.locking.manager import LockManager
 from sentry.utils.performance_issues.detectors import utils
+from sentry.utils.services import build_instance_from_options_of_type
 
 logger = logging.getLogger("sentry.chartcuterie")
+locks = LockManager(
+    build_instance_from_options_of_type(
+        LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
+    )
+)
 
 
 class IssueAlertImageBuilder:
@@ -33,18 +43,14 @@ class IssueAlertImageBuilder:
             "provider": self.provider,
             "issue_category": self.group.issue_category,
         }
+        self.lock = locks.get(key=f"lock_{self.cache_key}", duration=10, name="issue_alert_image")
 
     def get_image_url(self) -> str | None:
         try:
             metrics.incr("chartcuterie.issue_alert.attempt", tags=self.tags)
             image_url = cache.get(self.cache_key)
-            if image_url:
-                metrics.incr("chartcuterie.issue_alert.success", tags=self.tags)
-                return image_url
-
-            lock_key = f"lock_{self.cache_key}"
-            lock_acquired = cache.add(key=lock_key, value="locked", timeout=120)
-            if lock_acquired:
+            if image_url is None:
+                self.lock.blocking_acquire(initial_delay=1, timeout=30)
                 # Checking again in case another thread generated the image while
                 # this thread was acquiring the lock
                 image_url = cache.get(self.cache_key)
@@ -53,24 +59,27 @@ class IssueAlertImageBuilder:
                         image_url = self._get_endpoint_regression_image_url()
                     elif self.group.issue_type == ProfileFunctionRegressionType:
                         image_url = self._get_function_regression_image_url()
-                if image_url:
-                    metrics.incr("chartcuterie.issue_alert.success", tags=self.tags)
-                    cache.delete(key=lock_key)
-                    return image_url
-            else:
-                # There is a chance that another thread generated the image
-                image_url = cache.get(self.cache_key)
-                if image_url:
-                    metrics.incr("chartcuterie.issue_alert.success", tags=self.tags)
-                    return image_url
+        except UnableToAcquireLock:
+            # There is a chance that another thread generated the image
+            image_url = cache.get(self.cache_key)
+            if not image_url:
+                logger.warning(
+                    "issue_alert_chartcuterie_image.lock.failed",
+                    extra={"group_id": self.group.id},
+                )
         except Exception as e:
             logger.exception(
                 "issue_alert_chartcuterie_image.failed",
                 extra={"exception": e, "group_id": self.group.id},
             )
             sentry_sdk.capture_exception()
-            if lock_acquired:
-                cache.delete(key=lock_key)
+        self.lock.release()
+        if image_url:
+            metrics.incr("chartcuterie.issue_alert.success", tags=self.tags)
+            # We don't want to regenerate the image if another type of notification is sending the same one
+            # For example slack notification and email notification for the same issue
+            cache.set(self.cache_key, image_url, timeout=60 * 5)
+            return image_url
         return None
 
     def _get_endpoint_regression_image_url(self) -> str | None:
@@ -101,7 +110,6 @@ class IssueAlertImageBuilder:
                 "evidenceData": event.occurrence.evidence_data,
                 "percentileData": resp.data["p95(transaction.duration)"]["data"],
             },
-            cache_key=self.cache_key,
         )
 
     def _get_function_regression_image_url(self) -> str | None:
@@ -139,5 +147,4 @@ class IssueAlertImageBuilder:
                 "evidenceData": evidence_data,
                 "rawResponse": resp.data,
             },
-            cache_key=self.cache_key,
         )

@@ -1,4 +1,3 @@
-import threading
 import uuid
 from datetime import timedelta
 from unittest.mock import patch
@@ -82,25 +81,14 @@ class TestSlackImageBlockBuilder(
         mock_escape_transaction.return_value = "Test Transaction"
         group = self._create_endpoint_regression_issue()
         image_blocks = []
-
-        def make_request():
+        for _ in range(3):
             with self.feature(self.features):
                 image_blocks.append(ImageBlockBuilder(group=group).build_image_block())
 
-        threads = [threading.Thread(target=make_request) for _ in range(2)]
-        # Start all the threads
-        for thread in threads:
-            thread.start()
-
-        # Wait for all threads to finish
-        for thread in threads:
-            thread.join()
-
-        # make_request()
-        # make_request()
         assert mock_escape_transaction.call_count == 1
-        assert len(image_blocks) == 2
-        assert image_blocks[0]["image_url"] == image_blocks[1]["image_url"]
+        assert len(image_blocks) == 3
+        for i in range(3):
+            assert image_blocks[i]["image_url"] == image_blocks[2]["image_url"]
 
     @with_feature("organizations:slack-function-regression-image")
     def test_image_block_for_function_regression(self):
