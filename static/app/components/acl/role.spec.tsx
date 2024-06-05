@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
@@ -101,12 +102,11 @@ describe('Role', function () {
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
       });
-      ConfigStore.set('user', user);
+      act(() => ConfigStore.set('user', user));
     });
 
     it('updates if user changes', function () {
-      const user = {...ConfigStore.get('user')};
-      ConfigStore.set('user', user);
+      ConfigStore.set('user', undefined as any);
       const {rerender} = render(<Role role="member">{childrenMock}</Role>, {
         organization,
       });
@@ -114,7 +114,7 @@ describe('Role', function () {
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
       });
-      ConfigStore.set('user', user);
+      act(() => ConfigStore.set('user', UserFixture()));
 
       rerender(<Role role="member">{childrenMock}</Role>);
       expect(childrenMock).toHaveBeenCalledWith({

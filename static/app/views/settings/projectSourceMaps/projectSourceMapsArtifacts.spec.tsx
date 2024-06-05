@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SourceMapArchiveFixture} from 'sentry-fixture/sourceMapArchive';
 import {SourceMapArtifactFixture} from 'sentry-fixture/sourceMapArtifact';
 import {SourceMapsDebugIDBundlesArtifactsFixture} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -100,7 +101,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+      ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
       renderReleaseBundlesMockRequests({
         orgSlug: organization.slug,
@@ -198,7 +199,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
+      ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
       const mockRequests = renderDebugIdBundlesMockRequests({
         orgSlug: organization.slug,
