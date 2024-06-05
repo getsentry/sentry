@@ -597,7 +597,7 @@ const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
