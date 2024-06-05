@@ -24,6 +24,10 @@ export function canSeeMetricsPage(organization: Organization) {
   return hasCustomMetrics(organization) || hasRolledOutMetrics(organization);
 }
 
+export function hasMetricAlertFeature(organization: Organization) {
+  return organization.features.includes('organizations:incidents');
+}
+
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params
