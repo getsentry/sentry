@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from threading import local
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from django.http import HttpResponseRedirect
 
@@ -16,6 +16,11 @@ from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
+
+
+class EventPreprocessor(Protocol):
+    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
+        ...
 
 
 class PluginMount(type):
@@ -367,7 +372,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_event_preprocessors(self, data, **kwargs):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         """
         Return a list of preprocessors to apply to the given event.
 
