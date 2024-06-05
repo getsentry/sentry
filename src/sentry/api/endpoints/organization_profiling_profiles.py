@@ -105,13 +105,19 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             return Response(status=404)
 
         params = self.get_snuba_params(request, organization, check_global_views=False)
-        if len(params.get("project_id")) != 1:
+
+        project_ids = params.get("project_id")
+        if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
+
         profiler_id = request.query_params.get("profiler_id")
-        chunk_ids = get_chunk_ids(params, profiler_id)
+        if profiler_id is None:
+            raise ParseError(detail="profiler_id must be specified.")
+
+        chunk_ids = get_chunk_ids(params, profiler_id, project_ids[0])
         return proxy_profiling_service(
             method="POST",
-            path=f"/organizations/{organization.id}/projects/{params.get('project_id')[0]}/chunks",
+            path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks",
             json_data={
                 "profiler_id": profiler_id,
                 "chunk_ids": [el["chunk_id"] for el in chunk_ids],
