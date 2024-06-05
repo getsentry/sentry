@@ -348,6 +348,7 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
+        // Ensure that the menu stays open when clicking on the selected items
         shouldCloseOnInteractOutside={el => el !== ref.current}
       >
         {suggestionSectionItems.map(section => (

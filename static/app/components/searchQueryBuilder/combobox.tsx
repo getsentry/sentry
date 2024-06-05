@@ -31,20 +31,39 @@ type SearchQueryBuilderComboboxProps = {
   inputLabel: string;
   inputValue: string;
   items: SelectOptionWithKey<string>[];
+  /**
+   * Called when the input is blurred.
+   * Passes the current input value.
+   */
   onCustomValueBlurred: (value: string) => void;
+  /**
+   * Called when the user commits a value with the enter key.
+   * Passes the current input value.
+   */
   onCustomValueCommitted: (value: string) => void;
+  /**
+   * Called when the user selects an option from the dropdown.
+   * Passes the value of the selected item.
+   */
   onOptionSelected: (value: string) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
   filterValue?: string;
   maxOptions?: number;
+  /**
+   * Called when the user explicitly closes the combobox with the escape key.
+   */
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
-  shouldCloseOnInteractOutside?: (el: Element) => boolean;
+  /**
+   * Function to determine whether the menu should close when interacting with
+   * other elements.
+   */
+  shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   tabIndex?: number;
 };
 
