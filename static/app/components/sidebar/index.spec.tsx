@@ -11,6 +11,7 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, StatuspageIncident} from 'sentry/types';
+import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
@@ -331,6 +332,8 @@ describe('Sidebar', function () {
     });
 
     it('renders new sidebar hierarchy', async function () {
+      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
+
       const {container} = renderSidebarWithFeatures([
         'performance-insights',
         'insights-entry-points',
