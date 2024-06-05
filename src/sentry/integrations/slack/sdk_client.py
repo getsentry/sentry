@@ -25,6 +25,9 @@ def track_response_data(
     if error:
         response = error.response
 
+    if not response:
+        return
+
     is_ok = response.get("ok", False)
     code = response.status_code
 
