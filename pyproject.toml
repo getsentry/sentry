@@ -364,7 +364,6 @@ module = [
     "sentry.pipeline.base",
     "sentry.pipeline.views.base",
     "sentry.pipeline.views.nested",
-    "sentry.plugins.base.notifier",
     "sentry.plugins.bases.data_forwarding",
     "sentry.plugins.bases.issue",
     "sentry.plugins.bases.issue2",
