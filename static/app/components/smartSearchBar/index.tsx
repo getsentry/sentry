@@ -1900,7 +1900,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           values,
           is_multi_project: isMultiProject,
           search_type: searchType,
-          search_source: searchSource,
+          search_source: 'recent_search',
         });
       });
 
