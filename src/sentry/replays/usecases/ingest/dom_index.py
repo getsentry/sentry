@@ -455,7 +455,7 @@ def _handle_breadcrumb(
                 project_id,
                 replay_id,
                 payload["timestamp"],
-                payload["data"].get("url"),
+                payload.get("data", {}).get("url"),
                 replay_event,
             )
 
