@@ -234,7 +234,8 @@ class SeerEventManagerGroupingTest(TestCase):
             assert existing_event.group_id == new_event.group_id
 
     @with_feature("projects:similarity-embeddings-grouping")
-    def test_creates_new_group_if_no_neighbor_found(self):
+    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
+    def test_creates_new_group_if_no_neighbor_found(self, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         with patch(
@@ -246,7 +247,8 @@ class SeerEventManagerGroupingTest(TestCase):
             assert existing_event.group_id != new_event.group_id
 
     @with_feature("projects:similarity-embeddings-grouping")
-    def test_creates_new_group_if_too_far_neighbor_found(self):
+    @patch("sentry.event_manager.should_call_seer_for_grouping", return_value=True)
+    def test_creates_new_group_if_too_far_neighbor_found(self, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         no_cigar_data = SeerSimilarIssueData(
