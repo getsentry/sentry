@@ -34,6 +34,10 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     if not event_content_is_seer_eligible(event):
         return False
 
+    # The circuit breaker check which might naturally also go here (along with its killswitch and
+    # ratelimiting friends) instead happens in the `with_circuit_breaker` helper used where
+    # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
+    # errors arising from that call.)
     if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
         return False
 
