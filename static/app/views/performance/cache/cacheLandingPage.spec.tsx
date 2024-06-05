@@ -85,10 +85,94 @@ describe('CacheLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(requestMocks.missRateChart).toHaveBeenCalledTimes(1);
-    expect(requestMocks.throughputChart).toHaveBeenCalledTimes(1);
-    expect(requestMocks.spanTransactionList).toHaveBeenCalledTimes(1);
-    expect(requestMocks.transactionDurations).toHaveBeenCalledTimes(1);
+    expect(requestMocks.missRateChart).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query: 'span.op:[cache.get_item,cache.get] project.id:1',
+          referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: 'cache_miss_rate()',
+        },
+      })
+    );
+    expect(requestMocks.throughputChart).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query: 'span.op:[cache.get_item,cache.get]',
+          referrer: 'api.performance.cache.landing-cache-throughput-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: 'spm()',
+        },
+      })
+    );
+    expect(requestMocks.spanTransactionList).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'project',
+            'project.id',
+            'transaction',
+            'spm()',
+            'cache_miss_rate()',
+            'sum(span.self_time)',
+            'time_spent_percentage()',
+            'avg(cache.item_size)',
+          ],
+          per_page: 20,
+          project: [],
+          query: 'span.op:[cache.get_item,cache.get]',
+          referrer: 'api.performance.cache.landing-cache-transaction-list',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '10d',
+        },
+      })
+    );
+    expect(requestMocks.transactionDurations).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'metrics',
+          environment: [],
+          field: ['avg(transaction.duration)', 'transaction'],
+          per_page: 50,
+          project: [],
+          query: 'transaction:["my-transaction"]',
+          referrer: 'api.performance.cache.landing-cache-transaction-duration',
+          statsPeriod: '10d',
+        },
+      })
+    );
   });
 
   it('renders a list of transactions', async function () {
