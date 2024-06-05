@@ -11,8 +11,8 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import (
     DerivedMetricParseException,
-    get_all_tags,
     MetricDoesNotExistInIndexer,
+    get_all_tags,
 )
 
 
