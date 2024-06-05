@@ -461,6 +461,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable feature to load new trace view in replay trace tab.
     manager.add("organizations:replay-trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable feature to use span only trace endpoint.
+    manager.add("organizations:trace-spans-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
