@@ -256,7 +256,7 @@ describe('Sidebar', function () {
       const {unmount} = renderSidebar({organization});
 
       // This will start timer to mark as seen
-      await userEvent.click(await screen.findByRole('link', {name: "What's new"}), {
+      await userEvent.click(await screen.findByTestId('sidebar-broadcasts'), {
         delay: null,
       });
       expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
