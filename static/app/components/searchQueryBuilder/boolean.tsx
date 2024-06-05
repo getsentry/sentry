@@ -2,30 +2,26 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {DeletableToken} from 'sentry/components/searchQueryBuilder/deletableToken';
-import {
-  type ParseResultToken,
+import type {
+  ParseResultToken,
   Token,
-  type TokenResult,
+  TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 
-type SearchQueryBuilderParenProps = {
+type SearchQueryBuilderBooleanProps = {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
-  token: TokenResult<Token.L_PAREN | Token.R_PAREN>;
+  token: TokenResult<Token.LOGIC_BOOLEAN>;
 };
 
-export function SearchQueryBuilderParen({
+export function SearchQueryBuilderBoolean({
   item,
   state,
   token,
-}: SearchQueryBuilderParenProps) {
+}: SearchQueryBuilderBooleanProps) {
   return (
     <DeletableToken item={item} state={state} token={token} label={token.value}>
-      <IconParenthesis
-        side={token.type === Token.L_PAREN ? 'left' : 'right'}
-        height={26}
-      />
+      {token.text}
     </DeletableToken>
   );
 }

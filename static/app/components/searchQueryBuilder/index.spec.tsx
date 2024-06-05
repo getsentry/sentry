@@ -390,6 +390,15 @@ describe('SearchQueryBuilder', function () {
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
+
+    it('can remove boolean ops by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+
+      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+
+      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+    });
   });
 
   describe('new search tokens', function () {
@@ -625,6 +634,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('can remove boolean ops with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
+
+      expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: 'and'})).not.toBeInTheDocument();
     });
 
     it('exits filter value when pressing escape', async function () {
