@@ -154,7 +154,6 @@ export function DomainTransactionsTable({
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, domain, location, organization),
         }}
-        location={location}
       />
 
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

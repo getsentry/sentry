@@ -111,7 +111,6 @@ export function SpanSamplesTable({
       highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
       onRowMouseOver={onSampleMouseOver}
       onRowMouseOut={onSampleMouseOut}
-      location={location}
     />
   );
 }
