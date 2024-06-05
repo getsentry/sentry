@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,9 +22,7 @@ const mockPayload = {
 };
 
 const mockContext = (organization: Organization) => {
-  const routerContext = RouterContextFixture([{organization}]);
-
-  return {context: routerContext, organization};
+  return {organization};
 };
 
 describe('DataExport', function () {

@@ -1,19 +1,23 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, StatuspageIncident} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 jest.mock('sentry/utils/useServiceIncidents');
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 const sidebarAccordionFeatures = [
   'performance-view',
@@ -23,7 +27,7 @@ const sidebarAccordionFeatures = [
 ];
 
 describe('Sidebar', function () {
-  const {organization, routerContext} = initializeOrg();
+  const organization = OrganizationFixture();
   const broadcast = BroadcastFixture();
   const user = UserFixture();
   const apiMocks = {
@@ -39,9 +43,10 @@ describe('Sidebar', function () {
   );
 
   const renderSidebar = ({organization: org}: {organization: Organization | null}) =>
-    render(getElement(), {context: routerContext, organization: org});
+    render(getElement(), {organization: org});
 
   beforeEach(function () {
+    mockUseLocation.mockReset();
     jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
       () =>
         ({
@@ -76,6 +81,28 @@ describe('Sidebar', function () {
     expect(screen.getByText(user.email)).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
+  });
+
+  it('renders for self-hosted errors only', async function () {
+    act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
+    const {container} = renderSidebar({organization});
+    expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+    const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+    const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+    expect(sidebarItems.length).toEqual(10);
+    expect(sidebarItemIds).toEqual([
+      'sidebar-item-issues',
+      'sidebar-item-projects',
+      'sidebar-item-alerts',
+      'sidebar-item-releases',
+      'sidebar-item-stats',
+      'sidebar-item-settings',
+      'sidebar-item-help',
+      'sidebar-item-broadcasts',
+      'sidebar-item-statusupdate',
+      'sidebar-item-collapse',
+    ]);
+    act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
   });
 
   it('has can logout', async function () {
@@ -149,11 +176,9 @@ describe('Sidebar', function () {
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
-      const oldPath = routerContext.context.location.pathname;
-      routerContext.context.location.pathname = '/other/path';
+      mockUseLocation.mockReturnValue({...LocationFixture(), pathname: '/other/path'});
       rerender(getElement());
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      routerContext.context.location.pathname = oldPath;
     });
 
     it('can have onboarding feature', async function () {
@@ -232,7 +257,7 @@ describe('Sidebar', function () {
       const {unmount} = renderSidebar({organization});
 
       // This will start timer to mark as seen
-      await userEvent.click(await screen.findByRole('link', {name: "What's new"}), {
+      await userEvent.click(await screen.findByTestId('sidebar-broadcasts'), {
         delay: null,
       });
       expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
@@ -274,14 +299,92 @@ describe('Sidebar', function () {
   });
 
   describe('when the accordion is used', () => {
-    const renderSidebarWithFeatures = () => {
-      renderSidebar({
+    const renderSidebarWithFeatures = (features: string[] = []) => {
+      return renderSidebar({
         organization: {
           ...organization,
-          features: [...organization.features, ...sidebarAccordionFeatures],
+          features: [...organization.features, ...sidebarAccordionFeatures, ...features],
         },
       });
     };
+
+    it('renders sidebar with features', async function () {
+      const {container} = renderSidebarWithFeatures();
+      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+      expect(sidebarItems.length).toEqual(12);
+      expect(sidebarItemIds).toEqual([
+        'sidebar-item-issues',
+        'sidebar-item-projects',
+        'sidebar-item-sidebar-accordion-performance-item',
+        'sidebar-item-crons',
+        'sidebar-item-alerts',
+        'sidebar-item-releases',
+        'sidebar-item-stats',
+        'sidebar-item-settings',
+        'sidebar-item-help',
+        'sidebar-item-broadcasts',
+        'sidebar-item-statusupdate',
+        'sidebar-item-collapse',
+      ]);
+    });
+
+    it('renders new sidebar hierarchy', async function () {
+      const {container} = renderSidebarWithFeatures([
+        'performance-insights',
+        'insights-entry-points',
+      ]);
+      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+      expect(sidebarItems.length).toEqual(21);
+      expect(sidebarItemIds).toEqual([
+        'sidebar-item-issues',
+        'sidebar-item-projects',
+        'sidebar-item-sidebar-accordion-explore-item',
+        'sidebar-item-sidebar-accordion-insights-item',
+        'sidebar-item-performance-http',
+        'sidebar-item-performance-database',
+        'sidebar-item-performance-browser-resources',
+        'sidebar-item-performance-mobile-app-startup',
+        'sidebar-item-performance-mobile-screens',
+        'sidebar-item-performance-webvitals',
+        'sidebar-item-performance-cache',
+        'sidebar-item-performance',
+        'sidebar-item-crons',
+        'sidebar-item-alerts',
+        'sidebar-item-releases',
+        'sidebar-item-stats',
+        'sidebar-item-settings',
+        'sidebar-item-help',
+        'sidebar-item-broadcasts',
+        'sidebar-item-statusupdate',
+        'sidebar-item-collapse',
+      ]);
+    });
+
+    it('renders sidebar items for self-hosted errors only', async function () {
+      act(() => void ConfigStore.set('isSelfHostedErrorsOnly', true));
+      const {container} = renderSidebarWithFeatures();
+      expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
+      const sidebarItems = container.querySelectorAll('[id^="sidebar-item"]');
+      const sidebarItemIds = Array.from(sidebarItems).map(sidebarItem => sidebarItem.id);
+      expect(sidebarItems.length).toEqual(10);
+      expect(sidebarItemIds).toEqual([
+        'sidebar-item-issues',
+        'sidebar-item-projects',
+        'sidebar-item-alerts',
+        'sidebar-item-releases',
+        'sidebar-item-stats',
+        'sidebar-item-settings',
+        'sidebar-item-help',
+        'sidebar-item-broadcasts',
+        'sidebar-item-statusupdate',
+        'sidebar-item-collapse',
+      ]);
+      act(() => void ConfigStore.set('isSelfHostedErrorsOnly', false));
+    });
 
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures();

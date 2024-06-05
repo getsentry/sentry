@@ -52,7 +52,7 @@ describe('TableView > CellActions', function () {
         showTags={false}
         title=""
       />,
-      {context: context.routerContext}
+      {router: context.router}
     );
   }
 

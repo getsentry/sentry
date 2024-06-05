@@ -1,117 +1,13 @@
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {
-  DAY, // ms in day
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
-  formatFloat,
   formatNumberWithDynamicDecimalPoints,
   formatPercentage,
   formatRate,
-  formatSecondsToClock,
   formatSpanOperation,
-  getExactDuration,
-  MONTH, // ms in month
-  parseClockToSeconds,
-  parseLargestSuffix,
-  SEC_IN_DAY,
-  SEC_IN_HR,
-  SEC_IN_MIN,
-  SEC_IN_WK,
   userDisplayName,
-  WEEK, // ms in week
 } from 'sentry/utils/formatters';
-
-describe('getDuration()', function () {
-  it('should format durations', function () {
-    expect(formatSecondsToClock(0)).toBe('00:00');
-    expect(formatSecondsToClock(0.001)).toBe('00:00.001');
-    expect(formatSecondsToClock(0.01)).toBe('00:00.010');
-  });
-
-  it('should format negative durations', function () {
-    expect(formatSecondsToClock(0)).toBe('00:00');
-    expect(formatSecondsToClock(-0.001)).toBe('00:00.001');
-    expect(formatSecondsToClock(-0.01)).toBe('00:00.010');
-  });
-
-  it('should format negative durations with absolute', function () {
-    expect(formatSecondsToClock(0)).toBe('00:00');
-    expect(formatSecondsToClock(-0.001)).toBe('00:00.001');
-    expect(formatSecondsToClock(-0.01)).toBe('00:00.010');
-  });
-});
-
-describe('formatSecondsToClock', function () {
-  it('should format durations', function () {
-    expect(formatSecondsToClock(0)).toBe('00:00');
-    expect(formatSecondsToClock(0.1)).toBe('00:00.100');
-    expect(formatSecondsToClock(1)).toBe('00:01');
-    expect(formatSecondsToClock(2)).toBe('00:02');
-    expect(formatSecondsToClock(65)).toBe('01:05');
-    expect(formatSecondsToClock(65.123)).toBe('01:05.123');
-    expect(formatSecondsToClock(122)).toBe('02:02');
-    expect(formatSecondsToClock(3720)).toBe('01:02:00');
-    expect(formatSecondsToClock(36000)).toBe('10:00:00');
-    expect(formatSecondsToClock(86400)).toBe('24:00:00');
-    expect(formatSecondsToClock(86400 * 2)).toBe('48:00:00');
-  });
-
-  it('should format negative durations', function () {
-    expect(formatSecondsToClock(-0)).toBe('00:00');
-    expect(formatSecondsToClock(-0.1)).toBe('00:00.100');
-    expect(formatSecondsToClock(-1)).toBe('00:01');
-    expect(formatSecondsToClock(-2)).toBe('00:02');
-    expect(formatSecondsToClock(-65)).toBe('01:05');
-    expect(formatSecondsToClock(-65.123)).toBe('01:05.123');
-    expect(formatSecondsToClock(-122)).toBe('02:02');
-    expect(formatSecondsToClock(-3720)).toBe('01:02:00');
-    expect(formatSecondsToClock(-36000)).toBe('10:00:00');
-    expect(formatSecondsToClock(-86400)).toBe('24:00:00');
-    expect(formatSecondsToClock(-86400 * 2)).toBe('48:00:00');
-  });
-
-  it('should not pad when padAll:false is set', function () {
-    const padAll = false;
-    expect(formatSecondsToClock(0, {padAll})).toBe('0:00');
-    expect(formatSecondsToClock(0.1, {padAll})).toBe('0:00.100');
-    expect(formatSecondsToClock(1, {padAll})).toBe('0:01');
-    expect(formatSecondsToClock(65, {padAll})).toBe('1:05');
-    expect(formatSecondsToClock(3720, {padAll})).toBe('1:02:00');
-  });
-});
-
-describe('parseClockToSeconds', function () {
-  it('should format durations', function () {
-    expect(parseClockToSeconds('0:00')).toBe(0);
-    expect(parseClockToSeconds('0:00.100')).toBe(0.1);
-    expect(parseClockToSeconds('0:01')).toBe(1);
-    expect(parseClockToSeconds('0:02')).toBe(2);
-    expect(parseClockToSeconds('1:05')).toBe(65);
-    expect(parseClockToSeconds('1:05.123')).toBe(65.123);
-    expect(parseClockToSeconds('2:02')).toBe(122);
-    expect(parseClockToSeconds('1:02:00')).toBe(3720);
-    expect(parseClockToSeconds('10:00:00')).toBe(36000);
-    expect(parseClockToSeconds('24:00:00')).toBe(DAY / 1000);
-    expect(parseClockToSeconds('48:00:00')).toBe((DAY * 2) / 1000);
-    expect(parseClockToSeconds('2:00:00:00')).toBe((DAY * 2) / 1000);
-    expect(parseClockToSeconds('1:00:00:00:00')).toBe(WEEK / 1000);
-    expect(parseClockToSeconds('1:00:00:00:00:00')).toBe(MONTH / 1000);
-  });
-
-  it('should ignore non-numeric input', function () {
-    expect(parseClockToSeconds('hello world')).toBe(0);
-    expect(parseClockToSeconds('a:b:c')).toBe(0);
-    expect(parseClockToSeconds('a:b:c.d')).toBe(0);
-    expect(parseClockToSeconds('a:b:10.d')).toBe(10);
-    expect(parseClockToSeconds('a:10:c.d')).toBe(600);
-  });
-
-  it('should handle as much invalid input as possible', function () {
-    expect(parseClockToSeconds('a:b:c.123')).toBe(0.123);
-    expect(parseClockToSeconds('a:b:10.d')).toBe(10);
-    expect(parseClockToSeconds('a:10:c.d')).toBe(600);
-  });
-});
 
 describe('formatAbbreviatedNumber()', function () {
   it('should format numbers smaller than 1', function () {
@@ -246,17 +142,6 @@ describe('formatRate()', function () {
   });
 });
 
-describe('formatFloat()', function () {
-  it('should format decimals', function () {
-    expect(formatFloat(0, 0)).toBe(0);
-    expect(formatFloat(10.513434, 1)).toBe(10.5);
-    expect(formatFloat(10.513494, 3)).toBe(10.513);
-  });
-  it('should not round', function () {
-    expect(formatFloat(10.513494, 4)).toBe(10.5134);
-  });
-});
-
 describe('formatPercentage()', function () {
   it('should format decimals', function () {
     expect(formatPercentage(0.0, 0)).toBe('0%');
@@ -322,75 +207,6 @@ describe('userDisplayName', function () {
     // @ts-expect-error
     expect(userDisplayName()).toEqual('Unknown author');
     expect(userDisplayName({})).toEqual('Unknown author');
-  });
-});
-
-describe('getExactDuration', () => {
-  it('should provide default value', () => {
-    expect(getExactDuration(0)).toEqual('0 milliseconds');
-  });
-
-  it('should format durations without extra suffixes', () => {
-    expect(getExactDuration(2.030043848568126)).toEqual('2 seconds 30 milliseconds');
-    expect(getExactDuration(0.2)).toEqual('200 milliseconds');
-    expect(getExactDuration(13)).toEqual('13 seconds');
-    expect(getExactDuration(60)).toEqual('1 minute');
-    expect(getExactDuration(121)).toEqual('2 minutes 1 second');
-    expect(getExactDuration(234235435)).toEqual(
-      '387 weeks 2 days 1 hour 23 minutes 55 seconds'
-    );
-  });
-
-  it('should format negative durations', () => {
-    expect(getExactDuration(-2.030043848568126)).toEqual('-2 seconds -30 milliseconds');
-    expect(getExactDuration(-0.2)).toEqual('-200 milliseconds');
-    expect(getExactDuration(-13)).toEqual('-13 seconds');
-    expect(getExactDuration(-60)).toEqual('-1 minute');
-    expect(getExactDuration(-121)).toEqual('-2 minutes -1 second');
-    expect(getExactDuration(-234235435)).toEqual(
-      '-387 weeks -2 days -1 hour -23 minutes -55 seconds'
-    );
-  });
-
-  it('should abbreviate label', () => {
-    expect(getExactDuration(234235435, true)).toEqual('387wk 2d 1hr 23min 55s');
-  });
-
-  it('should pin/truncate to the min suffix precision if provided', () => {
-    expect(getExactDuration(0, false, 'seconds')).toEqual('0 seconds');
-    expect(getExactDuration(0.2, false, 'seconds')).toEqual('0 seconds');
-    expect(getExactDuration(2.030043848568126, false, 'seconds')).toEqual('2 seconds');
-    expect(getExactDuration(13, false, 'seconds')).toEqual('13 seconds');
-    expect(getExactDuration(60, false, 'seconds')).toEqual('1 minute');
-    expect(getExactDuration(121, false, 'seconds')).toEqual('2 minutes 1 second');
-    expect(getExactDuration(234235435.2, false, 'seconds')).toEqual(
-      '387 weeks 2 days 1 hour 23 minutes 55 seconds'
-    );
-  });
-});
-
-describe('parseLargestSuffix', () => {
-  it('parses exact values', () => {
-    expect(parseLargestSuffix(0)).toEqual([0, 'seconds']);
-    expect(parseLargestSuffix(SEC_IN_MIN)).toEqual([1, 'minutes']);
-    expect(parseLargestSuffix(SEC_IN_MIN * 2)).toEqual([2, 'minutes']);
-    expect(parseLargestSuffix(SEC_IN_HR)).toEqual([1, 'hours']);
-    expect(parseLargestSuffix(SEC_IN_DAY)).toEqual([1, 'days']);
-    expect(parseLargestSuffix(SEC_IN_WK, 'weeks')).toEqual([1, 'weeks']);
-  });
-
-  it('parses non-exact values', () => {
-    expect(parseLargestSuffix(SEC_IN_MIN + 1)).toEqual([61, 'seconds']);
-    expect(parseLargestSuffix(SEC_IN_HR + SEC_IN_MIN)).toEqual([61, 'minutes']);
-    expect(parseLargestSuffix(SEC_IN_DAY + SEC_IN_HR)).toEqual([25, 'hours']);
-    expect(parseLargestSuffix(SEC_IN_DAY + SEC_IN_MIN)).toEqual([1441, 'minutes']);
-  });
-
-  it('pins to max suffix', () => {
-    expect(parseLargestSuffix(10, 'minutes')).toEqual([10, 'seconds']);
-    expect(parseLargestSuffix(SEC_IN_WK, 'minutes')).toEqual([10080, 'minutes']);
-    expect(parseLargestSuffix(SEC_IN_WK, 'hours')).toEqual([168, 'hours']);
-    expect(parseLargestSuffix(SEC_IN_WK, 'days')).toEqual([7, 'days']);
   });
 });
 

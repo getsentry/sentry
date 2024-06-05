@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
 import docs from './react-native';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with react-native', function () {
   it('renders errors onboarding docs correctly', function () {
     renderWithOnboardingLayout(docs);
 

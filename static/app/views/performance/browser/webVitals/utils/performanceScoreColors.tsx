@@ -5,7 +5,7 @@ export const PERFORMANCE_SCORE_COLORS = {
   },
   needsImprovement: {
     light: 'yellow100',
-    normal: 'yellow300',
+    normal: 'yellow400',
   },
   bad: {
     light: 'red100',

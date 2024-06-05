@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
-import {formatFloat} from 'sentry/utils/formatters';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
 import type {ColorOrAlias} from 'sentry/utils/theme';

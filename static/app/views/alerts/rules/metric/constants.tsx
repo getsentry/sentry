@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {AggregationKey} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';

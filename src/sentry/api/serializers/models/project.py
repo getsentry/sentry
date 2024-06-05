@@ -41,7 +41,6 @@ from sentry.models.userreport import UserReport
 from sentry.processing import realtime_metrics
 from sentry.roles import organization_roles
 from sentry.snuba import discover
-from sentry.tasks.symbolication import should_demote_symbolication
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -73,7 +72,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "race-free-group-creation",
     "first-event-severity-new-escalation",
     "first-event-severity-calculation",
-    "first-event-severity-alerting",
     "alert-filters",
     "servicehooks",
 }
@@ -680,16 +678,14 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
 
-        with sentry_sdk.start_span(op="project_summary_serializer.get_lpq_projects"):
-            lpq_projects = realtime_metrics.get_lpq_projects()
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                project_id=item.id, lpq_projects=lpq_projects, emit_metrics=False
+            attrs[item]["symbolication_degraded"] = realtime_metrics.is_lpq_project(
+                project_id=item.id
             )
 
         return attrs
@@ -1070,6 +1066,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:replay_rage_click_issues": self.get_value_with_default(
                 attrs, "sentry:replay_rage_click_issues"
+            ),
+            "sentry:replay_hydration_error_issues": self.get_value_with_default(
+                attrs, "sentry:replay_hydration_error_issues"
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }

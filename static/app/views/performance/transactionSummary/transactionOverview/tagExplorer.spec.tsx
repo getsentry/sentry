@@ -176,7 +176,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-      routerContext,
+      router,
     } = initialize(
       projects,
       {
@@ -195,7 +195,7 @@ describe('WrapperComponent', function () {
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const button = await screen.findByTestId('tags-explorer-open-tags');
@@ -248,7 +248,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-      routerContext,
+      router,
     } = initialize(projects, {});
 
     render(
@@ -261,7 +261,7 @@ describe('WrapperComponent', function () {
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitFor(() => expect(facetApiMock).toHaveBeenCalled());

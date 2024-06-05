@@ -462,7 +462,6 @@ export class TagExplorer extends Component<Props> {
                   renderBodyCell: this.renderBodyCellWithData(this.props) as any,
                   onResizeColumn: this.handleResizeColumn as any,
                 }}
-                location={location}
               />
             </Fragment>
           );

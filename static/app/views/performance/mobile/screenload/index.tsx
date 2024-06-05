@@ -10,7 +10,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,6 +19,7 @@ import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/scree
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_TITLE,
 } from 'sentry/views/performance/mobile/screenload/settings';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -42,7 +42,7 @@ export function PageloadModule() {
             <Breadcrumbs crumbs={crumbs} />
             <HeaderWrapper>
               <Layout.Title>
-                {t('Screen Loads')}
+                {MODULE_TITLE}
                 <PageHeadingQuestionTooltip
                   docsUrl={MODULE_DOC_LINK}
                   title={MODULE_DESCRIPTION}
@@ -88,7 +88,7 @@ export function PageloadModule() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="screen_load" features="spans-first-ui">
+    <ModulePageProviders moduleName="screen_load" features="insights-initial-modules">
       <PageloadModule />
     </ModulePageProviders>
   );

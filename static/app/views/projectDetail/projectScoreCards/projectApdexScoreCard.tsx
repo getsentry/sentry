@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';

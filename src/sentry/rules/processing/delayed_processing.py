@@ -155,7 +155,7 @@ def get_condition_group_results(
             unique_condition.environment_id,
             comparison_type,
         )
-        condition_group_results[unique_condition] = result
+        condition_group_results[unique_condition] = result or {}
     return condition_group_results
 
 
@@ -340,15 +340,18 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         RuleSnooze.objects.filter(rule__in=alert_rules, user_id=None).values_list("rule", flat=True)
     )
     alert_rules = [rule for rule in alert_rules if rule.id not in snoozed_rules]
+
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
+
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
+
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rule_to_slow_conditions = get_rule_to_slow_conditions(alert_rules)
@@ -361,6 +364,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         for rule in rules_to_fire.keys():
             log_str += f"{str(rule.id)}, "
         logger.info("delayed_processing.rule_to_fire", extra={"rules_to_fire": log_str})
+
     # Step 7: Fire the rule's actions
     now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
@@ -400,7 +404,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 for callback, futures in activate_downstream_actions(
                     rule, groupevent, notification_uuid, rule_fire_history
                 ).values():
-                    safe_execute(callback, groupevent, futures, _with_transaction=False)
+                    safe_execute(callback, groupevent, futures)
 
     # Step 8: Clean up Redis buffer data
     hashes_to_delete = [

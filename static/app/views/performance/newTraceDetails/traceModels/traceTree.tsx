@@ -22,8 +22,10 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {isRootTransaction} from '../../traceDetails/utils';
+import {getStylingSliceName} from '../../traces/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -90,7 +92,7 @@ import {TraceType} from '../traceType';
  *      |- other span
  *
  * When the autogrouped node is expanded the UI needs to show the entire collapsed chain, so we swap the tail children to point
- * back to the tail, and have autogrouped node point to it's head as the children.
+ * back to the tail, and have autogrouped node point to its head as the children.
  *
  * - root                                                             - root
  *  - trace                                                            - trace
@@ -112,7 +114,9 @@ import {TraceType} from '../traceType';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
-  type Transaction = TraceFullDetailed;
+  interface Transaction extends TraceFullDetailed {
+    sdk_name: string;
+  }
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
@@ -201,6 +205,12 @@ function fetchTransactionSpans(
   );
 }
 
+function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
+  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+    transaction.sdk_name
+  );
+}
+
 function measurementToTimestamp(
   start_timestamp: number,
   measurement: number,
@@ -254,7 +264,10 @@ export function makeTraceNodeBarColor(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): string {
   if (isTransactionNode(node)) {
-    return pickBarColor(node.value['transaction.op']);
+    return pickBarColor(
+      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
+        node.value['transaction.op']
+    );
   }
   if (isSpanNode(node)) {
     return pickBarColor(node.value.op);
@@ -431,7 +444,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, replayRecord: ReplayRecord | null): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -446,7 +459,7 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceFullDetailed | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -554,6 +567,18 @@ export class TraceTree {
       }
     }
 
+    // The sum of all durations of traces that exist under a replay is not always
+    // equal to the duration of the replay. We need to adjust the traceview bounds
+    // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
+    // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
+    if (replayRecord) {
+      const replayStart = replayRecord.started_at.getTime() / 1000;
+      const replayEnd = replayRecord.finished_at.getTime() / 1000;
+
+      traceStart = Math.min(traceStart, replayStart);
+      traceEnd = Math.max(traceEnd, replayEnd);
+    }
+
     traceNode.space = [
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
@@ -578,20 +603,28 @@ export class TraceTree {
     }
 
     const {transactions, orphan_errors} = trace.value;
-    const {roots, orphans} = (transactions ?? []).reduce(
-      (counts, transaction) => {
+    const traceStats = transactions?.reduce<{
+      javascriptRootTransactions: TraceTree.Transaction[];
+      orphans: number;
+      roots: number;
+    }>(
+      (stats, transaction) => {
         if (isRootTransaction(transaction)) {
-          counts.roots++;
-        } else {
-          counts.orphans++;
-        }
-        return counts;
-      },
-      {roots: 0, orphans: 0}
-    );
+          stats.roots++;
 
-    if (roots === 0) {
-      if (orphans > 0) {
+          if (isJavascriptSDKTransaction(transaction)) {
+            stats.javascriptRootTransactions.push(transaction);
+          }
+        } else {
+          stats.orphans++;
+        }
+        return stats;
+      },
+      {roots: 0, orphans: 0, javascriptRootTransactions: []}
+    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+
+    if (traceStats.roots === 0) {
+      if (traceStats.orphans > 0) {
         return TraceType.NO_ROOT;
       }
 
@@ -602,15 +635,19 @@ export class TraceTree {
       return TraceType.EMPTY_TRACE;
     }
 
-    if (roots === 1) {
-      if (orphans > 0) {
+    if (traceStats.roots === 1) {
+      if (traceStats.orphans > 0) {
         return TraceType.BROKEN_SUBTRACES;
       }
 
       return TraceType.ONE_ROOT;
     }
 
-    if (roots > 1) {
+    if (traceStats.roots > 1) {
+      if (traceStats.javascriptRootTransactions.length > 0) {
+        return TraceType.BROWSER_MULTIPLE_ROOTS;
+      }
+
       return TraceType.MULTIPLE_ROOTS;
     }
 
@@ -2400,6 +2437,7 @@ function partialTransaction(
     span_id: '',
     parent_event_id: '',
     project_id: 0,
+    sdk_name: '',
     'transaction.duration': 0,
     'transaction.op': 'loading-transaction',
     'transaction.status': 'loading-status',
@@ -2466,7 +2504,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace);
+  const tree = TraceTree.FromTrace(trace, null);
 
   return tree;
 }

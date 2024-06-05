@@ -30,6 +30,7 @@ import {
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -60,6 +61,7 @@ export function SpanOperationTable({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
@@ -84,6 +86,11 @@ export function SpanOperationTable({
     ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
+
+  if (isProjectCrossPlatform) {
+    searchQuery.addFilterValue('os.name', selectedPlatform);
+  }
+
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
     primaryRelease,
@@ -254,7 +261,6 @@ export function SpanOperationTable({
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
         columnSortBy={columnSortBy}
-        location={location}
         grid={{
           renderHeadCell: column => renderHeadCell(column, data?.meta),
           renderBodyCell,

@@ -296,20 +296,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Enable EA endpoints to work with id or slug as path parameters
-register(
-    "api.id-or-slug-enabled-ea-endpoints",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# EA option limiting to certain specific organizations for endpoints where organization is available
-register(
-    "api.id-or-slug-enabled-ea-org",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # API Tokens
 register(
@@ -490,19 +476,6 @@ register(
 register(
     "feedback.ingest-topic.rollout-rate",
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
-register(
-    "feedback.ingest-inline-attachments",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Let spam detection run but don't take action on it.
-register(
-    "feedback.spam-detection-actions",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -906,21 +879,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-register(
-    "issues.similarity-embeddings.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.similarity-embeddings-grouping.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # seer nearest neighbour endpoint timeout
 register(
     "embeddings-grouping.seer.nearest-neighbour-timeout",
@@ -1053,8 +1011,12 @@ register("enhancers.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Percentage sample rate for `EventAttachment`s that should use direct blob storage.
 register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Percentage sample rate for "small" `EventAttachment`s to be stored inline.
 register("eventattachments.store-small-inline", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage rollout rate to avoid sending `attachment_chunk`s for small indvidual attachments.
+register("relay.inline-attachments.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
@@ -1261,18 +1223,6 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# A slow rollout option for writing "new" cache keys
-# as the transition from UseCaseKey to UseCaseID occurs
-register(
-    "sentry-metrics.indexer.cache-key-rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# A option for double writing old and new cache keys
-# for the same transition
-register(
-    "sentry-metrics.indexer.cache-key-double-write", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # An option to tune the percentage of cache keys that gets replenished during indexer resolve
 register(
     "sentry-metrics.indexer.disable-memcache-replenish-rollout",
@@ -1310,25 +1260,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control whether or not we raise ValidationErrors in the indexer
-# (Temporary) raising the error would mean we skip the processing or DLQing of these
-# invalid messages
-register(
-    "sentry-metrics.indexer.raise-validation-errors",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to enable orjson for JSON parsing in reconstruct_messages function
 register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Option to enable direct storage queries for meta queries in the metrics layer
-register(
-    "sentry-metrics.metrics-layer.use-storage-direct-meta-queries",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -1426,11 +1360,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # per-organization limits on the number of timeseries that can be observed in
 # each window.
 #
@@ -1445,20 +1374,6 @@ register(
 #
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
     default=[
@@ -1502,29 +1417,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.10s-granularity",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry-metrics.producer-schema-validation.release-health.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.producer-schema-validation.performance.rollout-rate",
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1544,6 +1438,31 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
+# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+register(
+    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.monitor-queue-time",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1919,6 +1838,9 @@ register(
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# RPC optimization
+register("sentryapps.get_installation_cached", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -2643,22 +2565,4 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

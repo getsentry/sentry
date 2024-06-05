@@ -313,6 +313,13 @@ def update_existing_check_in(
     )
 
     if already_user_complete and not updated_duration_only:
+        # If we receive an in-progress check-in after a user-terminal value it
+        # could likely be due to the user's job running very quickly and events
+        # coming in slightly out of order. We can just ignore this type of
+        # error, and also return to not update the duration
+        if updated_status == CheckInStatus.IN_PROGRESS:
+            return
+
         finished_error: CheckinFinished = {
             "type": ProcessingErrorType.CHECKIN_FINISHED,
         }

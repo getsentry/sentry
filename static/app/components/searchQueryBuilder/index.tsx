@@ -1,99 +1,81 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {AriaGridListOptions} from '@react-aria/gridlist';
-import {Item} from '@react-stately/collections';
-import {useListState} from '@react-stately/list';
-import type {CollectionChildren} from '@react-types/shared';
 
+import {Button} from 'sentry/components/button';
 import {inputStyles} from 'sentry/components/input';
-import {SearchQueryBuilerContext} from 'sentry/components/searchQueryBuilder/context';
-import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
-import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
-import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
+import {
+  SearchQueryBuilerContext,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
+import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
+import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
+import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {
-  collapseTextTokens,
-  makeTokenKey,
-} from 'sentry/components/searchQueryBuilder/utils';
-import {
-  type ParseResultToken,
-  parseSearch,
-  Token,
-} from 'sentry/components/searchSyntax/parser';
-import {IconSearch} from 'sentry/icons';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
   supportedKeys: TagCollection;
+  className?: string;
   label?: string;
+  onBlur?: (query: string) => void;
+  /**
+   * Called when the query value changes
+   */
   onChange?: (query: string) => void;
+  /**
+   * Called when the user presses enter
+   */
+  onSearch?: (query: string) => void;
+  queryInterface?: QueryInterfaceType;
 }
 
-interface GridProps extends AriaGridListOptions<ParseResultToken> {
-  children: CollectionChildren<ParseResultToken>;
-  items: ParseResultToken[];
-}
-
-function Grid(props: GridProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const state = useListState<ParseResultToken>(props);
-  const {gridProps} = useQueryBuilderGrid(props, state, ref);
+function ActionButtons() {
+  const {dispatch, onSearch} = useSearchQueryBuilder();
 
   return (
-    <Wrapper {...gridProps} ref={ref}>
-      <PositionedSearchIcon size="sm" />
-      {[...state.collection].map(item => {
-        const token = item.value;
-
-        switch (token?.type) {
-          case Token.FILTER:
-            return (
-              <SearchQueryBuilderFilter
-                key={item.key}
-                token={token}
-                item={item}
-                state={state}
-              />
-            );
-          case Token.FREE_TEXT:
-          case Token.SPACES:
-            return (
-              <SearchQueryBuilderInput
-                key={item.key}
-                token={token}
-                item={item}
-                state={state}
-              />
-            );
-          // TODO(malwilley): Add other token types
-          default:
-            return null;
-        }
-      })}
-    </Wrapper>
+    <ButtonsWrapper>
+      <ActionButton
+        aria-label={t('Clear search query')}
+        size="zero"
+        icon={<IconClose />}
+        borderless
+        onClick={() => {
+          dispatch({type: 'CLEAR'});
+          onSearch?.('');
+        }}
+      />
+    </ButtonsWrapper>
   );
 }
 
 export function SearchQueryBuilder({
+  className,
   label,
   initialQuery,
   supportedKeys,
   getTagValues,
   onChange,
+  onSearch,
+  onBlur,
+  queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
-  const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ')),
-    [state.query]
-  );
+  const parsedQuery = useMemo(() => parseQueryBuilderValue(state.query), [state.query]);
 
-  useEffect(() => {
+  useEffectAfterFirstRender(() => {
+    dispatch({type: 'UPDATE_QUERY', query: initialQuery});
+  }, [dispatch, initialQuery]);
+
+  useEffectAfterFirstRender(() => {
     onChange?.(state.query);
   }, [onChange, state.query]);
 
@@ -104,23 +86,22 @@ export function SearchQueryBuilder({
       keys: supportedKeys,
       getTagValues,
       dispatch,
+      onSearch,
     };
-  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch]);
-
-  if (!parsedQuery) {
-    return null;
-  }
+  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch, onSearch]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
-        <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
-          {item => (
-            <Item key={makeTokenKey(item, parsedQuery)}>
-              {item.text.trim() ? item.text : t('Space')}
-            </Item>
+        <Wrapper className={className} onBlur={() => onBlur?.(state.query)}>
+          <PositionedSearchIcon size="sm" />
+          {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
+            <PlainTextQueryInput label={label} />
+          ) : (
+            <TokenizedQueryGrid label={label} />
           )}
-        </Grid>
+          <ActionButtons />
+        </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>
   );
@@ -128,21 +109,31 @@ export function SearchQueryBuilder({
 
 const Wrapper = styled('div')`
   ${inputStyles}
+  min-height: 38px;
+  padding: 0;
   height: auto;
+  width: 100%;
   position: relative;
-
-  display: flex;
-  align-items: stretch;
-  row-gap: ${space(0.5)};
-  flex-wrap: wrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} 36px;
   cursor: text;
 
   :focus-within {
     border: 1px solid ${p => p.theme.focusBorder};
     box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
   }
+`;
+
+const ButtonsWrapper = styled('div')`
+  position: absolute;
+  right: 9px;
+  top: 9px;
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const ActionButton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;
 
 const PositionedSearchIcon = styled(IconSearch)`

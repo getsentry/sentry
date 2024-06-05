@@ -10,6 +10,8 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 
+NEEDED_USER_FIELDS = {"email", "id", "username"}
+
 
 @dataclasses.dataclass(frozen=True)
 class RelocationMetadata:
@@ -64,16 +66,33 @@ class RelocationSerializer(Serializer):
             else None
         )
 
+        creator_user = attrs.meta_users.get(obj.creator_id, None)
+        creator = (
+            None
+            if creator_user is None
+            else {
+                "email": creator_user.email,
+                "id": str(creator_user.id),
+                "username": creator_user.username,
+            }
+        )
+        owner_user = attrs.meta_users.get(obj.owner_id, None)
+        owner = (
+            None
+            if owner_user is None
+            else {
+                "email": owner_user.email,
+                "id": str(owner_user.id),
+                "username": owner_user.username,
+            }
+        )
+
         return {
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
             "uuid": str(obj.uuid),
-            "creatorEmail": attrs.meta_users[obj.creator_id].email,
-            "creatorId": str(obj.creator_id),
-            "creatorUsername": attrs.meta_users[obj.creator_id].username,
-            "ownerEmail": attrs.meta_users[obj.owner_id].email,
-            "ownerId": str(obj.owner_id),
-            "ownerUsername": attrs.meta_users[obj.owner_id].username,
+            "creator": creator,
+            "owner": owner,
             "status": Relocation.Status(obj.status).name,
             "step": Relocation.Step(obj.step).name,
             "failureReason": obj.failure_reason,

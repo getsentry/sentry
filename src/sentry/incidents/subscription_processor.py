@@ -27,6 +27,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    AlertRuleTriggerActionMethod,
     invoke_alert_subscription_callback,
 )
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
@@ -50,7 +51,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 
@@ -204,11 +204,10 @@ class SubscriptionProcessor:
         )
         try:
             project_ids = [self.subscription.project_id]
-            query_builder = build_query_builder(
-                entity_subscription,
-                snuba_query.query,
-                project_ids,
-                snuba_query.environment,
+            query_builder = entity_subscription.build_query_builder(
+                query=snuba_query.query,
+                project_ids=project_ids,
+                environment=snuba_query.environment,
                 params={
                     "organization_id": self.subscription.project.organization.id,
                     "project_id": project_ids,
@@ -241,19 +240,6 @@ class SubscriptionProcessor:
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
             return None
-
-        # TODO: logger for investigation. should be removed
-        logger.info(
-            "get_comparison_aggregation_value",
-            extra={
-                "alert_rule_id": self.alert_rule.id,
-                "subscription_id": subscription_update.get("subscription_id"),
-                "organization_id": self.alert_rule.organization_id,
-                "comparison_aggregate": comparison_aggregate,
-                "aggregation_value": aggregation_value,
-                "result_data": results.get("data"),
-            },
-        )
 
         result: float = (aggregation_value / comparison_aggregate) * 100
         return result
@@ -438,17 +424,7 @@ class SubscriptionProcessor:
                 aggregation_value = self.get_comparison_aggregation_value(
                     subscription_update, aggregation_value
                 )
-                # TODO: logger for investigation. should be removed
-                logger.info(
-                    "Received a comparison alert rule update",
-                    extra={
-                        "alert_rule_id": self.alert_rule.id,
-                        "subscription_id": subscription_update.get("subscription_id"),
-                        "organization_id": self.alert_rule.organization_id,
-                        "comparison_delta": self.alert_rule.comparison_delta,
-                        "aggregation_value": aggregation_value,
-                    },
-                )
+
         return aggregation_value
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
@@ -735,7 +711,11 @@ class SubscriptionProcessor:
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
-        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+        method = (
+            AlertRuleTriggerActionMethod.FIRE.value
+            if incident_trigger.status == TriggerStatus.ACTIVE.value
+            else AlertRuleTriggerActionMethod.RESOLVE.value
+        )
         try:
             incident = Incident.objects.get(id=incident_trigger.incident_id)
         except Incident.DoesNotExist:
@@ -760,7 +740,7 @@ class SubscriptionProcessor:
         actions_to_fire = []
         new_status = IncidentStatus.CLOSED.value
 
-        if method == "resolve":
+        if method == AlertRuleTriggerActionMethod.RESOLVE.value:
             if incident.status != IncidentStatus.CLOSED.value:
                 # Critical -> warning
                 actions_to_fire = actions

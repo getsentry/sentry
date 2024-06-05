@@ -11,6 +11,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -18,10 +19,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjects from 'sentry/utils/useProjects';
+import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import type {SetStateAction} from '../types';
 
@@ -93,6 +98,15 @@ function SpansContent(props: Props) {
   const totalsView = getTotalsView(eventView);
 
   const {projects} = useProjects();
+
+  const hasNewSpansUIFlag =
+    organization.features.includes('performance-spans-new-ui') &&
+    organization.features.includes('insights-initial-modules');
+
+  // TODO: Remove this flag when the feature is GA'd and replace the old content entirely
+  if (hasNewSpansUIFlag) {
+    return <SpansContentV2 {...props} />;
+  }
 
   return (
     <Layout.Main fullWidth>
@@ -172,6 +186,78 @@ function SpansContent(props: Props) {
           );
         }}
       </DiscoverQuery>
+    </Layout.Main>
+  );
+}
+
+// TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
+function SpansContentV2(props: Props) {
+  const {location, organization, eventView, projectId, transactionName} = props;
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === projectId);
+
+  const query = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
+
+  function handleChange(key: string) {
+    return function (value: string | undefined) {
+      ANALYTICS_VALUES[key]?.(organization, value);
+
+      const queryParams = normalizeDateTimeParams({
+        ...(location.query || {}),
+        [key]: value,
+      });
+
+      // do not propagate pagination when making a new search
+      const toOmit = ['cursor'];
+      if (!defined(value)) {
+        toOmit.push(key);
+      }
+      const searchQueryParams = omit(queryParams, toOmit);
+
+      browserHistory.push({
+        ...location,
+        query: searchQueryParams,
+      });
+    };
+  }
+
+  const supportedTags = useSpanFieldSupportedTags();
+
+  return (
+    <Layout.Main fullWidth>
+      <FilterActions>
+        <OpsFilter
+          location={location}
+          eventView={eventView}
+          organization={organization}
+          handleOpChange={handleChange('spanOp')}
+          transactionName={transactionName}
+        />
+        <PageFilterBar condensed>
+          <EnvironmentPageFilter />
+          <DatePageFilter
+            maxPickableDays={SPAN_RETENTION_DAYS}
+            relativeOptions={SPAN_RELATIVE_PERIODS}
+          />
+        </PageFilterBar>
+        <StyledSearchBar
+          organization={organization}
+          projectIds={eventView.project}
+          query={query.query}
+          fields={eventView.fields}
+          placeholder={t('Search for span attributes')}
+          supportedTags={supportedTags}
+          // This dataset is separate from the query itself which is on metrics; it's for obtaining autocomplete recommendations
+          dataset={DiscoverDatasets.SPANS_INDEXED}
+          onSearch={handleChange('query')}
+        />
+      </FilterActions>
+
+      <SpanMetricsTable project={project} transactionName={transactionName} />
     </Layout.Main>
   );
 }
