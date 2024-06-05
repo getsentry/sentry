@@ -2,7 +2,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useOrganizationSDKUpdates} from 'sentry/utils/useOrganizationSDKUpdates';
-import {semverCompare} from 'sentry/utils/versions';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import {MIN_SDK_VERSION_BY_PLATFORM} from 'sentry/views/performance/database/settings';
 
 interface Options {

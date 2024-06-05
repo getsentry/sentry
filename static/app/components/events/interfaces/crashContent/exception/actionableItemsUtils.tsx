@@ -20,7 +20,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {semverCompare} from 'sentry/utils/versions';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
