@@ -10,7 +10,7 @@
   "dependencies": {
     "@acemarke/react-prod-sourcemaps": "^0.2.1",
     "@babel/core": "~7.24.5",
-    "@babel/plugin-transform-react-jsx": "^7.23.4",
+    "@babel/plugin-transform-react-jsx": "^7.24.7",
     "@babel/plugin-transform-react-jsx-source": "^7.24.1",
     "@babel/plugin-transform-runtime": "~7.24.3",
     "@babel/preset-env": "~7.24.5",
