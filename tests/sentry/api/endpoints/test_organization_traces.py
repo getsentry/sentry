@@ -720,6 +720,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "(foo:bar AND span.duration:>10s) OR (foo:bar AND span.duration:<10m)",
                 "foo:baz",
             ],
+            ["foo:bar span.duration:>10s", "foo:baz"],
             ["foo:[bar, baz]"],
         ]:
             query = {
