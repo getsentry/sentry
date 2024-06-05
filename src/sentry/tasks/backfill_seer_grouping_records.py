@@ -10,7 +10,18 @@ from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
-from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry import features, nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -44,6 +55,8 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+HIGH_GROUP_EVENT_COUNT = 1000000
+SNUBA_QUERY_RATELIMIT = 4
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +69,11 @@ class GroupEventRow(TypedDict):
 class GroupStacktraceData(TypedDict):
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
+
+
+class EventGroupSnubaResult(TypedDict):
+    group_id: int
+    event_id: str
 
 
 @instrumented_task(
@@ -97,9 +115,6 @@ def backfill_seer_grouping_records(
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    if last_processed_index is None:
-        last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
-
     if only_delete:
         delete_seer_grouping_records(project.id, redis_client)
         logger.info(
@@ -108,7 +123,7 @@ def backfill_seer_grouping_records(
         )
         return
 
-    group_id_data = (
+    group_values = (
         Group.objects.filter(
             project_id=project.id,
             type=ErrorGroupType.type_id,
@@ -116,94 +131,76 @@ def backfill_seer_grouping_records(
             last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        .values_list("id", "data")
+        .values_list("id", "data", "times_seen", "last_seen")
         .order_by("-times_seen", "id")
     )
 
+    if last_processed_index is None:
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
+
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
-    batch_end_index = min(last_processed_index + batch_size, len(group_id_data))
-    group_id_data_batch = group_id_data[last_processed_index:batch_end_index]
+    batch_end_index = min(last_processed_index + batch_size, len(group_values))
+    group_values_batch = group_values[last_processed_index:batch_end_index]
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": len(group_id_data_batch),
+            "batch_len": len(group_values_batch),
             "last_processed_index": last_processed_index,
-            "total_groups_length": len(group_id_data),
+            "total_groups_length": len(group_values),
         },
     )
 
-    if len(group_id_data_batch) == 0:
+    if len(group_values_batch) == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
         return
 
-    group_id_batch_filtered = [
+    group_ids_batch_filtered = [
         group_id
-        for (group_id, data) in group_id_data_batch
+        for (group_id, data, _, _) in group_values_batch
         if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
     ]
-    if len(group_id_data_batch) != len(group_id_batch_filtered):
+    if len(group_values_batch) != len(group_ids_batch_filtered):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
-            extra={"project_id": project.id, "num_groups": len(group_id_batch_filtered)},
+            extra={"project_id": project.id, "num_groups": len(group_ids_batch_filtered)},
         )
 
-    events_entity = Entity("events", alias="events")
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    # Handle groups with over 1 million events
+    high_event_count_results = []
+    high_event_count_group_ids = [
+        group_id
+        for (group_id, _, times_seen, _) in group_values_batch
+        if times_seen >= HIGH_GROUP_EVENT_COUNT and group_id in group_ids_batch_filtered
+    ]
+    high_event_count_results = single_query_event_per_group(high_event_count_group_ids, project_id)
 
-    # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
-    snuba_requests = []
-    for group_id in group_id_batch_filtered:
-        group = Group.objects.get(id=group_id)
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Column("event_id"),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("group_id"), Op.EQ, group_id),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.GTE,
-                    group.last_seen - timedelta(minutes=5),
-                ),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.LT,
-                    group.last_seen + timedelta(minutes=5),
-                ),
-            ],
-            limit=Limit(1),
-        )
+    # Handle groups with less than 1 million events
+    low_event_count_group_ids = [
+        group_id
+        for group_id in group_ids_batch_filtered
+        if group_id not in high_event_count_group_ids
+    ]
+    low_event_count_groups_last_seen = [
+        last_seen
+        for (group_id, _, _, last_seen) in group_values_batch
+        if group_id in low_event_count_group_ids
+    ]
+    low_event_count_results = bulk_query_events(
+        low_event_count_group_ids, low_event_count_groups_last_seen, project_id
+    )
 
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
-        snuba_requests.append(request)
-
-    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-        snuba_results = bulk_snuba_queries(
-            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
-        )
-
-    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
-    if snuba_results and snuba_results[0].get("data"):
-        rows: list[GroupEventRow] = [snuba_result["data"][0] for snuba_result in snuba_results]
+    snuba_results = high_event_count_results + low_event_count_results
+    group_id_batch_all = copy.deepcopy(group_ids_batch_filtered)
+    if snuba_results:
+        rows: list[GroupEventRow] = snuba_results
 
         # Log if any group does not have any events in snuba and skip it
-        if len(rows) != len(group_id_batch_filtered):
+        if len(rows) != len(group_ids_batch_filtered):
             row_group_ids = {row["group_id"] for row in rows}
             for group_id in group_id_batch_all:
                 if group_id not in row_group_ids:
@@ -215,7 +212,7 @@ def backfill_seer_grouping_records(
                             "group_id": group_id,
                         },
                     )
-                    group_id_batch_filtered.remove(group_id)
+                    group_ids_batch_filtered.remove(group_id)
 
         data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
 
@@ -225,14 +222,14 @@ def backfill_seer_grouping_records(
                 "tasks.backfill_seer_grouping_records.no_data",
                 extra={
                     "project_id": project.id,
-                    "group_id_batch": json.dumps(group_id_batch_filtered),
+                    "group_id_batch": json.dumps(group_ids_batch_filtered),
                 },
             )
             call_next_backfill(
                 batch_end_index,
                 project_id,
                 redis_client,
-                len(group_id_data),
+                len(group_values),
                 group_id_batch_all[-1],
                 dry_run,
             )
@@ -246,7 +243,7 @@ def backfill_seer_grouping_records(
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
-                    group_id_list=group_id_batch_filtered,
+                    group_id_list=group_ids_batch_filtered,
                     data=data["data"],
                     stacktrace_list=data["stacktrace_list"],
                 )
@@ -254,7 +251,7 @@ def backfill_seer_grouping_records(
 
         if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
-            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
+            groups = Group.objects.filter(project_id=project.id, id__in=group_ids_batch_filtered)
             for group in groups:
                 seer_similarity: dict[str, Any] = {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
@@ -300,7 +297,7 @@ def backfill_seer_grouping_records(
                 batch_end_index,
                 project_id,
                 redis_client,
-                len(group_id_data),
+                len(group_values),
                 group_id_batch_all[-1],
                 dry_run,
             )
@@ -323,7 +320,7 @@ def backfill_seer_grouping_records(
             batch_end_index,
             project_id,
             redis_client,
-            len(group_id_data),
+            len(group_values),
             group_id_batch_all[-1],
             dry_run,
         )
@@ -552,6 +549,114 @@ def delete_seer_grouping_records(
         for group in groups_with_seer_metadata:
             del group.data["metadata"]["seer_similarity"]
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
+
+
+def single_query_event_per_group(
+    high_event_count_group_ids: list[int], project_id: int
+) -> list[EventGroupSnubaResult]:
+    """
+    Query events for a group one at a time, running the requests in groups of SNUBA_QUERY_RATELIMIT.
+    """
+    group_event_rows: list[EventGroupSnubaResult] = []
+    events_entity = Entity("events", alias="events")
+    for group_ids_chunk in chunked(high_event_count_group_ids, SNUBA_QUERY_RATELIMIT):
+        snuba_requests = []
+        for group_id in group_ids_chunk:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(minutes=5),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
+
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
+
+        snuba_results = bulk_snuba_queries(
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
+
+        if snuba_results and snuba_results[0].get("data"):
+            group_event_rows += (snuba_result["data"][0] for snuba_result in snuba_results)
+
+    return group_event_rows
+
+
+def bulk_query_events(
+    low_event_count_group_ids: list[int],
+    low_event_count_groups_last_seen: list[datetime],
+    project_id: int,
+) -> list[EventGroupSnubaResult]:
+    """
+    Query events for groups in bulk, using `low_event_count_groups_last_seen` to limit the
+    timestamp of the query.
+    """
+    events_entity = Entity("events", alias="events")
+    query = Query(
+        match=events_entity,
+        select=[
+            Column("group_id"),
+            Function("max", [Column("event_id")], "event_id"),
+        ],
+        groupby=[Column("group_id")],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("group_id"), Op.IN, low_event_count_group_ids),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.GTE,
+                min(low_event_count_groups_last_seen) - timedelta(minutes=5),
+            ),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.LT,
+                max(low_event_count_groups_last_seen) + timedelta(minutes=5),
+            ),
+        ],
+        orderby=[OrderBy(Column("group_id"), Direction.ASC)],
+    )
+
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+            "cross_org_query": 1,
+        },
+    )
+
+    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+        snuba_results = bulk_snuba_queries(
+            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
+
+    return snuba_results[0]["data"] if snuba_results and snuba_results[0].get("data") else []
 
 
 def call_next_backfill(
