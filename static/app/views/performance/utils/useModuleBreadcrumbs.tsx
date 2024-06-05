@@ -24,7 +24,7 @@ export function useModuleBreadcrumbs(moduleName: RoutableModuleNames): Crumb[] {
     ? [
         {
           label: insightsTitle,
-          to: normalizeUrl(`/organizations/${organization.slug}/${insightsURL}/`),
+          to: undefined, // There is no page at `/insights/` so there is nothing to link to
           preservePageFilters: true,
         },
         {
