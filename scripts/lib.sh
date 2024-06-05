@@ -43,7 +43,7 @@ configure-sentry-cli() {
     else
         cat <<EOF
 ${red}${bold}
-ERROR: sentry-cli could not be installed. Please run "devenv sync" in sentry and getsentry.
+ERROR: sentry-cli could not be installed, please run "devenv sync".
 ${reset}
 EOF
         return 1
