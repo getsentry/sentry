@@ -237,7 +237,7 @@ describe('App', function () {
         <div>placeholder content</div>
       </App>
     );
-    ConfigStore.config.isSelfHosted = restore;
+    ConfigStore.set('isSelfHosted', restore);
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 

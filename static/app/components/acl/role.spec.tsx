@@ -92,8 +92,8 @@ describe('Role', function () {
     });
 
     it('handles no user', function () {
-      const user = {...ConfigStore.config.user};
-      ConfigStore.config.user = undefined as any;
+      const user = {...ConfigStore.get('user')};
+      ConfigStore.set('user', undefined as any);
       render(<Role role="member">{childrenMock}</Role>, {
         organization,
       });
@@ -101,12 +101,12 @@ describe('Role', function () {
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
       });
-      ConfigStore.config.user = user;
+      ConfigStore.set('user', user);
     });
 
     it('updates if user changes', function () {
-      const user = {...ConfigStore.config.user};
-      ConfigStore.config.user = undefined as any;
+      const user = {...ConfigStore.get('user')};
+      ConfigStore.set('user', user);
       const {rerender} = render(<Role role="member">{childrenMock}</Role>, {
         organization,
       });
@@ -114,7 +114,7 @@ describe('Role', function () {
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: false,
       });
-      ConfigStore.config.user = user;
+      ConfigStore.set('user', user);
 
       rerender(<Role role="member">{childrenMock}</Role>);
       expect(childrenMock).toHaveBeenCalledWith({

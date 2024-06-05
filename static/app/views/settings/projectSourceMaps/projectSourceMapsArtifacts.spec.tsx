@@ -100,10 +100,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      ConfigStore.config = {
-        ...ConfigStore.config,
-        user: {...ConfigStore.config.user, isSuperuser: true},
-      };
+      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 
       renderReleaseBundlesMockRequests({
         orgSlug: organization.slug,
@@ -201,10 +198,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      ConfigStore.config = {
-        ...ConfigStore.config,
-        user: {...ConfigStore.config.user, isSuperuser: true},
-      };
+      ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 
       const mockRequests = renderDebugIdBundlesMockRequests({
         orgSlug: organization.slug,
