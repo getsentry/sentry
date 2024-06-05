@@ -31,18 +31,39 @@ type SearchQueryBuilderComboboxProps = {
   inputLabel: string;
   inputValue: string;
   items: SelectOptionWithKey<string>[];
+  /**
+   * Called when the input is blurred.
+   * Passes the current input value.
+   */
   onCustomValueBlurred: (value: string) => void;
+  /**
+   * Called when the user commits a value with the enter key.
+   * Passes the current input value.
+   */
   onCustomValueCommitted: (value: string) => void;
+  /**
+   * Called when the user selects an option from the dropdown.
+   * Passes the value of the selected item.
+   */
   onOptionSelected: (value: string) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
   filterValue?: string;
   maxOptions?: number;
+  /**
+   * Called when the user explicitly closes the combobox with the escape key.
+   */
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  openOnFocus?: boolean;
   placeholder?: string;
+  /**
+   * Function to determine whether the menu should close when interacting with
+   * other elements.
+   */
+  shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   tabIndex?: number;
 };
 
@@ -62,8 +83,10 @@ export const SearchQueryBuilderCombobox = forwardRef(
       onKeyDown,
       onInputChange,
       autoFocus,
+      openOnFocus,
       tabIndex = -1,
       maxOptions,
+      shouldCloseOnInteractOutside,
       onPaste,
     }: SearchQueryBuilderComboboxProps,
     ref
@@ -112,6 +135,11 @@ export const SearchQueryBuilderCombobox = forwardRef(
         inputValue: filterValue,
         onSelectionChange,
         autoFocus,
+        onFocus: () => {
+          if (openOnFocus) {
+            state.open();
+          }
+        },
         onBlur: () => {
           onCustomValueBlurred(inputValue);
           state.close();
@@ -147,6 +175,7 @@ export const SearchQueryBuilderCombobox = forwardRef(
       offset: [0, 8],
       isKeyboardDismissDisabled: true,
       shouldCloseOnBlur: true,
+      shouldCloseOnInteractOutside,
       onInteractOutside: () => {
         if (state.inputValue) {
           onCustomValueBlurred(inputValue);
