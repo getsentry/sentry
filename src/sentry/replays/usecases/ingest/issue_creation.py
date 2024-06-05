@@ -22,6 +22,7 @@ RAGE_CLICK_LEVEL = "error"
 def report_hydration_error_issue_with_replay_event(
     project_id: int,
     replay_id: str,
+    event_id: str,
     timestamp: float,
     url: str | None,
     replay_event: dict[str, Any],
@@ -48,7 +49,7 @@ def report_hydration_error_issue_with_replay_event(
         extra_event_data={
             "contexts": _make_contexts(replay_id, replay_event),
             "level": HYDRATION_ERROR_LEVEL,
-            "tags": _make_tags(replay_id, url, replay_event),
+            "tags": _make_tags(replay_id, url, replay_event, event_id=event_id),
             "user": replay_event.get("user"),
             "release": replay_event.get("release"),
             "sdk": replay_event.get("sdk"),
@@ -146,8 +147,10 @@ def _make_contexts(replay_id, replay_event):
     return contexts
 
 
-def _make_tags(replay_id, url, replay_event):
+def _make_tags(replay_id, url, replay_event, event_id: str | None = None):
     tags = {"replayId": replay_id, "url": url}
+    if event_id:
+        tags["eventId"] = event_id
     if replay_event.get("tags"):
         tags.update(replay_event["tags"])
 

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -246,10 +247,12 @@ def test_report_rage_click_no_component_name(mock_new_issue_occurrence, default_
 def test_report_hydration_error_issue_with_replay_event(mock_new_issue_occurrence, default_project):
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
 
-    replay_id = "b58a67446c914f44a4e329763420047b"
+    replay_id = uuid.uuid4().hex
+    event_id = uuid.uuid4().hex
     report_hydration_error_issue_with_replay_event(
         project_id=default_project.id,
         replay_id=replay_id,
+        event_id=event_id,
         timestamp=seq1_timestamp.timestamp(),
         url="https://www.sentry.io",
         replay_event=mock_replay_event(),
@@ -274,7 +277,7 @@ def test_report_hydration_error_issue_with_replay_event(mock_new_issue_occurrenc
                 "name": "iPhone 13 Pro",
             },
             "os": {"name": "iOS", "version": "16.2"},
-            "replay": {"replay_id": "b58a67446c914f44a4e329763420047b"},
+            "replay": {"replay_id": replay_id},
             "trace": {
                 "trace_id": "4491657243ba4dbebd2f6bd62b733080",
             },
@@ -284,7 +287,8 @@ def test_report_hydration_error_issue_with_replay_event(mock_new_issue_occurrenc
         "release": "version@1.3",
         "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
         "tags": {
-            "replayId": "b58a67446c914f44a4e329763420047b",
+            "replayId": replay_id,
+            "eventId": event_id,
             "transaction": "Title",
             "url": "https://www.sentry.io",
         },
@@ -300,7 +304,8 @@ def test_report_hydration_error_issue_with_replay_event(mock_new_issue_occurrenc
 @pytest.mark.snuba
 @django_db_all
 def test_report_hydration_error_creates_issue(default_project):
-    replay_id = "b58a67446c914f44a4e329763420047b"
+    replay_id = uuid.uuid4().hex
+    event_id = uuid.uuid4().hex
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
     with Feature(
         {
@@ -310,6 +315,7 @@ def test_report_hydration_error_creates_issue(default_project):
         report_hydration_error_issue_with_replay_event(
             project_id=default_project.id,
             replay_id=replay_id,
+            event_id=event_id,
             timestamp=seq1_timestamp.timestamp(),
             url="https://www.sentry.io",
             replay_event=mock_replay_event(),
@@ -322,7 +328,8 @@ def test_report_hydration_error_creates_issue(default_project):
 @pytest.mark.snuba
 @django_db_all
 def test_report_hydration_error_long_url(default_project):
-    replay_id = "b58a67446c914f44a4e329763420047b"
+    replay_id = uuid.uuid4().hex
+    event_id = uuid.uuid4().hex
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
     with Feature(
         {
@@ -332,6 +339,7 @@ def test_report_hydration_error_long_url(default_project):
         report_hydration_error_issue_with_replay_event(
             project_id=default_project.id,
             replay_id=replay_id,
+            event_id=event_id,
             timestamp=seq1_timestamp.timestamp(),
             url=f"https://www.sentry.io{'a' * 300}",
             replay_event=mock_replay_event(),
@@ -345,7 +353,8 @@ def test_report_hydration_error_long_url(default_project):
 @pytest.mark.snuba
 @django_db_all
 def test_report_hydration_error_no_url(default_project):
-    replay_id = "b58a67446c914f44a4e329763420047b"
+    replay_id = uuid.uuid4().hex
+    event_id = uuid.uuid4().hex
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
     with Feature(
         {
@@ -355,6 +364,7 @@ def test_report_hydration_error_no_url(default_project):
         report_hydration_error_issue_with_replay_event(
             project_id=default_project.id,
             replay_id=replay_id,
+            event_id=event_id,
             timestamp=seq1_timestamp.timestamp(),
             url=None,
             replay_event=mock_replay_event(),

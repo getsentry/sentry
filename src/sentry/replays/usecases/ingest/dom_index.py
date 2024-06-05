@@ -454,6 +454,7 @@ def _handle_breadcrumb(
             report_hydration_error_issue_with_replay_event(
                 project_id,
                 replay_id,
+                event["data"]["event_id"],
                 payload["timestamp"],
                 payload.get("data", {}).get("url"),
                 replay_event,
