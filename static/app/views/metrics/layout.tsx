@@ -7,6 +7,7 @@ import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -37,7 +38,6 @@ import {
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
-import {MetricsFeatureBadge} from 'sentry/views/metrics/metricFeatureBadge';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
@@ -105,7 +105,7 @@ export const MetricsLayout = memo(() => {
                 'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
               )}
             />
-            <MetricsFeatureBadge />
+            <FeatureBadge type="beta" />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
