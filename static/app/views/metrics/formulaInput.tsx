@@ -62,9 +62,9 @@ export function EquationInput({
     (formula: string): TokenList | null => {
       let tokens: TokenList = [];
       const newErrors: any[] = [];
-      if (formula) {
+      if (formula.trim()) {
         try {
-          tokens = parseFormula(formula);
+          tokens = parseFormula(formula.trim());
         } catch (err) {
           newErrors.push({
             message: err.message,
@@ -88,6 +88,14 @@ export function EquationInput({
         }
         charCount += token.content.length;
       });
+
+      const usesQuery = tokens.some(token => token.type === TokenType.VARIABLE);
+      if (tokens.length && !usesQuery) {
+        newErrors.push({
+          message: t('Equations must contain at least one metric'),
+          start: 0,
+        });
+      }
 
       newErrors.sort((a, b) => a.start - b.start);
       setErrors(newErrors);
