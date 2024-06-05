@@ -16,14 +16,6 @@ export function hasCustomMetrics(organization: Organization) {
   );
 }
 
-export function hasRolledOutMetrics(organization: Organization) {
-  return organization.features.includes('metrics-launch-rollout');
-}
-
-export function canSeeMetricsPage(organization: Organization) {
-  return hasCustomMetrics(organization) || hasRolledOutMetrics(organization);
-}
-
 export function hasMetricAlertFeature(organization: Organization) {
   return organization.features.includes('organizations:incidents');
 }

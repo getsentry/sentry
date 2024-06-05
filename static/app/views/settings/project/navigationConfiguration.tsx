@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
@@ -118,7 +118,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () => !!(organization && canSeeMetricsPage(organization)),
+          show: () => !!(organization && hasCustomMetrics(organization)),
         },
         {
           path: `${pathPrefix}/replays/`,
