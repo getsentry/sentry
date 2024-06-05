@@ -81,7 +81,7 @@ function EditPreviewHighlightSection({
             config={{
               includeAliasInSubject: true,
               disableErrors: true,
-              disableRichValue: true,
+              disableLink: true,
             }}
             data-test-id="highlights-preview-ctx"
           />

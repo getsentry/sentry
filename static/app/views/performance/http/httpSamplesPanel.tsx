@@ -45,9 +45,8 @@ import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanF
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetrics, useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
@@ -250,22 +249,24 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeSamplesDataFetching,
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
-  } = useIndexedSpans({
-    search: sampleSpansSearch,
-    fields: [
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.ID,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.RESPONSE_CODE,
-    ],
-    sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT,
-    enabled: isPanelOpen && query.panel === 'status',
-    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
-  });
+  } = useSpansIndexed(
+    {
+      search: sampleSpansSearch,
+      fields: [
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.RESPONSE_CODE,
+      ],
+      sorts: [SPAN_SAMPLES_SORT],
+      limit: SPAN_SAMPLE_LIMIT,
+      enabled: isPanelOpen && query.panel === 'status',
+    },
+    Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
+  );
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,

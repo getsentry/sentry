@@ -4,6 +4,7 @@ import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Button, LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
@@ -15,7 +16,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Flex} from 'sentry/components/profiling/flex';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
@@ -323,7 +323,6 @@ export function MetricSamplesTable({
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
-        location={location}
         emptyMessage={emptyMessage}
         minimumColWidth={60}
       />

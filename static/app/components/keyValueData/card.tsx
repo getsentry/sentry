@@ -1,7 +1,9 @@
 import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -20,9 +22,13 @@ export interface ContentProps {
    */
   item: KeyValueListDataItem;
   /**
-   * Displays tag value as plain text, rather than a hyperlink if applicable.
+   * If enabled, renders raw value instead of formatted structured data
    */
-  disableRichValue?: boolean;
+  disableFormattedData?: boolean;
+  /**
+   * If enabled, avoids rendering links, even if provided via `item.action.link`.
+   */
+  disableLink?: boolean;
   /**
    * Errors pertaining to content item
    */
@@ -37,14 +43,21 @@ export function Content({
   item,
   meta,
   errors = [],
-  disableRichValue = false,
+  disableLink = false,
+  disableFormattedData = false,
   ...props
 }: ContentProps) {
   const {subject, subjectNode, value: contextValue, action = {}} = item;
 
   const hasErrors = errors.length > 0;
 
-  const dataComponent = (
+  const dataComponent = disableFormattedData ? (
+    React.isValidElement(contextValue) ? (
+      contextValue
+    ) : (
+      <AnnotatedText value={contextValue as string} meta={meta} />
+    )
+  ) : (
     <StructuredData
       value={contextValue}
       depth={0}
@@ -59,8 +72,8 @@ export function Content({
     <ContentWrapper hasErrors={hasErrors} {...props}>
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
-        <ValueWrapper>
-          {!disableRichValue && defined(action?.link) ? (
+        <ValueWrapper hasErrors={hasErrors}>
+          {!disableLink && defined(action?.link) ? (
             <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent
@@ -208,7 +221,8 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+  box-shadow: inset 0 0 0 1px
+    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
   background-color: ${p =>
     p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
   &:nth-child(odd) {
@@ -231,9 +245,9 @@ const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boole
   grid-column-gap: ${space(0.5)};
 `;
 
-const ValueWrapper = styled('div')`
+const ValueWrapper = styled('div')<{hasErrors: boolean}>`
   word-break: break-word;
-  grid-column: 1 / -1;
+  grid-column: ${p => (p.hasErrors ? 'span 1' : '1 / -1')};
 `;
 
 const TruncateWrapper = styled('a')`

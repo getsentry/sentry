@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -18,7 +17,7 @@ import type {
   Organization,
   Project,
 } from 'sentry/types';
-import {defined, toTitleCase} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 
 import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
 import {
@@ -43,6 +42,12 @@ import {
   getUnknownOperatingSystemContextData,
   OperatingSystemEventContext,
 } from './operatingSystem';
+import {
+  getKnownPlatformContextData,
+  getPlatformContextIcon,
+  getUnknownPlatformContextData,
+  KNOWN_PLATFORM_CONTEXTS,
+} from './platform';
 import {
   getKnownProfileContextData,
   getUnknownProfileContextData,
@@ -285,7 +290,7 @@ export function getUnknownData({
     .map(([key, value]) => ({
       key,
       value,
-      subject: startCase(key),
+      subject: key,
       meta: meta?.[key]?.[''],
     }));
 }
@@ -304,7 +309,7 @@ export function getContextTitle({
   }
 
   if (!defined(type)) {
-    return toTitleCase(alias);
+    return alias;
   }
 
   switch (type) {
@@ -312,6 +317,16 @@ export function getContextTitle({
       return t('App');
     case 'device':
       return t('Device');
+    case 'browser':
+      return t('Browser');
+    case 'profile':
+      return t('Profile');
+    case 'replay':
+      return t('Replay');
+    case 'response':
+      return t('Response');
+    case 'feedback':
+      return t('Feedback');
     case 'os':
       return t('Operating System');
     case 'user':
@@ -323,9 +338,9 @@ export function getContextTitle({
     case 'trace':
       return t('Trace Details');
     case 'otel':
-      return t('OpenTelemetry');
+      return 'OpenTelemetry';
     case 'unity':
-      return t('Unity');
+      return 'Unity';
     case 'memory_info': // Current value for memory info
     case 'Memory Info': // Legacy for memory info
       return t('Memory Info');
@@ -333,12 +348,20 @@ export function getContextTitle({
     case 'ThreadPool Info': // Legacy value for thread pool info
       return t('Thread Pool Info');
     case 'default':
-      if (alias === 'state') {
-        return t('Application State');
+      switch (alias) {
+        case 'state':
+          return t('Application State');
+        case 'laravel':
+          return t('Laravel Context');
+        case 'profile':
+          return t('Profile');
+        case 'replay':
+          return t('Replay');
+        default:
+          return alias;
       }
-      return toTitleCase(alias);
     default:
-      return toTitleCase(type);
+      return type;
   }
 }
 
@@ -359,12 +382,17 @@ export function getContextMeta(event: Event, contextType: string): Record<string
 }
 
 export function getContextIcon({
+  alias,
   type,
   value = {},
 }: {
+  alias: string;
   type: string;
   value?: Record<string, any>;
 }): React.ReactNode {
+  if (KNOWN_PLATFORM_CONTEXTS.has(alias)) {
+    return getPlatformContextIcon({platform: alias});
+  }
   let iconName = '';
   switch (type) {
     case 'device':
@@ -390,7 +418,7 @@ export function getContextIcon({
   if (iconName.length === 0) {
     return null;
   }
-  return <ContextIcon name={iconName} size="sm" />;
+  return <ContextIcon name={iconName} size="sm" hideUnknown />;
 }
 
 export function getFormattedContextData({
@@ -407,6 +435,13 @@ export function getFormattedContextData({
   project?: Project;
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
+
+  if (KNOWN_PLATFORM_CONTEXTS.has(contextType)) {
+    return [
+      ...getKnownPlatformContextData({platform: contextType, data: contextValue, meta}),
+      ...getUnknownPlatformContextData({platform: contextType, data: contextValue, meta}),
+    ];
+  }
 
   switch (contextType) {
     case 'app':

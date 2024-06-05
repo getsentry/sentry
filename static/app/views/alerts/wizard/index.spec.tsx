@@ -5,7 +5,7 @@ import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
   it('sets crash free dataset to metrics', async () => {
-    const {organization, project, routerProps, routerContext} = initializeOrg({
+    const {organization, project, routerProps, router} = initializeOrg({
       organization: {
         features: [
           'alert-crash-free-metrics',
@@ -22,12 +22,12 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
     await userEvent.click(screen.getByText('Set Conditions'));
-    expect(routerContext.context.router.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/metric/',
       query: {
         aggregate:

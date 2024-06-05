@@ -63,7 +63,7 @@ mockUseReplayReader.mockImplementation(() => {
 });
 
 const render: typeof baseRender = children => {
-  const {routerContext} = initializeOrg({
+  const {router} = initializeOrg({
     router: {
       routes: [
         {path: '/'},
@@ -78,7 +78,7 @@ const render: typeof baseRender = children => {
   });
 
   return baseRender(children, {
-    context: routerContext,
+    router,
     organization: OrganizationFixture({slug: mockOrgSlug}),
   });
 };

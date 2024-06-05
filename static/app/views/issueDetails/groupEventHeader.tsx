@@ -26,22 +26,22 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
     'related-issues-issue-details-page'
   );
   // This is also called within the TraceTimeline component but caching will save a second call
-  const {isError, isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
+  const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
   });
-  const readyToShow = !isLoading && !isError;
 
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      {isRelatedIssuesEnabled && readyToShow && oneOtherIssueEvent === undefined && (
-        <TraceLink event={event} />
-      )}
-      {isRelatedIssuesEnabled && oneOtherIssueEvent && (
+      {isRelatedIssuesEnabled && !isLoading && oneOtherIssueEvent && (
         <StyledTraceLink>
           One other issue appears in the same trace.
-          {readyToShow && <TraceLink event={event} />}
+          <TraceLink event={event} />
         </StyledTraceLink>
+      )}
+      {/* This will be the default when we have GAed related issues  */}
+      {isRelatedIssuesEnabled && !isLoading && oneOtherIssueEvent === undefined && (
+        <TraceLink event={event} />
       )}
       {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
       <StyledGlobalAppStoreConnectUpdateAlert

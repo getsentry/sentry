@@ -84,7 +84,6 @@ export function ProfileEventsTable<F extends FieldType>(
           {location, organization, projects}
         ),
       }}
-      location={location}
     />
   );
 }

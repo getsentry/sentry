@@ -24,7 +24,15 @@ logger = logging.getLogger(__name__)
 
 INTERNAL_SOURCE_NAME = "sentry:project"
 
-VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
+VALID_LAYOUTS = (
+    "native",
+    "symstore",
+    "symstore_index2",
+    "ssqp",
+    "unified",
+    "debuginfod",
+    "slashsymbols",
+)
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 

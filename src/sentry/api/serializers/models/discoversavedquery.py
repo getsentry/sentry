@@ -3,7 +3,7 @@ from typing import DefaultDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -55,6 +55,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
             "version": obj.version or obj.query.get("version", 1),
+            "queryDataset": DiscoverSavedQueryTypes.get_type_name(obj.dataset),
             "expired": False,
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,

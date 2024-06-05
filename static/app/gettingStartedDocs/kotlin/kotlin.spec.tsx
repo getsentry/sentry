@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs, {PackageManager} from './kotlin';
 
-describe('GettingStartedWithSpring', function () {
+describe('GettingStartedWithKotlin', function () {
   it('renders gradle docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {

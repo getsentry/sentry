@@ -8,13 +8,19 @@ import {
   interchangeableFilterOperators,
   type ParseResult,
   type ParseResultToken,
+  parseSearch,
   type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import type {Tag} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
+
+export function parseQueryBuilderValue(value: string): ParseResult | null {
+  return collapseTextTokens(parseSearch(value || ' ', {flattenParenGroups: true}));
+}
 
 /**
  * Generates a unique key for the given token.
@@ -38,6 +44,10 @@ const isSimpleTextToken = (
 ): token is TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES> => {
   return [Token.FREE_TEXT, Token.SPACES].includes(token.type);
 };
+
+export function getKeyLabel(key: Tag) {
+  return key.alias ?? key.key;
+}
 
 /**
  * Collapse adjacent FREE_TEXT and SPACES tokens into a single token.

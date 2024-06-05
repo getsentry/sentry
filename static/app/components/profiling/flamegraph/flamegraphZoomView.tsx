@@ -399,7 +399,7 @@ function FlamegraphZoomView({
         if (action === 'undo') {
           const previousPosition = previousState?.position?.view;
 
-          // If previous position is empty, reset the view to it's max
+          // If previous position is empty, reset the view to its max
           if (previousPosition?.isEmpty()) {
             canvasPoolManager.dispatch('reset zoom', []);
           } else if (

@@ -31,7 +31,7 @@ describe('IntegrationOrganizationLink', () => {
     const org2Lite = pick(org2, ['slug', 'name', 'id']);
 
     getOrgsMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
+      url: '/organizations/?include_feature_flags=1',
       body: [org1Lite, org2Lite],
     });
   });
@@ -109,7 +109,7 @@ describe('IntegrationOrganizationLink', () => {
         params={{integrationSlug: 'vercel'}}
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
       }
     );
 

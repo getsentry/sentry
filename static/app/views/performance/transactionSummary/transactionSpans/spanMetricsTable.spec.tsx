@@ -16,7 +16,7 @@ const initializeData = () => {
 describe('SuspectSpansTable', () => {
   it('should render the table and rows of data', async () => {
     const initialData = initializeData();
-    const {organization, project, routerContext} = initialData;
+    const {organization, project} = initialData;
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -35,9 +35,7 @@ describe('SuspectSpansTable', () => {
       },
     });
 
-    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />, {
-      context: routerContext,
-    });
+    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />);
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()

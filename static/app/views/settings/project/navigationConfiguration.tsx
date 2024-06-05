@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {canSeeMetricsPage} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
@@ -118,7 +118,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () => !!(organization && canSeeMetricsPage(organization)),
+          show: () => !!(organization && hasCustomMetrics(organization)),
         },
         {
           path: `${pathPrefix}/replays/`,
@@ -139,6 +139,12 @@ export default function getConfiguration({
           path: `${pathPrefix}/loader-script/`,
           title: t('Loader Script'),
           description: t("View and manage the project's Loader Script"),
+        },
+        {
+          path: `${pathPrefix}/remote-config/`,
+          title: t('Remote Config'),
+          description: t("View and manage the project's Remote Configuration"),
+          show: organization?.features.includes('remote-config'),
         },
         {
           path: `${pathPrefix}/release-tracking/`,

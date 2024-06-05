@@ -22,7 +22,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {sortProjects} from 'sentry/utils';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
