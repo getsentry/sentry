@@ -514,16 +514,11 @@ def _fetch_tags_or_values_for_mri(
     """
     org_id = projects[0].organization_id
 
-    try:
-        metric_ids = _get_metrics_filter_ids(
-            projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
-        )
-    except MetricDoesNotExistInIndexer:
-        raise InvalidParams(
-            f"Some or all of the metric names in {metric_mris} do not exist in the indexer"
-        )
-    else:
-        where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
+    metric_ids = _get_metrics_filter_ids(
+        projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
+    )
+
+    where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
 
     tag_or_value_ids_per_metric_id = defaultdict(list)
     # This dictionary is required as a mapping from an entity to the ids available in it to

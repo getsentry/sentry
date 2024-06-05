@@ -7,14 +7,10 @@ import pytest
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
-from tests.sentry.api.endpoints.test_organization_metrics import (
-    MOCKED_DERIVED_METRICS,
-    mocked_mri_resolver,
-)
+from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -30,10 +26,6 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
-    )
     def test_metric_tags(self):
         response = self.get_success_response(
             self.organization.slug,
@@ -46,27 +38,8 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             {"key": "project"},
         ]
 
-        # When metric names are supplied, get intersection of tag names:
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=["metric1", "metric2"],
-        )
-        assert response.data == [{"key": "tag1"}, {"key": "tag2"}, {"key": "project"}]
-
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=["metric1", "metric2", "metric3"],
-        )
-        assert response.data == [{"key": "project"}]
-
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(
-            ["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"], get_mri
-        ),
-    )
-    def test_mri_metric_tags(self):
-        response = self.get_success_response(
+    def test_multiple_metrics_tags(self):
+        response = self.get_response(
             self.organization.slug,
         )
         assert response.data == [
@@ -77,26 +50,13 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             {"key": "project"},
         ]
 
-        response = self.get_success_response(
+        response = self.get_response(
             self.organization.slug,
             metric=["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"],
             useCase="transactions",
         )
-        assert response.data == []
-
-    @patch(
-        "sentry.snuba.metrics.datasource.get_mri",
-        mocked_mri_resolver(
-            ["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"], get_mri
-        ),
-    )
-    def test_mixed_metric_identifiers(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=["d:transactions/duration@millisecond", "not_mri"],
-        )
-
-        assert response.data == []
+        assert response.status_code == 400
+        assert response.json()["detail"]["message"] == "Please provide only a single metric name."
 
     @patch(
         "sentry.snuba.metrics.datasource.bulk_reverse_resolve",
@@ -194,15 +154,6 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
         )
         assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
 
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=[
-                SessionMetricKey.CRASH_FREE_RATE.value,
-                SessionMetricKey.ALL.value,
-            ],
-        )
-        assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
-
     def test_composite_derived_metrics(self):
         for minute in range(4):
             self.store_session(
@@ -294,3 +245,17 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             useCase="custom",
         )
         assert len(response.data) == 4
+
+    def test_metric_not_in_indexer(self):
+        mri = "c:custom/sentry_metric@none"
+        response = self.get_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+            useCase="custom",
+        )
+        assert (
+            response.json()["detail"]
+            == "One of the specified metrics was not found: ['c:custom/sentry_metric@none']"
+        )
+        assert response.status_code == 404
