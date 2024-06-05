@@ -133,22 +133,27 @@ describe('SearchQueryBuilder', function () {
   describe('actions', function () {
     it('can clear the query', async function () {
       const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
+          onSearch={mockOnSearch}
         />
       );
       userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('');
+        expect(mockOnSearch).toHaveBeenCalledWith('');
       });
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
+
+      expect(screen.getByRole('combobox')).toHaveFocus();
     });
   });
 
