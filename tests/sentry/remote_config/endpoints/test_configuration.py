@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay
-from sentry.remote_config.storage import StorageBackend
+from sentry.remote_config.storage import make_api_backend
 from sentry.testutils.cases import APITestCase
 
 REMOTE_CONFIG_FEATURES = {"organizations:remote-config": True}
@@ -21,7 +21,7 @@ class ConfigurationAPITestCase(APITestCase):
 
     @property
     def storage(self):
-        return StorageBackend(self.project)
+        return make_api_backend(self.project)
 
     def test_get_configuration(self):
         self.storage.set(
@@ -188,7 +188,7 @@ class ConfigurationProxyAPITestCase(APITestCase):
 
     @property
     def storage(self):
-        return StorageBackend(self.project)
+        return make_api_backend(self.project)
 
     def test_remote_config_proxy(self):
         """Assert configurations are returned successfully."""
