@@ -90,7 +90,7 @@ def build_query_params_from_request(
     query = query.strip()
 
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
-        if features.has("organizations:issue-stream-custom-views"):
+        if features.has("organizations:issue-stream-custom-views", organization):
             selected_view_id = request.GET.get("groupSearchViewId")
             if selected_view_id:
                 default_view = GroupSearchView.objects.get(id=int(selected_view_id))
