@@ -91,7 +91,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
-    errors: list[str]
+    errors: list[str] | None
 
 
 @register(AlertRule)
