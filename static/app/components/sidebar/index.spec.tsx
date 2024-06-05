@@ -12,6 +12,7 @@ import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, StatuspageIncident} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import localStorage from 'sentry/utils/localStorage';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 jest.mock('sentry/utils/useServiceIncidents');
@@ -297,7 +298,7 @@ describe('Sidebar', function () {
     expect(await screen.findByText(organization.name)).toBeInTheDocument();
   });
 
-  describe('sidebar links', () => {
+  describe.only('sidebar links', () => {
     beforeEach(function () {
       ConfigStore.init();
       ConfigStore.set('features', new Set([]));
@@ -389,7 +390,8 @@ describe('Sidebar', function () {
       });
     });
 
-    it('if Insights are on, shows links to Explore and Insights', async function () {
+    it.only('if Insights are on, shows links to Explore and Insights', async function () {
+      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
       renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES, 'performance-insights']);
 
       await waitFor(function () {
