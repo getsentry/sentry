@@ -5,7 +5,11 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.grouping.result import CalculatedHashes
-from sentry.grouping.variants import FallbackVariant
+from sentry.grouping.variants import (
+    BuiltInFingerprintVariant,
+    CustomFingerprintVariant,
+    FallbackVariant,
+)
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
@@ -129,6 +133,32 @@ class ShouldCallSeerTest(TestCase):
                     should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
                     is expected_result
                 )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_returns_false_if_event_has_custom_fingerprint(self):
+        custom_fingerprint_hashes = CalculatedHashes(
+            hashes=["04152013090820131121201212312012"],
+            hierarchical_hashes=[],
+            tree_labels=[],
+            variants={"custom-fingerprint": CustomFingerprintVariant(["maisey"])},
+        )
+        built_in_fingerprint_hashes = CalculatedHashes(
+            hashes=["04152013090820131121201212312012"],
+            hierarchical_hashes=[],
+            tree_labels=[],
+            variants={"built-in-fingerprint": BuiltInFingerprintVariant(["charlie"])},
+        )
+
+        # `self.primary_hashes` has only a `FallbackVariant`
+        assert should_call_seer_for_grouping(self.event, self.project, self.primary_hashes) is True
+        assert (
+            should_call_seer_for_grouping(self.event, self.project, custom_fingerprint_hashes)
+            is False
+        )
+        assert (
+            should_call_seer_for_grouping(self.event, self.project, built_in_fingerprint_hashes)
+            is False
+        )
 
 
 class GetSeerSimilarIssuesTest(TestCase):
