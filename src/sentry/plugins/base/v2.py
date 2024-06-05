@@ -343,17 +343,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_notifiers(self, **kwargs):
-        """
-        Return a list of notifiers to append to the registry.
-
-        Notifiers must extend :class:`sentry.plugins.Notifier`.
-
-        >>> def get_notifiers(self, **kwargs):
-        >>>     return [MyNotifier]
-        """
-        return []
-
     def get_tags(self, event, **kwargs):
         """
         Return a list of additional tags to add to this instance.
