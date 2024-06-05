@@ -13,4 +13,12 @@ source "${HERE}/lib.sh"
 # a venv can avoid enabling this by setting SENTRY_NO_VENV_CHECK
 [ -z "${SENTRY_NO_VENV_CHECK+x}" ] && eval "${HERE}/ensure-venv.sh"
 # If you call this script
+start=`date +%s`
 "$@"
+end=`date +%s`
+duration=$(($end-$start))
+
+configure-sentry-cli
+# DSN for `sentry-devservices` project in the Sentry SDKs org. Used as authentication for sentry-cli.
+export SENTRY_DSN=https://8ae521d2441786bb405b3b3705bb9dc1@o447951.ingest.us.sentry.io/4507346183716864
+"${venv_name}"/bin/sentry-cli send-metric distribution -n script_execution_time -v $duration -u second -t script:$1
