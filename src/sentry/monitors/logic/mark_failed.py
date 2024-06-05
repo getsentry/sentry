@@ -185,41 +185,6 @@ def mark_failed_threshold(
     return True
 
 
-def create_legacy_event(failed_checkin: MonitorCheckIn):
-    from sentry.coreapi import insert_data_to_database_legacy
-    from sentry.event_manager import EventManager
-    from sentry.models.project import Project
-
-    monitor_env = failed_checkin.monitor_environment
-    context = get_monitor_environment_context(monitor_env)
-
-    # XXX(epurkhiser): This matches up with the occurrence_data reason
-    reason_map = {
-        CheckInStatus.MISSED: "missed_checkin",
-        CheckInStatus.TIMEOUT: "duration",
-    }
-    reason = reason_map.get(failed_checkin.status, "unknown")
-
-    event_manager = EventManager(
-        {
-            "logentry": {"message": f"Monitor failure: {monitor_env.monitor.name} ({reason})"},
-            "contexts": {"monitor": context},
-            "fingerprint": ["monitor", str(monitor_env.monitor.guid), reason],
-            "environment": monitor_env.get_environment().name,
-            # TODO: Both of these values should be get transformed from context to tags
-            # We should understand why that is not happening and remove these when it correctly is
-            "tags": {
-                "monitor.id": str(monitor_env.monitor.guid),
-                "monitor.slug": monitor_env.monitor.slug,
-            },
-        },
-        project=Project(id=monitor_env.monitor.project_id),
-    )
-    event_manager.normalize()
-    data = event_manager.get_data()
-    insert_data_to_database_legacy(data)
-
-
 def create_issue_platform_occurrence(
     failed_checkins: Sequence[SimpleCheckIn],
     failed_checkin: MonitorCheckIn,
