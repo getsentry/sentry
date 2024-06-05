@@ -31,10 +31,6 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import BackgroundSpace from 'sentry/views/discover/backgroundSpace';
-import {
-  MetricsOnboardingPanelPrimaryAction,
-  MetricsSubscriptionAlert,
-} from 'sentry/views/metrics/billing';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
@@ -97,7 +93,6 @@ export const MetricsLayout = memo(() => {
 
   return (
     <Fragment>
-      <MetricsSubscriptionAlert organization={organization} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
@@ -169,24 +164,22 @@ export const MetricsLayout = memo(() => {
                   'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
                 )}
               </p>
-              <MetricsOnboardingPanelPrimaryAction organization={organization}>
-                <ButtonList gap={1}>
-                  <Button
-                    priority="primary"
-                    onClick={() => addCustomMetric('onboarding_panel')}
-                  >
-                    {t('Set Up Custom Metric')}
+              <ButtonList gap={1}>
+                <Button
+                  priority="primary"
+                  onClick={() => addCustomMetric('onboarding_panel')}
+                >
+                  {t('Set Up Custom Metric')}
+                </Button>
+                <Button href={METRICS_DOCS_URL} external>
+                  {t('Read Docs')}
+                </Button>
+                {hasPerformanceMetrics && (
+                  <Button onClick={viewPerformanceMetrics}>
+                    {t('View Performance Metrics')}
                   </Button>
-                  <Button href={METRICS_DOCS_URL} external>
-                    {t('Read Docs')}
-                  </Button>
-                  {hasPerformanceMetrics && (
-                    <Button onClick={viewPerformanceMetrics}>
-                      {t('View Performance Metrics')}
-                    </Button>
-                  )}
-                </ButtonList>
-              </MetricsOnboardingPanelPrimaryAction>
+                )}
+              </ButtonList>
             </OnboardingPanel>
           )}
         </Layout.Main>
