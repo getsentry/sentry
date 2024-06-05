@@ -25,7 +25,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
         from sentry.models.environment import Environment
-        from sentry.models.groupsearchview import GroupSearchView
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.project import Project
@@ -53,7 +52,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
             PromptsActivity,
             ProjectTransactionThreshold,
             ArtifactBundle,
-            GroupSearchView,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
         # Explicitly assign the task here as it was getting replaced with BulkModelDeletionTask in CI.
