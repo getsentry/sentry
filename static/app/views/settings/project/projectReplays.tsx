@@ -42,7 +42,13 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         initialData={project.options}
       >
         <Access access={['project:write']} project={project}>
-          {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
+          {({hasAccess}) => (
+            <JsonForm
+              features={new Set(organization.features)}
+              disabled={!hasAccess}
+              forms={formGroups}
+            />
+          )}
         </Access>
       </Form>
     </SentryDocumentTitle>
