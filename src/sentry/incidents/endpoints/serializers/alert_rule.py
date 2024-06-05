@@ -56,6 +56,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     totalThisWeek: int | None
     snooze: bool | None
     latestIncident: datetime | None
+    errors: list[str] | None
 
 
 @extend_schema_serializer(
@@ -91,7 +92,6 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
-    errors: list[str] | None
 
 
 @register(AlertRule)
@@ -164,6 +164,11 @@ class AlertRuleSerializer(Serializer):
                     # ORM models and stitch together relations used in preparing UI components.
                     installation = SentryAppInstallation(**sentry_app_installation)
                     rpc_app = sentry_app_map.get(installation.sentry_app_id)
+
+                    # narrow types
+                    assert rpc_app
+                    assert rpc_app.application
+
                     installation.sentry_app = SentryApp(
                         id=rpc_app.id,
                         scope_list=rpc_app.scope_list,
@@ -181,7 +186,6 @@ class AlertRuleSerializer(Serializer):
                         events=rpc_app.events,
                         webhook_url=rpc_app.webhook_url,
                         status=SentryAppStatus.as_int(rpc_app.status),
-                        metadata=rpc_app.metadata,
                     )
                     # The api_token_id field is nulled out to prevent relation traversal as these
                     # ORM objects are turned back into RPC objects.
