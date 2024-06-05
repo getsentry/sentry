@@ -132,6 +132,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         query = serializer.validated_data["query"]
         project_ids = serializer.validated_data.get("projects")
 
+        # project-level permission check
+        self.get_projects(request, organization, project_ids=set(project_ids))
+
         try:
             condition = get_rule_condition(query)
 
@@ -188,6 +191,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             requested_projects_ids = _clean_project_list(requested_projects_ids)
         except ValueError:
             return Response({"projects": ["Invalid project id"]}, status=400)
+
+        # project-level permission check
+        self.get_projects(request, organization, project_ids=set(requested_projects_ids))
 
         if requested_projects_ids:
             org_rule = False
