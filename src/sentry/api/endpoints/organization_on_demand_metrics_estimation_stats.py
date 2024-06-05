@@ -51,7 +51,7 @@ class StatsQualityEstimation(Enum):
 
 
 @region_silo_endpoint
-class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
