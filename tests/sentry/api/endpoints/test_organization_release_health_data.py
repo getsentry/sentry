@@ -37,7 +37,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
-class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
+class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
     def setUp(self):
@@ -1432,7 +1432,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
 
     @mock.patch(
-        "sentry.api.endpoints.organization_metrics_data.OrganizationMetricsDataEndpoint.default_per_page",
+        "sentry.api.endpoints.organization_release_health_data.OrganizationReleaseHealthDataEndpoint.default_per_page",
         1,
     )
     def test_no_limit_with_series(self):
