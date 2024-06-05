@@ -6,10 +6,10 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
-from sentry import metrics
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 

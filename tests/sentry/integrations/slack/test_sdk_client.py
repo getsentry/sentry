@@ -34,7 +34,7 @@ class SlackClientTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_authorize_success(self, mock_api_call, mock_metrics):
+    def test_api_call_success(self, mock_api_call, mock_metrics):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -52,7 +52,7 @@ class SlackClientTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_authorize_error(self, mock_api_call, mock_metrics):
+    def test_api_call_error(self, mock_api_call, mock_metrics):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": False}).decode() + "'",
             "headers": {},
