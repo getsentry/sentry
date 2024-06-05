@@ -9,10 +9,15 @@ import {
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('Onboarding Product Selection', function () {
   const organization = OrganizationFixture({
     features: ['session-replay', 'performance-view', 'profiling-view'],
+  });
+
+  beforeEach(function () {
+    ConfigStore.init();
   });
 
   it('renders default state', async function () {
@@ -242,6 +247,34 @@ describe('Onboarding Product Selection', function () {
         },
       })
     );
+  });
+
+  it('renders with non-errors features disabled for errors only self-hosted', function () {
+    platformProductAvailability['javascript-react'] = [
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
+    ];
+
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {product: [ProductSolution.SESSION_REPLAY]},
+        },
+        params: {},
+      },
+    });
+
+    ConfigStore.set('isSelfHostedErrorsOnly', true);
+
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
+
+    expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeEnabled();
+
+    expect(screen.getByRole('checkbox', {name: 'Performance Monitoring'})).toBeDisabled();
+
+    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
   });
 
   it('renders npm & yarn info text', function () {
