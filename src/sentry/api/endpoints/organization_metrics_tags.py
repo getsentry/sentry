@@ -6,9 +6,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
-from sentry.api.endpoints.organization_metrics import get_use_case_id
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricParseException, get_all_tags
 
 
