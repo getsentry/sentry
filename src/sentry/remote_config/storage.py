@@ -113,8 +113,8 @@ class ConfigurationBackend:
         return storage_result
 
     def set(self, value: StorageFormat) -> None:
-        self.cache.set(value)
         self.storage.set(value)
+        self.cache.set(value)
 
     def pop(self) -> None:
         self.cache.pop()
