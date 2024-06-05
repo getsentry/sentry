@@ -220,10 +220,10 @@ function SearchQueryBuilderInputInternal({
   // TODO(malwilley): Use input ref to update cursor position on mount
   const [selectionIndex, setSelectionIndex] = useState(0);
 
-  const resetInputValue = () => {
+  const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
     // TODO(malwilley): Reset cursor position using ref
-  };
+  }, [trimmedTokenValue]);
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
@@ -271,6 +271,23 @@ function SearchQueryBuilderInputInternal({
       }
     },
     [item.key, state.collection, state.selectionManager]
+  );
+
+  const onPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
+
+      dispatch({
+        type: 'PASTE_FREE_TEXT',
+        token,
+        text: replaceAliasedFilterKeys(text, aliasToKeyMap),
+      });
+      resetInputValue();
+    },
+    [aliasToKeyMap, dispatch, resetInputValue, token]
   );
 
   return (
@@ -332,6 +349,7 @@ function SearchQueryBuilderInputInternal({
       onKeyDown={onKeyDown}
       tabIndex={tabIndex}
       maxOptions={50}
+      onPaste={onPaste}
     >
       {sections.map(({title, children}) => (
         <Section title={title} key={title}>

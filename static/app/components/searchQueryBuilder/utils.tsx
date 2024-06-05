@@ -8,6 +8,7 @@ import {
   interchangeableFilterOperators,
   type ParseResult,
   type ParseResultToken,
+  parseSearch,
   type TermOperator,
   Token,
   type TokenResult,
@@ -16,6 +17,10 @@ import type {Tag} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
+
+export function parseQueryBuilderValue(value: string): ParseResult | null {
+  return collapseTextTokens(parseSearch(value || ' ', {flattenParenGroups: true}));
+}
 
 /**
  * Generates a unique key for the given token.

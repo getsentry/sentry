@@ -599,6 +599,20 @@ describe('SearchQueryBuilder', function () {
       expect(document.body).toHaveFocus();
     });
 
+    it('converts pasted text into tokens', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.paste('browser.name:firefox');
+
+      // Should have tokenized the pasted text
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+      // Focus should be at the end of the pasted text
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
+    });
+
     it('can remove parens with the keyboard', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
 
