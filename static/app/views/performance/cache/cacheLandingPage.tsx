@@ -58,7 +58,7 @@ const {CACHE_ITEM_SIZE} = SpanMetricsField;
 const SDK_UPDATE_ALERT = (
   <Fragment>
     {t(
-      `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. `
+      `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. To learn more, `
     )}
     <ExternalLink href={`${MODULE_DOC_LINK}#instrumentation`}>
       {t('Read the Docs')}
@@ -78,9 +78,9 @@ export function CacheLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {
-    isLoading: isCacheHitRateLoading,
-    data: cacheHitRateData,
-    error: cacheHitRateError,
+    isLoading: isCacheMissRateLoading,
+    data: cacheMissRateData,
+    error: cacheMissRateError,
   } = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
@@ -149,7 +149,7 @@ export function CacheLandingPage() {
 
   useEffect(() => {
     const hasMissingDataError =
-      cacheHitRateError?.message === CACHE_ERROR_MESSAGE ||
+      cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
 
     if (onboardingProject || isHasDataLoading || !hasData) {
@@ -162,7 +162,7 @@ export function CacheLandingPage() {
       }
     }
   }, [
-    cacheHitRateError?.message,
+    cacheMissRateError?.message,
     transactionsListError?.message,
     setPageInfo,
     hasData,
@@ -228,10 +228,10 @@ export function CacheLandingPage() {
                 <CacheHitMissChart
                   series={{
                     seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
-                    data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
+                    data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
                   }}
-                  isLoading={isCacheHitRateLoading}
-                  error={cacheHitRateError}
+                  isLoading={isCacheMissRateLoading}
+                  error={cacheMissRateError}
                 />
               </ModuleLayout.Half>
               <ModuleLayout.Half>
