@@ -20,6 +20,10 @@ class ExternalProviders(ValueEqualityEnum):
     # TODO: do migration to delete this from database
     CUSTOM = 700
 
+    @property
+    def name(self) -> str:
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(self.value), "")
+
 
 class ExternalProviderEnum(Enum):
     EMAIL = "email"
