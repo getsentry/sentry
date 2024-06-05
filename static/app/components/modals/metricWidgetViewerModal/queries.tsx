@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input, {type InputProps} from 'sentry/components/input';
+import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION, SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {
@@ -22,6 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
+import {hasMetricAlertFeature} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -51,7 +53,7 @@ interface Props {
   removeQuery: (index: number) => void;
 }
 
-export function Queries({
+export const Queries = memo(function Queries({
   displayType,
   metricQueries,
   metricEquations,
@@ -113,10 +115,10 @@ export function Queries({
           )}
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
-              <QueryBuilder
+              <WrappedQueryBuilder
                 index={index}
-                onChange={data => onQueryChange(data, index)}
-                metricsQuery={query}
+                onQueryChange={onQueryChange}
+                query={query}
                 projects={selection.projects}
               />
               <QueryContextMenu
@@ -191,6 +193,36 @@ export function Queries({
       </ButtonBar>
     </ExpressionsWrapper>
   );
+});
+
+/**
+ * Wrapper for  the QueryBuilder to memoize the onChange handler
+ */
+function WrappedQueryBuilder({
+  index,
+  onQueryChange,
+  projects,
+  query,
+}: {
+  index: number;
+  onQueryChange: (data: Partial<DashboardMetricsQuery>, index: number) => void;
+  projects: number[];
+  query: DashboardMetricsQuery;
+}) {
+  const handleChange = useCallback(
+    (data: Partial<DashboardMetricsQuery>) => {
+      onQueryChange(data, index);
+    },
+    [index, onQueryChange]
+  );
+  return (
+    <QueryBuilder
+      index={index}
+      onChange={handleChange}
+      metricsQuery={query}
+      projects={projects}
+    />
+  );
 }
 
 interface QueryContextMenuProps {
@@ -232,8 +264,8 @@ function QueryContextMenu({
     const addAlertItem = {
       leadingItems: [<IconSiren key="icon" />],
       key: 'add-alert',
-      label: t('Create Alert'),
-      disabled: !createAlert,
+      label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
+      disabled: !createAlert || !hasMetricAlertFeature(organization),
       onAction: () => {
         createAlert?.();
       },
@@ -272,13 +304,14 @@ function QueryContextMenu({
       ? [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem, settingsItem]
       : [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem];
   }, [
-    createAlert,
     metricsQuery.mri,
-    removeQuery,
-    addQuery,
-    editAlias,
+    createAlert,
+    organization,
     canRemoveQuery,
+    addQuery,
     queryIndex,
+    removeQuery,
+    editAlias,
     router,
   ]);
 

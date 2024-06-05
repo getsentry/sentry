@@ -33,7 +33,7 @@ describe('TwoFactorRequired', function () {
     });
   });
 
-  const {routerContext, routerProps} = initializeOrg();
+  const {router, routerProps} = initializeOrg();
 
   const baseProps = {
     authenticators: null,
@@ -56,7 +56,7 @@ describe('TwoFactorRequired', function () {
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('TwoFactorRequired', function () {
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('TwoFactorRequired', function () {
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('TwoFactorRequired', function () {
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('TwoFactorRequired', function () {
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByTestId('require-2fa')).toBeInTheDocument();

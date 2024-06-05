@@ -101,7 +101,7 @@ function SpansContent(props: Props) {
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-module');
+    organization.features.includes('insights-initial-modules');
 
   // TODO: Remove this flag when the feature is GA'd and replace the old content entirely
   if (hasNewSpansUIFlag) {

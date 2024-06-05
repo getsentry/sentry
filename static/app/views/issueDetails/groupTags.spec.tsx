@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GroupTags from 'sentry/views/issueDetails/groupTags';
 
 describe('GroupTags', function () {
-  const {routerProps, routerContext, router, organization} = initializeOrg();
+  const {routerProps, router, organization} = initializeOrg();
   const group = GroupFixture();
   let tagsMock;
   beforeEach(function () {
@@ -25,7 +25,7 @@ describe('GroupTags', function () {
         environments={['dev']}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const headers = await screen.findAllByTestId('tag-title');
@@ -66,7 +66,7 @@ describe('GroupTags', function () {
         environments={['dev']}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(

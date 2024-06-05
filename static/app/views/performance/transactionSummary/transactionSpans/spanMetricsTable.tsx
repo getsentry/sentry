@@ -169,7 +169,6 @@ export default function SpanMetricsTable(props: Props) {
               project
             ),
           }}
-          location={location}
         />
       </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

@@ -132,9 +132,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Allow tenant type installations through issue alert actions
     manager.add("organizations:integrations-msteams-tenant", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
-    # temporary boost the sample rate of particular transactions)
-    manager.add("organizations:investigation-bias", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable inviting members to organizations.
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable rate limits for inviting members.
@@ -464,6 +461,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable feature to load new trace view in replay trace tab.
     manager.add("organizations:replay-trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable feature to use span only trace endpoint.
+    manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Extraction metrics for transactions during ingestion.
     manager.add("organizations:transaction-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Mark URL transactions scrubbed by regex patterns as "sanitized".

@@ -5,12 +5,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const omitSupportedTags = [SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
-
-const getSpanFieldSupportedTags = () => {
+const getSpanFieldSupportedTags = excludedTags => {
   const tags: TagCollection = Object.fromEntries(
     Object.values(SpanIndexedField)
-      .filter(v => !omitSupportedTags.includes(v))
+      .filter(v => !excludedTags.includes(v))
       .map(v => [v, {key: v, name: v}])
   );
   tags.has = getHasTag(tags);
@@ -34,10 +32,14 @@ const getDynamicSpanFieldsEndpoint = (orgSlug: string, selection): ApiQueryKey =
   },
 ];
 
-export function useSpanFieldSupportedTags(): TagCollection {
+export function useSpanFieldSupportedTags(excludedTags: string[] = []): TagCollection {
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const staticTags = getSpanFieldSupportedTags();
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
+  const staticTags = getSpanFieldSupportedTags([
+    SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
+    ...excludedTags,
+  ]);
 
   const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
     getDynamicSpanFieldsEndpoint(organization.slug, selection),

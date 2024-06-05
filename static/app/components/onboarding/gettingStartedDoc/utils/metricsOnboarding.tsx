@@ -133,7 +133,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
       JSExampleConfig,
       {
         description: t(
-          'With a bit of delay you can see the data appear in the Sentry UI.'
+          'It can take up to 3 minutes for the data to appear in the Sentry UI.'
         ),
       },
       {
@@ -207,7 +207,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
         JSExampleConfig,
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -442,7 +442,7 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -540,7 +540,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -657,7 +657,7 @@ export const getPythonMetricsOnboarding = ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -769,7 +769,7 @@ export const getDotnetMetricsOnboarding = ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -881,7 +881,7 @@ export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {

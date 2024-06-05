@@ -190,7 +190,6 @@ export function MetricsTable(props: MetricsTableProps) {
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location}
       isLoading={isLoadingBefore || isLoadingAfter || isLoading}
     />
   );
