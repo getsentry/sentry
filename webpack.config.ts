@@ -360,9 +360,9 @@ const appConfig: webpack.Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
+              memoryLimit: 4096,
             },
             devServer: false,
-            // memorylimit is configured in package.json
           }),
         ]
       : []),
