@@ -11,7 +11,6 @@ from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
@@ -101,7 +100,7 @@ class TestInit(RuleTestCase):
 
         assert NotificationMessage.objects.all().count() == 0
 
-    @override_options({"slack.sdk-web-client": [1]})
+    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     def test_after_using_sdk(self, mock_metrics, mock_api_call):
@@ -123,7 +122,7 @@ class TestInit(RuleTestCase):
 
         assert NotificationMessage.objects.all().count() == 0
 
-    @override_options({"slack.sdk-web-client": [1]})
+    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     def test_after_using_sdk_error(self, mock_metrics):
         # tests error flow because we're actually trying to POST
@@ -216,7 +215,7 @@ class TestInit(RuleTestCase):
             NotificationMessage.objects.filter(parent_notification_message_id=msg.id).count() == 1
         )
 
-    @override_options({"slack.sdk-web-client": [1]})
+    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     def test_send_confirmation_using_sdk(self, mock_metrics, mock_api_call):
@@ -232,7 +231,7 @@ class TestInit(RuleTestCase):
             SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": True, "status": 200}
         )
 
-    @override_options({"slack.sdk-web-client": [1]})
+    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     def test_send_confirmation_using_sdk_error(self, mock_metrics):
         # tests error flow because we're actually trying to POST

@@ -175,7 +175,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             organization = event.group.project.organization
 
-            if has_slack_sdk_flag(organization.id):
+            if has_slack_sdk_flag(organization):
                 sdk_client = SlackSdkClient(integration_id=integration.id)
                 text = str(payload["text"]) if payload["text"] is not None else None
                 try:
@@ -272,9 +272,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     )
 
             if (
-                features.has(
-                    "organizations:slack-thread-issue-alert", event.group.project.organization
-                )
+                features.has("organizations:slack-thread-issue-alert", organization)
                 and rule_action_uuid
                 and rule_id
             ):
@@ -321,7 +319,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "unfurl_media": False,
         }
 
-        if has_slack_sdk_flag(rule.project.organization_id):
+        if has_slack_sdk_flag(rule.project.organization):
             sdk_client = SlackSdkClient(integration_id=integration.id)
 
             try:
