@@ -212,12 +212,27 @@ class SlackRequest:
             if self._org and features.has("organizations:slack-sdk-signature", self._org):
                 signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
                 timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
+                logger.info(
+                    "slack.request.verify_signature",
+                    extra={
+                        "organization_id": self._org.id,
+                        "integration_id": self._integration.id if self._integration else None,
+                    },
+                )
                 if SignatureVerifier(signing_secret).is_valid(
                     body=self.request.body, timestamp=timestamp, signature=signature
                 ):
                     return
-            elif self._check_signing_secret(signing_secret):
-                return
+            else:
+                logger.info(
+                    "slack.request.check_signing_secret",
+                    extra={
+                        "organization_id": self._org.id if self._org else None,
+                        "integration_id": self._integration.id if self._integration else None,
+                    },
+                )
+                if self._check_signing_secret(signing_secret):
+                    return
         elif verification_token and self._check_verification_token(verification_token):
             return
 
