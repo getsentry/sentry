@@ -9,54 +9,67 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
+import {
+  type FilterKeySection,
+  QueryInterfaceType,
+} from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
-import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
-const MOCK_SUPPORTED_KEYS: TagCollection = {
-  [FieldKey.AGE]: {
-    key: FieldKey.AGE,
-    name: 'Age',
-    kind: FieldKind.FIELD,
-    predefined: true,
-  },
-  [FieldKey.ASSIGNED]: {
-    key: FieldKey.ASSIGNED,
-    name: 'Assigned To',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: [
+const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+  {
+    value: FieldKind.FIELD,
+    label: 'Category 1',
+    children: [
+      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD, predefined: true},
       {
-        title: 'Suggested',
-        type: 'header',
-        icon: null,
-        children: [{value: 'me'}, {value: 'unassigned'}],
+        key: FieldKey.ASSIGNED,
+        name: 'Assigned To',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: [
+          {
+            title: 'Suggested',
+            type: 'header',
+            icon: null,
+            children: [{value: 'me'}, {value: 'unassigned'}],
+          },
+          {
+            title: 'All',
+            type: 'header',
+            icon: null,
+            children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+          },
+        ],
       },
       {
-        title: 'All',
-        type: 'header',
-        icon: null,
-        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+        key: FieldKey.BROWSER_NAME,
+        name: 'Browser Name',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+      },
+      {
+        key: FieldKey.IS,
+        name: 'is',
+        alias: 'status',
+        predefined: true,
       },
     ],
   },
-  [FieldKey.BROWSER_NAME]: {
-    key: FieldKey.BROWSER_NAME,
-    name: 'Browser Name',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+  {
+    value: FieldKind.TAG,
+    label: 'Category 2',
+    children: [
+      {
+        key: 'custom_tag_name',
+        name: 'Custom_Tag_Name',
+        values: ['tag value one', 'tag value two', 'tag value three'],
+      },
+    ],
   },
-  [FieldKey.IS]: {
-    key: FieldKey.IS,
-    name: 'is',
-    alias: 'status',
-    predefined: true,
-  },
-  custom_tag_name: {key: 'custom_tag_name', name: 'Custom_Tag_Name', kind: FieldKind.TAG},
-};
+];
 
 describe('SearchQueryBuilder', function () {
   beforeEach(() => {
@@ -70,7 +83,7 @@ describe('SearchQueryBuilder', function () {
   const defaultProps: ComponentProps<typeof SearchQueryBuilder> = {
     getTagValues: jest.fn(),
     initialQuery: '',
-    supportedKeys: MOCK_SUPPORTED_KEYS,
+    filterKeySections: FITLER_KEY_SECTIONS,
     label: 'Query Builder',
   };
 
@@ -464,16 +477,15 @@ describe('SearchQueryBuilder', function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(screen.getByRole('grid'));
-      await userEvent.type(
-        screen.getByRole('combobox'),
-        'some free text brow{ArrowDown}'
-      );
 
       // XXX(malwilley): SearchQueryBuilderInput updates state in the render
       // function which causes an act warning despite using userEvent.click.
       // Cannot find a way to avoid this warning.
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
+      await userEvent.type(
+        screen.getByRole('combobox'),
+        'some free text brow{ArrowDown}{Enter}'
+      );
       jest.restoreAllMocks();
 
       // Filter value should have focus
