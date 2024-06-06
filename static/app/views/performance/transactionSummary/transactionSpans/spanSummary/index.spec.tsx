@@ -1,5 +1,5 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
@@ -117,27 +117,21 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
     expect(headerDataMock).toHaveBeenCalled();
 
-    await waitFor(() =>
-      expect(screen.queryByTestId('header-operation-name')).toBeInTheDocument()
-    );
-
-    await waitFor(() =>
-      expect(screen.queryByTestId('header-avg-duration')).toBeInTheDocument()
-    );
-
-    await waitFor(() =>
-      expect(screen.queryByTestId('header-total-exclusive-time')).toBeInTheDocument()
-    );
-
     const headerContainerOp = await screen.findByTestId('operation-name');
-    expect(headerContainerOp).toHaveTextContent('db');
-
     const headerContainerDescription = await screen.findByTestId(
       'header-span-description'
     );
+    const avgDuration = await screen.findByTestId('header-avg-duration');
+    const timeSpent = await screen.findByTestId('header-total-time-spent');
+    const totalSpanCount = await screen.findByTestId('total-span-count');
+
+    expect(headerContainerOp).toHaveTextContent('db');
     expect(headerContainerDescription).toHaveTextContent(
       'SELECT thing FROM my_cool_db WHERE value = %s'
     );
+    expect(avgDuration).toHaveTextContent('1.74ms');
+    expect(timeSpent).toHaveTextContent('2.43mo');
+    expect(totalSpanCount).toHaveTextContent('3.6b spans');
   });
 
   // describe('Without Span Data', function () {
