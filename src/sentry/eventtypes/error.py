@@ -8,8 +8,23 @@ from .base import BaseEvent, compute_title_with_tree_label
 
 Metadata = dict[str, Any]
 
-# These platforms are considered non-native/mobile platforms.
-NON_NATIVE_MOBILE_PLATFORMS = (
+
+def get_crash_location(data: MutableMapping[str, Any]) -> tuple[str | None, str | None] | None:
+    """If available, return the frame and function of the crash location."""
+    from sentry.stacktraces.processing import get_crash_frame_from_event_data
+
+    frame = get_crash_frame_from_event_data(
+        data, frame_filter=lambda x: x.get("function") not in (None, "<redacted>", "<unknown>")
+    )
+    if frame is not None:
+        from sentry.stacktraces.functions import get_function_name_for_frame
+
+        func = get_function_name_for_frame(frame, data.get("platform"))
+        return frame.get("filename") or frame.get("abs_path"), func
+    return None
+
+
+NATIVE_MOBILE_PLATFORMS = (
     "cocoa",
     "objc",
     "native",
@@ -68,7 +83,7 @@ class ErrorEvent(BaseEvent):
         # In the frontend we look at the event platform directly when
         # rendering the title to apply this logic to old data that doesn't
         # have this flag materialized.
-        rv["display_title_with_tree_label"] = data.get("platform") in NON_NATIVE_MOBILE_PLATFORMS
+        rv["display_title_with_tree_label"] = data.get("platform") in NATIVE_MOBILE_PLATFORMS
 
         return rv
 
@@ -89,21 +104,6 @@ class ErrorEvent(BaseEvent):
 
     def get_location(self, metadata: Metadata) -> str | None:
         return metadata.get("filename")
-
-
-def get_crash_location(data: MutableMapping[str, Any]) -> tuple[str | None, str | None] | None:
-    """If available, return the frame and function of the crash location."""
-    from sentry.stacktraces.processing import get_crash_frame_from_event_data
-
-    frame = get_crash_frame_from_event_data(
-        data, frame_filter=lambda x: x.get("function") not in (None, "<redacted>", "<unknown>")
-    )
-    if frame is not None:
-        from sentry.stacktraces.functions import get_function_name_for_frame
-
-        func = get_function_name_for_frame(frame, data.get("platform"))
-        return frame.get("filename") or frame.get("abs_path"), func
-    return None
 
 
 def get_exception(exceptions: MutableMapping[str, Any], main_exception_id: str) -> str | None:
