@@ -53,11 +53,11 @@ The rollout cohort a session is bucketed into is deterministic some long as the 
 
 **Rule Object**
 
-| Field    | Type                                        | Description                                                             |
-| -------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| operator | Operator                                    | A conditional operator that evaluates the value against the target.     |
-| property | string                                      | A context object property name which contains the value of the operand. |
-| value    | union[string, int, bool, null, array[self]] | The value being compared against.                                       |
+| Field    | Type                                           | Description                                                             |
+| -------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
+| operator | Operator                                       | A conditional operator that evaluates the value against the target.     |
+| property | string                                         | A context object property name which contains the value of the operand. |
+| value    | union[string, number, bool, null, array[self]] | The value being compared against.                                       |
 
 Rules contain evaluation and extraction instructions. The context object provided must contain the key defined on the `property` attribute. If the SDK can not find the `property` within the context object the evaluation fails and the variant is skipped. The `operator` defines how the context value is compared against the literal provided by the configuration on the `value` attribute. If the value provided in the context object can not be compared against the value provided in the configuration the evaluation fails and the variant is skipped.
 
