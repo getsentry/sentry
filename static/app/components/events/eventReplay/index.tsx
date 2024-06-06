@@ -78,27 +78,6 @@ function EventReplayContent({
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
-  const commonProps = {
-    analyticsContext: 'issue_details',
-    replaySlug: replayId,
-    orgSlug: organization.slug,
-    eventTimestampMs,
-    fullReplayButtonProps: {
-      analyticsEventKey: 'issue_details.open_replay_details_clicked',
-      analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-      analyticsParams: {
-        ...getAnalyticsDataForEvent(event),
-        ...getAnalyticsDataForGroup(group),
-        organization,
-      },
-    },
-    loadingFallback: (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
-        <LoadingIndicator />
-      </StyledNegativeSpaceContainer>
-    ),
-  };
-
   // don't try to construct the url if we don't have a group
   const eventIdFromRouter = router.params.eventId;
   const baseUrl = group
@@ -138,7 +117,24 @@ function EventReplayContent({
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReactLazyLoad debounce={50} height={448} offset={0} once>
             <LazyLoad
-              {...commonProps}
+              analyticsContext="issue_details"
+              replaySlug={replayId}
+              orgSlug={organization.slug}
+              eventTimestampMs={eventTimestampMs}
+              fullReplayButtonProps={{
+                analyticsEventKey: 'issue_details.open_replay_details_clicked',
+                analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+                analyticsParams: {
+                  ...getAnalyticsDataForEvent(event),
+                  ...getAnalyticsDataForGroup(group),
+                  organization,
+                },
+              }}
+              loadingFallback={
+                <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+                  <LoadingIndicator />
+                </StyledNegativeSpaceContainer>
+              }
               LazyComponent={ReplayClipPreview}
               clipOffsets={REPLAY_CLIP_OFFSETS}
               overlayContent={overlayContent}
