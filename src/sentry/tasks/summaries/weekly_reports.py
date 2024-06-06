@@ -3,7 +3,8 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial, reduce
@@ -12,7 +13,6 @@ from typing import Any, cast
 import sentry_sdk
 from django.db.models import F
 from django.utils import dateformat, timezone
-from rb.clients import LocalClient
 from sentry_sdk import set_tag
 
 from sentry import analytics
@@ -291,12 +291,10 @@ class OrganizationReportBatch:
         template_context: Mapping[str, Any] | None = user_template_context.get("context")
         user_id: int | None = user_template_context.get("user_id")
         if template_context and user_id:
-            self.send_email(template_ctx=template_context, user_id=user_id)
+            with self._check_for_duplicate_delivery(user_id):
+                self.send_email(template_ctx=template_context, user_id=user_id)
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
-        delivery_record = _ReportDeliveryRecord(self, user_id)
-        delivery_record.check_delivery()
-
         message = MessageBuilder(
             subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
             template="sentry/emails/reports/body.txt",
@@ -333,67 +331,41 @@ class OrganizationReportBatch:
             message.add_users((user_id,))
             message.send_async()
 
-        delivery_record.record_delivery()
+    @contextmanager
+    def _check_for_duplicate_delivery(self, user_id: int) -> Generator[None, None, None]:
+        """Attempt to prevent duplicate deliveries of the same report."""
 
+        def log_error(msg: str) -> None:
+            extra = {
+                "batch_id": self.batch_id,
+                "organization": self.ctx.organization.id,
+                "user_id": user_id,
+                "has_email_override": bool(self.email_override),
+            }
+            logger.error(msg, extra=extra)
 
-@dataclass(frozen=True)
-class _ReportDeliveryRecord:
-    """Guard against duplicate deliveries."""
+        cluster = redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+        name_parts = (self.batch_id, self.ctx.organization.id, user_id)
+        name = ":".join(str(part) for part in name_parts)
 
-    batch: OrganizationReportBatch
-    user_id: int
+        count_before = int(cluster.get(name) or 0)
+        if count_before > 0:
+            # When we have more confidence in this approach, we can upgrade this to
+            # an exception, thereby preventing the duplicate send.
+            log_error("weekly_report.delivery_record.duplicate_detected")
 
-    def _get_cluster(self) -> LocalClient:
-        return redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+        # Dispatch the send operation. There is no lock for concurrency, which leaves
+        # open the possibility of a race condition, in case another thread or server
+        # node received a duplicate Celery task somehow. But we do not think this is
+        # a likely failure mode.
+        yield
 
-    @property
-    def _key(self) -> str:
-        parts = (self.batch.batch_id, self.batch.ctx.organization.id, self.user_id)
-        return ":".join(str(part) for part in parts)
-
-    @property
-    def _log_extras(self) -> dict[str, Any]:
-        return {
-            "batch_id": self.batch.batch_id,
-            "organization": self.batch.ctx.organization.id,
-            "user_id": self.user_id,
-            "has_email_override": bool(self.batch.email_override),
-        }
-
-    def check_delivery(self) -> int:
-        """Check whether the same report has already been delivered.
-
-        For now, only log an error if a duplicate is delivered in this way. When we
-        have more confidence in this approach, we can upgrade this to an exception,
-        thereby halting the `send_email` operation and preventing the duplicate send.
-        """
-
-        count = self._get_cluster().get(self._key)
-        if count:
-            logger.error("weekly_report.delivery_record.duplicate_detected", extra=self._log_extras)
-        return count
-
-    def record_delivery(self) -> int:
-        """Record the report being delivered, in case a duplicate send occurs later.
-
-        This is not done atomically with `check_delivery`, because we want to
-        interrupt a duplicate send before the email is sent but record it after it is
-        sent successfully. This leaves open the possibility of a race condition (in
-        case the same report is sent concurrently, either by in threads or different
-        nodes) but we do not think this is a likely failure mode.
-        """
-
-        cluster = self._get_cluster()
-        count = cluster.incr(self._key)
-        cluster.expire(self._key, timedelta(days=1))
-
-        if count > 1:
-            # The `cluster.incr` operation is atomic, so this should reliably detect
-            # concurrent duplicates after the fact.
-            logger.error(
-                "weekly_report.delivery_record.concurrent_detected", extra=self._log_extras
-            )
-        return count
+        count_after = cluster.incr(name)
+        cluster.expire(name, timedelta(days=1))
+        if count_after > count_before + 1:
+            # The `cluster.incr` operation is atomic, so if concurrent duplicates are
+            # happening, this should reliably detect them after the fact.
+            log_error("weekly_report.delivery_record.concurrent_detected")
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
