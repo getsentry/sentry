@@ -99,8 +99,9 @@ from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.utils import json
@@ -323,11 +324,8 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
     return actual
 
 
-class BackupTestCase(TransactionTestCase):
-    """
-    Instruments a database state that includes an instance of every Sentry model with every field
-    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
-    """
+class ExhaustiveFixtures(Fixtures):
+    """Helper fixtures for creating 'exhaustive' (that is, maximally filled out, with all child models included) versions of common top-level models like users, organizations, etc."""
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_user(
@@ -799,3 +797,17 @@ class BackupTestCase(TransactionTestCase):
         data = self.generate_tmp_users_json()
         with open(tmp_path, "w+") as tmp_file:
             json.dump(data, tmp_file)
+
+
+class BackupTestCase(TestCase, ExhaustiveFixtures):
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
+    """
+
+
+class BackupTransactionTestCase(TransactionTestCase, ExhaustiveFixtures):
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing. Unlike `BackupTestCase`, this completely resets the database between each test, which can be an expensive operation.
+    """
