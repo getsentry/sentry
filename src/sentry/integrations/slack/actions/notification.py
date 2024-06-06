@@ -310,9 +310,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         channel = self.get_option("channel_id")
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
+        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
         payload = {
             "text": blocks.get("text"),
-            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
+            "blocks": json_blocks,
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,
@@ -323,8 +324,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             try:
                 sdk_client.chat_postMessage(
-                    blocks=payload["blocks"],
-                    text=payload["text"],
+                    blocks=json_blocks,
+                    text=blocks.get("text"),
                     channel=channel,
                     unfurl_links=False,
                     unfurl_media=False,
