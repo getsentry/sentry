@@ -5,6 +5,7 @@ import logging
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import timedelta
 from functools import partial, reduce
 from typing import Any, cast
 
@@ -244,10 +245,24 @@ class OrganizationReportBatch:
     target_user: User | None = None
     email_override: str | None = None
 
+    def _prevent_duplicate_delivery(self) -> None:
+        from sentry.utils import redis  # TODO: Use sentry.buffer.redis instead?
+
+        cluster = redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+        key = f"{self.batch_id}:{self.ctx.organization.id}"
+        count = cluster.incr(key)
+        cluster.expire(key, timedelta(days=1))
+
+        if count > 1:
+            raise Exception(f"Duplicate report delivery detected for batch {self.batch_id}")
+
     def deliver_reports(self) -> None:
         """
         For all users in the organization, we generate the template context for the user, and send the email.
         """
+
+        self._prevent_duplicate_delivery()
+
         # Specify a sentry user to send this email.
         template_context: Mapping[str, Any] | None = None
         user_id: int | None = None
