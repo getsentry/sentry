@@ -51,7 +51,7 @@ Variants are ordered and must be evaluated in the order returned by the service-
 | sticky.seed   | string              | A SHA1 hash used to seed a random number generator.         |
 | sticky.target | string              | The name of a property contained within the context object. |
 
-The rollout cohort a session is bucketed into is deterministic some long as the `target` value is static. The `target` value controls the bucket a session is placed into. The `seed` value provides randomization _between features_ such that if a session is successfully opted into feature `A` they will not necesssarily be opted into feature `B` even if those features share the same rollout percentage. The `percentage` value controls the number of buckets which evaluate to `true`.
+The rollout cohort a session is bucketed into is deterministic so long as the `target` value is static. The `target` value controls the bucket a session is placed into. The `seed` value provides randomization _between features_ such that if a session is successfully opted into feature `A` they will not necesssarily be opted into feature `B` even if those features share the same rollout percentage. The `percentage` value controls the number of buckets which evaluate to `true`.
 
 **Rule Object**
 
