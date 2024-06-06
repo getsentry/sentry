@@ -181,7 +181,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/user_notification_settings_options.py             @getsentry/alerts-notifications
 /src/sentry/api/endpoints/user_notification_settings_providers.py           @getsentry/alerts-notifications
 /src/sentry/api/endpoints/user_notification_details.py                      @getsentry/alerts-notifications
-/src/sentry/api/endpoints/user_subscriptions.py                             @getsentry/alerts-notifications
 ## Endof Alerts & Notifications
 
 
