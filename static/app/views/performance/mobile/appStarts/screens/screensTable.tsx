@@ -59,8 +59,8 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
     [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
       t('Change'),
     app_start_breakdown: t('Type Breakdown'),
-    'count_starts(measurements.app_start_cold)': t('Count'),
-    'count_starts(measurements.app_start_warm)': t('Count'),
+    'count_starts(measurements.app_start_cold)': t('Cold Start Count'),
+    'count_starts(measurements.app_start_warm)': t('Warm Start Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {

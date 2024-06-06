@@ -63,7 +63,9 @@ describe('AppStartScreens', () => {
     expect(
       screen.getByRole('columnheader', {name: 'Type Breakdown'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Count'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Cold Start Count'})
+    ).toBeInTheDocument();
   });
 
   it('renders custom transaction and breakdown fields', () => {
