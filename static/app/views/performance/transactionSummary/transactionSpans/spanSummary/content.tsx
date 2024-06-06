@@ -4,11 +4,11 @@ import type {Location} from 'history';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {Organization, Project} from 'sentry/types';
-import type EventView from 'sentry/utils/discover/eventView';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
@@ -24,8 +24,6 @@ import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';
 
 type Props = {
-  eventView: EventView;
-  location: Location;
   organization: Organization;
   project: Project | undefined;
   spanSlug: SpanSlug;
@@ -33,7 +31,8 @@ type Props = {
 };
 
 export default function SpanSummary(props: Props) {
-  const {location, organization, eventView, project, transactionName, spanSlug} = props;
+  const {organization, project, transactionName, spanSlug} = props;
+  const location = useLocation();
 
   // customize the route analytics event we send
   useRouteAnalyticsEventNames(
@@ -77,8 +76,6 @@ export default function SpanSummary(props: Props) {
             location={location}
             organization={organization}
             project={project}
-            eventView={eventView}
-            spanSlug={spanSlug}
             transactionName={transactionName}
           />
         </Layout.Main>
@@ -88,11 +85,9 @@ export default function SpanSummary(props: Props) {
 }
 
 type ContentProps = {
-  eventView: EventView;
   location: Location;
   organization: Organization;
   project: Project | undefined;
-  spanSlug: SpanSlug;
   transactionName: string;
 };
 

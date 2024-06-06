@@ -7,7 +7,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/';
+import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 
 jest.mock('sentry/utils/useParams', () => ({
   useParams: jest.fn(),
