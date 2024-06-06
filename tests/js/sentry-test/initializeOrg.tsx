@@ -1,33 +1,28 @@
-import type {RouteComponent, RouteComponentProps} from 'react-router';
+import type {InjectedRouter, PlainRoute, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import type {Organization as TOrganization} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-// Workaround react-router PlainRoute type not covering redirect routes.
-type RouteShape = {
-  childRoutes?: RouteShape[];
-  component?: RouteComponent;
-  from?: string;
-  indexRoute?: RouteShape;
+interface RouteWithName extends PlainRoute {
   name?: string;
-  path?: string;
-};
+}
+
+interface PartialInjectedRouter<P>
+  extends Partial<Omit<InjectedRouter<P>, 'location' | 'routes'>> {
+  location?: Partial<Location>;
+  routes?: RouteWithName[];
+}
 
 interface InitializeOrgOptions<RouterParams> {
-  organization?: Partial<TOrganization>;
+  organization?: Partial<Organization>;
   project?: Partial<Project>;
   projects?: Partial<Project>[];
-  router?: {
-    location?: Partial<Location>;
-    params?: RouterParams;
-    push?: jest.Mock;
-    routes?: RouteShape[];
-  };
+  router?: PartialInjectedRouter<RouterParams>;
 }
 
 /**

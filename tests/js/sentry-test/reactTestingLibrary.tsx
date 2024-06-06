@@ -32,8 +32,11 @@ interface ProviderOptions {
 
 interface Options extends ProviderOptions, rtl.RenderOptions {}
 
-function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
-  const {organization, router} = initializeOrg(initializeOrgOptions as any);
+function makeAllTheProviders(providers: ProviderOptions) {
+  const {organization, router} = initializeOrg({
+    organization: providers.organization === null ? undefined : providers.organization,
+    router: providers.router,
+  });
 
   class LegacyRouterProvider extends Component<{children?: React.ReactNode}> {
     static childContextTypes = {
@@ -50,8 +53,7 @@ function makeAllTheProviders(initializeOrgOptions: ProviderOptions) {
   }
 
   // In some cases we may want to not provide an organization at all
-  const optionalOrganization =
-    initializeOrgOptions.organization === null ? null : organization;
+  const optionalOrganization = providers.organization === null ? null : organization;
 
   return function ({children}: {children?: React.ReactNode}) {
     return (
