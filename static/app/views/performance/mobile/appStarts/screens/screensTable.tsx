@@ -39,19 +39,19 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
   const columnNameMap = {
     transaction: t('Screen'),
     [`avg_if(measurements.app_start_cold,release,${primaryRelease})`]: t(
-      'Cold Start (%s)',
+      'Avg Cold Start (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_cold,release,${secondaryRelease})`]: t(
-      'Cold Start (%s)',
+      'Avg Cold Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_warm,release,${primaryRelease})`]: t(
-      'Warm Start (%s)',
+      'Avg Warm Start (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_warm,release,${secondaryRelease})`]: t(
-      'Warm Start (%s)',
+      'Avg Warm Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
     [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
