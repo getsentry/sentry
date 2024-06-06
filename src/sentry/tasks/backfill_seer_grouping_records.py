@@ -200,7 +200,9 @@ def backfill_seer_grouping_records(
 
     group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
     if snuba_results and snuba_results[0].get("data"):
-        rows: list[GroupEventRow] = [snuba_result["data"][0] for snuba_result in snuba_results]
+        rows: list[GroupEventRow] = [
+            snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
+        ]
 
         # Log if any group does not have any events in snuba and skip it
         if len(rows) != len(group_id_batch_filtered):
@@ -261,6 +263,13 @@ def backfill_seer_grouping_records(
                     "request_hash": group_hashes_dict[group.id],
                 }
                 if str(group.id) in groups_with_neighbor:
+                    logger.info(
+                        "backfill_seer_grouping_records.found_neighbor",
+                        extra={
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
+                    )
                     # TODO: remove this try catch once the helper is made
                     try:
                         seer_similarity["results"] = [
@@ -296,6 +305,12 @@ def backfill_seer_grouping_records(
                     extra={"project_id": project.id, "num_updated": num_updated},
                 )
 
+            logger.info(
+                "about to call next backfill",
+                extra={
+                    "project_id": project_id,
+                },
+            )
             call_next_backfill(
                 batch_end_index,
                 project_id,
