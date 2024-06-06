@@ -69,7 +69,10 @@ export function MessageSpanSamplesPanel() {
   });
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+  const supportedTags = useSpanFieldSupportedTags([
+    SpanIndexedField.TRACE_STATUS,
+    SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  ]);
 
   const project = projects.find(p => query.project === p.id);
 

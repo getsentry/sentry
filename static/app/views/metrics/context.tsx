@@ -9,6 +9,7 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import type {MRI} from 'sentry/types';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
@@ -29,7 +30,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaSelection} from 'sentry/views/metrics/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 

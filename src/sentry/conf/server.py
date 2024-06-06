@@ -760,7 +760,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
-    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -882,6 +881,11 @@ CELERY_QUEUES_REGION = [
     Queue(
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
+    ),
+    Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
+    Queue(
+        "events.symbolicate_jvm_event_low_priority",
+        routing_key="events.symbolicate_jvm_event_low_priority",
     ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
