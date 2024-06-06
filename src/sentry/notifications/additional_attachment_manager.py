@@ -4,11 +4,11 @@ from collections.abc import Callable, MutableMapping
 
 from sentry.api.validators.integrations import validate_provider
 from sentry.integrations.slack.message_builder import SlackAttachment
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.types.integrations import ExternalProviders
 
 GetAttachment = Callable[
     [Integration | RpcIntegration, Organization | RpcOrganization], SlackAttachment

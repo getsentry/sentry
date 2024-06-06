@@ -20,8 +20,8 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
