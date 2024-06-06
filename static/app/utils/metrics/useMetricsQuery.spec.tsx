@@ -62,6 +62,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-31T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '2h',
     });
 
@@ -96,6 +97,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       statsPeriod: '7d',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '30m',
     });
 
@@ -126,6 +128,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
     const result = getMetricsQueryApiRequestPayload([metric], filters, {
       interval: '123m',
+      includeSeries: false,
     });
 
     expect(result.query).toEqual({
@@ -133,6 +136,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: false,
       interval: '123m',
     });
 
@@ -169,6 +173,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 
@@ -204,6 +209,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 
@@ -241,6 +247,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 

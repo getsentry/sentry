@@ -10,17 +10,19 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {DEFAULT_METRICS_CARDINALITY_LIMIT} from '../../../utils/metrics/constants';
+
 type Props = {
   project: Project;
 };
-
-const DEFAULT_LIMIT = '5000';
 
 function transformData(data) {
   const limit = data.relayCustomMetricCardinalityLimit;
   return {
     relayCustomMetricCardinalityLimit:
-      limit === '' || limit === DEFAULT_LIMIT ? null : limit,
+      limit === '' || limit === DEFAULT_METRICS_CARDINALITY_LIMIT.toString()
+        ? null
+        : limit,
   };
 }
 
@@ -35,7 +37,8 @@ export function CardinalityLimit({project}: Props) {
       saveOnBlur
       initialData={{
         relayCustomMetricCardinalityLimit:
-          project.relayCustomMetricCardinalityLimit ?? DEFAULT_LIMIT,
+          project.relayCustomMetricCardinalityLimit ??
+          DEFAULT_METRICS_CARDINALITY_LIMIT.toString(),
       }}
     >
       <Panel>

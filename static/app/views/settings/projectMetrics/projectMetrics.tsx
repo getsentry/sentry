@@ -12,19 +12,27 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, Organization, Project} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import type {MetricMeta} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {
+  DEFAULT_METRICS_CARDINALITY_LIMIT,
+  METRICS_DOCS_URL,
+} from 'sentry/utils/metrics/constants';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
+import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -43,35 +51,68 @@ enum BlockingStatusTab {
   DISABLED = 'disabled',
 }
 
+type MetricWithCardinality = MetricMeta & {cardinality: number};
+
 function ProjectMetrics({project, location}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta(
+  const metricsMeta = useMetricsMeta(
     {projects: [parseInt(project.id, 10)]},
     ['custom'],
     false
   );
+
+  const metricsCardinality = useMetricsCardinality({
+    project,
+  });
+
+  const sortedMeta = useMemo(() => {
+    if (!metricsMeta.data) {
+      return [];
+    }
+
+    if (!metricsCardinality.data) {
+      return metricsMeta.data.map(meta => ({...meta, cardinality: 0}));
+    }
+
+    return metricsMeta.data
+      .map(({mri, ...rest}) => {
+        return {
+          mri,
+          cardinality: metricsCardinality.data[mri] ?? 0,
+          ...rest,
+        };
+      })
+      .sort((a, b) => {
+        return b.cardinality - a.cardinality;
+      }) as MetricWithCardinality[];
+  }, [metricsCardinality.data, metricsMeta.data]);
+
   const query = decodeScalar(location.query.query, '').trim();
-  const {activateSidebar} = useMetricsOnboardingSidebar();
-  const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (searchQuery: string) =>
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {...location.query, query: searchQuery},
-          }),
-        DEFAULT_DEBOUNCE_DURATION
-      ),
-    [location.pathname, location.query]
-  );
-
-  const metrics = meta.filter(
+  const metrics = sortedMeta.filter(
     ({mri, type, unit}) =>
       mri.includes(query) ||
       getReadableMetricType(type).includes(query) ||
       unit.includes(query)
   );
+
+  const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
+
+  const navigate = useNavigate();
+  const debouncedSearch = useMemo(
+    () =>
+      debounce(
+        (searchQuery: string) =>
+          navigate({
+            pathname: location.pathname,
+            query: {...location.query, query: searchQuery},
+          }),
+        DEFAULT_DEBOUNCE_DURATION
+      ),
+    [location.pathname, location.query, navigate]
+  );
+
+  const {activateSidebar} = useMetricsOnboardingSidebar();
+  const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
 
   return (
     <Fragment>
@@ -151,7 +192,7 @@ function ProjectMetrics({project, location}: Props) {
 
 interface MetricsTableProps {
   isLoading: boolean;
-  metrics: MetricMeta[];
+  metrics: MetricWithCardinality[];
   project: Project;
   query: string;
 }
@@ -159,13 +200,19 @@ interface MetricsTableProps {
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
   const {hasAccess} = useAccess({access: ['project:write']});
+  const cardinalityLimit =
+    project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
 
   return (
     <StyledPanelTable
       headers={[
         t('Metric'),
+        <Cell right key="cardinality">
+          <IconArrow size="xs" direction="down" />
+
+          {t('Cardinality')}
+        </Cell>,
         <Cell right key="type">
-          {' '}
           {t('Type')}
         </Cell>,
         <Cell right key="unit">
@@ -183,8 +230,9 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
       isEmpty={metrics.length === 0}
       isLoading={isLoading}
     >
-      {metrics.map(({mri, type, unit, blockingStatus}) => {
+      {metrics.map(({mri, type, unit, cardinality, blockingStatus}) => {
         const isBlocked = blockingStatus[0]?.isBlocked;
+        const isCardinalityLimited = cardinality >= cardinalityLimit;
         return (
           <Fragment key={mri}>
             <Cell>
@@ -195,6 +243,19 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
               >
                 {middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}
               </Link>
+            </Cell>
+            <Cell right>
+              {isCardinalityLimited && (
+                <Tooltip
+                  title={tct(
+                    'The tag cardinality of this metric exceeded our limit of [cardinalityLimit], which led to the data being dropped',
+                    {cardinalityLimit}
+                  )}
+                >
+                  <StyledIconWarning size="sm" color="red300" />
+                </Tooltip>
+              )}
+              {cardinality}
             </Cell>
             <Cell right>
               <Tag>{getReadableMetricType(type)}</Tag>
@@ -241,14 +302,22 @@ const SearchWrapper = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr repeat(3, minmax(115px, min-content));
+  grid-template-columns: 1fr repeat(4, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
   align-items: center;
   align-self: stretch;
+  gap: ${space(0.5)};
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-top: ${space(0.5)};
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 export default ProjectMetrics;

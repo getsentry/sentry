@@ -77,8 +77,9 @@ export function getMetricsQueryApiRequestPayload(
   {
     intervalLadder,
     interval: intervalParam,
+    includeSeries = true,
   }: {
-    autoOrder?: boolean;
+    includeSeries?: boolean;
     interval?: string;
     intervalLadder?: MetricsDataIntervalLadder;
   } = {}
@@ -151,6 +152,7 @@ export function getMetricsQueryApiRequestPayload(
       project: projects,
       environment: environments,
       interval,
+      includeSeries,
     },
     body: {
       queries: requestQueries,
@@ -162,7 +164,11 @@ export function getMetricsQueryApiRequestPayload(
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
   {projects, environments, datetime}: PageFilters,
-  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {},
+  overrides: {
+    includeSeries?: boolean;
+    interval?: string;
+    intervalLadder?: MetricsDataIntervalLadder;
+  } = {},
   enableRefetch = true
 ) {
   const organization = useOrganization();
