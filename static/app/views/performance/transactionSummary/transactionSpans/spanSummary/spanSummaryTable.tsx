@@ -37,6 +37,7 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {isUndefined} from 'lodash';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -258,6 +259,10 @@ function renderBodyCell(
     }
 
     if (column.key === SpanIndexedField.ID) {
+      if (isUndefined(span_id)) {
+        return null;
+      }
+
       return (
         <SpanIdCell
           moduleName={ModuleName.OTHER}
