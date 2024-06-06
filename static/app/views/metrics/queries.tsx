@@ -5,6 +5,7 @@ import * as echarts from 'echarts/core';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/components/metrics/querySymbol';
 import SwitchButton from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -27,7 +28,6 @@ import {useMetricsContext} from 'sentry/views/metrics/context';
 import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/metrics/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/metrics/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
 export function Queries() {

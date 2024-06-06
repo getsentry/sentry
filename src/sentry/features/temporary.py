@@ -86,8 +86,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Hides DDM sidebar item
     manager.add("organizations:ddm-sidebar-item-hidden", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Controls the visibility of the metrics launch related UI elements
-    manager.add("organizations:metrics-launch-rollout", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the default alert at project creation to be the high priority alert
     manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables automatically deriving of code mappings
