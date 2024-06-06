@@ -16,7 +16,11 @@ import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilte
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponseLastMeta, MetricType, MRI} from 'sentry/types';
+import type {
+  MetricsQueryApiResponseLastMeta,
+  MetricType,
+  MRI,
+} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {getDefaultAggregate, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -28,12 +32,11 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getChartTimeseries} from 'sentry/views/metrics/widget';
-import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
-
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
-} from '../performance/newTraceDetails/traceDrawer/details/styles';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 
 function flattenMetricsSummary(
   metricsSummary: MetricsSummary
