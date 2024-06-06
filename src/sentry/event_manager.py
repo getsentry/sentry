@@ -41,6 +41,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
@@ -1152,7 +1153,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
-            group_states = None
+            group_states: list[GroupState] | None = None
             is_new = False
             is_regression = False
             is_new_group_environment = False
