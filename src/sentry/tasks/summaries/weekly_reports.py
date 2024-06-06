@@ -253,9 +253,6 @@ class OrganizationReportBatch:
         """
         For all users in the organization, we generate the template context for the user, and send the email.
         """
-        # Specify a sentry user to send this email.
-        template_context: Mapping[str, Any] | None = None
-        user_id: int | None = None
 
         if self.email_override:
             target_user_id = (
@@ -265,11 +262,7 @@ class OrganizationReportBatch:
                 ctx=self.ctx, user_ids=[target_user_id]
             )
             if user_template_context_by_user_id_list:
-                user_template_context_by_user_id = user_template_context_by_user_id_list[0]
-                template_context = user_template_context_by_user_id.get("context")
-                user_id = user_template_context_by_user_id.get("user_id")
-                if template_context and user_id:
-                    self.send_email(template_ctx=template_context, user_id=user_id)
+                self._send_to_user(user_template_context_by_user_id_list[0])
         else:
             user_list = list(
                 OrganizationMember.objects.filter(
@@ -292,10 +285,13 @@ class OrganizationReportBatch:
                 )
             if user_template_context_by_user_id_list:
                 for user_template in user_template_context_by_user_id_list:
-                    template_context = user_template.get("context")
-                    user_id = user_template.get("user_id")
-                    if template_context and user_id:
-                        self.send_email(template_ctx=template_context, user_id=user_id)
+                    self._send_to_user(user_template)
+
+    def _send_to_user(self, user_template_context: Mapping[str, Any]) -> None:
+        template_context: Mapping[str, Any] | None = user_template_context.get("context")
+        user_id: int | None = user_template_context.get("user_id")
+        if template_context and user_id:
+            self.send_email(template_ctx=template_context, user_id=user_id)
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
         delivery_record = _ReportDeliveryRecord(self, user_id)
