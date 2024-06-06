@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
@@ -39,6 +39,7 @@ from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -135,6 +136,16 @@ class AlertRuleNotification(ProjectNotification):
             "timezone": tz,
         }
 
+    def get_image_url(self) -> str | None:
+        if features.has(
+            "organizations:email-performance-regression-image", self.group.organization
+        ):
+            image_builder = IssueAlertImageBuilder(
+                group=self.group, provider=ExternalProviderEnum.EMAIL
+            )
+            return image_builder.get_image_url()
+        return None
+
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
@@ -180,6 +191,7 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
+            "chart_image": self.get_image_url(),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
