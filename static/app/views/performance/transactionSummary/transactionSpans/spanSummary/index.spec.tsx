@@ -1,28 +1,63 @@
-import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {
-  act,
-  findAllByTestId,
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+
+import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/';
-
-function initializeData(settings) {
-  const data = _initializeData(settings);
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
-  return data;
-}
 
 jest.mock('sentry/utils/useParams', () => ({
   useParams: jest.fn(),
 }));
 
+jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/utils/useProjects');
+
 describe('Performance > Transaction Spans > Span Summary', function () {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+
+  jest.mocked(useLocation).mockReturnValue({
+    pathname: '',
+    search: '',
+    query: {statsPeriod: '10d', project: '1'},
+    hash: '',
+    state: undefined,
+    action: 'PUSH',
+    key: '',
+  });
+
+  jest.mocked(useProjects).mockReturnValue({
+    projects: [],
+    onSearch: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: false,
+  });
+
+  jest.mocked(usePageFilters).mockReturnValue({
+    isReady: true,
+    desyncedFilters: new Set(),
+    pinnedFilters: new Set(),
+    shouldPersist: true,
+    selection: {
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
+      },
+      environments: [],
+      projects: [parseInt(project.id, 10)],
+    },
+  });
+
   let headerDataMock;
   let avgDurationChartMock;
   let spanThroughputChartMock;
@@ -186,11 +221,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     });
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-    jest.resetAllMocks();
-  });
-
   it('correctly renders the details in the header', async function () {
     headerDataMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -225,15 +255,14 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       },
     });
 
-    const data = initializeData({});
-
     render(
       <SpanSummary
         spanSlug={{group: 'aaaaaaaa', op: 'db'}}
         transactionName="transaction"
-        {...data}
+        organization={organization}
+        project={undefined}
       />,
-      {organization: data.organization}
+      {organization}
     );
 
     expect(headerDataMock).toHaveBeenCalled();
@@ -256,8 +285,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   });
 
   it('renders the charts', async () => {
-    const data = initializeData({});
-
     avgDurationChartMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
@@ -301,9 +328,10 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       <SpanSummary
         spanSlug={{group: 'aaaaaaaa', op: 'db'}}
         transactionName="transaction"
-        {...data}
+        organization={organization}
+        project={project}
       />,
-      {organization: data.organization}
+      {organization}
     );
 
     expect(avgDurationChartMock).toHaveBeenCalled();
