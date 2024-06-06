@@ -10,6 +10,8 @@ import type {
 } from 'sentry/components/events/interfaces/spans/types';
 import {Hovercard} from 'sentry/components/hovercard';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {MetricChart} from 'sentry/components/metrics/chart/chart';
+import type {Series} from 'sentry/components/metrics/chart/types';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,8 +27,6 @@ import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MetricChart} from 'sentry/views/metrics/chart/chart';
-import type {Series} from 'sentry/views/metrics/chart/types';
 import {getChartTimeseries} from 'sentry/views/metrics/widget';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 

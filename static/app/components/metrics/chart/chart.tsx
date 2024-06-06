@@ -18,16 +18,19 @@ import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import ChartZoom from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
+import type {
+  CombinedMetricChartProps,
+  Series,
+} from 'sentry/components/metrics/chart/types';
+import type {UseFocusAreaResult} from 'sentry/components/metrics/chart/useFocusArea';
+import type {UseMetricSamplesResult} from 'sentry/components/metrics/chart/useMetricChartSamples';
+import type {UseMetricReleasesResult} from 'sentry/components/metrics/chart/useMetricReleases';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {CombinedMetricChartProps, Series} from 'sentry/views/metrics/chart/types';
-import type {UseFocusAreaResult} from 'sentry/views/metrics/chart/useFocusArea';
-import type {UseMetricSamplesResult} from 'sentry/views/metrics/chart/useMetricChartSamples';
-import type {UseMetricReleasesResult} from 'sentry/views/metrics/chart/useMetricReleases';
 
 const MAIN_X_AXIS_ID = 'xAxis';
 
