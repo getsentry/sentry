@@ -615,6 +615,7 @@ function Sidebar() {
         icon={<IconGraph />}
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
         id="insights"
+        initiallyExpanded={false}
         isNew
         exact={!shouldAccordionFloat}
       >
