@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
+import {QuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {
   IconBookmark,
   IconDashboard,
@@ -25,7 +26,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
-import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
