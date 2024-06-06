@@ -62,7 +62,7 @@ Rules contain evaluation and extraction instructions. The context object provide
 
 The type of the `value` field is controlled by the operator being applied to it. For example, some operators only operate on `number` types. While others operate on arrays.
 
-**Operator, Value Type**
+**Operator Reference**
 
 | Symbol | Value Type                         | Description                                                               |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------- |
