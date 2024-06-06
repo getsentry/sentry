@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -31,7 +33,10 @@ function TraceExplorerLandingPage() {
               },
             ]}
           />
-          <Layout.Title>{t('Traces')}</Layout.Title>
+          <HeaderContentBar>
+            <Layout.Title>{t('Traces')}</Layout.Title>
+            <FeedbackWidgetButton />
+          </HeaderContentBar>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
@@ -40,6 +45,13 @@ function TraceExplorerLandingPage() {
     </Fragment>
   );
 }
+
+const HeaderContentBar = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
 
 function NoAccess() {
   return (
