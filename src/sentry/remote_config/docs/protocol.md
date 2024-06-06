@@ -40,6 +40,8 @@ Features may specify zero or more variants which may alter the evaluation result
 
 When evaluating a set of rules and varaints each rule is a logical `AND` while each variant is a logical `OR`. Failure to evaluate one variant does not prevent another variant from successfully evaluating. Failure to evaluate one rule does invalidate the remaining rules and the evaluation proceedure can eagerly terminate.
 
+Variants are ordered and must be evaluated in the order returned by the service-provider.
+
 **Rollout Object**
 
 | Field         | Type                | Description                                                 |
