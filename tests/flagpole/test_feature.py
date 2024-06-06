@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+import orjson
 import pytest
+import yaml
 
 from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
 from flagpole.conditions import ConditionOperatorKind
@@ -135,3 +137,33 @@ class TestParseFeatureConfig:
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
         assert not feature.match(context_builder.build(SimpleTestContextData()))
+
+    def test_dump_yaml(self):
+        feature = Feature.from_feature_config_json(
+            "foo",
+            """
+            {
+                "owner": "test-user",
+                "segments": [{
+                    "name": "always_pass_segment",
+                    "rollout": 100,
+                    "conditions": [{
+                        "name": "Always true",
+                        "property": "is_true",
+                        "operator": "equals",
+                        "value": true
+                    }]
+                }]
+            }
+            """,
+        )
+
+        parsed_json = orjson.loads(feature.json())
+        parsed_yaml = dict(yaml.safe_load(feature.to_yaml_str()))
+        assert "foo" in parsed_yaml
+        parsed_json.pop("name")
+
+        assert parsed_yaml["foo"] == parsed_json
+
+        features_from_yaml = Feature.from_bulk_yaml(feature.to_yaml_str())
+        assert features_from_yaml == [feature]
