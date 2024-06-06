@@ -89,7 +89,7 @@ export default function FeedbackSearch({className, style}: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIds.map(String),
+        projectIds: projectIds?.map(String),
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
         () => {

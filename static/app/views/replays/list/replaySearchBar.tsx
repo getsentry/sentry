@@ -91,7 +91,7 @@ function ReplaySearchBar(props: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIds.map(String),
+        projectIds: projectIds?.map(String),
         includeReplays: true,
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
