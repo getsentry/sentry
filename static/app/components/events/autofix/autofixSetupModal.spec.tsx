@@ -3,8 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
-import {AutofixSetupModal} from 'sentry/components/modals/autofixSetupModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('AutofixSetupModal', function () {

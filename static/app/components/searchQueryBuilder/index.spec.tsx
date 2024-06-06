@@ -114,7 +114,7 @@ describe('SearchQueryBuilder', function () {
       expect(await screen.findByText('status')).toBeInTheDocument();
     });
 
-    it('when adding a filter by typing, replaces aliases tokens', async function () {
+    it('when adding a filter by typing, replaces aliased tokens', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="" onChange={mockOnChange} />
@@ -390,6 +390,15 @@ describe('SearchQueryBuilder', function () {
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
+
+    it('can remove boolean ops by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+
+      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+
+      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+    });
   });
 
   describe('new search tokens', function () {
@@ -467,14 +476,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
-      // Should have a free text token "some free text"
-      expect(screen.getByRole('row', {name: 'some free text'})).toBeInTheDocument();
-
-      // Should have a filter token with key "browser.name"
-      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
-
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      await userEvent.keyboard('foo{enter}');
+
+      // Should have a free text token "some free text"
+      expect(
+        await screen.findByRole('row', {name: /some free text/})
+      ).toBeInTheDocument();
+
+      // Should have a filter token "browser.name:foo"
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -622,6 +634,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('can remove boolean ops with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
+
+      expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: 'and'})).not.toBeInTheDocument();
     });
 
     it('exits filter value when pressing escape', async function () {

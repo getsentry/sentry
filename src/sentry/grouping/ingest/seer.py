@@ -16,13 +16,14 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
+def should_call_seer_for_grouping(
+    event: Event, project: Project, primary_hashes: CalculatedHashes
+) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
     """
     # TODO: Implement rate limits, kill switches, other flags, etc
-    # TODO: Return False if the event has a custom fingerprint (check for both client- and server-side fingerprints)
 
     has_either_seer_grouping_feature = features.has(
         "projects:similarity-embeddings-metadata", project
@@ -31,9 +32,29 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     if not has_either_seer_grouping_feature:
         return False
 
+    # TODO: In our context, this can never happen. There are other scenarios in which `variants` can
+    # be `None`, but where we'll be using this (during ingestion) it's not possible. This check is
+    # primarily to satisfy mypy. Once we get rid of hierarchical hashing, we'll be able to
+    # make `variants` required in `CalculatedHashes`, meaning we can remove this check. (See note in
+    # `CalculatedHashes` class definition.)
+    if primary_hashes.variants is None:
+        raise Exception("Primary hashes missing variants data")
+
+    fingerprint_variant = primary_hashes.variants.get(
+        "custom-fingerprint"
+    ) or primary_hashes.variants.get("built-in-fingerprint")
+    # If there's non-default fingerprint (whether from the user or from us), it should *always*
+    # contribute, but can't hurt to cover our bases
+    if fingerprint_variant and fingerprint_variant.contributes:
+        return False
+
     if not event_content_is_seer_eligible(event):
         return False
 
+    # The circuit breaker check which might naturally also go here (along with its killswitch and
+    # ratelimiting friends) instead happens in the `with_circuit_breaker` helper used where
+    # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
+    # errors arising from that call.)
     if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
         return False
 

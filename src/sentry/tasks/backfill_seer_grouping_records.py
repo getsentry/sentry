@@ -51,7 +51,6 @@ logger = logging.getLogger(__name__)
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
-    message: str
 
 
 class GroupStacktraceData(TypedDict):
@@ -109,7 +108,7 @@ def backfill_seer_grouping_records(
         )
         return
 
-    group_id_message_data = (
+    group_id_data = (
         Group.objects.filter(
             project_id=project.id,
             type=ErrorGroupType.type_id,
@@ -117,49 +116,48 @@ def backfill_seer_grouping_records(
             last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        .values_list("id", "message", "data")
+        .values_list("id", "data")
         .order_by("-times_seen", "id")
     )
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
-    batch_end_index = min(last_processed_index + batch_size, len(group_id_message_data))
-    group_id_message_data_batch = group_id_message_data[last_processed_index:batch_end_index]
+    batch_end_index = min(last_processed_index + batch_size, len(group_id_data))
+    group_id_data_batch = group_id_data[last_processed_index:batch_end_index]
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": len(group_id_message_data_batch),
+            "batch_len": len(group_id_data_batch),
             "last_processed_index": last_processed_index,
-            "total_groups_length": len(group_id_message_data),
+            "total_groups_length": len(group_id_data),
         },
     )
 
-    if len(group_id_message_data_batch) == 0:
+    if len(group_id_data_batch) == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
         return
 
-    group_id_message_batch_filtered = {
-        group_id: message
-        for (group_id, message, data) in group_id_message_data_batch
+    group_id_batch_filtered = [
+        group_id
+        for (group_id, data) in group_id_data_batch
         if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
-    }
-    if len(group_id_message_data_batch) != len(group_id_message_batch_filtered):
+    ]
+    if len(group_id_data_batch) != len(group_id_batch_filtered):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
-            extra={"project_id": project.id, "num_groups": len(group_id_message_batch_filtered)},
+            extra={"project_id": project.id, "num_groups": len(group_id_batch_filtered)},
         )
 
-    group_id_batch = list(group_id_message_batch_filtered.keys())
     events_entity = Entity("events", alias="events")
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
     snuba_requests = []
-    for group_id in group_id_batch:
+    for group_id in group_id_batch_filtered:
         group = Group.objects.get(id=group_id)
         query = Query(
             match=events_entity,
@@ -200,14 +198,16 @@ def backfill_seer_grouping_records(
             snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
 
-    group_id_batch_all = copy.deepcopy(group_id_batch)
+    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
     if snuba_results and snuba_results[0].get("data"):
-        rows: list[GroupEventRow] = [snuba_result["data"][0] for snuba_result in snuba_results]
+        rows: list[GroupEventRow] = [
+            snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
+        ]
 
         # Log if any group does not have any events in snuba and skip it
-        if len(rows) != len(group_id_batch):
+        if len(rows) != len(group_id_batch_filtered):
             row_group_ids = {row["group_id"] for row in rows}
-            for group_id in group_id_batch:
+            for group_id in group_id_batch_all:
                 if group_id not in row_group_ids:
                     logger.info(
                         "tasks.backfill_seer_grouping_records.no_snuba_event",
@@ -217,24 +217,24 @@ def backfill_seer_grouping_records(
                             "group_id": group_id,
                         },
                     )
-                    group_id_batch.remove(group_id)
-                    del group_id_message_batch_filtered[group_id]
+                    group_id_batch_filtered.remove(group_id)
 
-        data = lookup_group_data_stacktrace_bulk_with_fallback(
-            project, rows, group_id_message_batch_filtered
-        )
+        data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
 
         # If nodestore returns no data
         if data["data"] == [] and data["stacktrace_list"] == []:
             logger.info(
                 "tasks.backfill_seer_grouping_records.no_data",
-                extra={"project_id": project.id, "group_id_batch": json.dumps(group_id_batch)},
+                extra={
+                    "project_id": project.id,
+                    "group_id_batch": json.dumps(group_id_batch_filtered),
+                },
             )
             call_next_backfill(
                 batch_end_index,
                 project_id,
                 redis_client,
-                len(group_id_message_data),
+                len(group_id_data),
                 group_id_batch_all[-1],
                 dry_run,
             )
@@ -248,7 +248,7 @@ def backfill_seer_grouping_records(
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
-                    group_id_list=group_id_batch,
+                    group_id_list=group_id_batch_filtered,
                     data=data["data"],
                     stacktrace_list=data["stacktrace_list"],
                 )
@@ -256,13 +256,20 @@ def backfill_seer_grouping_records(
 
         if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
-            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch)
+            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
             for group in groups:
                 seer_similarity: dict[str, Any] = {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": group_hashes_dict[group.id],
                 }
                 if str(group.id) in groups_with_neighbor:
+                    logger.info(
+                        "backfill_seer_grouping_records.found_neighbor",
+                        extra={
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
+                    )
                     # TODO: remove this try catch once the helper is made
                     try:
                         seer_similarity["results"] = [
@@ -298,11 +305,17 @@ def backfill_seer_grouping_records(
                     extra={"project_id": project.id, "num_updated": num_updated},
                 )
 
+            logger.info(
+                "about to call next backfill",
+                extra={
+                    "project_id": project_id,
+                },
+            )
             call_next_backfill(
                 batch_end_index,
                 project_id,
                 redis_client,
-                len(group_id_message_data),
+                len(group_id_data),
                 group_id_batch_all[-1],
                 dry_run,
             )
@@ -325,26 +338,26 @@ def backfill_seer_grouping_records(
             batch_end_index,
             project_id,
             redis_client,
-            len(group_id_message_data),
+            len(group_id_data),
             group_id_batch_all[-1],
             dry_run,
         )
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
-    project: Project, rows: list[GroupEventRow], messages: dict[int, str]
+    project: Project, rows: list[GroupEventRow]
 ) -> GroupStacktraceData:
     (
         bulk_event_ids,
         invalid_event_ids,
         bulk_group_data_stacktraces,
-    ) = lookup_group_data_stacktrace_bulk(project, rows, messages)
+    ) = lookup_group_data_stacktrace_bulk(project, rows)
     for row in rows:
         event_id, group_id = row["event_id"], row["group_id"]
         if event_id not in bulk_event_ids and event_id not in invalid_event_ids:
             try:
                 group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-                    project, event_id, int(group_id), messages[group_id]
+                    project, event_id, int(group_id)
                 )
                 if group_data and stacktrace_string:
                     bulk_group_data_stacktraces["data"].append(group_data)
@@ -374,7 +387,7 @@ def lookup_group_data_stacktrace_bulk_with_fallback(
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
 def lookup_group_data_stacktrace_bulk(
-    project: Project, rows: list[GroupEventRow], messages: dict[int, str]
+    project: Project, rows: list[GroupEventRow]
 ) -> tuple[set[str], set[str], GroupStacktraceData]:
     project_id = project.id
     node_id_to_group_data = {
@@ -436,7 +449,7 @@ def lookup_group_data_stacktrace_bulk(
                         CreateGroupingRecordData(
                             group_id=group_id,
                             project_id=project_id,
-                            message=messages[group_id],
+                            message=event.title,
                             hash=primary_hash,
                         )
                     )
@@ -460,7 +473,7 @@ def lookup_group_data_stacktrace_bulk(
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_single")
 def lookup_group_data_stacktrace_single(
-    project: Project, event_id: str, group_id: int, message: str
+    project: Project, event_id: str, group_id: int
 ) -> tuple[CreateGroupingRecordData | None, str]:
     project_id = project.id
     try:
@@ -499,7 +512,7 @@ def lookup_group_data_stacktrace_single(
                     group_id=group_id,
                     hash=primary_hash,
                     project_id=project_id,
-                    message=message,
+                    message=event.title,
                 )
                 if stacktrace_string != ""
                 else None

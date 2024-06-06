@@ -20,6 +20,10 @@ class ExternalProviders(ValueEqualityEnum):
     # TODO: do migration to delete this from database
     CUSTOM = 700
 
+    @property
+    def name(self) -> str:
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(self.value), "")
+
 
 class ExternalProviderEnum(Enum):
     EMAIL = "email"
@@ -46,6 +50,8 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
     ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
+
+EXTERNAL_PROVIDERS_REVERSE_VALUES = {k.value: v for k, v in EXTERNAL_PROVIDERS_REVERSE.items()}
 
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,

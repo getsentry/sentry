@@ -44,6 +44,8 @@ module:core::*                                  -app
 family:javascript path:*/test.js                -app
 family:javascript app:1 path:*/test.js          -app
 family:native                                   max-frames=3
+
+error.value:"*something*"                       max-frames=12
 """,
         bases=["common:v1"],
     )

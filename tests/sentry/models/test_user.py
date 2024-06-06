@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import sentry.hybridcloud.rpc.services.caching as caching_module
 from sentry.models.authenticator import Authenticator
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.savedsearch import SavedSearch
@@ -121,6 +124,23 @@ class UserHybridCloudDeletionTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
+
+    def test_update_purge_region_cache(self):
+        user = self.create_user()
+        na_org = self.create_organization(region=_TEST_REGIONS[0])
+        self.create_member(user=user, organization=na_org)
+
+        with patch.object(caching_module, "region_caching_service") as mock_caching_service:
+            user.username = "bob2"
+            user.save()
+            mock_caching_service.clear_key.assert_any_call(
+                key=f"user_service.get_many_by_id:{user.id}",
+                region_name=_TEST_REGIONS[0].name,
+            )
+            mock_caching_service.clear_key.assert_any_call(
+                key=f"user_service.get_user:{user.id}",
+                region_name=_TEST_REGIONS[0].name,
+            )
 
 
 @control_silo_test

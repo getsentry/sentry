@@ -56,7 +56,7 @@ EXCEPTION = {
             "type": "ZeroDivisionError",
             "value": "division by zero",
         }
-    ]
+    ],
 }
 EXCEPTION_STACKTRACE_STRING = (
     'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero'
@@ -92,7 +92,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Create num events and their corresponding group rows. Set times_seen for the corresponding
         group to 5.
         """
-        rows, events, messages = [], [], {}
+        rows, events = [], []
         function_names = [f"function_{str(i)}" for i in range(num)]
         type_names = [f"Error{str(i)}" for i in range(num)]
         value_names = ["error with value" for i in range(num)]
@@ -102,12 +102,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "timestamp": iso_format(before_now(seconds=10)),
+                "title": "title",
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             events.append(event)
             event.group.times_seen = 5
             event.group.save()
-            messages.update({event.group.id: event.group.message})
             rows.append(
                 {
                     "event_id": event.event_id,
@@ -121,18 +121,21 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash="".join(choice(ascii_uppercase) for i in range(32)),
             )
 
-        return {"rows": rows, "events": events, "messages": messages}
+        return {"rows": rows, "events": events}
 
     def setUp(self):
         super().setUp()
         bulk_data = self.create_group_event_rows(5)
-        self.bulk_rows, self.bulk_events, self.bulk_messages = (
+        self.bulk_rows, self.bulk_events = (
             bulk_data["rows"],
             bulk_data["events"],
-            bulk_data["messages"],
         )
         self.event = self.store_event(
-            data={"exception": EXCEPTION, "timestamp": iso_format(before_now(seconds=10))},
+            data={
+                "exception": EXCEPTION,
+                "title": "title",
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
             project_id=self.project.id,
             assert_no_errors=False,
         )
@@ -165,13 +168,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.event
         hash = self.group_hashes[event.group.id]
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id, event.group.message
+            self.project, event.event_id, event.group_id
         )
         expected_group_data = CreateGroupingRecordData(
             group_id=event.group.id,
             hash=hash,
             project_id=self.project.id,
-            message=event.group.message,
+            message=event.title,
         )
         assert group_data == expected_group_data
         assert stacktrace_string == EXCEPTION_STACKTRACE_STRING
@@ -199,7 +202,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     self.project,
                     event.event_id,
                     event.group_id,
-                    event.group.message,
                 )
                 mock_logger.exception.assert_called_with(
                     "tasks.backfill_seer_grouping_records.event_lookup_exception",
@@ -216,12 +218,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """Test that no data is returned if the group did not use the stacktrace to determine grouping"""
         # Create an event that is grouped by fingerprint
         event = self.store_event(
-            data={"exception": EXCEPTION, "fingerprint": ["1"]},
+            data={"exception": EXCEPTION, "title": "title", "fingerprint": ["1"]},
             project_id=self.project.id,
             assert_no_errors=False,
         )
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id, event.group.message
+            self.project, event.event_id, event.group_id
         )
         assert (group_data, stacktrace_string) == (None, "")
 
@@ -229,19 +231,19 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """Test that no data is returned if the event has no stacktrace"""
         event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
         group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id, event.group.message
+            self.project, event.event_id, event.group_id
         )
         assert (group_data, stacktrace_string) == (None, "")
 
     @patch("sentry.tasks.backfill_seer_grouping_records.metrics")
     def test_lookup_group_data_stacktrace_bulk_success(self, mock_metrics):
         """Test successful bulk group data and stacktrace lookup"""
-        rows, events, messages = self.bulk_rows, self.bulk_events, self.bulk_messages
+        rows, events = self.bulk_rows, self.bulk_events
         (
             bulk_event_ids,
             invalid_event_ids,
             bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages)
+        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
 
         expected_event_ids = {event.event_id for event in events}
         expected_group_data = [
@@ -249,7 +251,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.group.message,
+                message=event.title,
             )
             for event in events
         ]
@@ -279,12 +281,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             ServiceUnavailable(message="Service Unavailable"),
             DeadlineExceeded(message="Deadline Exceeded"),
         ]
-        rows, messages = self.bulk_rows, self.bulk_messages
+        rows = self.bulk_rows
 
         for exception in exceptions:
             mock_get_multi.side_effect = exception
             with pytest.raises(Exception):
-                lookup_group_data_stacktrace_bulk(self.project, rows, messages)
+                lookup_group_data_stacktrace_bulk(self.project, rows)
                 mock_logger.exception.assert_called_with(
                     "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
                     extra={
@@ -301,32 +303,30 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         the bulk lookup result
         """
         # Use 2 events
-        rows, events, messages, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}, {}
+        rows, events, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}
         # Add one event where the stacktrace is not used for grouping
         event = self.store_event(
-            data={"exception": EXCEPTION, "fingerprint": ["2"]},
+            data={"exception": EXCEPTION, "title": "title", "fingerprint": ["2"]},
             project_id=self.project.id,
             assert_no_errors=False,
         )
         group_ids = [row["group_id"] for row in rows]
         for group_id in group_ids:
-            messages.update({group_id: self.bulk_messages[group_id]})
             hashes.update({group_id: self.group_hashes[group_id]})
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
-        messages.update({event.group_id: event.group.message})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
         (
             bulk_event_ids,
             invalid_event_ids,
             bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages)
+        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.group.message,
+                message=event.title,
             )
             for event in events
         ]
@@ -345,28 +345,26 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         the bulk lookup result
         """
         # Use 2 events
-        rows, events, messages, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}, {}
+        rows, events, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}
         group_ids = [row["group_id"] for row in rows]
         for group_id in group_ids:
-            messages.update({group_id: self.bulk_messages[group_id]})
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has no exception
         event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
-        messages.update({event.group_id: event.group.message})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
         (
             bulk_event_ids,
             invalid_event_ids,
             bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows, messages)
+        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.group.message,
+                message=event.title,
             )
             for event in events
         ]
@@ -381,14 +379,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):
         """Test successful bulk lookup with fallback, where the fallback isn't used"""
-        rows, events, messages, hashes = (
+        rows, events, hashes = (
             self.bulk_rows,
             self.bulk_events,
-            self.bulk_messages,
             self.group_hashes,
         )
         bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages
+            self.project, rows
         )
 
         expected_group_data = [
@@ -396,7 +393,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.group.message,
+                message=event.title,
             )
             for event in events
         ]
@@ -426,7 +423,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     group_id=event.group.id,
                     hash=self.group_hashes[event.group.id],
                     project_id=self.project.id,
-                    message=event.group.message,
+                    message=event.title,
                 )
             )
             stacktrace_strings.append(stacktrace_string)
@@ -436,9 +433,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
         )
 
-        rows, messages, hashes = self.bulk_rows, self.bulk_messages, self.group_hashes
+        rows, hashes = self.bulk_rows, self.group_hashes
         bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages
+            self.project, rows
         )
 
         events = self.bulk_events
@@ -447,7 +444,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.group.message,
+                message=event.title,
             )
             for event in events
         ]
@@ -464,16 +461,15 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test bulk lookup with fallback catches EventLookupError and returns data for events that
         were found
         """
-        rows, messages, hashes = (
+        rows, hashes = (
             copy.deepcopy(self.bulk_rows),
-            self.bulk_messages,
             self.group_hashes,
         )
         # Purposely change the event id of the last row to one that does not exist
         rows[-1]["event_id"] = 10000
 
         bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows, messages
+            self.project, rows
         )
 
         events = self.bulk_events[:-1]
@@ -482,7 +478,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.group.message,
+                message=event.title,
             )
             for event in events
         ]
@@ -600,6 +596,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
+                "title": "title",
                 "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -648,7 +645,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
+                "title": "title",
                 "timestamp": iso_format(before_now(seconds=10)),
+                "title": "title",
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -715,6 +714,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "exception": self.create_exception_values(
                 "another_function!", "AnotherError!", "error with value"
             ),
+            "title": "title",
             "timestamp": iso_format(before_now(seconds=10)),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -776,6 +776,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
+                "title": "title",
                 "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -812,6 +813,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
+                "title": "title",
                 "timestamp": iso_format(before_now(seconds=10)),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -846,6 +848,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         deleted_group_ids = []
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "title": "title",
             "timestamp": iso_format(before_now(seconds=10)),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -856,6 +859,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         data = {
             "exception": self.create_exception_values("function name?", "type?", "value?"),
+            "title": "title",
             "timestamp": iso_format(before_now(seconds=10)),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -973,6 +977,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         old_group_id = []
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
+            "title": "title",
             "timestamp": iso_format(before_now(seconds=10)),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
