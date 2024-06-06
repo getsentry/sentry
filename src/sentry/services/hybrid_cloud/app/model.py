@@ -5,7 +5,7 @@
 
 import datetime
 import hmac
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 from hashlib import sha256
 from typing import Any, Protocol, TypedDict
 
@@ -88,7 +88,7 @@ class RpcSentryAppComponent(RpcModel):
     uuid: str = ""
     sentry_app_id: int = -1
     type: str = ""
-    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+    app_schema: MutableMapping[str, Any] = Field(default_factory=dict)
 
 
 class RpcSentryAppComponentContext(RpcModel):

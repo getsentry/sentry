@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Collection, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
@@ -20,6 +20,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.region import find_regions_for_orgs
@@ -259,12 +260,32 @@ def prepare_sentry_app_components(
     return prepare_ui_component(installation, component, project_slug, values)
 
 
+@overload
 def prepare_ui_component(
     installation: SentryAppInstallation,
     component: SentryAppComponent,
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
+    ...
+
+
+@overload
+def prepare_ui_component(
+    installation: RpcSentryAppInstallation,
+    component: RpcSentryAppComponent,
+    project_slug: str | None = None,
+    values: list[Mapping[str, Any]] | None = None,
+) -> RpcSentryAppComponent | None:
+    ...
+
+
+def prepare_ui_component(
+    installation: SentryAppInstallation | RpcSentryAppInstallation,
+    component: SentryAppComponent | RpcSentryAppComponent,
+    project_slug: str | None = None,
+    values: list[Mapping[str, Any]] | None = None,
+) -> SentryAppComponent | RpcSentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer
 
