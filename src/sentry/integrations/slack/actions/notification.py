@@ -25,7 +25,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.integrations.slack.utils.options import has_slack_sdk_flag
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -175,7 +174,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             organization = event.group.project.organization
 
-            if has_slack_sdk_flag(organization):
+            if features.has("organizations:slack-sdk-issue-alert-action", organization):
                 sdk_client = SlackSdkClient(integration_id=integration.id)
                 text = str(payload["text"]) if payload["text"] is not None else None
                 try:
@@ -319,7 +318,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "unfurl_media": False,
         }
 
-        if has_slack_sdk_flag(rule.project.organization):
+        if features.has("organizations:slack-sdk-issue-alert-action", rule.project.organization):
             sdk_client = SlackSdkClient(integration_id=integration.id)
 
             try:
