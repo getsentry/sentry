@@ -114,7 +114,6 @@ class OrganizationMemberExamples:
                     "id": "57377908165",
                     "email": "rockhopper@antarcticarocks.com",
                     "name": "Rockhopper",
-                    "user": None,
                     "role": "member",
                     "orgRole": "member",
                     "roleName": "Member",
