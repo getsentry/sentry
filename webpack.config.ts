@@ -14,9 +14,9 @@ import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import type {
-  ProxyConfigArray,
-  Static,
-} from 'webpack-dev-server';
+
+
+ProxyConfigArray, Static} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -50,7 +50,9 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
+  ? 'production'
+  : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool

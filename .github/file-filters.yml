@@ -8,13 +8,11 @@ sentry_specific_test_files: &sentry_specific_test_files
 
 # Provides list of changed files to format (prettier)
 lintable_prettier_modified: &lintable_prettier_modified
-  - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.{less,json,yml}'
+  - added|modified: '**/*.{tsx,jsx,ts,js,json,yml,less}'
 
 # Provides list of changed app files to lint against (stylelint)
 lintable_css_in_js_modified: &lintable_css_in_js_modified
-  - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.less'
+  - added|modified: '**/*.{tsx,jsx,ts,js,less}'
 
 # Trigger for when we must run full lint (stylelint)
 lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
@@ -25,8 +23,7 @@ lintable_css_in_js_rules_changed: &lintable_css_in_js_rules_changed
 
 # Provides list of changed files to lint against (eslint)
 lintable_modified: &lintable_modified
-  - added|modified: '**/*.[tj]{s,sx}'
-  - added|modified: '**/*.{json}'
+  - added|modified: '**/*.{tsx,jsx,ts,js,json}'
 
 # Trigger for when we must run full lint (eslint)
 lintable_eslint_modified: &lintable_eslint_modified
@@ -42,7 +39,7 @@ lintable_eslint_modified: &lintable_eslint_modified
 # getsentry/sentry does not use this directly, instead we shard tests inside jest.config.js
 testable_modified: &testable_modified
   - added|modified: 'package.json'
-  - added|modified: 'static/**/*.[tj]{s,sx}'
+  - added|modified: 'static/**/*.{tsx,jsx,ts,js}'
   - *sentry_specific_test_files
 
 # Trigger for when we must run full tests (jest)
@@ -58,7 +55,7 @@ typecheckable_rules_changed: &typecheckable_rules_changed
   - *sentry_specific_workflow
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
-  - added|deleted|modified: 'static/**/*.[tj]{s,sx}'
+  - added|deleted|modified: 'static/**/*.{tsx,jsx,ts,js}'
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
