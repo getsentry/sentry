@@ -174,8 +174,8 @@ class AlertRuleSerializer(Serializer):
 
         user_by_user_id: MutableMapping[int, RpcUser] = {
             user.id: user
-            for user in user_service.get_many(
-                filter=dict(user_ids=[r.user_id for r in rule_activities if r.user_id is not None])
+            for user in user_service.get_many_by_id(
+                ids=[r.user_id for r in rule_activities if r.user_id is not None]
             )
         }
         for rule_activity in rule_activities:

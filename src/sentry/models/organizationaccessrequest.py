@@ -71,7 +71,7 @@ class OrganizationAccessRequest(Model):
             organization=self.team.organization,
             user_id__isnull=False,
         ).values_list("user_id", flat=True)
-        member_users = user_service.get_many(filter=dict(user_ids=list(member_list)))
+        member_users = user_service.get_many_by_id(ids=list(member_list))
 
         msg.send_async([user.email for user in member_users])
 

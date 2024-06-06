@@ -179,7 +179,7 @@ class GroupSerializerBase(Serializer, ABC):
         for team in Team.objects.filter(id__in=all_team_ids.keys()):
             for group_id in all_team_ids[team.id]:
                 result[group_id] = team
-        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
+        for user in user_service.get_many_by_id(ids=list(all_user_ids.keys())):
             for group_id in all_user_ids[user.id]:
                 result[group_id] = user
 
