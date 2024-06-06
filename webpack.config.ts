@@ -14,7 +14,6 @@ import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import type {
-  Configuration as DevServerConfig,
   ProxyConfigArray,
   Static,
 } from 'webpack-dev-server';
@@ -28,15 +27,6 @@ import packageJson from './package.json';
 type MinimizerPluginOptions = {
   targets: lightningcss.TransformAttributeOptions['targets'];
 };
-
-/**
- * Merges the devServer config into the webpack config
- *
- * See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/43232
- */
-interface Configuration extends webpack.Configuration {
-  devServer?: DevServerConfig;
-}
 
 const {env} = process;
 
@@ -60,7 +50,7 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
@@ -175,7 +165,7 @@ const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 type CacheGroups = Exclude<
-  NonNullable<Configuration['optimization']>['splitChunks'],
+  NonNullable<webpack.Configuration['optimization']>['splitChunks'],
   false | undefined
 >['cacheGroups'];
 
@@ -234,7 +224,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig: Configuration = {
+const appConfig: webpack.Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
