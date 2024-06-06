@@ -5,6 +5,8 @@ import uniqBy from 'lodash/uniqBy';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
+import {MRISelect} from 'sentry/components/metrics/mriSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,8 +21,6 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
-import {MRISelect} from 'sentry/views/metrics/mriSelect';
 
 type QueryBuilderProps = {
   index: number;
