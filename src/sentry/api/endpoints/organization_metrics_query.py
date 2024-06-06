@@ -138,11 +138,10 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         return mql_queries
 
     def _get_query_type_from_request(self, request: Request) -> QueryType:
-        include_series = (request.GET.get("includeSeries") or "true") == "true"
-        if include_series:
-            return QueryType.TOTALS_AND_SERIES
-
-        return QueryType.TOTALS
+        include_series = request.GET.get("includeSeries")
+        if include_series == "false":
+            return QueryType.TOTALS
+        return QueryType.TOTALS_AND_SERIES
 
     def post(self, request: Request, organization) -> Response:
         try:
