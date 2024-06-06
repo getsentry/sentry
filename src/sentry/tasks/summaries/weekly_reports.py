@@ -232,7 +232,10 @@ def prepare_organization_report(
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
-        logger.info("weekly_reports.deliver_reports", extra={"organization": organization_id})
+        logger.info(
+            "weekly_reports.deliver_reports",
+            extra={"batch_id": batch_id, "organization": organization_id},
+        )
         batch.deliver_reports()
 
 
@@ -334,6 +337,7 @@ class OrganizationReportBatch:
             logger.info(
                 "weekly_report.send_email",
                 extra={
+                    "batch_id": self.batch_id,
                     "organization": self.ctx.organization.id,
                     "uuid": template_ctx["notification_uuid"],
                 },
