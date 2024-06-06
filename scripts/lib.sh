@@ -34,22 +34,6 @@ require() {
     command -v "$1" >/dev/null 2>&1
 }
 
-configure-sentry-cli() {
-    if [ -f "${venv_name}/bin/sentry-cli" ]; then
-        return 0
-    elif [ -f "${venv_name}/bin/pip" ]; then
-        echo 'installing sentry-cli'
-        pip-install sentry-cli
-    else
-        cat <<EOF
-${red}${bold}
-ERROR: sentry-cli could not be installed, please run "devenv sync".
-${reset}
-EOF
-        return 1
-    fi
-}
-
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
@@ -73,11 +57,11 @@ EOF
     else
         minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
         patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-        if [ "$minor" -ne 11 ] || [ "$patch" -lt 6 ]; then
+        if [ "$minor" -ne 12 ] || [ "$patch" -lt 1 ]; then
             cat <<EOF
     ${red}${bold}
     ERROR: You're running a virtualenv with Python ${python_version}.
-    We only support >= 3.11.6, < 3.12.
+    We only support >= 3.12.1, < 3.13.
     Either run "rm -rf ${venv_name} && direnv allow" to
     OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
@@ -95,7 +79,7 @@ sudo-askpass() {
 }
 
 pip-install() {
-    "${venv_name}/bin/pip" install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
+    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
 upgrade-pip() {

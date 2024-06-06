@@ -104,17 +104,9 @@ class RetryRelocationTest(APITestCase):
         assert response.data["creator"]["id"] == str(self.owner.id)
         assert response.data["creator"]["email"] == str(self.owner.email)
         assert response.data["creator"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert response.data["creatorId"] == str(self.owner.id)
-        assert response.data["creatorEmail"] == str(self.owner.email)
-        assert response.data["creatorUsername"] == str(self.owner.username)
         assert response.data["owner"]["id"] == str(self.owner.id)
         assert response.data["owner"]["email"] == str(self.owner.email)
         assert response.data["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
         assert response.data["latestNotified"] is None
         assert response.data["latestUnclaimedEmailsSentAt"] is None
         assert response.data["scheduledPauseAtStep"] is None
@@ -135,8 +127,8 @@ class RetryRelocationTest(APITestCase):
 
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -158,17 +150,9 @@ class RetryRelocationTest(APITestCase):
         assert response.data["creator"]["id"] == str(self.staff_user.id)
         assert response.data["creator"]["email"] == str(self.staff_user.email)
         assert response.data["creator"]["username"] == str(self.staff_user.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert response.data["creatorId"] == str(self.staff_user.id)
-        assert response.data["creatorEmail"] == str(self.staff_user.email)
-        assert response.data["creatorUsername"] == str(self.staff_user.username)
         assert response.data["owner"]["id"] == str(self.owner.id)
         assert response.data["owner"]["email"] == str(self.owner.email)
         assert response.data["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
 
         assert (
             Relocation.objects.filter(owner_id=self.owner.id)
@@ -183,8 +167,8 @@ class RetryRelocationTest(APITestCase):
 
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -204,17 +188,9 @@ class RetryRelocationTest(APITestCase):
         assert response.data["creator"]["id"] == str(self.superuser.id)
         assert response.data["creator"]["email"] == str(self.superuser.email)
         assert response.data["creator"]["username"] == str(self.superuser.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert response.data["creatorId"] == str(self.superuser.id)
-        assert response.data["creatorEmail"] == str(self.superuser.email)
-        assert response.data["creatorUsername"] == str(self.superuser.username)
         assert response.data["owner"]["id"] == str(self.owner.id)
         assert response.data["owner"]["email"] == str(self.owner.email)
         assert response.data["owner"]["username"] == str(self.owner.username)
-        # TODO(azaslavsky): delete these after clients are migrated
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
 
         assert (
             Relocation.objects.filter(owner_id=self.owner.id)
@@ -229,8 +205,8 @@ class RetryRelocationTest(APITestCase):
 
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 

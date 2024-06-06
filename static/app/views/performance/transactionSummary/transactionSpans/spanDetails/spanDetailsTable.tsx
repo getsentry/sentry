@@ -110,7 +110,6 @@ export default function SpanTable(props: Props) {
               suspectSpan
             ),
           }}
-          location={location}
         />
       </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks ?? null} />

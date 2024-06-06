@@ -278,7 +278,6 @@ export class TagValueTable extends Component<Props, State> {
     const {
       eventView,
       tagKey,
-      location,
       isLoading,
       tableData,
       aggregateColumn,
@@ -320,7 +319,6 @@ export class TagValueTable extends Component<Props, State> {
               renderBodyCell: this.renderBodyCellWithData(this.props) as any,
               onResizeColumn: this.handleResizeColumn,
             }}
-            location={location}
           />
         </VisuallyCompleteWithData>
 

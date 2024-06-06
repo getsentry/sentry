@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 from base64 import b64encode
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from typing import Any
 from uuid import uuid4
 
@@ -27,7 +27,7 @@ class NodeIntegrityFailure(Exception):
     pass
 
 
-class NodeData(MutableMapping):
+class NodeData(MutableMapping[str, Any]):
     """
     A wrapper for nodestore data that fetches the underlying data
     from nodestore.
@@ -165,12 +165,17 @@ class NodeField(GzippedDictField):
     to an external node.
     """
 
-    def __init__(self, *args, **kwargs):
-        self.ref_func = kwargs.pop("ref_func", None)
-        self.ref_version = kwargs.pop("ref_version", None)
-        self.wrapper = kwargs.pop("wrapper", None)
-        self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes).decode())
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        *,
+        blank: bool,
+        null: bool,
+        ref_func: Callable[..., int] | None = None,
+        ref_version: int | None = None,
+    ) -> None:
+        self.ref_func = ref_func
+        self.ref_version = ref_version
+        super().__init__(blank=blank, null=null)
 
     def contribute_to_class(self, cls, name):
         super().contribute_to_class(cls, name)
@@ -223,7 +228,6 @@ class NodeField(GzippedDictField):
         return NodeData(
             node_id,
             value,
-            wrapper=self.wrapper,
             ref_version=self.ref_version,
             ref_func=self.ref_func,
         )
@@ -240,7 +244,7 @@ class NodeField(GzippedDictField):
             return None
 
         if value.id is None:
-            value.id = self.id_func()
+            value.id = b64encode(uuid4().bytes).decode()
 
         value.save()
 

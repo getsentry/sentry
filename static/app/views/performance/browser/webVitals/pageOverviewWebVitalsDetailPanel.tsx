@@ -380,7 +380,6 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderHeadCell,
                 renderBodyCell: renderInpBodyCell,
               }}
-              location={location}
             />
           ) : (
             <GridEditable
@@ -392,7 +391,6 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderHeadCell,
                 renderBodyCell,
               }}
-              location={location}
             />
           )}
         </TableContainer>
