@@ -44,14 +44,21 @@ Variants are ordered and must be evaluated in the order returned by the service-
 
 **Rollout Object**
 
-| Field         | Type                | Description                                                 |
-| ------------- | ------------------- | ----------------------------------------------------------- |
-| percentage    | number              | The percentage of requests which should evaluate to true.   |
-| sticky        | union[object, null] | An object which controls the stickyness of the rollout.     |
-| sticky.seed   | string              | A SHA1 hash used to seed a random number generator.         |
-| sticky.target | string              | The name of a property contained within the context object. |
+| Field      | Type                | Description                                               |
+| ---------- | ------------------- | --------------------------------------------------------- |
+| percentage | number              | The percentage of requests which should evaluate to true. |
+| sticky     | union[Sticky, null] | An object which controls the stickyness of the rollout.   |
 
-The rollout cohort a session is bucketed into is deterministic so long as the `target` value is static. The `target` value controls the bucket a session is placed into. The `seed` value provides randomization _between features_ such that if a session is successfully opted into feature `A` they will not necesssarily be opted into feature `B` even if those features share the same rollout percentage. The `percentage` value controls the number of buckets which evaluate to `true`.
+The `percentage` field is an arbitrary precision decimal between 0 and 100. `0.0001` is a valid rollout percentage. The `sticky` fields determines if the rollout is deterministic or random. A `null` value indicates a random rollout.
+
+**Sticky Object**
+
+| Field  | Type   | Description                                                 |
+| ------ | ------ | ----------------------------------------------------------- |
+| group  | string | An arbitrary string value identifying the group.            |
+| target | string | The name of a property contained within the context object. |
+
+The cohort a session is bucketed into is determined by the `Sticky` object. The `target` value controls the bucket a session is placed into. The `group` value applies randomization _between features_ such that if a session is successfully opted into feature `A` they will not necesssarily be opted into feature `B` even if those features share the same rollout percentage. Sharing the `group` attribute between feature `A` and `B` allows a session to receive an evaluation result which is deterministic between flags.
 
 **Rule Object**
 
@@ -143,7 +150,7 @@ If the server's ETag does not match the request's a 200 response is returned.
               "rollout": {
                 "percentage": 50,
                 "sticky": {
-                  "seed": "5f927c1c3676abbe5f13d9f8d28ffa625e80bf04",
+                  "group": "5f927c1c3676abbe5f13d9f8d28ffa625e80bf04",
                   "target": "user_id"
                 }
               },
