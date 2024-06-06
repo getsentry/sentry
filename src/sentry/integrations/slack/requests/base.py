@@ -6,11 +6,13 @@ from typing import Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request
+from slack_sdk.signature import SignatureVerifier
 
-from sentry import options
+from sentry import features, options
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentityProvider
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.safe import get_path
@@ -107,6 +109,16 @@ class SlackRequest:
         self._provider = context.identity_provider
         self._identity = context.identity
         self._user = context.user
+        self._org = None
+
+        if context.integration:
+            org_integrations = integration_service.get_organization_integrations(
+                integration_id=context.integration.id, status=0
+            )
+            if org_integrations:
+                self._org = organization_service.get_org_by_id(
+                    id=org_integrations[0].organization_id
+                )
 
     @property
     def integration(self) -> RpcIntegration:
@@ -197,7 +209,14 @@ class SlackRequest:
         verification_token = options.get("slack.verification-token")
 
         if signing_secret:
-            if self._check_signing_secret(signing_secret):
+            if self._org and features.has("organizations:slack-sdk-signature", self._org):
+                signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
+                timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
+                if SignatureVerifier(signing_secret).is_valid(
+                    body=self.request.body, timestamp=timestamp, signature=signature
+                ):
+                    return
+            elif self._check_signing_secret(signing_secret):
                 return
         elif verification_token and self._check_verification_token(verification_token):
             return
