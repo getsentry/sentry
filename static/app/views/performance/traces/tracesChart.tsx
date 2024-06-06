@@ -29,7 +29,12 @@ export function TracesChart({}: Props) {
 
   const spanIndexedCountSeries = useSpanIndexedSeries(
     {
-      search: new MutableSearch(queries.map(q => `(${q})`).join(' OR ')),
+      search: new MutableSearch(
+        queries
+          .filter(Boolean)
+          .map(q => `(${q})`)
+          .join(' OR ')
+      ),
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
     },
