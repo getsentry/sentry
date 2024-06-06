@@ -731,6 +731,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
+
+      const {organization} = this.props;
+      const {project} = this.state;
+      const deletedItem = prevState.rule ? prevState.rule[type][idx] : null;
+      trackAnalytics('edit_alert_rule.delete_row', {
+        organization,
+        project_id: project.id,
+        type,
+        name: deletedItem?.id ?? '',
+      });
       return clonedState;
     });
   };
