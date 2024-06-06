@@ -150,8 +150,8 @@ class EventStream(Service):
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Mapping[str, Any] | None:
-        pass
+    ) -> dict[str, Any]:
+        raise NotImplementedError
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
         pass
