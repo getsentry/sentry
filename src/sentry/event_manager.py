@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
 import sentry_sdk
@@ -255,7 +255,17 @@ def has_pending_commit_resolution(group: Group) -> bool:
         return True
 
 
-def get_max_crashreports(model: Project | Organization, allow_none: bool = False) -> int | None:
+@overload
+def get_max_crashreports(model: Project | Organization) -> int:
+    ...
+
+
+@overload
+def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
+    ...
+
+
+def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:
     value = model.get_option("sentry:store_crash_reports")
     return convert_crashreport_count(value, allow_none=allow_none)
 
@@ -1899,17 +1909,20 @@ def create_group_with_grouphashes(
             )
 
 
-def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) -> Group:
+def _create_group(
+    project: Project,
+    event: Event,
+    *,
+    first_release: Release | None = None,
+    **group_creation_kwargs: Any,
+) -> Group:
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
     # make sure it still exists
-    first_release = group_creation_kwargs.pop("first_release", None)
     group_creation_kwargs["first_release_id"] = (
-        Release.objects.filter(id=cast(Release, first_release).id)
-        .values_list("id", flat=True)
-        .first()
+        Release.objects.filter(id=first_release.id).values_list("id", flat=True).first()
         if first_release
         else None
     )
@@ -2659,10 +2672,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     max_crashreports = get_max_crashreports(project, allow_none=True)
     if max_crashreports is None:
         max_crashreports = get_max_crashreports(project.organization)
-
-    max_crashreports = cast(
-        int, max_crashreports
-    )  # this is safe since the second call doesn't allow None
 
     # The number of crash reports is cached per group
     crashreports_key = get_crashreport_key(event.group_id)
