@@ -9,23 +9,23 @@ import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import type {
+  CombinedMetricChartProps,
+  FocusAreaSelection,
+  SelectionRange,
+} from 'sentry/components/metrics/chart/types';
+import {
+  SAMPLES_X_AXIS_ID,
+  SAMPLES_Y_AXIS_ID,
+} from 'sentry/components/metrics/chart/useMetricChartSamples';
+import type {ValueRect} from 'sentry/components/metrics/chart/utils';
+import {getValueRect} from 'sentry/components/metrics/chart/utils';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import type {ValueRect} from 'sentry/views/metrics/chart/chartUtils';
-import {getValueRect} from 'sentry/views/metrics/chart/chartUtils';
-import type {
-  CombinedMetricChartProps,
-  FocusAreaSelection,
-  SelectionRange,
-} from 'sentry/views/metrics/chart/types';
-import {
-  SAMPLES_X_AXIS_ID,
-  SAMPLES_Y_AXIS_ID,
-} from 'sentry/views/metrics/chart/useMetricChartSamples';
 import {CHART_HEIGHT} from 'sentry/views/metrics/constants';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 
