@@ -328,7 +328,7 @@ function SearchQueryBuilderInputInternal({
       }}
       onKeyDown={onKeyDown}
       tabIndex={tabIndex}
-      maxOptions={20}
+      maxOptions={50}
       onPaste={onPaste}
       displayTabbedMenu={inputValue.length === 0}
     >

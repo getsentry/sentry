@@ -1,7 +1,6 @@
 import {
   type ForwardedRef,
   forwardRef,
-  type Key,
   type MouseEventHandler,
   type ReactNode,
   useCallback,
@@ -15,7 +14,7 @@ import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
-import type {CollectionChildren} from '@react-types/shared';
+import type {CollectionChildren, Key} from '@react-types/shared';
 
 import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
@@ -105,6 +104,16 @@ function findItemInSections(items: SelectOptionOrSectionWithKey<string>[], key: 
   return null;
 }
 
+function mergeSets<T>(...sets: Set<T>[]) {
+  const combinedSet = new Set<T>();
+  for (const set of sets) {
+    for (const value of set) {
+      combinedSet.add(value);
+    }
+  }
+  return combinedSet;
+}
+
 function menuIsOpen({
   state,
   hiddenOptions,
@@ -151,16 +160,13 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
             ? getHiddenOptions(section.options, filterValue, maxOptions)
             : new Set<string>()
         );
-        const combinedSet = new Set<string>();
-        for (const set of sets) {
-          for (const value of set) {
-            combinedSet.add(value);
-          }
-        }
-        return combinedSet;
+        return mergeSets(...sets);
       }
       const hiddenSections = items.filter(item => item.key !== selectedSection);
-      return getHiddenOptions(hiddenSections, '', 0);
+      const shownSection = items.filter(item => item.key === selectedSection);
+      const hiddenFromOtherSections = getHiddenOptions(hiddenSections, '', 0);
+      const hiddenFromShownSection = getHiddenOptions(shownSection, '', maxOptions);
+      return mergeSets(hiddenFromOtherSections, hiddenFromShownSection);
     }
 
     return getHiddenOptions(items, filterValue, maxOptions);
@@ -187,7 +193,13 @@ function ListBoxSectionButton({
   selected: boolean;
 }) {
   return (
-    <SectionButton size="zero" borderless aria-selected={selected} onClick={onClick}>
+    <SectionButton
+      size="zero"
+      borderless
+      aria-selected={selected}
+      onClick={onClick}
+      tabIndex={-1}
+    >
       {children}
     </SectionButton>
   );
@@ -216,6 +228,13 @@ function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
     () => [...state.collection].filter(node => node.type === 'section'),
     [state.collection]
   );
+
+  const totalItems = state.collection.size;
+  const totalItemsInSection = selectedSection
+    ? [...(state.collection.getChildren?.(selectedSection) ?? [])].length
+    : totalItems;
+  const expectedHiddenOptions = totalItems - totalItemsInSection;
+  const sectionHasHiddenOptions = hiddenOptions.size > expectedHiddenOptions;
 
   return (
     <SectionedOverlay ref={popoverRef}>
@@ -247,7 +266,7 @@ function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
           {...listBoxProps}
           ref={listBoxRef}
           listState={state}
-          hasSearch={false}
+          hasSearch={!sectionHasHiddenOptions}
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
