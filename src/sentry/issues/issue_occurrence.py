@@ -204,9 +204,14 @@ class IssueOccurrence:
         return None
 
     @classmethod
-    def fetch_multi(cls, ids: Sequence[str], project_id: int) -> Sequence[IssueOccurrence | None]:
+    def fetch_multi(cls, ids: Sequence[str], project_id: int) -> list[IssueOccurrence | None]:
         ids = [cls.build_storage_identifier(id, project_id) for id in ids]
         results = nodestore.backend.get_multi(ids)
-        return [
-            IssueOccurrence.from_dict(results[_id]) if results.get(_id) else None for _id in ids
-        ]
+        ret: list[IssueOccurrence | None] = []
+        for _id in ids:
+            result = results.get(_id)
+            if result:
+                ret.append(IssueOccurrence.from_dict(result))
+            else:
+                ret.append(None)
+        return ret
