@@ -28,9 +28,7 @@ from sentry.utils.services import build_instance_from_options_of_type
 
 logger = logging.getLogger("sentry.chartcuterie")
 locks = LockManager(
-    build_instance_from_options_of_type(
-        LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
-    )
+    build_instance_from_options_of_type(LockBackend, settings.SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS)
 )
 
 
@@ -59,6 +57,7 @@ class IssueAlertImageBuilder:
                         image_url = self._get_endpoint_regression_image_url()
                     elif self.group.issue_type == ProfileFunctionRegressionType:
                         image_url = self._get_function_regression_image_url()
+                self.lock.release()
         except UnableToAcquireLock:
             # There is a chance that another thread generated the image
             image_url = cache.get(self.cache_key)
@@ -73,7 +72,9 @@ class IssueAlertImageBuilder:
                 extra={"exception": e, "group_id": self.group.id},
             )
             sentry_sdk.capture_exception()
-        self.lock.release()
+            if self.lock.locked():
+                self.lock.release()
+
         if image_url:
             metrics.incr("chartcuterie.issue_alert.success", tags=self.tags)
             # We don't want to regenerate the image if another type of notification is sending the same one
