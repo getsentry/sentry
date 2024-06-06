@@ -42,11 +42,12 @@ When evaluating a set of rules and varaints each rule is a logical `AND` while e
 
 **Rollout Object**
 
-| Field      | Type   | Description                                                 |
-| ---------- | ------ | ----------------------------------------------------------- |
-| percentage | number | The percentage of requests which should evaluate to true.   |
-| seed       | string | A SHA1 hash used to seed a random number generator.         |
-| target     | string | The name of a property contained within the context object. |
+| Field         | Type                | Description                                                 |
+| ------------- | ------------------- | ----------------------------------------------------------- |
+| percentage    | number              | The percentage of requests which should evaluate to true.   |
+| sticky        | union[object, null] | An object which controls the stickyness of the rollout.     |
+| sticky.seed   | string              | A SHA1 hash used to seed a random number generator.         |
+| sticky.target | string              | The name of a property contained within the context object. |
 
 The rollout cohort a session is bucketed into is deterministic some long as the `target` value is static. The `target` value controls the bucket a session is placed into. The `seed` value provides randomization _between features_ such that if a session is successfully opted into feature `A` they will not necesssarily be opted into feature `B` even if those features share the same rollout percentage. The `percentage` value controls the number of buckets which evaluate to `true`.
 
@@ -77,10 +78,10 @@ The type of the `value` field is controlled by the operator being applied to it.
 
 **Option Object**
 
-| Field              | Type  | Description        |
-| ------------------ | ----- | ------------------ |
-| sample_rate        | float | Error sample rate. |
-| traces_sample_rate | float | Trace sample rate. |
+| Field              | Type                 | Description        |
+| ------------------ | -------------------- | ------------------ |
+| sample_rate        | OptionVariant<float> | Error sample rate. |
+| traces_sample_rate | OptionVariant<float> | Trace sample rate. |
 
 **Server ETag Matches**
 
@@ -132,8 +133,10 @@ If the server's ETag does not match the request's a 200 response is returned.
             {
               "rollout": {
                 "percentage": 50,
-                "seed": "5f927c1c3676abbe5f13d9f8d28ffa625e80bf04",
-                "target": "user_id"
+                "sticky": {
+                  "seed": "5f927c1c3676abbe5f13d9f8d28ffa625e80bf04",
+                  "target": "user_id"
+                }
               },
               "rules": [
                 {
@@ -158,8 +161,38 @@ If the server's ETag does not match the request's a 200 response is returned.
         }
       ],
       "options": {
-        "sample_rate": 1.0,
-        "traces_sample_rate": 0.5
+        "sample_rate": {
+          "value": 0.1,
+          "variants": [
+            {
+              "rules": [
+                {
+                  "operator": "==",
+                  "property": "device_family",
+                  "value": "iPhone"
+                },
+                {
+                  "operator": "==",
+                  "property": "device_model",
+                  "value": "14"
+                }
+              ],
+              "value": 1.0
+            }
+          ]
+        },
+        "traces_sample_rate": {
+          "value": 0,
+          "variants": [
+            {
+              "rollout": {
+                "percentage": 50,
+                "sticky": null
+              },
+              "value": 1.0
+            }
+          ]
+        }
       },
       "version": 1
     }
