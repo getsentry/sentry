@@ -82,8 +82,15 @@ The type of the `value` field is controlled by the operator being applied to it.
 
 | Field              | Type                 | Description        |
 | ------------------ | -------------------- | ------------------ |
-| sample_rate        | OptionVariant<float> | Error sample rate. |
-| traces_sample_rate | OptionVariant<float> | Trace sample rate. |
+| sample_rate        | OptionFeature<float> | Error sample rate. |
+| traces_sample_rate | OptionFeature<float> | Trace sample rate. |
+
+**Option Feature Object**
+
+| Field    | Type           | Description                                                                     |
+| -------- | -------------- | ------------------------------------------------------------------------------- |
+| value    | T              | OptionFeatures are generic over type T. Each field implements its own type.     |
+| variants | array[Variant] | Features can have any number of possible variants which alter the return value. |
 
 **Server ETag Matches**
 
