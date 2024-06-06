@@ -11,7 +11,7 @@ from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
-    DEFAULT_ENABLED_PROVIDERS,
+    DEFAULT_ENABLED_PROVIDERS_VALUES,
     NOTIFICATION_SETTINGS_TYPE_DEFAULTS,
 )
 from sentry.notifications.types import (
@@ -38,7 +38,10 @@ def get_default_for_provider(
     provider: ExternalProviderEnum,
 ) -> NotificationSettingsOptionEnum:
     # check if the provider is enable in our defaults and that the type exists as an enum
-    if provider not in DEFAULT_ENABLED_PROVIDERS or type not in NotificationSettingEnum:
+    if (
+        provider.value not in DEFAULT_ENABLED_PROVIDERS_VALUES
+        or type not in NotificationSettingEnum
+    ):
         return NotificationSettingsOptionEnum.NEVER
 
     # TODO(Steve): Make sure that all keys are present in NOTIFICATION_SETTINGS_TYPE_DEFAULTS
@@ -46,7 +49,10 @@ def get_default_for_provider(
         return NotificationSettingsOptionEnum.NEVER
 
     # special case to disable reports for non-email providers
-    if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
+    if (
+        type == NotificationSettingEnum.REPORTS
+        and provider.value != ExternalProviderEnum.EMAIL.value
+    ):
         # Reports are only sent to email
         return NotificationSettingsOptionEnum.NEVER
 

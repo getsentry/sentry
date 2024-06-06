@@ -34,3 +34,8 @@ DEFAULT_ENABLED_PROVIDERS = [
     ExternalProviderEnum.EMAIL,
     ExternalProviderEnum.SLACK,
 ]
+
+DEFAULT_ENABLED_PROVIDERS_VALUES = [
+    ExternalProviderEnum.EMAIL.value,
+    ExternalProviderEnum.SLACK.value,
+]
