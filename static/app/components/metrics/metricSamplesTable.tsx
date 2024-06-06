@@ -15,6 +15,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -45,7 +46,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {SelectionRange} from 'sentry/views/metrics/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
@@ -323,7 +323,6 @@ export function MetricSamplesTable({
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
-        location={location}
         emptyMessage={emptyMessage}
         minimumColWidth={60}
       />

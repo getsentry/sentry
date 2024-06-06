@@ -720,6 +720,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "(foo:bar AND span.duration:>10s) OR (foo:bar AND span.duration:<10m)",
                 "foo:baz",
             ],
+            ["foo:bar span.duration:>10s", "foo:baz"],
             ["foo:[bar, baz]"],
         ]:
             query = {
@@ -727,7 +728,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "field": ["id", "parent_span", "span.duration"],
                 "query": q,
                 "suggestedQuery": "foo:baz span.duration:>0s",
-                "maxSpansPerTrace": 3,
+                "maxSpansPerTrace": 4,
                 "sort": ["-span.duration"],
             }
 
@@ -1019,6 +1020,39 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "units": {},
                     },
                 }
+
+    def test_limit_by_span_condition(self):
+        (
+            project_1,
+            project_2,
+            trace_id_1,
+            trace_id_2,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        query = {
+            "project": [project_2.id],
+            "field": ["id", "parent_span", "span.duration", "foo"],
+            "query": ["foo:bar", "foo:baz"],
+            "suggestedQuery": "foo:baz span.duration:>0s",
+            "maxSpansPerTrace": 3,
+            "sort": ["foo", "-span.duration"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        spans = {
+            result["trace"]: {span["id"] for span in result["spans"]}
+            for result in response.data["data"]
+        }
+
+        assert spans == {
+            trace_id_1: {span_ids[2], span_ids[3]},
+            trace_id_2: {span_ids[5], span_ids[6]},
+        }
 
 
 @pytest.mark.parametrize(

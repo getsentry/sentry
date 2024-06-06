@@ -760,7 +760,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
-    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -882,6 +881,11 @@ CELERY_QUEUES_REGION = [
     Queue(
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
+    ),
+    Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
+    Queue(
+        "events.symbolicate_jvm_event_low_priority",
+        routing_key="events.symbolicate_jvm_event_low_priority",
     ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
@@ -1448,84 +1452,24 @@ SENTRY_EARLY_FEATURES = {
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
-# NOTE: Please maintain alphabetical order when adding new feature flags
+# NOTE: Features can have their default value set when calling
+# `features.manager.add()`. Defining feature defaults here is deprecated.
+# If you must add a feature here, please maintain alphabetical ordering
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # Enable advanced search features, like negation and wildcard matching.
-    "organizations:advanced-search": True,
     # potentially unused.
     "organizations:api-keys": False,
-    # Enable multiple Apple app-store-connect sources per project.
-    "organizations:app-store-connect-multiple": False,
-    # Enable change alerts for an org
-    "organizations:change-alerts": True,
-    # The overall flag for codecov integration, gated by plans.
-    "organizations:codecov-integration": False,
-    # Enable alerting based on crash free sessions/users
-    "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
-    # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
-    "organizations:custom-metrics": False,
-    # Allow organizations to configure custom external symbol sources.
-    "organizations:custom-symbol-sources": True,
-    # Enable usage of customer domains on the frontend
-    "organizations:customer-domains": False,
-    # Enable data forwarding functionality for organizations.
-    "organizations:data-forwarding": True,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
-    # Enable readonly dashboards
-    "organizations:dashboards-basic": True,
-    # Enable custom editable dashboards
-    "organizations:dashboards-edit": True,
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     "organizations:custom-metrics-experimental": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
-    # Enable discover 2 basic functions
-    "organizations:discover-basic": True,
-    # Enable discover 2 custom queries and saved queries
-    "organizations:discover-query": True,
-    # Enable the new opinionated dynamic sampling
-    "organizations:dynamic-sampling": False,
-    # Enable attaching arbitrary files to events.
-    "organizations:event-attachments": True,
-    # Enable the frontend to request from region & control silo domains.
-    "organizations:frontend-domainsplit": False,
-    # Enable multi project selection
-    "organizations:global-views": False,
-    # Enable incidents feature
-    "organizations:incidents": False,
-    # Enable integration functionality to work with alert rules
-    "organizations:integrations-alert-rule": True,
-    # Enable integration functionality to work with alert rules (specifically chat integrations)
-    "organizations:integrations-chat-unfurl": True,
-    # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": True,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
-    # Enable integration functionality to work with enterprise alert rules
-    "organizations:integrations-enterprise-alert-rule": True,
-    # Enable integration functionality to work with enterprise alert rules (specifically incident
-    # management integrations)
-    "organizations:integrations-enterprise-incident-management": True,
-    # Enable interface functionality to receive event hooks.
-    "organizations:integrations-event-hooks": True,
-    # Enable integration functionality to work with alert rules (specifically incident
-    # management integrations)
-    "organizations:integrations-incident-management": True,
-    # Enable integration functionality to create and link groups to issues on
-    # external services.
-    "organizations:integrations-issue-basic": True,
-    # Enable interface functionality to synchronize groups between sentry and
-    # issues on external services.
-    "organizations:integrations-issue-sync": True,
-    # Enable stacktrace linking
-    "organizations:integrations-stacktrace-link": True,
-    # Allow orgs to automatically create Tickets in Issue Alerts
-    "organizations:integrations-ticket-rules": True,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1536,46 +1480,20 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:multi-region-selector": True,
     # Enable new page filter UI
     "organizations:new-page-filter": True,
-    # Signals that the organization supports the on demand metrics prefill.
-    "organizations:on-demand-metrics-prefill": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
     # Enable FE/BE for tracing without performance
     "organizations:performance-tracing-without-performance": True,
-    # Enable Performance view
-    "organizations:performance-view": True,
-    # Enable profiling view
-    "organizations:profiling-view": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
-    # Enable usage of external relays, for use with Relay. See
-    # https://github.com/getsentry/relay.
-    "organizations:relay": True,
-    # Enable core remote-config backend APIs
-    "organizations:remote-config": False,
-    # Enable core Session Replay backend APIs
-    "organizations:session-replay": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
     # Enable the UI for user spend notification settings
     "organizations:user-spend-notifications-settings": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": True,
-    # Enable basic SSO functionality, providing configurable single sign on
-    # using services like GitHub / Google. This is *not* the same as the signup
-    # and login with Github / Azure DevOps that sentry.io provides.
-    "organizations:sso-basic": True,
-    # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
-    # must be installed to use this functionality.
-    "organizations:sso-saml2": True,
-    # Measure usage by spans instead of transactions
-    "organizations:spans-usage-tracking": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
-    # Enable team insights page
-    "organizations:team-insights": True,
-    # Enable setting team-level roles and receiving permissions from them
-    "organizations:team-roles": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
@@ -1587,12 +1505,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-video": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
-    # Enable functionality to specify custom inbound filters on events.
-    "projects:custom-inbound-filters": False,
-    # Enable data forwarding functionality for projects.
-    "projects:data-forwarding": True,
-    # Enable functionality to discard groups.
-    "projects:discard-groups": False,
     # Enable setting priority for issues
     "projects:issue-priority": True,
     # Enable functionality for attaching  minidumps to events and displaying
@@ -1602,10 +1514,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
     "projects:race-free-group-creation": True,
-    # Enable functionality for rate-limiting events on projects.
-    "projects:rate-limits": True,
-    # Enable functionality to trigger service hooks upon event ingestion.
-    "projects:servicehooks": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

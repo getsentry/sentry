@@ -93,11 +93,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type MetricsSubscriptionCTAProps = {
-  organization: Organization;
-  children?: React.ReactNode;
-};
-
 type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
 type ReplayFeedbackButton = {children: React.ReactNode};
@@ -195,6 +190,7 @@ export type ComponentHooks = {
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
@@ -209,8 +205,6 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
-  'component:metrics-onboarding-panel-primary-action': () => React.ComponentType<MetricsSubscriptionCTAProps>;
-  'component:metrics-subscription-alert': () => React.ComponentType<MetricsSubscriptionCTAProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -261,6 +255,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
+  'feature-disabled:create-metrics-alert-tooltip': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;

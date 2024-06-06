@@ -48,7 +48,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {canSeeMetricsPage, hasRolledOutMetrics} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -539,18 +539,16 @@ function Sidebar() {
   );
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-  const isNewFeatureBadge = organization && hasRolledOutMetrics(organization);
 
-  const metrics = hasOrganization && canSeeMetricsPage(organization) && (
+  const metrics = hasOrganization && hasCustomMetrics(organization) && (
     <SidebarItem
       {...sidebarItemProps}
       icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
       label={t('Metrics')}
       to={metricsPath}
-      search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
-      isBeta={!isNewFeatureBadge}
-      isNew={!!isNewFeatureBadge}
+      isBeta
     />
   );
 
@@ -617,6 +615,7 @@ function Sidebar() {
         icon={<IconGraph />}
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
         id="insights"
+        initiallyExpanded={false}
         isNew
         exact={!shouldAccordionFloat}
       >
