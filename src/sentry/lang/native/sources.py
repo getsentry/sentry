@@ -138,6 +138,19 @@ SOURCES_SCHEMA = {
     "items": SOURCE_SCHEMA,
 }
 
+# TODO(@anonrig): Remove this when AppStore connect integration is sunset.
+# Ref: https://github.com/getsentry/sentry/issues/51994
+SOURCES_WITHOUT_APPSTORE_CONNECT = {
+    "type": "array",
+    "items": {
+        "oneOf": [
+            HTTP_SOURCE_SCHEMA,
+            S3_SOURCE_SCHEMA,
+            GCS_SOURCE_SCHEMA,
+        ]
+    },
+}
+
 
 # Schemas for sources with redacted secrets
 HIDDEN_SECRET_SCHEMA = {
@@ -355,13 +368,13 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources):
+def validate_sources(sources, schema=SOURCES_SCHEMA):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
     """
     try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
+        jsonschema.validate(sources, schema)
     except jsonschema.ValidationError as e:
         raise InvalidSourcesError(f"{e}")
 
