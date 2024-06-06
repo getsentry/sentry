@@ -2196,6 +2196,9 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
+# This flag activates uptime checks in the developemnt environment
+SENTRY_USE_UPTIME = False
+
 # This flags enables the `peanutbutter` realtime metrics backend.
 # See https://github.com/getsentry/peanutbutter.
 # We do not want/need this in normal devservices, but we need it for certain tests.
@@ -2894,6 +2897,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
