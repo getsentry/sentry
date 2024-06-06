@@ -30,7 +30,6 @@ from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_o
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import (
-    EXTERNAL_PROVIDERS_REVERSE,
     EXTERNAL_PROVIDERS_REVERSE_VALUES,
     PERSONAL_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
@@ -266,7 +265,7 @@ class NotificationController:
         Recipient,
         MutableMapping[
             NotificationSettingEnum,
-            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            MutableMapping[str, NotificationSettingsOptionEnum],
         ],
     ]:
         """
@@ -352,7 +351,7 @@ class NotificationController:
         Recipient,
         MutableMapping[
             NotificationSettingEnum,
-            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            MutableMapping[str, NotificationSettingsOptionEnum],
         ],
     ]:
         """
@@ -376,7 +375,7 @@ class NotificationController:
             Recipient,
             MutableMapping[
                 NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                MutableMapping[str, NotificationSettingsOptionEnum],
             ],
         ] = defaultdict(
             lambda: defaultdict(
@@ -442,7 +441,7 @@ class NotificationController:
         int,
         MutableMapping[
             NotificationSettingEnum,
-            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            MutableMapping[str, NotificationSettingsOptionEnum],
         ],
     ]:
         """
@@ -456,7 +455,7 @@ class NotificationController:
             int,
             MutableMapping[
                 NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                MutableMapping[str, NotificationSettingsOptionEnum],
             ],
         ] = defaultdict(
             lambda: defaultdict(
@@ -539,7 +538,7 @@ class NotificationController:
             actor = Actor.from_object(recipient)
             provider_map = setting_map[self.type]
             user_to_providers[actor] = {
-                EXTERNAL_PROVIDERS_REVERSE[provider]: value
+                EXTERNAL_PROVIDERS_REVERSE_VALUES[provider]: value
                 for provider, value in provider_map.items()
             }
 
