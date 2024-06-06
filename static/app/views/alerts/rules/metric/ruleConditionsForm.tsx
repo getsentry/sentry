@@ -17,6 +17,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
+import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
@@ -40,7 +41,6 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {MetricSearchBar} from 'sentry/views/metrics/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 
