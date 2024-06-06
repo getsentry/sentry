@@ -1064,7 +1064,7 @@ def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
 
     idx = round((timestamp - trace_start) * slices / trace_duration)
 
-    if left_bound is not None and left_bound >= idx:
+    if idx < slices and left_bound is not None and left_bound >= idx:
         idx = left_bound + 1
 
     return idx
@@ -1091,6 +1091,7 @@ def quantize_range(span_start, span_end, trace_range):
             with sentry_sdk.push_scope() as scope:
                 scope.set_extra("slice start", {"raw": raw_start_index, "clipped": start_index})
                 sentry_sdk.capture_message("Slice start was adjusted", level="warning")
+
         if raw_end_index != end_index:
             with sentry_sdk.push_scope() as scope:
                 scope.set_extra("slice end", {"raw": raw_end_index, "clipped": end_index})
@@ -1247,7 +1248,7 @@ def process_breakdowns(data, traces_range):
             trace_start = trace_range["start"]
             trace_end = trace_range["end"]
 
-            # convert_to_slice the intervals os that it is within range of the trace
+            # clip the intervals os that it is within range of the trace
             precise_start = clip(precise_start, trace_start, trace_end)
             precise_end = clip(precise_end, trace_start, trace_end)
 
