@@ -145,7 +145,6 @@ export function QueuesTable({error, destination, sort}: Props) {
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
         }}
-        location={location}
       />
 
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />

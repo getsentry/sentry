@@ -23,7 +23,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -215,15 +215,15 @@ function SearchQueryBuilderInputInternal({
   tabIndex,
   state,
 }: SearchQueryBuilderInputInternalProps) {
-  const trimmedTokenValue = token.value.trim();
+  const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   // TODO(malwilley): Use input ref to update cursor position on mount
   const [selectionIndex, setSelectionIndex] = useState(0);
 
-  const resetInputValue = () => {
+  const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
     // TODO(malwilley): Reset cursor position using ref
-  };
+  }, [trimmedTokenValue]);
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
@@ -273,6 +273,23 @@ function SearchQueryBuilderInputInternal({
     [item.key, state.collection, state.selectionManager]
   );
 
+  const onPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
+
+      dispatch({
+        type: 'PASTE_FREE_TEXT',
+        token,
+        text: replaceAliasedFilterKeys(text, aliasToKeyMap),
+      });
+      resetInputValue();
+    },
+    [aliasToKeyMap, dispatch, resetInputValue, token]
+  );
+
   return (
     <SearchQueryBuilderCombobox
       items={items}
@@ -287,9 +304,11 @@ function SearchQueryBuilderInputInternal({
       }}
       onCustomValueBlurred={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+        resetInputValue();
       }}
       onCustomValueCommitted={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+        resetInputValue();
 
         // Because the query does not change until a subsequent render,
         // we need to do the replacement that is does in the ruducer here
@@ -298,6 +317,7 @@ function SearchQueryBuilderInputInternal({
       onExit={() => {
         if (inputValue !== token.value.trim()) {
           dispatch({type: 'UPDATE_FREE_TEXT', token, text: inputValue});
+          resetInputValue();
         }
       }}
       inputValue={inputValue}
@@ -312,6 +332,7 @@ function SearchQueryBuilderInputInternal({
             text: e.target.value,
             focusOverride: calculateNextFocusForParen(item),
           });
+          resetInputValue();
           return;
         }
 
@@ -332,6 +353,7 @@ function SearchQueryBuilderInputInternal({
       onKeyDown={onKeyDown}
       tabIndex={tabIndex}
       maxOptions={50}
+      onPaste={onPaste}
     >
       {sections.map(({title, children}) => (
         <Section title={title} key={title}>

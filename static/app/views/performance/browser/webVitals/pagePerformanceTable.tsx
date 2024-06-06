@@ -336,7 +336,6 @@ export function PagePerformanceTable() {
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
         />
       </GridContainer>
     </span>

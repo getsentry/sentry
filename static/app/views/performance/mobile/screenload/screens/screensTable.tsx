@@ -196,7 +196,6 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
             order: 'desc',
           },
         ]}
-        location={location}
         grid={{
           renderHeadCell: column => renderHeadCell(column, data?.meta),
           renderBodyCell,

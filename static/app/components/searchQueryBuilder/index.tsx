@@ -11,8 +11,7 @@ import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTex
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {collapseTextTokens} from 'sentry/components/searchQueryBuilder/utils';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,7 +38,7 @@ interface SearchQueryBuilderProps {
 }
 
 function ActionButtons() {
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, onSearch} = useSearchQueryBuilder();
 
   return (
     <ButtonsWrapper>
@@ -48,7 +47,10 @@ function ActionButtons() {
         size="zero"
         icon={<IconClose />}
         borderless
-        onClick={() => dispatch({type: 'CLEAR'})}
+        onClick={() => {
+          dispatch({type: 'CLEAR'});
+          onSearch?.('');
+        }}
       />
     </ButtonsWrapper>
   );
@@ -67,10 +69,7 @@ export function SearchQueryBuilder({
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
-  const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),
-    [state.query]
-  );
+  const parsedQuery = useMemo(() => parseQueryBuilderValue(state.query), [state.query]);
 
   useEffectAfterFirstRender(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});

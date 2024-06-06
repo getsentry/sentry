@@ -323,7 +323,6 @@ export function MetricSamplesTable({
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
-        location={location}
         emptyMessage={emptyMessage}
         minimumColWidth={60}
       />

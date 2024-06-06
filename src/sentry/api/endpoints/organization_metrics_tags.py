@@ -1,4 +1,4 @@
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,10 +6,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.api.exceptions import BadRequest
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
-from sentry.snuba.metrics import DerivedMetricParseException, get_all_tags
+from sentry.snuba.metrics import (
+    DerivedMetricParseException,
+    MetricDoesNotExistInIndexer,
+    get_all_tags,
+)
 
 
 @region_silo_endpoint
@@ -35,6 +40,9 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         if not projects:
             raise InvalidParams("You must supply at least one project to see the tag names")
 
+        if len(metric_names) > 1:
+            raise BadRequest(message="Please provide only a single metric name.")
+
         start, end = get_date_range_from_params(request.GET)
 
         try:
@@ -47,5 +55,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
+
+        except MetricDoesNotExistInIndexer:
+            raise NotFound(f"One of the specified metrics was not found: {metric_names}")
 
         return Response(tags, status=200)

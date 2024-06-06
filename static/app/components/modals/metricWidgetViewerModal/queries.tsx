@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -53,7 +53,7 @@ interface Props {
   removeQuery: (index: number) => void;
 }
 
-export function Queries({
+export const Queries = memo(function Queries({
   displayType,
   metricQueries,
   metricEquations,
@@ -115,10 +115,10 @@ export function Queries({
           )}
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
-              <QueryBuilder
+              <WrappedQueryBuilder
                 index={index}
-                onChange={data => onQueryChange(data, index)}
-                metricsQuery={query}
+                onQueryChange={onQueryChange}
+                query={query}
                 projects={selection.projects}
               />
               <QueryContextMenu
@@ -192,6 +192,36 @@ export function Queries({
         )}
       </ButtonBar>
     </ExpressionsWrapper>
+  );
+});
+
+/**
+ * Wrapper for  the QueryBuilder to memoize the onChange handler
+ */
+function WrappedQueryBuilder({
+  index,
+  onQueryChange,
+  projects,
+  query,
+}: {
+  index: number;
+  onQueryChange: (data: Partial<DashboardMetricsQuery>, index: number) => void;
+  projects: number[];
+  query: DashboardMetricsQuery;
+}) {
+  const handleChange = useCallback(
+    (data: Partial<DashboardMetricsQuery>) => {
+      onQueryChange(data, index);
+    },
+    [index, onQueryChange]
+  );
+  return (
+    <QueryBuilder
+      index={index}
+      onChange={handleChange}
+      metricsQuery={query}
+      projects={projects}
+    />
   );
 }
 

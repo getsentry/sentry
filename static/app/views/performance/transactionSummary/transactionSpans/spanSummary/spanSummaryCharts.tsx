@@ -60,8 +60,7 @@ function SpanSummaryCharts() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      // TODO: Switch this to SPAN_DURATION before release
-      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
+      yAxis: [`avg(${SpanMetricsField.SPAN_DURATION})`],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_DURATION_CHART
   );
@@ -121,7 +120,7 @@ function SpanSummaryCharts() {
         <ChartPanel title={t('Average Duration')}>
           <Chart
             height={160}
-            data={[avgDurationData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+            data={[avgDurationData?.[`avg(${SpanMetricsField.SPAN_DURATION})`]]}
             loading={isAvgDurationDataLoading}
             type={ChartType.LINE}
             definedAxisTicks={4}

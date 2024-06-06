@@ -164,11 +164,12 @@ class EventStorage(Service):
 
     def get_events(
         self,
-        snuba_filter,
+        filter,
         orderby=None,
         limit=100,
         offset=0,
         referrer="eventstore.get_events",
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         """
@@ -204,11 +205,12 @@ class EventStorage(Service):
 
     def get_unfetched_events(
         self,
-        snuba_filter,
+        filter,
         orderby=None,
         limit=100,
         offset=0,
         referrer="eventstore.get_unfetched_events",
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         """
