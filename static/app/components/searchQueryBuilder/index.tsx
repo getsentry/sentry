@@ -9,20 +9,23 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
+import {
+  type FilterKeySection,
+  QueryInterfaceType,
+} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
+  filterKeySections: FilterKeySection[];
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
-  supportedKeys: TagCollection;
   className?: string;
   label?: string;
   onBlur?: (query: string) => void;
@@ -60,7 +63,7 @@ export function SearchQueryBuilder({
   className,
   label,
   initialQuery,
-  supportedKeys,
+  filterKeySections,
   getTagValues,
   onChange,
   onSearch,
@@ -80,15 +83,23 @@ export function SearchQueryBuilder({
   }, [onChange, state.query]);
 
   const contextValue = useMemo(() => {
+    const allKeys = filterKeySections.reduce((acc, section) => {
+      for (const tag of section.children) {
+        acc[tag.key] = tag;
+      }
+      return acc;
+    }, {});
+
     return {
       ...state,
       parsedQuery,
-      keys: supportedKeys,
+      filterKeySections,
+      keys: allKeys,
       getTagValues,
       dispatch,
       onSearch,
     };
-  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch, onSearch]);
+  }, [state, parsedQuery, filterKeySections, getTagValues, dispatch, onSearch]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
