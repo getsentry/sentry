@@ -61,7 +61,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable auth provider configuration through api
     manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the cron job to auto-enable codecov integrations.
