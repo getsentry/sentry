@@ -55,6 +55,13 @@ function isHighlightingAllOccurrences(
   );
 }
 
+function makeSourceCodeLink(frame: FlamegraphFrame['frame']): string | undefined {
+  const path = frame.path || frame.file;
+  const lineComponents = [frame.line, frame.column]
+    .filter(n => n !== undefined)
+    .join(':');
+  return path + (lineComponents ? `:${lineComponents}` : '');
+}
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
@@ -723,9 +730,15 @@ function FlamegraphZoomView({
     }
 
     const frame = hoveredNodeOnContextMenuOpen.current.frame;
+    const link = makeSourceCodeLink(frame);
+
+    if (!link) {
+      addErrorMessage(t('Failed to resolve path for this function frame.'));
+      return;
+    }
 
     navigator.clipboard
-      .writeText(frame.file ?? frame.path ?? '')
+      .writeText(link)
       .then(() => {
         addSuccessMessage(t('Function source copied to clipboard'));
       })
