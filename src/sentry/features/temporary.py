@@ -403,8 +403,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:stacktrace-processing-caching", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # A single flag for all the new performance UI that relies on span ingestion
-    manager.add("organizations:spans-first-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Show links and upsells to Insights modules
     manager.add("organizations:insights-entry-points", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable access to initial Insights modules (Queries, Requests, Vitals, App Starts, Page Loads, Resources)
