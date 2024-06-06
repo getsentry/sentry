@@ -31,6 +31,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.actor import Actor, ActorType
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS_REVERSE,
+    EXTERNAL_PROVIDERS_REVERSE_VALUES,
     PERSONAL_NOTIFICATION_PROVIDERS,
     ExternalProviderEnum,
     ExternalProviders,
@@ -280,7 +281,7 @@ class NotificationController:
             Recipient,
             MutableMapping[
                 NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                MutableMapping[str, NotificationSettingsOptionEnum],
             ],
         ] = defaultdict(
             lambda: defaultdict(
@@ -320,25 +321,24 @@ class NotificationController:
                 ):
                     if setting.scope_identifier != project_id:
                         continue
-
                 # sort the settings by scope type, with the most specific scope last so we override with the most specific value
                 most_specific_recipient_providers[NotificationSettingEnum(setting.type)][
-                    ExternalProviderEnum(setting.provider)
+                    ExternalProviderEnum(setting.provider).value
                 ] = NotificationSettingsOptionEnum(setting.value)
 
             # if we have no settings for this user, use the defaults
             for type in NotificationSettingEnum:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
-                    if provider not in most_specific_recipient_providers[type]:
+                    if provider_str not in most_specific_recipient_providers[type]:
                         # TODO(jangjodi): Remove this once the flag is removed
                         if recipient_is_team(recipient) and (not has_team_workflow):
                             most_specific_recipient_providers[type][
-                                provider
+                                provider_str
                             ] = NotificationSettingsOptionEnum.NEVER
                         else:
                             most_specific_recipient_providers[type][
-                                provider
+                                provider_str
                             ] = get_default_for_provider(type, provider)
 
         return most_specific_setting_providers
@@ -431,7 +431,7 @@ class NotificationController:
                     if value == NotificationSettingsOptionEnum.NEVER:
                         continue
 
-                    recipients[EXTERNAL_PROVIDERS_REVERSE[provider]].add(actor)
+                    recipients[EXTERNAL_PROVIDERS_REVERSE_VALUES[provider]].add(actor)
         return recipients
 
     def get_settings_for_user_by_projects(
@@ -595,11 +595,12 @@ class NotificationController:
             recipient: The recipient of the notification settings (user or team).
             type: The notification type to filter providers and recipients by.
         """
+        provider_str = provider.value
         if self.type and type != self.type:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
         setting_providers = self._get_layered_setting_providers(type=type.value)
-        return setting_providers[recipient][type][provider]
+        return setting_providers[recipient][type][provider_str]
 
     def get_users_for_weekly_reports(self) -> list[int]:
         if not self.organization_id:
