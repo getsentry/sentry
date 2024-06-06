@@ -194,7 +194,7 @@ describe('ContextPickerModal', function () {
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = UserFixture({isSuperuser: true});
+    ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
@@ -238,7 +238,7 @@ describe('ContextPickerModal', function () {
   it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = UserFixture({isSuperuser: false});
+    ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
@@ -270,7 +270,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = UserFixture({isSuperuser: false});
+    ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;

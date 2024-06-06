@@ -128,9 +128,11 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = ConfigFixture({
-        user: undefined,
-      });
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: undefined,
+        })
+      );
 
       render(<Access>{childrenMock}</Access>, {organization});
 
@@ -141,9 +143,11 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = ConfigFixture({
-        user: UserFixture({isSuperuser: true}),
-      });
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({isSuperuser: true}),
+        })
+      );
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
         organization,
@@ -156,9 +160,11 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = ConfigFixture({
-        user: UserFixture({isSuperuser: false}),
-      });
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({isSuperuser: false}),
+        })
+      );
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
         organization,
@@ -195,9 +201,11 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = ConfigFixture({
-        user: UserFixture({isSuperuser: true}),
-      });
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({isSuperuser: true}),
+        })
+      );
 
       render(
         <Access isSuperuser>
@@ -210,9 +218,11 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = ConfigFixture({
-        user: UserFixture({isSuperuser: false}),
-      });
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({isSuperuser: false}),
+        })
+      );
 
       render(
         <Access isSuperuser>

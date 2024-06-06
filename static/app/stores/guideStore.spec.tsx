@@ -13,13 +13,15 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({
-        id: '5',
-        isSuperuser: false,
-        dateJoined: '2020-01-01T00:00:00',
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          id: '5',
+          isSuperuser: false,
+          dateJoined: '2020-01-01T00:00:00',
+        }),
+      })
+    );
     GuideStore.init();
     data = [
       {
