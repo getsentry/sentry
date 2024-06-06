@@ -309,7 +309,7 @@ class Organization(
         )
 
         with in_test_hide_transaction_boundary():
-            return user_service.get_many(filter={"user_ids": list(owners)})
+            return user_service.get_many_by_id(ids=list(owners))
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):

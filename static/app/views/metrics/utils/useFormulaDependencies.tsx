@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {
   isMetricsEquationWidget,
@@ -9,7 +10,6 @@ import {
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {parseFormula} from 'sentry/views/metrics/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
-import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface FormulaDependencies {
   dependencies: MetricsQueryWidget[];

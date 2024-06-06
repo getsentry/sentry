@@ -60,6 +60,9 @@ MATCHERS = {
     "path": "path",
     "package": "package",
     "function": "function",
+    "type": "type",
+    "value": "value",
+    "mechanism": "mechanism",
     "category": "category",
     # fingerprinting specific fields
     "family": "family",

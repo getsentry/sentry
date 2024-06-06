@@ -546,7 +546,7 @@ function Sidebar() {
       icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
       label={t('Metrics')}
       to={metricsPath}
-      search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
       isBeta
     />
@@ -615,6 +615,7 @@ function Sidebar() {
         icon={<IconGraph />}
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
         id="insights"
+        initiallyExpanded={false}
         isNew
         exact={!shouldAccordionFloat}
       >
