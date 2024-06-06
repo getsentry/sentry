@@ -1,5 +1,5 @@
 ---
-created: '2021-04-02T09:11:22.578666Z'
+created: '2024-06-06T14:41:17.725971+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_enhancer.py
 ---
@@ -101,4 +101,11 @@ rules:
   - key: family
     negated: false
     pattern: native
+- actions:
+  - value: 12
+    var: max-frames
+  matchers:
+  - key: value
+    negated: false
+    pattern: '*something*'
 version: 2

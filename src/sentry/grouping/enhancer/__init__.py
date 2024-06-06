@@ -188,7 +188,6 @@ class Enhancements:
             [x._to_config_structure(self.version) for x in self.rules],
         ]
 
-    @sentry_sdk.tracing.trace
     def dumps(self) -> str:
         encoded = msgpack.dumps(self._to_config_structure())
         compressed = zstandard.compress(encoded)
@@ -207,7 +206,6 @@ class Enhancements:
         )
 
     @classmethod
-    @sentry_sdk.tracing.trace
     def loads(cls, data) -> Enhancements:
         if isinstance(data, str):
             data = data.encode("ascii", "ignore")
