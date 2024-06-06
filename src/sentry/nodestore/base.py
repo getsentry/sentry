@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from threading import local
 from typing import Any
@@ -204,7 +205,7 @@ class NodeStorage(local, Service):
 
             return items
 
-    def _encode(self, data: dict[str | None, dict[str, str]]) -> bytes:
+    def _encode(self, data: dict[str | None, Mapping[str, Any]]) -> bytes:
         """
         Encode data dict in a way where its keys can be deserialized
         independently. A `None` key must always be present which is served as
@@ -231,7 +232,7 @@ class NodeStorage(local, Service):
     def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         raise NotImplementedError
 
-    def set(self, item_id: str, data: dict[str, str], ttl: timedelta | None = None) -> None:
+    def set(self, item_id: str, data: Mapping[str, Any], ttl: timedelta | None = None) -> None:
         """
         Set value for `item_id`. Note that this deletes existing subkeys for `item_id` as
         well, use `set_subkeys` to write a value + subkeys.
@@ -242,7 +243,7 @@ class NodeStorage(local, Service):
 
     @sentry_sdk.tracing.trace
     def set_subkeys(
-        self, item_id: str, data: dict[str | None, dict[str, str]], ttl: timedelta | None = None
+        self, item_id: str, data: dict[str | None, Mapping[str, Any]], ttl: timedelta | None = None
     ) -> None:
         """
         Set value for `item_id` and its subkeys.

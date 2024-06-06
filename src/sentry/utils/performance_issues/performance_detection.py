@@ -100,13 +100,17 @@ class EventPerformanceProblem:
     @classmethod
     def fetch_multi(
         cls, items: Sequence[tuple[Event, str]]
-    ) -> Sequence[EventPerformanceProblem | None]:
+    ) -> list[EventPerformanceProblem | None]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
         results = nodestore.backend.get_multi(ids)
-        return [
-            cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
-            for _id, (event, _) in zip(ids, items)
-        ]
+        ret: list[EventPerformanceProblem | None] = []
+        for _id, (event, _) in zip(ids, items):
+            result = results.get(_id)
+            if result:
+                ret.append(cls(event, PerformanceProblem.from_dict(result)))
+            else:
+                ret.append(None)
+        return ret
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
