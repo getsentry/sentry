@@ -340,6 +340,7 @@ class OrganizationReportBatch:
                     "batch_id": self.batch_id,
                     "organization": self.ctx.organization.id,
                     "uuid": template_ctx["notification_uuid"],
+                    "user_id": user_id,
                 },
             )
 
