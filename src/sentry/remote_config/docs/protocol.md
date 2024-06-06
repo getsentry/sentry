@@ -32,11 +32,11 @@ Features may specify zero or more variants which may alter the evaluation result
 
 **Variant Object**
 
-| Field   | Type        | Description                                                                               |
-| ------- | ----------- | ----------------------------------------------------------------------------------------- |
-| rollout | Rollout     | An object which contains instructions for rolling out a variant.                          |
-| rules   | array[Rule] | An array of rules which all must evaluate to true in order to return the variant's value. |
-| value   | any         | The value of the feature if the variant is successfully evaluated.                        |
+| Field   | Type                 | Description                                                                               |
+| ------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| rollout | union[Rollout, null] | An object which contains instructions for rolling out a variant.                          |
+| rules   | array[Rule]          | An array of rules which all must evaluate to true in order to return the variant's value. |
+| value   | any                  | The value of the feature if the variant is successfully evaluated.                        |
 
 When evaluating a set of rules and varaints each rule is a logical `AND` while each variant is a logical `OR`. Failure to evaluate one variant does not prevent another variant from successfully evaluating. Failure to evaluate one rule does invalidate the remaining rules and the evaluation proceedure can eagerly terminate.
 
@@ -167,6 +167,7 @@ If the server's ETag does not match the request's a 200 response is returned.
           "value": 0.1,
           "variants": [
             {
+              "rollout": null,
               "rules": [
                 {
                   "operator": "==",
@@ -191,6 +192,7 @@ If the server's ETag does not match the request's a 200 response is returned.
                 "percentage": 50,
                 "sticky": null
               },
+              "rules": [],
               "value": 1.0
             }
           ]
