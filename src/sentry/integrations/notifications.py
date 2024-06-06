@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -13,7 +14,6 @@ from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 def get_context(
