@@ -182,7 +182,7 @@ export function TransactionNodeDetails({
 
       {project ? <EventEvidence event={event} project={project} /> : null}
 
-      {replayRecord ? <ReplayPreview event={event} organization={organization} /> : null}
+      {!replayRecord ? <ReplayPreview event={event} organization={organization} /> : null}
 
       <BreadCrumbs event={event} organization={organization} />
 
