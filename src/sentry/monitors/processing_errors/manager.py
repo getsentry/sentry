@@ -9,7 +9,7 @@ from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
-from sentry import features
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
@@ -177,6 +177,13 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
                 "source": "consumer",
                 "sdk_platform": item.message["sdk"],
             },
+        )
+        analytics.record(
+            "checkin_processing_error.stored",
+            organization_id=organization.id,
+            project_id=project.id,
+            monitor_slug=item.payload["monitor_slug"],
+            error_types=[process_error["type"] for process_error in error.processing_errors],
         )
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
