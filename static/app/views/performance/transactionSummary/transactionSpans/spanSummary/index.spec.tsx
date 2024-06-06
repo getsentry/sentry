@@ -1,21 +1,8 @@
-import {
-  generateSuspectSpansResponse,
-  initializeData as _initializeData,
-} from 'sentry-test/performance/initializePerformanceData';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useParams} from 'sentry/utils/useParams';
-import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/';
 
 function initializeData(settings) {
@@ -29,47 +16,13 @@ jest.mock('sentry/utils/useParams', () => ({
 }));
 
 describe('Performance > Transaction Spans > Span Summary', function () {
-  // beforeEach(function () {
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/projects/',
-  //     body: [],
-  //   });
-
-  //   MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/events/',
-  //     body: {data: [{'count()': 1}]},
-  //   });
-  // });
-
-  // afterEach(function () {
-  //   MockApiClient.clearMockResponses();
-  //   ProjectsStore.reset();
-  //   // need to typecast to any to be able to call mockReset
-  //   (browserHistory.push as any).mockReset();
-  // });
-
   beforeEach(() => {
     jest.mocked(useParams).mockReturnValue({
       spanSlug: 'db:aaaaaaaa',
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/dataset=spansMetrics',
-      body: {
-        data: [
-          {
-            'span.description':
-              'SELECT .. FROM accounts_billinghistory WHERE (current AND subscription_id = %s) LIMIT %s',
-            'avg(span.duration)': 1.7381229881349218,
-            'count()': 3677407172,
-            'sum(span.self_time)': 6391491809.035965,
-          },
-        ],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/dataset=spansIndexed',
+      url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
@@ -118,11 +71,42 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   });
 
   it('correctly renders the details in the header', async () => {
-    const data = initializeData({
-      query: {transaction: 'transaction', spanSlug: 'db:aaaaaaaa'},
+    const headerDataMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'span.description': 'SELECT thing FROM my_cool_db WHERE value = %s',
+            'avg(span.duration)': 1.7381229881349218,
+            'count()': 3677407172,
+            'sum(span.self_time)': 6391491809.035965,
+          },
+        ],
+        meta: {
+          fields: {
+            'span.description': 'string',
+            'sum(span.self_time)': 'duration',
+            'count()': 'integer',
+            'avg(span.duration)': 'duration',
+          },
+          units: {
+            'span.description': null,
+            'sum(span.self_time)': 'millisecond',
+            'count()': null,
+            'avg(span.duration)': 'millisecond',
+          },
+          isMetricsData: false,
+          isMetricsExtractedData: false,
+          tips: {},
+          datasetReason: 'unchanged',
+          dataset: 'spansMetrics',
+        },
+      },
     });
 
-    const {container} = render(
+    const data = initializeData({});
+
+    render(
       <SpanSummary
         spanSlug={{group: 'aaaaaaaa', op: 'db'}}
         transactionName="transaction"
@@ -130,6 +114,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       />,
       {organization: data.organization}
     );
+
+    expect(headerDataMock).toHaveBeenCalled();
 
     await waitFor(() =>
       expect(screen.queryByTestId('header-operation-name')).toBeInTheDocument()
@@ -139,11 +125,19 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       expect(screen.queryByTestId('header-avg-duration')).toBeInTheDocument()
     );
 
-    // await waitFor(() =>
-    //   expect(screen.queryByTestId('header-total-exclusive-time')).toBeInTheDocument()
-    // );
+    await waitFor(() =>
+      expect(screen.queryByTestId('header-total-exclusive-time')).toBeInTheDocument()
+    );
 
-    screen.debug(container);
+    const headerContainerOp = await screen.findByTestId('operation-name');
+    expect(headerContainerOp).toHaveTextContent('db');
+
+    const headerContainerDescription = await screen.findByTestId(
+      'header-span-description'
+    );
+    expect(headerContainerDescription).toHaveTextContent(
+      'SELECT thing FROM my_cool_db WHERE value = %s'
+    );
   });
 
   // describe('Without Span Data', function () {
