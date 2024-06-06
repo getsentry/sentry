@@ -87,7 +87,5 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     projects,
     router,
     routerProps,
-    // @deprecated - not sure what purpose this serves
-    route: {},
   };
 }
