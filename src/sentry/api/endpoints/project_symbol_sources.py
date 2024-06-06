@@ -21,6 +21,7 @@ from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
+    SOURCES_WITHOUT_APPSTORE_CONNECT,
     VALID_CASINGS,
     VALID_LAYOUTS,
     InvalidSourcesError,
@@ -337,7 +338,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         sources.append(source)
 
         try:
-            validate_sources(sources)
+            # TODO(@anonrig): Update this schema when AppStore connect is sunset.
+            validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT)
         except InvalidSourcesError:
             return Response(status=400)
 
