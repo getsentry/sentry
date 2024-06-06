@@ -81,7 +81,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
       'Average time to full display of %s.',
       SECONDARY_RELEASE_ALIAS
     ),
-    [countColumnName]: t('The total count of all screen loads.'),
+    [countColumnName]: t('The total count of screen loads.'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
