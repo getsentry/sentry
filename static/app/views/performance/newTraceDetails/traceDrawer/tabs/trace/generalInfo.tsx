@@ -18,7 +18,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {SpanTimeRenderer} from 'sentry/views/performance/traces/fieldRenderers';
+import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
 import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
