@@ -28,9 +28,9 @@ from rest_framework.response import Response
 class UserSubscriptionsEndpoint(UserEndpoint):
     owner = ApiOwner.ALERTS_NOTIFICATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:

@@ -57,8 +57,8 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
 class UserNotificationDetailsEndpoint(UserEndpoint):
     owner = ApiOwner.ALERTS_NOTIFICATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:
