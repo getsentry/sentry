@@ -646,6 +646,7 @@ module = [
     "sentry.utils.zip",
     "sentry_plugins.base",
     "tests.sentry.api.endpoints.issues.*",
+    "tests.sentry.event_manager.test_event_manager",
     "tests.sentry.grouping.test_fingerprinting",
     "tests.sentry.hybridcloud.*",
     "tests.sentry.issues",
