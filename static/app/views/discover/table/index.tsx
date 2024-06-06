@@ -179,6 +179,13 @@ class Table extends PureComponent<TableProps, TableState> {
           meta: {...fields, ...nonFieldsMeta},
         };
 
+        trackAnalytics('discover_search.success', {
+          has_results: tableData.data.length > 0,
+          organization: this.props.organization,
+          search_type: 'events',
+          search_source: 'discover_search',
+        });
+
         this.setState(prevState => ({
           isLoading: false,
           tableFetchID: undefined,
