@@ -49,6 +49,12 @@ const MOCK_SUPPORTED_KEYS: TagCollection = {
     predefined: true,
     values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
   },
+  [FieldKey.IS]: {
+    key: FieldKey.IS,
+    name: 'is',
+    alias: 'status',
+    predefined: true,
+  },
   custom_tag_name: {key: 'custom_tag_name', name: 'Custom_Tag_Name', kind: FieldKind.TAG},
 };
 
@@ -68,55 +74,86 @@ describe('SearchQueryBuilder', function () {
     label: 'Query Builder',
   };
 
+  describe('callbacks', function () {
+    it('calls onChange, onBlur, and onSearch with the query string', async function () {
+      const mockOnChange = jest.fn();
+      const mockOnBlur = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          onChange={mockOnChange}
+          onBlur={mockOnBlur}
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('foo{enter}');
+
+      // Should call onChange and onSearch after enter
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('foo');
+        expect(mockOnSearch).toHaveBeenCalledWith('foo');
+      });
+
+      await userEvent.click(document.body);
+
+      // Clicking outside activates onBlur
+      await waitFor(() => {
+        expect(mockOnBlur).toHaveBeenCalledWith('foo');
+      });
+    });
+  });
+
+  describe('filter key aliases', function () {
+    it('displays the key alias instead of the actual value', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
+
+      expect(await screen.findByText('status')).toBeInTheDocument();
+    });
+
+    it('when adding a filter by typing, replaces aliased tokens', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="" onChange={mockOnChange} />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('status:');
+
+      // Component should display alias `status`
+      expect(await screen.findByText('status')).toBeInTheDocument();
+      // Query should use the actual key `is`
+      expect(mockOnChange).toHaveBeenCalledWith('is:');
+    });
+  });
+
   describe('actions', function () {
     it('can clear the query', async function () {
       const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
+          onSearch={mockOnSearch}
         />
       );
       userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('');
+        expect(mockOnSearch).toHaveBeenCalledWith('');
       });
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
-    });
 
-    // biome-ignore lint/suspicious/noSkippedTests: This test flakes in CI due to an act warning in Tooltip
-    it.skip('can switch between interfaces', async function () {
-      render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
-      );
-
-      // Displays in tokenized mode by default
-      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Switch to plain text'}));
-
-      // No longer displays tokens, has an input instead
-      await waitFor(() => {
-        expect(
-          screen.queryByRole('row', {name: 'browser.name:firefox'})
-        ).not.toBeInTheDocument();
-      });
-      expect(screen.getByRole('textbox')).toHaveValue('browser.name:firefox');
-
-      // Switching back should restore the tokens
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Switch to tokenized search'})
-      );
-      await waitFor(() => {
-        expect(
-          screen.getByRole('row', {name: 'browser.name:firefox'})
-        ).toBeInTheDocument();
-      });
+      expect(screen.getByRole('combobox')).toHaveFocus();
     });
   });
 
@@ -135,6 +172,7 @@ describe('SearchQueryBuilder', function () {
           {...defaultProps}
           initialQuery="browser.name:firefox"
           onChange={mockOnChange}
+          queryInterface={QueryInterfaceType.TEXT}
         />
       );
 
@@ -327,6 +365,23 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
+    it('opens the value suggestions menu when clicking anywhere in the filter value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:[Chrome,Firefox]"
+        />
+      );
+
+      // Start editing value
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      // Click in the filter value area, should open the menu
+      await userEvent.click(screen.getByTestId('filter-value-editing'));
+      expect(await screen.findByRole('option', {name: 'Chrome'})).toBeInTheDocument();
+    });
+
     it('can remove parens by clicking the delete button', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
 
@@ -334,6 +389,15 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('gridcell', {name: 'Delete ('}));
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('can remove boolean ops by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+
+      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+
+      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
     });
   });
 
@@ -412,14 +476,17 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
 
-      // Should have a free text token "some free text"
-      expect(screen.getByRole('row', {name: 'some free text'})).toBeInTheDocument();
-
-      // Should have a filter token with key "browser.name"
-      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
-
       // Filter value should have focus
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      await userEvent.keyboard('foo{enter}');
+
+      // Should have a free text token "some free text"
+      expect(
+        await screen.findByRole('row', {name: /some free text/})
+      ).toBeInTheDocument();
+
+      // Should have a filter token "browser.name:foo"
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -429,6 +496,9 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('(');
 
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
+
+      // Last input (the one after the paren) should have focus
+      expect(screen.getAllByRole('combobox').at(-1)).toHaveFocus();
     });
   });
 
@@ -504,12 +574,6 @@ describe('SearchQueryBuilder', function () {
         screen.getByRole('button', {name: 'Edit operator for filter: assigned'})
       ).toHaveFocus();
 
-      // Left again focuses the assigned key
-      await userEvent.keyboard('{arrowleft}');
-      expect(
-        screen.getByRole('button', {name: 'Edit filter key: assigned'})
-      ).toHaveFocus();
-
       // Left again goes to the next text input between tokens
       await userEvent.keyboard('{arrowleft}');
       expect(
@@ -547,6 +611,20 @@ describe('SearchQueryBuilder', function () {
       expect(document.body).toHaveFocus();
     });
 
+    it('converts pasted text into tokens', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.paste('browser.name:firefox');
+
+      // Should have tokenized the pasted text
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+      // Focus should be at the end of the pasted text
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
+    });
+
     it('can remove parens with the keyboard', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
 
@@ -556,6 +634,42 @@ describe('SearchQueryBuilder', function () {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('can remove boolean ops with the keyboard', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
+
+      expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{backspace}{backspace}');
+
+      expect(screen.queryByRole('row', {name: 'and'})).not.toBeInTheDocument();
+    });
+
+    it('exits filter value when pressing escape', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      expect(
+        screen.queryByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).not.toBeInTheDocument();
+
+      // Pressing escape will exit the filter value, so edit button will come back
+      await userEvent.keyboard('{Escape}');
+      expect(
+        await screen.findByRole('button', {name: 'Edit value for filter: browser.name'})
+      ).toBeInTheDocument();
+
+      // Focus should now be to the right of the filter
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
     });
   });
 

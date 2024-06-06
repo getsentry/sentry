@@ -7,6 +7,7 @@ import abc
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,
@@ -16,6 +17,7 @@ from sentry.services.hybrid_cloud.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponentContext
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -82,6 +84,14 @@ class AppService(RpcService):
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 
+    def installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
+        """
+        Get a sentryapp install by id
+
+        This method is a cached wrapper around get_installation_by_id()
+        """
+        return get_installation(id)
+
     @rpc_method
     @abc.abstractmethod
     def get_installation(
@@ -134,6 +144,19 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_component_contexts(
+        self, *, filter: SentryAppInstallationFilterArgs, component_type: str
+    ) -> list[RpcSentryAppComponentContext]:
+        """
+        Get a context object for sentryapp components of a certain type.
+        Used for building sentryapp actions for alerts.
+
+        :param filter: The filtering conditions, same conditions as get_many()
+        :param component_type: The sentry-app component to get
+        """
+
+    @rpc_method
+    @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
@@ -170,6 +193,11 @@ class AppService(RpcService):
     @abc.abstractmethod
     def disable_sentryapp(self, *, id: int) -> None:
         pass
+
+
+@back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
+def get_installation(id: int) -> RpcSentryAppInstallation | None:
+    return app_service.get_installation_by_id(id=id)
 
 
 app_service = AppService.create_delegation()

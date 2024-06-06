@@ -22,6 +22,7 @@ from .types import AnyCallable
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 class Service:
@@ -79,9 +80,12 @@ class LazyServiceWrapper(LazyObject, Proxied):
             }
         )
 
-    def __getattr__(self, name: str) -> Any:
+    def _ensure_setup(self) -> None:
         if self._wrapped is empty:
             self._setup()
+
+    def __getattr__(self, name: str) -> Any:
+        self._ensure_setup()
 
         attr = getattr(self._wrapped, name)
 
@@ -107,6 +111,17 @@ class LazyServiceWrapper(LazyObject, Proxied):
             )
         instance = backend(**self._options)
         self._wrapped = instance
+
+    def test_only__downcast_to(self, t: type[U]) -> U:
+        """test-only method to allow typesafe calling on specific subclasses"""
+        from sentry.utils.env import in_test_environment
+
+        assert in_test_environment(), "this method is not to be called outside of test"
+
+        self._ensure_setup()
+        if not isinstance(self._wrapped, t):
+            raise AssertionError(f"wrapped instance {self._wrapped!r} is not of type {t!r}!")
+        return self._wrapped
 
     def expose(self, context: MutableMapping[str, Any]) -> None:
         base = self._base

@@ -258,7 +258,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
           <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
           <ArcadeWrapper>
             <Arcade
-              src="https://demo.arcade.software/LjEJ1sfLaVRdtOs3mri1?embed"
+              src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
               loading="lazy"
               allowFullScreen
             />
@@ -346,7 +346,7 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  height: 600px;
+  height: 500px;
   border: 0;
 `;
 

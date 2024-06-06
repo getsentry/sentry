@@ -163,7 +163,10 @@ from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsE
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
 )
-from sentry.remote_config.endpoints import ProjectConfigurationEndpoint
+from sentry.remote_config.endpoints import (
+    ProjectConfigurationEndpoint,
+    ProjectConfigurationProxyEndpoint,
+)
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
@@ -421,13 +424,8 @@ from .endpoints.organization_member.team_details import OrganizationMemberTeamDe
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
-from .endpoints.organization_metric_details import OrganizationMetricDetailsEndpoint
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
-from .endpoints.organization_metrics_data import OrganizationMetricsDataEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
-from .endpoints.organization_metrics_estimation_stats import (
-    OrganizationMetricsEstimationStatsEndpoint,
-)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -436,6 +434,9 @@ from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoi
 from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
 from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
+from .endpoints.organization_on_demand_metrics_estimation_stats import (
+    OrganizationOnDemandMetricsEstimationStatsEndpoint,
+)
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
@@ -463,6 +464,7 @@ from .endpoints.organization_release_commits import OrganizationReleaseCommitsEn
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
+from .endpoints.organization_release_health_data import OrganizationReleaseHealthDataEndpoint
 from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
@@ -1429,7 +1431,7 @@ ORGANIZATION_URLS = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-estimation-stats/$",
-        OrganizationMetricsEstimationStatsEndpoint.as_view(),
+        OrganizationOnDemandMetricsEstimationStatsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-estimation-stats",
     ),
     re_path(
@@ -2052,13 +2054,8 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
-        OrganizationMetricDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-metric-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/data/$",
-        OrganizationMetricsDataEndpoint.as_view(),
+        OrganizationReleaseHealthDataEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-data",
     ),
     re_path(
@@ -3261,6 +3258,11 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
+    ),
+    re_path(
+        r"^remote-config/projects/(?P<project_id>[^\/]+)/$",
+        ProjectConfigurationProxyEndpoint.as_view(),
+        name="sentry-api-0-project-remote-configuration",
     ),
     # Internal
     re_path(

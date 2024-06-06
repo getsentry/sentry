@@ -48,13 +48,14 @@ import type {Organization} from 'sentry/types/organization';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {canSeeMetricsPage, hasRolledOutMetrics} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/llmMonitoring/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/performance/cache/settings';
 import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/performance/queues/settings';
@@ -129,6 +130,7 @@ function Sidebar() {
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -249,7 +251,7 @@ function Sidebar() {
   const moduleURLBuilder = useModuleURLBuilder(true);
 
   const queries = hasOrganization && (
-    <Feature key="db" features="spans-first-ui" organization={organization}>
+    <Feature key="db" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -263,7 +265,7 @@ function Sidebar() {
   );
 
   const requests = hasOrganization && (
-    <Feature key="http" features="spans-first-ui" organization={organization}>
+    <Feature key="http" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
@@ -275,7 +277,11 @@ function Sidebar() {
   );
 
   const caches = hasOrganization && (
-    <Feature key="cache" features="performance-cache-view" organization={organization}>
+    <Feature
+      key="cache"
+      features={['insights-entry-points', 'performance-cache-view']}
+      organization={organization}
+    >
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -290,7 +296,7 @@ function Sidebar() {
   );
 
   const webVitals = hasOrganization && (
-    <Feature key="vital" features="spans-first-ui" organization={organization}>
+    <Feature key="vital" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -304,7 +310,11 @@ function Sidebar() {
   );
 
   const queues = hasOrganization && (
-    <Feature key="queue" features="performance-queues-view" organization={organization}>
+    <Feature
+      key="queue"
+      features={['insights-entry-points', 'performance-queues-view']}
+      organization={organization}
+    >
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -319,7 +329,11 @@ function Sidebar() {
   );
 
   const screenLoads = hasOrganization && (
-    <Feature key="screen_load" features="spans-first-ui" organization={organization}>
+    <Feature
+      key="screen_load"
+      features="insights-entry-points"
+      organization={organization}
+    >
       <SidebarItem
         {...sidebarItemProps}
         label={MODULE_TITLES.screen_load}
@@ -331,7 +345,7 @@ function Sidebar() {
   );
 
   const appStarts = hasOrganization && (
-    <Feature key="app_start" features="spans-first-ui" organization={organization}>
+    <Feature key="app_start" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={MODULE_TITLES.app_start}
@@ -345,7 +359,7 @@ function Sidebar() {
   const mobileUI = hasOrganization && (
     <Feature
       key="mobile-ui"
-      features={['spans-first-ui', 'starfish-mobile-ui-module']}
+      features={['insights-entry-points', 'starfish-mobile-ui-module']}
       organization={organization}
     >
       <SidebarItem
@@ -360,7 +374,7 @@ function Sidebar() {
   );
 
   const resources = hasOrganization && (
-    <Feature key="resource" features="spans-first-ui">
+    <Feature key="resource" features="insights-entry-points">
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
@@ -379,19 +393,21 @@ function Sidebar() {
         to={`/organizations/${organization.slug}/performance/traces/`}
         id="performance-trace-explorer"
         icon={<SubitemDot collapsed />}
-        isAlpha
+        isNew
       />
     </Feature>
   );
 
   const llmMonitoring = hasOrganization && (
-    <Feature features="ai-analytics" organization={organization}>
+    <Feature
+      features={['insights-entry-points', 'ai-analytics']}
+      organization={organization}
+    >
       <SidebarItem
         {...sidebarItemProps}
         icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconRobot />}
         label={MODULE_TITLES.ai}
-        isAlpha
-        variant="short"
+        {...LLMModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
         id="llm-monitoring"
       />
@@ -408,7 +424,7 @@ function Sidebar() {
         // If the client has the old sidebar hierarchy _and_ something to show inside the Performance dropdown, render an accordion.
         if (
           !hasNewSidebarHierarchy &&
-          (organization.features.includes('spans-first-ui') ||
+          (organization.features.includes('insights-entry-points') ||
             organization.features.includes('performance-cache-view') ||
             organization.features.includes('performance-queues-view') ||
             organization.features.includes('performance-trace-explorer'))
@@ -523,9 +539,8 @@ function Sidebar() {
   );
 
   const metricsPath = `/organizations/${organization?.slug}/metrics/`;
-  const isNewFeatureBadge = organization && hasRolledOutMetrics(organization);
 
-  const metrics = hasOrganization && canSeeMetricsPage(organization) && (
+  const metrics = hasOrganization && hasCustomMetrics(organization) && (
     <SidebarItem
       {...sidebarItemProps}
       icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
@@ -533,8 +548,7 @@ function Sidebar() {
       to={metricsPath}
       search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
-      isBeta={!isNewFeatureBadge}
-      isNew={!!isNewFeatureBadge}
+      isBeta
     />
   );
 
@@ -594,25 +608,28 @@ function Sidebar() {
     />
   );
 
-  const insights = (
-    <SidebarAccordion
-      {...sidebarItemProps}
-      icon={<IconGraph />}
-      label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
-      id="insights"
-      exact={!shouldAccordionFloat}
-    >
-      {requests}
-      {queries}
-      {resources}
-      {appStarts}
-      {screenLoads}
-      {webVitals}
-      {caches}
-      {queues}
-      {mobileUI}
-      {llmMonitoring}
-    </SidebarAccordion>
+  const insights = hasOrganization && (
+    <Feature key="insights" features="insights-entry-points" organization={organization}>
+      <SidebarAccordion
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
+        id="insights"
+        isNew
+        exact={!shouldAccordionFloat}
+      >
+        {requests}
+        {queries}
+        {resources}
+        {appStarts}
+        {screenLoads}
+        {webVitals}
+        {caches}
+        {queues}
+        {mobileUI}
+        {llmMonitoring}
+      </SidebarAccordion>
+    </Feature>
   );
 
   const explore = (
@@ -653,7 +670,7 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                {hasNewSidebarHierarchy && (
+                {hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
                   <Fragment>
                     <SidebarSection>
                       {explore}
@@ -671,7 +688,7 @@ function Sidebar() {
                   </Fragment>
                 )}
 
-                {!hasNewSidebarHierarchy && (
+                {!hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
                   <Fragment>
                     <SidebarSection>
                       {performance}
@@ -685,6 +702,18 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
+                      {discover2}
+                      {dashboards}
+                      {releases}
+                      {userFeedback}
+                    </SidebarSection>
+                  </Fragment>
+                )}
+
+                {isSelfHostedErrorsOnly && (
+                  <Fragment>
+                    <SidebarSection>
+                      {alerts}
                       {discover2}
                       {dashboards}
                       {releases}

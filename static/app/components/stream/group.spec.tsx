@@ -44,9 +44,9 @@ describe('StreamGroup', function () {
   });
 
   it('renders with anchors', async function () {
-    const {routerContext, organization} = initializeOrg();
-    render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
-      context: routerContext,
+    const {router, organization} = initializeOrg();
+    render(<StreamGroup id="1337" hasGuideAnchor />, {
+      router,
       organization,
     });
 
@@ -55,14 +55,13 @@ describe('StreamGroup', function () {
   });
 
   it('marks as reviewed', async function () {
-    const {routerContext, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        {...routerContext}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findByTestId('group')).toHaveAttribute(
@@ -78,9 +77,9 @@ describe('StreamGroup', function () {
   });
 
   it('marks as resolved', async function () {
-    const {routerContext, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -126,14 +125,13 @@ describe('StreamGroup', function () {
   });
 
   it('tracks clicks from issues stream', async function () {
-    const {routerContext, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        {...routerContext}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     // skipHover - Prevent stacktrace preview from being rendered

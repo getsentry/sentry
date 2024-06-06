@@ -7,7 +7,7 @@ import {GroupActivityType} from 'sentry/types/group';
 import OrganizationActivity from 'sentry/views/organizationActivity';
 
 describe('OrganizationActivity', function () {
-  const {router, organization, routerContext} = initializeOrg();
+  const {router, organization} = initializeOrg();
   let params = {};
 
   beforeEach(function () {
@@ -31,7 +31,7 @@ describe('OrganizationActivity', function () {
   });
 
   it('renders', async function () {
-    render(<OrganizationActivity {...params} />, {context: routerContext});
+    render(<OrganizationActivity {...params} />, {router});
 
     expect(await screen.findAllByTestId('activity-feed-item')).toHaveLength(2);
   });
@@ -41,7 +41,7 @@ describe('OrganizationActivity', function () {
       url: '/organizations/org-slug/activity/',
       body: [],
     });
-    render(<OrganizationActivity {...params} />, {context: routerContext});
+    render(<OrganizationActivity {...params} />, {router});
 
     expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('OrganizationActivity', function () {
       body: [],
       statusCode: 404,
     });
-    render(<OrganizationActivity {...params} />, {context: routerContext});
+    render(<OrganizationActivity {...params} />, {router});
 
     expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();

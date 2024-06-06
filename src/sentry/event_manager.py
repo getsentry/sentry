@@ -125,7 +125,9 @@ from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
+    CircuitBreakerTripped,
     circuit_breaker_activated,
+    with_circuit_breaker,
 )
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
@@ -215,9 +217,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
 def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
-        result = safe_execute(
-            plugin.is_regression, group, event, version=1, _with_transaction=False
-        )
+        result = safe_execute(plugin.is_regression, group, event, version=1)
         if result is not None:
             return bool(result)
     return True
@@ -610,7 +610,6 @@ class EventManager:
                 datetime=job["event"].datetime,
                 old_primary_hash=reprocessing2.get_original_primary_hash(job["event"]),
                 current_primary_hash=job["event"].get_primary_hash(),
-                _with_transaction=False,
             )
 
         _eventstream_insert_many(jobs)
@@ -822,7 +821,7 @@ def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:
-            added_tags = safe_execute(plugin.get_tags, job["event"], _with_transaction=False)
+            added_tags = safe_execute(plugin.get_tags, job["event"])
             if added_tags:
                 data = job["data"]
                 # plugins should not override user provided tags
@@ -1492,12 +1491,14 @@ def _save_aggregate(
             if existing_grouphash is None:
                 seer_matched_group = None
 
-                if should_call_seer_for_grouping(event, project):
+                if should_call_seer_for_grouping(event, project, primary_hashes):
                     try:
                         # If the `projects:similarity-embeddings-grouping` feature is disabled,
                         # we'll still get back result metadata, but `seer_matched_group` will be None
-                        seer_response_data, seer_matched_group = get_seer_similar_issues(
-                            event, primary_hashes
+                        seer_response_data, seer_matched_group = with_circuit_breaker(
+                            "event_manager.get_seer_similar_issues",
+                            lambda: get_seer_similar_issues(event, primary_hashes),
+                            options.get("seer.similarity.circuit-breaker-config"),
                         )
                         event.data["seer_similarity"] = seer_response_data
 
@@ -1507,6 +1508,15 @@ def _save_aggregate(
                             group_creation_kwargs["data"]["metadata"][
                                 "seer_similarity"
                             ] = seer_response_data
+
+                    except CircuitBreakerTripped:
+                        # TODO: For now, all of the logging/netrics for this happening are handled
+                        # inside of `with_circuit_breaker`. We should figure out if/how we want to
+                        # reflect landing here in the `outcome` tag on the span and timer metric
+                        # below and in `record_calculation_metric_with_result` (also below). Same
+                        # goes for the various tests the event could fail in
+                        # `should_call_seer_for_grouping`.
+                        pass
 
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:

@@ -1,4 +1,4 @@
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 describe('middleEllipsis', function () {
   it('returns slug if it is already short enough', function () {

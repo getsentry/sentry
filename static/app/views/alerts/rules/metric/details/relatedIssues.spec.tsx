@@ -11,7 +11,7 @@ describe('metric details -> RelatedIssues', () => {
   const project = ProjectFixture();
 
   it('adds environment to query parameters', async () => {
-    const {routerContext, organization, router} = initializeOrg({
+    const {router, organization} = initializeOrg({
       router: {
         location: {
           pathname: '/mock-pathname/',
@@ -47,7 +47,7 @@ describe('metric details -> RelatedIssues', () => {
           usingPeriod: true,
         }}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();

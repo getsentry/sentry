@@ -11,7 +11,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import And, BooleanCondition, BooleanOp, Column, Condition, Function, Op, Or
+from snuba_sdk import And, BooleanCondition, BooleanOp, Column, Condition, Function, LimitBy, Op, Or
+from snuba_sdk.expressions import Expression
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry import features, options
@@ -22,7 +23,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
@@ -47,6 +47,9 @@ class TraceInterval(TypedDict):
     sdkName: str | None
     start: int
     end: int
+    sliceStart: int
+    sliceEnd: int
+    sliceWidth: int
     kind: Literal["project", "missing", "other"]
     duration: int
     isRoot: bool
@@ -76,13 +79,13 @@ class OrganizationTracesSerializer(serializers.Serializer):
     metricsQuery = serializers.CharField(required=False)
     mri = serializers.CharField(required=False)
 
+    breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     suggestedQuery = serializers.CharField(required=False)
-    minBreakdownPercentage = serializers.FloatField(default=0.0, min_value=0.0, max_value=1.0)
     maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
@@ -133,8 +136,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
             fields=serialized["field"],
-            # Filter out empty queries as they do not do anything to change the results.
-            user_queries=[query.strip() for query in serialized.get("query", []) if query.strip()],
+            user_queries=serialized.get("query", []),
             suggested_query=serialized.get("suggestedQuery", ""),
             metrics_max=serialized.get("metricsMax"),
             metrics_min=serialized.get("metricsMin"),
@@ -144,12 +146,11 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
             sort=serialized.get("sort"),
             limit=self.get_per_page(request),
             max_spans_per_trace=serialized["maxSpansPerTrace"],
-            min_breakdown_percentage=serialized["minBreakdownPercentage"],
+            breakdown_slices=serialized["breakdownSlices"],
         )
 
         return self.paginate(
             request=request,
-            # paginator=GenericOffsetPaginator(data_fn=data_fn),
             paginator=GenericOffsetPaginator(data_fn=executor.execute),
             on_results=lambda results: self.handle_results_with_meta(
                 request,
@@ -164,6 +165,7 @@ class OrganizationTracesEndpoint(OrganizationEventsV2EndpointBase):
 
 class TraceSamplesExecutor:
     matching_count_alias = "matching_count"
+    matching_span_label = "matching_label"
 
     def __init__(
         self,
@@ -181,12 +183,17 @@ class TraceSamplesExecutor:
         sort: str | None,
         limit: int,
         max_spans_per_trace: int,
-        min_breakdown_percentage: float,
+        breakdown_slices: int,
     ):
         self.params = params
         self.snuba_params = snuba_params
         self.fields = fields
-        self.user_queries = user_queries
+        # Filter out empty queries as they do not do anything to change the results.
+        self.user_queries = {
+            query.strip(): i + 1  # ensure no zero ids
+            for i, query in enumerate(user_queries)
+            if query.strip()
+        }
         self.suggested_query = suggested_query
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
@@ -196,8 +203,7 @@ class TraceSamplesExecutor:
         self.sort = sort
         self.limit = limit
         self.max_spans_per_trace = max_spans_per_trace
-        self.min_breakdown_percentage = min_breakdown_percentage
-        self._all_projects: list[Project] | None = None
+        self.breakdown_slices = breakdown_slices
 
     def execute(self, offset: int, limit: int):
         return self._execute()
@@ -473,7 +479,7 @@ class TraceSamplesExecutor:
                 Dataset.SpansIndexed,
                 params=params,
                 snuba_params=snuba_params,
-                query=self.user_queries[0] if self.user_queries else None,
+                query=next(iter(self.user_queries)) if self.user_queries else None,
                 selected_columns=["trace", timestamp_column],
                 # The orderby is intentionally `None` here as this query is much faster
                 # if we let Clickhouse decide which order to return the results in.
@@ -504,15 +510,28 @@ class TraceSamplesExecutor:
                 ),
             )
 
+            trace_conditions = []
             for user_query in self.user_queries:
                 # We want to ignore all the aggregate conditions here because we're strictly
                 # searching on span attributes, not aggregates
                 where, _ = query.resolve_conditions(user_query)
+                if len(where) == 1:
+                    trace_conditions.extend(where)
+                elif len(where) > 1:
+                    trace_conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
 
                 # Transform the condition into it's aggregate form so it can be used to
                 # match on the trace.
                 new_condition = generate_trace_condition(where)
-                query.having.append(new_condition)
+                if new_condition:
+                    query.having.append(new_condition)
+
+            if len(trace_conditions) == 1:
+                # This should never happen since it should use a flat query
+                # but handle it just in case.
+                query.where.extend(trace_conditions)
+            elif len(trace_conditions) > 1:
+                query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
 
         return query, timestamp_column
 
@@ -619,9 +638,7 @@ class TraceSamplesExecutor:
             row["trace"]: {
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
-                "min": int(
-                    self.min_breakdown_percentage * (row["last_seen()"] - row["first_seen()"])
-                ),
+                "slices": self.breakdown_slices,
             }
             for row in traces_metas_results["data"]
         }
@@ -870,6 +887,16 @@ class TraceSamplesExecutor:
         trace_ids: list[str],
         span_keys: list[SpanKey] | None,
     ) -> QueryBuilder:
+        # Divide the allowed number of results per trace amoung the number of queries
+        limit_per_query = self.max_spans_per_trace
+        if self.user_queries:
+            limit_per_query = math.floor(self.max_spans_per_trace / len(self.user_queries))
+        limit_per_query = max(limit_per_query, 1)
+
+        limit = len(trace_ids) * limit_per_query
+        if self.user_queries:
+            limit *= len(self.user_queries)
+
         user_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -877,11 +904,53 @@ class TraceSamplesExecutor:
             query=None,  # Note: conditions are added below
             selected_columns=["trace"] + self.fields,
             orderby=self.sort,
-            limit=len(trace_ids) * self.max_spans_per_trace,
-            limitby=("trace", self.max_spans_per_trace),
+            limit=limit,
             config=QueryBuilderConfig(
                 transform_alias_to_input_format=True,
             ),
+        )
+
+        user_conditions = []
+
+        multi_if_args: Expression = []
+
+        for query, i in self.user_queries.items():
+            where, _ = user_spans_query.resolve_conditions(query)
+
+            # The user conditions may be needed to identify which spans
+            # to fetch if not using span keys. So hold on to them for later.
+            user_conditions.append(where)
+
+            trace_conditions: list[Function] = format_as_trace_conditions(where)
+            if not trace_conditions:
+                pass
+            elif len(trace_conditions) == 1:
+                multi_if_args.append(trace_conditions[0])
+                multi_if_args.append(i)
+            elif len(trace_conditions) > 1:
+                multi_if_args.append(Function("and", trace_conditions))
+                multi_if_args.append(i)
+
+        # Insert three 0s to the end
+        # - a placeholder false condition so there's always a condition
+        # - a default value of 0
+        multi_if_args.extend([0, 0, 0])
+
+        # Insert a label column into the query that tells us which span condition
+        # the span matched against.
+        #
+        # We only label it with the first matching span condition even if it
+        # matches multiple.
+        user_spans_query.columns.append(
+            Function("multiIf", multi_if_args, self.matching_span_label)
+        )
+
+        # The built in limit by is restricted to the allowed columns but since we're
+        # injecting columns here to label rows, we'll have to inject the limit by clause
+        # as well.
+        user_spans_query.limitby = LimitBy(
+            [user_spans_query.resolve_column("trace"), Column(self.matching_span_label)],
+            limit_per_query,
         )
 
         # First make sure that we only return spans from one of the traces identified
@@ -937,10 +1006,7 @@ class TraceSamplesExecutor:
             #
             # To handle this use case, we want to OR all the user specified
             # conditions together in this query.
-            for query in self.user_queries:
-                # We want to ignore all the aggregate conditions here because we're strictly
-                # searching on span attributes, not aggregates
-                where, _ = user_spans_query.resolve_conditions(query)
+            for where in user_conditions:
                 if len(where) > 1:
                     conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
                 elif len(where) == 1:
@@ -972,6 +1038,7 @@ class TraceSamplesExecutor:
             or any(user_query == self.suggested_query for user_query in self.user_queries)
         ):
             return None
+
         suggested_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -989,22 +1056,59 @@ class TraceSamplesExecutor:
         return suggested_spans_query
 
 
+def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
+    slices = trace_range["slices"]
+    trace_start = trace_range["start"]
+    trace_end = trace_range["end"]
+    trace_duration = trace_end - trace_start
+
+    idx = round((timestamp - trace_start) * slices / trace_duration)
+
+    if left_bound is not None and left_bound >= idx:
+        idx = left_bound + 1
+
+    return idx
+
+
 def quantize_range(span_start, span_end, trace_range):
+    slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
 
-    bin_size = trace_range["min"]
+    trace_duration = trace_end - trace_start
 
-    if bin_size > 0:
-        rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
-        rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
-
-        # ensure minimum of 1 width
-        if rounded_start == rounded_end:
-            rounded_end += bin_size
+    if trace_duration == 0:
+        start_index = 0
+        end_index = slices
     else:
-        rounded_start = span_start
-        rounded_end = span_end
+        raw_start_index = convert_to_slice(span_start, trace_range)
+        start_index = clip(raw_start_index, 0, slices)
+
+        raw_end_index = convert_to_slice(span_end, trace_range, start_index)
+        end_index = clip(raw_end_index, 0, slices)
+
+        if raw_start_index != start_index:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("slice start", {"raw": raw_start_index, "clipped": start_index})
+                sentry_sdk.capture_message("Slice start was adjusted", level="warning")
+        if raw_end_index != end_index:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("slice end", {"raw": raw_end_index, "clipped": end_index})
+                sentry_sdk.capture_message("Slice end was adjusted", level="warning")
+
+    rounded_start = span_start
+    rounded_end = span_end
+
+    if slices > 0:
+        bin_size = int((trace_end - trace_start) / slices)
+
+        if bin_size > 0:
+            rounded_start = round((span_start - trace_start) / bin_size) * bin_size + trace_start
+            rounded_end = round((span_end - trace_start) / bin_size) * bin_size + trace_start
+
+            # ensure minimum of 1 width
+            if rounded_start == rounded_end:
+                rounded_end += bin_size
 
     if span_start <= trace_start:
         rounded_start = trace_start
@@ -1014,7 +1118,7 @@ def quantize_range(span_start, span_end, trace_range):
     if span_end >= trace_end:
         rounded_end = trace_end
 
-    return int(rounded_start), int(rounded_end)
+    return (int(rounded_start), int(rounded_end)), (start_index, end_index)
 
 
 def new_trace_interval(row) -> TraceInterval:
@@ -1024,6 +1128,9 @@ def new_trace_interval(row) -> TraceInterval:
         "sdkName": row["sdk.name"],
         "start": row["quantized.start_ts"],
         "end": row["quantized.finish_ts"],
+        "sliceStart": row["start_index"],
+        "sliceEnd": row["end_index"],
+        "sliceWidth": row["end_index"] - row["start_index"],
         "duration": 0,
         "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
         "isRoot": not bool(row.get("parent_span")),
@@ -1031,8 +1138,8 @@ def new_trace_interval(row) -> TraceInterval:
 
 
 def process_breakdowns(data, traces_range):
-    breakdowns: Mapping[str, list[TraceInterval]] = defaultdict(list)
-    stacks: Mapping[str, list[TraceInterval]] = defaultdict(list)
+    breakdowns: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
+    stacks: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
 
     def should_merge(interval_a, interval_b):
         return (
@@ -1049,6 +1156,7 @@ def process_breakdowns(data, traces_range):
     def breakdown_push(trace, interval):
         breakdown = breakdowns[trace]
 
+        """ TODO: Add this back
         # Find the last interval. If there is an interval on the stack, it
         # should take priority over intervals in the breakdown because intervals
         # on the stack are always active, where intervals on the breakdown are
@@ -1074,6 +1182,7 @@ def process_breakdowns(data, traces_range):
                     "isRoot": False,
                 }
             )
+        """
 
         breakdown.append(interval)
 
@@ -1084,6 +1193,7 @@ def process_breakdowns(data, traces_range):
             # update the end of this interval and it will
             # be updated in the breakdown as well
             last_interval["end"] = max(interval["end"], last_interval["end"])
+            last_interval["sliceEnd"] = max(interval["sliceEnd"], last_interval["sliceEnd"])
 
             # need to update the components of the last interval by merging
             # current interval into it
@@ -1137,11 +1247,11 @@ def process_breakdowns(data, traces_range):
             trace_start = trace_range["start"]
             trace_end = trace_range["end"]
 
-            # Clip the intervals os that it is within range of the trace
+            # convert_to_slice the intervals os that it is within range of the trace
             precise_start = clip(precise_start, trace_start, trace_end)
             precise_end = clip(precise_end, trace_start, trace_end)
 
-            quantized_start, quantized_end = quantize_range(
+            (quantized_start, quantized_end), (start_index, end_index) = quantize_range(
                 precise_start,
                 precise_end,
                 traces_range[trace],
@@ -1154,6 +1264,8 @@ def process_breakdowns(data, traces_range):
                     "precise.finish_ts": precise_end,
                     "quantized.start_ts": quantized_start,
                     "quantized.finish_ts": quantized_end,
+                    "start_index": start_index,
+                    "end_index": end_index,
                 }
             )
         except Exception as e:
@@ -1162,9 +1274,9 @@ def process_breakdowns(data, traces_range):
 
     quantized_data.sort(
         key=lambda row: (
-            row["quantized.start_ts"],
+            row["start_index"],
             row["precise.start_ts"],
-            -row["quantized.finish_ts"],
+            -row["end_index"],
             -row["precise.finish_ts"],
         )
     )
@@ -1179,7 +1291,7 @@ def process_breakdowns(data, traces_range):
                 row["precise.finish_ts"], last_timestamp_per_trace["trace"]
             )
 
-            if row["quantized.start_ts"] == row["quantized.finish_ts"]:
+            if row["start_index"] == row["end_index"]:
                 # after quantizing, this span is far too small to render, so remove it
                 continue
 
@@ -1194,6 +1306,7 @@ def process_breakdowns(data, traces_range):
             context = {"trace": row["trace"]}
             sentry_sdk.capture_exception(e, contexts={"bad_trace": context})
 
+    """ TODO: Add this back
     for trace, trace_range in traces_range.items():
         # Check to see if there is still a gap before the trace ends and fill it
         # with an other interval.
@@ -1224,6 +1337,7 @@ def process_breakdowns(data, traces_range):
 
         if other["start"] < other["end"]:
             breakdown_push(trace, other)
+    """
 
     for breakdown in breakdowns.values():
         for interval in breakdown:
@@ -1235,6 +1349,8 @@ def process_breakdowns(data, traces_range):
             interval["duration"] = (
                 component_duration if component_duration > 0 else interval_duration
             )
+
+            interval["sliceWidth"] = interval["sliceEnd"] - interval["sliceStart"]
 
     return breakdowns
 

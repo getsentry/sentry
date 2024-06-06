@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -251,7 +251,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('removes a duplicate project filter', async () => {
-    const context = RouterContextFixture();
+    const router = RouterFixture();
 
     const projects = [ProjectFixture()];
     jest.mocked(useProjects).mockReturnValue({
@@ -276,10 +276,10 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {context}
+      {router}
     );
     await userEvent.click(screen.getByRole('button'));
-    expect(context.context.router.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/org-slug/alerts/new/metric/`,
       query: expect.objectContaining({
         query: 'event.type:error ',

@@ -53,7 +53,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
       projects: [],
     });
 
-    return render(<TestComponent />, {context: initialData.routerContext});
+    return render(<TestComponent />, {router: initialData.router});
   };
 
   it('renders yAxisOptions with yAxisValue selected', async function () {

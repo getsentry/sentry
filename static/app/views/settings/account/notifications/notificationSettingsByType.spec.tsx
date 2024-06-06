@@ -164,6 +164,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
   it('adds a project override and removes it', async function () {
     renderComponent({});
@@ -310,6 +311,120 @@ describe('NotificationSettingsByType', function () {
           scopeIdentifier: '1',
           scopeType: 'user',
           type: 'quota',
+          value: 'never',
+        },
+      })
+    );
+  });
+
+  it('spend notifications on org with am3 with spend visibility notifications', async function () {
+    const organization = OrganizationFixture();
+    organization.features.push('spend-visibility-notifications');
+    organization.features.push('am3-tier');
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organization],
+    });
+
+    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
+
+    const editSettingMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-options/`,
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '1',
+        scopeType: 'user',
+        type: 'quotaSpans',
+        value: 'never',
+      },
+    });
+
+    // toggle spans quota notifications off
+    await selectEvent.select(screen.getAllByText('On')[2], 'Off');
+
+    expect(editSettingMock).toHaveBeenCalledTimes(1);
+    expect(editSettingMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          scopeIdentifier: '1',
+          scopeType: 'user',
+          type: 'quotaSpans',
+          value: 'never',
+        },
+      })
+    );
+  });
+
+  it('spend notifications on org with am3 and org without am3', async function () {
+    const organization = OrganizationFixture();
+    organization.features.push('spend-visibility-notifications');
+    organization.features.push('am3-tier');
+    const otherOrganization = OrganizationFixture();
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organization, otherOrganization],
+    });
+
+    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+  });
+
+  it('spend notifications on org with am3 without spend visibility notifications', async function () {
+    const organization = OrganizationFixture();
+    organization.features.push('am3-tier');
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organization],
+    });
+
+    expect(await screen.getAllByText('Quota Notifications').length).toEqual(1);
+    expect(screen.queryByText('Spend Notifications')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
+
+    const editSettingMock = MockApiClient.addMockResponse({
+      url: `/users/me/notification-options/`,
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '1',
+        scopeType: 'user',
+        type: 'quotaSpans',
+        value: 'never',
+      },
+    });
+
+    // toggle spans quota notifications off
+    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+
+    expect(editSettingMock).toHaveBeenCalledTimes(1);
+    expect(editSettingMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          scopeIdentifier: '1',
+          scopeType: 'user',
+          type: 'quotaSpans',
           value: 'never',
         },
       })

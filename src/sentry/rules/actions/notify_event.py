@@ -25,10 +25,6 @@ class NotifyEventAction(EventAction):
                 continue
             results.append(LegacyPluginService(plugin))
 
-        for plugin in plugins.for_project(self.project, version=2):
-            for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
-                results.append(LegacyPluginService(notifier))
-
         return results
 
     def after(
@@ -39,9 +35,7 @@ class NotifyEventAction(EventAction):
         for plugin_ in self.get_plugins():
             # plugin is now wrapped in the LegacyPluginService object
             plugin = plugin_.service
-            if not safe_execute(
-                plugin.should_notify, group=group, event=event, _with_transaction=False
-            ):
+            if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
             metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)

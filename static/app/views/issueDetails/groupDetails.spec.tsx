@@ -100,7 +100,7 @@ describe('groupDetails', () => {
       <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
-      {context: init.routerContext, organization: init.organization, router: init.router}
+      {organization: init.organization, router: init.router}
     );
   };
 

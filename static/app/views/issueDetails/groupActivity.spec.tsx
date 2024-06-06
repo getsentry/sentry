@@ -63,7 +63,7 @@ describe('GroupActivity', function () {
       ],
       project,
     });
-    const {organization, routerContext, routerProps} = initializeOrg({
+    const {organization, routerProps, router} = initializeOrg({
       organization: additionalOrg,
     });
     GroupStore.add([group]);
@@ -71,7 +71,7 @@ describe('GroupActivity', function () {
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
       <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
-      {context: routerContext, organization}
+      {router, organization}
     );
   }
 

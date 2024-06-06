@@ -88,7 +88,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       name: 'reporter',
     }
   ) => {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
     addMockConfigsAPICall(otherField);
 
     const body = styled(c => c.children);
@@ -107,7 +107,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         onSubmitAction={() => {}}
         organization={organization}
       />,
-      {context: routerContext}
+      {router}
     );
   };
 

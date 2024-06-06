@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import orderBy from 'lodash/orderBy';
@@ -13,11 +13,11 @@ import {
   formatFilterValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {FilterType, Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
@@ -75,17 +75,29 @@ function getPredefinedValues({key}: {key?: Tag}): SuggestionSection[] {
   }));
 }
 
-function keySupportsMultipleValues(key?: Tag): boolean {
-  if (!key) {
-    return true;
-  }
+function tokenSupportsMultipleValues(
+  token: TokenResult<Token.FILTER>,
+  keys: TagCollection
+): boolean {
+  switch (token.filter) {
+    case FilterType.TEXT:
+      // The search parser defaults to the text type, so we need to do further
+      // checks to ensure that the filter actually supports multiple values
+      const key = keys[token.key.text];
+      if (!key) {
+        return true;
+      }
 
-  const fieldDef = getFieldDefinition(key.key);
+      const fieldDef = getFieldDefinition(key.key);
 
-  switch (fieldDef?.valueType) {
-    case FieldValueType.STRING:
-    case FieldValueType.NUMBER:
-    case FieldValueType.INTEGER:
+      return [
+        FieldValueType.STRING,
+        FieldValueType.NUMBER,
+        FieldValueType.INTEGER,
+      ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
+    case FilterType.NUMERIC:
+    case FilterType.TEXT_IN:
+    case FilterType.NUMERIC_IN:
       return true;
     default:
       return false;
@@ -120,7 +132,7 @@ function useFilterSuggestions({
   const {getTagValues, keys} = useSearchQueryBuilder();
   const key = keys[token.key.text];
   const shouldFetchValues = key && !key.predefined;
-  const canSelectMultipleValues = keySupportsMultipleValues(key);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
   const {data} = useQuery<string[]>({
@@ -168,15 +180,17 @@ function useFilterSuggestions({
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
-      .flatMap(group => group.suggestions);
+      .flatMap(group => group.suggestions)
+      .filter(value => !selectedValues.includes(value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
       {
         sectionText: '',
-        items: getItemsWithKeys(
-          [...selectedValues, ...itemsWithoutSection].map(value => createItem(value))
-        ),
+        items: getItemsWithKeys([
+          ...selectedValues.map(value => createItem(value, true)),
+          ...itemsWithoutSection.map(value => createItem(value)),
+        ]),
       },
       ...sections.map(group => ({
         sectionText: group.sectionText,
@@ -195,7 +209,6 @@ function useFilterSuggestions({
   }, [suggestionSectionItems]);
 
   return {
-    selectedValues,
     items,
     suggestionSectionItems,
   };
@@ -242,11 +255,12 @@ export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
 }: SearchQueryValueBuilderProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
 
   const {keys, dispatch} = useSearchQueryBuilder();
-  const key = keys[token.key.text];
-  const canSelectMultipleValues = keySupportsMultipleValues(key);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
   const selectedValues = useMemo(
     () =>
       canSelectMultipleValues
@@ -262,6 +276,10 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
+      if (!value) {
+        return;
+      }
+
       if (canSelectMultipleValues) {
         dispatch({
           type: 'TOGGLE_FILTER_VALUE',
@@ -299,15 +317,28 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, token]
   );
 
+  // Clicking anywhere in the value editing area should focus the input
+  const onClick: React.MouseEventHandler<HTMLDivElement> = useCallback(e => {
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+      e.stopPropagation();
+      inputRef.current?.click();
+      inputRef.current?.focus();
+    }
+  }, []);
+
   return (
-    <ValueEditing>
+    <ValueEditing ref={ref} onClick={onClick} data-test-id="filter-value-editing">
       {selectedValues.map(value => (
-        <span key={value}>{value},</span>
+        <SelectedValue key={value}>{value},</SelectedValue>
       ))}
       <SearchQueryBuilderCombobox
+        ref={inputRef}
         items={items}
         onOptionSelected={handleSelectValue}
-        onCustomValueSelected={handleSelectValue}
+        onCustomValueBlurred={handleSelectValue}
+        onCustomValueCommitted={handleSelectValue}
+        onExit={onCommit}
         inputValue={inputValue}
         placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
         token={token}
@@ -315,6 +346,10 @@ export function SearchQueryBuilderValueCombobox({
         onInputChange={e => setInputValue(e.target.value)}
         onKeyDown={onKeyDown}
         autoFocus
+        maxOptions={50}
+        openOnFocus
+        // Ensure that the menu stays open when clicking on the selected items
+        shouldCloseOnInteractOutside={el => el !== ref.current}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>
@@ -335,6 +370,11 @@ const ValueEditing = styled('div')`
   height: 100%;
   align-items: center;
   gap: ${space(0.25)};
+`;
+
+const SelectedValue = styled('span')`
+  pointer-events: none;
+  user-select: none;
 `;
 
 const TrailingWrap = styled('div')`

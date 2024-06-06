@@ -18,7 +18,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, Project} from 'sentry/types';
-import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {
   getFieldFromMetricsQuery as getAlertAggregate,
   getMetricsInterval,
