@@ -1,5 +1,12 @@
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  findAllByTestId,
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
@@ -16,9 +23,130 @@ jest.mock('sentry/utils/useParams', () => ({
 }));
 
 describe('Performance > Transaction Spans > Span Summary', function () {
+  let headerDataMock;
+  let avgDurationChartMock;
+  let spanThroughputChartMock;
+  let transactionThroughputChartMock;
+
   beforeEach(() => {
     jest.mocked(useParams).mockReturnValue({
       spanSlug: 'db:aaaaaaaa',
+    });
+
+    jest.clearAllMocks();
+
+    avgDurationChartMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.span-summary-duration-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [
+            1717102800,
+            [
+              {
+                count: 4.924892746006871,
+              },
+            ],
+          ],
+          [
+            1717104600,
+            [
+              {
+                count: 8.20925404044671,
+              },
+            ],
+          ],
+          [
+            1717106400,
+            [
+              {
+                count: 7.218881600137195,
+              },
+            ],
+          ],
+        ],
+      },
+    });
+
+    spanThroughputChartMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.span-summary-throughput-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [
+            1717102800,
+            [
+              {
+                count: 22580.666666666668,
+              },
+            ],
+          ],
+          [
+            1717104600,
+            [
+              {
+                count: 258816.26666666666,
+              },
+            ],
+          ],
+          [
+            1717106400,
+            [
+              {
+                count: 305550.4666666667,
+              },
+            ],
+          ],
+        ],
+      },
+    });
+
+    transactionThroughputChartMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.span-summary-transaction-throughput-chart',
+        }),
+      ],
+      body: {
+        data: [
+          [
+            1717102800,
+            [
+              {
+                count: 152823.58333333334,
+              },
+            ],
+          ],
+          [
+            1717106400,
+            [
+              {
+                count: 143062.61666666667,
+              },
+            ],
+          ],
+          [
+            1717110000,
+            [
+              {
+                count: 158031.58333333334,
+              },
+            ],
+          ],
+        ],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -63,8 +191,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     jest.resetAllMocks();
   });
 
-  it('correctly renders the details in the header', async () => {
-    const headerDataMock = MockApiClient.addMockResponse({
+  it('correctly renders the details in the header', async function () {
+    headerDataMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
@@ -127,15 +255,47 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     expect(totalSpanCount).toHaveTextContent('3.6b spans');
   });
 
-  it('renders the charts', () => {
-    const chartMock = MockApiClient.addMockResponse({
+  it('renders the charts', async () => {
+    const data = initializeData({});
+
+    avgDurationChartMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.span-summary-duration-chart',
+        }),
+      ],
       body: {
         data: [],
       },
     });
 
-    const data = initializeData({});
+    spanThroughputChartMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.span-summary-throughput-chart',
+        }),
+      ],
+      body: {
+        data: [],
+      },
+    });
+
+    transactionThroughputChartMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.span-summary-transaction-throughput-chart',
+        }),
+      ],
+      body: {
+        data: [],
+      },
+    });
 
     render(
       <SpanSummary
@@ -146,8 +306,15 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       {organization: data.organization}
     );
 
-    expect(chartMock).toHaveBeenCalled();
+    expect(avgDurationChartMock).toHaveBeenCalled();
+    expect(spanThroughputChartMock).toHaveBeenCalled();
+    expect(transactionThroughputChartMock).toHaveBeenCalled();
 
-    screen.debug();
+    const chartHeaders = await screen.findAllByTestId('chart-panel-header');
+    expect(chartHeaders[0]).toHaveTextContent('Average Duration');
+    expect(chartHeaders[1]).toHaveTextContent('Span Throughput');
+    expect(chartHeaders[2]).toHaveTextContent('Transaction Throughput');
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 });
