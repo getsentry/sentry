@@ -99,14 +99,8 @@ export function makeGroupPriorityDropdownOptions({
 }
 
 export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
-  const organization = useOrganization();
   return (
-    <StyledTag
-      type={getTagTypeForPriority(priority)}
-      isBigtag={organization.features.includes(
-        'issue-stream-new-assignee-dropdown-trigger'
-      )}
-    >
+    <StyledTag type={getTagTypeForPriority(priority)} isBigtag>
       {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
       {children}
     </StyledTag>
