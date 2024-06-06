@@ -78,12 +78,13 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
+from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Union
+from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.conf import settings
@@ -127,14 +128,14 @@ REPROCESSING_TIMEOUT = 20 * 60
 
 # Note: This list of reasons is exposed in the EventReprocessableEndpoint to
 # the frontend.
-CannotReprocessReason = Union[
+CannotReprocessReason = Literal[
     # Can have many reasons. The event is too old to be reprocessed (very
     # unlikely!) or was not a native event.
-    Literal["unprocessed_event.not_found"],
+    "unprocessed_event.not_found",
     # The event does not exist.
-    Literal["event.not_found"],
+    "event.not_found",
     # A required attachment, such as the original minidump, is missing.
-    Literal["attachment.not_found"],
+    "attachment.not_found",
 ]
 
 
@@ -251,7 +252,7 @@ def get_original_primary_hash(event: Event) -> str | None:
 def _send_delete_old_primary_hash_messages(
     project_id: int,
     group_id: int,
-    old_primary_hashes: Sequence[str],
+    old_primary_hashes: set[str],
     force_flush_batch: bool,
 ) -> None:
     # Events for a group are split and bucketed by their primary hashes. If flushing is to be
@@ -358,7 +359,12 @@ def buffered_delete_old_primary_hash(
 
     old_primary_hashes = reprocessing_store.get_old_primary_hashes(project_id, group_id)
 
-    if old_primary_hash is not None and old_primary_hash != current_primary_hash:
+    if (
+        event_id is not None
+        and datetime is not None
+        and old_primary_hash is not None
+        and old_primary_hash != current_primary_hash
+    ):
         reprocessing_store.expire_hash(project_id, group_id, event_id, datetime, old_primary_hash)
 
         if old_primary_hash not in old_primary_hashes:
@@ -419,7 +425,7 @@ def is_reprocessed_event(data: Mapping[str, Any]) -> bool:
     return bool(_get_original_issue_id(data))
 
 
-def _get_original_issue_id(data: Mapping[str, Any]) -> str | None:
+def _get_original_issue_id(data: Mapping[str, Any]) -> int | None:
     return get_path(data, "contexts", "reprocessing", "original_issue_id")
 
 
@@ -470,9 +476,20 @@ def pop_batched_events_from_redis(key: str) -> tuple[list[str], datetime | None,
     return reprocessing_store.pop_batched_events_by_key(key)
 
 
+@overload
+def mark_event_reprocessed(data: dict[str, Any], *, num_events: int = 1) -> None:
+    ...
+
+
+@overload
+def mark_event_reprocessed(*, group_id: int, project_id: int, num_events: int = 1) -> None:
+    ...
+
+
 def mark_event_reprocessed(
     data: dict[str, Any] | None = None,
-    group_id: str | None = None,
+    *,
+    group_id: int | None = None,
     project_id: int | None = None,
     num_events: int = 1,
 ) -> None:
@@ -488,6 +505,9 @@ def mark_event_reprocessed(
             return
 
         project_id = data["project"]
+    else:
+        assert group_id is not None
+        assert project_id is not None
 
     result = reprocessing_store.mark_event_reprocessed(group_id, num_events)
     if result:

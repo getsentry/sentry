@@ -149,7 +149,7 @@ def handle_remaining_events(
     remaining_events: str,
     # TODO(markus): Should be mandatory arguments.
     event_ids_redis_key: str | None = None,
-    old_group_id: str | None = None,
+    old_group_id: int | None = None,
     # TODO(markus): Deprecated arguments, can remove in next version.
     event_ids: Sequence[str] | None = None,
     from_timestamp: datetime | None = None,
