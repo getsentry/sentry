@@ -422,7 +422,7 @@ keys if not specified.
     @staticmethod
     def source_id(description: str, required: bool) -> OpenApiParameter:
         return OpenApiParameter(
-            name="ID",
+            name="id",
             location="query",
             required=required,
             type=str,
