@@ -40,13 +40,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
-    });
-
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
@@ -132,6 +125,30 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     expect(avgDuration).toHaveTextContent('1.74ms');
     expect(timeSpent).toHaveTextContent('2.43mo');
     expect(totalSpanCount).toHaveTextContent('3.6b spans');
+  });
+
+  it('renders the charts', () => {
+    const chartMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [],
+      },
+    });
+
+    const data = initializeData({});
+
+    render(
+      <SpanSummary
+        spanSlug={{group: 'aaaaaaaa', op: 'db'}}
+        transactionName="transaction"
+        {...data}
+      />,
+      {organization: data.organization}
+    );
+
+    expect(chartMock).toHaveBeenCalled();
+
+    screen.debug();
   });
 
   // describe('Without Span Data', function () {
