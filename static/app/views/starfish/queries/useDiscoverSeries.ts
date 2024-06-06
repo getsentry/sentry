@@ -5,7 +5,12 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/starfish/queries/getSeriesEventView';
-import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/starfish/types';
+import type {
+  MetricsProperty,
+  SpanFunctions,
+  SpanIndexedField,
+  SpanMetricsProperty,
+} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export interface MetricTimeseriesRow {
@@ -15,6 +20,7 @@ export interface MetricTimeseriesRow {
 
 interface UseMetricsSeriesOptions<Fields> {
   enabled?: boolean;
+  interval?: string;
   referrer?: string;
   search?: MutableSearch;
   yAxis?: Fields;
@@ -34,12 +40,24 @@ export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS, referrer);
 };
 
+/**
+ * TODO: Remove string type, added to fix types for 'count()'
+ */
+export const useSpanIndexedSeries = <
+  Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
+>(
+  options: UseMetricsSeriesOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_INDEXED, referrer);
+};
+
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
-  const {search = undefined, yAxis = []} = options;
+  const {search = undefined, yAxis = [], interval = undefined} = options;
 
   const pageFilters = usePageFilters();
 
@@ -51,6 +69,10 @@ const useDiscoverSeries = <T extends string[]>(
     undefined,
     dataset
   );
+
+  if (interval) {
+    eventView.interval = interval;
+  }
 
   const result = useWrappedDiscoverTimeseriesQuery<MetricTimeseriesRow[]>({
     eventView,
