@@ -47,7 +47,7 @@ export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
 }
 
 export function generateTracesRoute({orgSlug}: {orgSlug: Organization['slug']}): string {
-  return `/organizations/${orgSlug}/performance/traces/`;
+  return `/organizations/${orgSlug}/traces/`;
 }
 
 export function generateTracesRouteWithQuery({
