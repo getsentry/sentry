@@ -4,6 +4,7 @@ import heapq
 import logging
 import uuid
 from collections.abc import Mapping
+from dataclasses import dataclass
 from functools import partial, reduce
 from typing import Any, cast
 
@@ -71,15 +72,20 @@ def schedule_organizations(
         # The total timespan that the task covers
         duration = ONE_DAY * 7
 
+    batch_id = uuid.uuid4()
+
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     for organization in RangeQuerySetWrapper(
         organizations, step=10000, result_value_getter=lambda item: item.id
     ):
         # Create a celery task per organization
         logger.info(
-            "weekly_reports.schedule_organizations", extra={"organization": organization.id}
+            "weekly_reports.schedule_organizations",
+            extra={"batch_id": batch_id, "organization": organization.id},
         )
-        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        prepare_organization_report.delay(
+            timestamp, duration, organization.id, batch_id, dry_run=dry_run
+        )
 
 
 # This task is launched per-organization.
@@ -95,6 +101,7 @@ def prepare_organization_report(
     timestamp: float,
     duration: int,
     organization_id: int,
+    batch_id: uuid.UUID,
     dry_run: bool = False,
     target_user: User | None = None,
     email_override: str | None = None,
@@ -103,6 +110,7 @@ def prepare_organization_report(
         logger.error(
             "Target user must have an ID",
             extra={
+                "batch_id": batch_id,
                 "organization": organization_id,
                 "target_user": target_user,
                 "email_override": email_override,
@@ -172,7 +180,11 @@ def prepare_organization_report(
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",
-                        extra={"project_id": project.id, "num_key_errors": len(key_errors)},
+                        extra={
+                            "batch_id": batch_id,
+                            "project_id": project.id,
+                            "num_key_errors": len(key_errors),
+                        },
                     )
             key_transactions_this_week = project_key_transactions_this_week(ctx, project)
             if key_transactions_this_week:
@@ -211,76 +223,109 @@ def prepare_organization_report(
 
     if not report_is_available:
         logger.info(
-            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
+            "prepare_organization_report.skipping_empty",
+            extra={"batch_id": batch_id, "organization": organization_id},
         )
         return
 
     # Finally, deliver the reports
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         logger.info("weekly_reports.deliver_reports", extra={"organization": organization_id})
-        deliver_reports(
-            ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
-        )
+        batch.deliver_reports()
 
 
-def deliver_reports(
-    ctx: OrganizationReportContext,
-    dry_run: bool = False,
-    target_user: User | None = None,
-    email_override: str | None = None,
-) -> None:
-    """
-    For all users in the organization, we generate the template context for the user, and send the email.
-    """
-    # Specify a sentry user to send this email.
-    template_context: Mapping[str, Any] | None = None
-    user_id: int | None = None
+@dataclass(frozen=True)
+class OrganizationReportBatch:
+    ctx: OrganizationReportContext
+    batch_id: uuid.UUID
 
-    if email_override:
-        target_user_id = (
-            target_user.id if target_user else None
-        )  # if None, generates report for a user with access to all projects
-        user_template_context_by_user_id_list = prepare_template_context(
-            ctx=ctx, user_ids=[target_user_id]
-        )
-        if user_template_context_by_user_id_list:
-            user_template_context_by_user_id = user_template_context_by_user_id_list[0]
-            template_context = user_template_context_by_user_id.get("context")
-            user_id = user_template_context_by_user_id.get("user_id")
-            if template_context and user_id:
-                send_email(
-                    ctx=ctx,
-                    template_ctx=template_context,
-                    user_id=user_id,
-                    dry_run=dry_run,
-                    email_override=email_override,
-                )
-    else:
-        user_list = list(
-            OrganizationMember.objects.filter(
-                user_is_active=True,
-                organization_id=ctx.organization.id,
-            )
-            .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
-            .values_list("user_id", flat=True)
-        )
-        user_list = list(filter(lambda v: v is not None, user_list))
-        user_ids = notifications_service.get_users_for_weekly_reports(
-            organization_id=ctx.organization.id, user_ids=user_list
-        )
-        user_template_context_by_user_id_list = []
-        for user_id in user_ids:
+    dry_run: bool = False
+    target_user: User | None = None
+    email_override: str | None = None
+
+    def deliver_reports(self) -> None:
+        """
+        For all users in the organization, we generate the template context for the user, and send the email.
+        """
+        # Specify a sentry user to send this email.
+        template_context: Mapping[str, Any] | None = None
+        user_id: int | None = None
+
+        if self.email_override:
+            target_user_id = (
+                self.target_user.id if self.target_user else None
+            )  # if None, generates report for a user with access to all projects
             user_template_context_by_user_id_list = prepare_template_context(
-                ctx=ctx, user_ids=user_ids
+                ctx=self.ctx, user_ids=[target_user_id]
             )
-        if user_template_context_by_user_id_list:
-            for user_template in user_template_context_by_user_id_list:
-                template_context = user_template.get("context")
-                user_id = user_template.get("user_id")
+            if user_template_context_by_user_id_list:
+                user_template_context_by_user_id = user_template_context_by_user_id_list[0]
+                template_context = user_template_context_by_user_id.get("context")
+                user_id = user_template_context_by_user_id.get("user_id")
                 if template_context and user_id:
-                    send_email(
-                        ctx=ctx, template_ctx=template_context, user_id=user_id, dry_run=dry_run
-                    )
+                    self.send_email(template_ctx=template_context, user_id=user_id)
+        else:
+            user_list = list(
+                OrganizationMember.objects.filter(
+                    user_is_active=True,
+                    organization_id=self.ctx.organization.id,
+                )
+                .filter(
+                    flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"])
+                )
+                .values_list("user_id", flat=True)
+            )
+            user_list = list(filter(lambda v: v is not None, user_list))
+            user_ids = notifications_service.get_users_for_weekly_reports(
+                organization_id=self.ctx.organization.id, user_ids=user_list
+            )
+            user_template_context_by_user_id_list = []
+            for user_id in user_ids:
+                user_template_context_by_user_id_list = prepare_template_context(
+                    ctx=self.ctx, user_ids=user_ids
+                )
+            if user_template_context_by_user_id_list:
+                for user_template in user_template_context_by_user_id_list:
+                    template_context = user_template.get("context")
+                    user_id = user_template.get("user_id")
+                    if template_context and user_id:
+                        self.send_email(template_ctx=template_context, user_id=user_id)
+
+    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
+        message = MessageBuilder(
+            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
+            template="sentry/emails/reports/body.txt",
+            html_template="sentry/emails/reports/body.html",
+            type="report.organization",
+            context=template_ctx,
+            headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
+        )
+        if self.dry_run:
+            return
+
+        if self.email_override:
+            message.send(to=(self.email_override,))
+        else:
+            analytics.record(
+                "weekly_report.sent",
+                user_id=user_id,
+                organization_id=self.ctx.organization.id,
+                notification_uuid=template_ctx["notification_uuid"],
+                user_project_count=template_ctx["user_project_count"],
+            )
+
+            # TODO see if we can use the UUID to track if the email was sent or not
+            logger.info(
+                "weekly_report.send_email",
+                extra={
+                    "organization": self.ctx.organization.id,
+                    "uuid": template_ctx["notification_uuid"],
+                },
+            )
+
+            message.add_users((user_id,))
+            message.send_async()
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -661,42 +706,3 @@ def prepare_template_context(
             continue
         user_template_context_by_user_id_list.append({"context": template_ctx, "user_id": user_id})
     return user_template_context_by_user_id_list
-
-
-def send_email(
-    ctx: OrganizationReportContext,
-    template_ctx: Mapping[str, Any],
-    user_id: int,
-    dry_run: bool = False,
-    email_override: str | None = None,
-) -> None:
-    message = MessageBuilder(
-        subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
-        template="sentry/emails/reports/body.txt",
-        html_template="sentry/emails/reports/body.html",
-        type="report.organization",
-        context=template_ctx,
-        headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
-    )
-    if dry_run:
-        return
-
-    if email_override:
-        message.send(to=(email_override,))
-    else:
-        analytics.record(
-            "weekly_report.sent",
-            user_id=user_id,
-            organization_id=ctx.organization.id,
-            notification_uuid=template_ctx["notification_uuid"],
-            user_project_count=template_ctx["user_project_count"],
-        )
-
-        # TODO see if we can use the UUID to track if the email was sent or not
-        logger.info(
-            "weekly_report.send_email",
-            extra={"organization": ctx.organization.id, "uuid": template_ctx["notification_uuid"]},
-        )
-
-        message.add_users((user_id,))
-        message.send_async()

@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import cast
 from unittest import mock
+from uuid import UUID
 
 import pytest
 from django.core import mail
@@ -28,7 +29,7 @@ from sentry.tasks.summaries.utils import (
     project_key_errors,
 )
 from sentry.tasks.summaries.weekly_reports import (
-    deliver_reports,
+    OrganizationReportBatch,
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
@@ -54,6 +55,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.timestamp = floor_to_utc_day(self.now).timestamp()
         self.two_days_ago = self.now - timedelta(days=2)
         self.three_days_ago = self.now - timedelta(days=3)
+
+    _dummy_batch_id = UUID("20bd6c5b-7fac-4f31-9548-d6f8bb63226d")
 
     def store_event_outcomes(
         self,
@@ -159,7 +162,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
-    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_deliver_reports_respects_settings(
         self, mock_send_email, mock_prepare_template_context
     ):
@@ -168,6 +171,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = OrganizationReportContext(0, 0, organization)
         template_context = prepare_template_context(ctx, [user.id])
         mock_prepare_template_context.return_value = template_context
+        batch_id = UUID("77a1d368-33d5-47cd-88cf-d66c97b38333")
 
         def set_option_value(value):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -181,21 +185,19 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # disabled
         set_option_value("never")
-        deliver_reports(ctx)
+        OrganizationReportBatch(ctx, batch_id).deliver_reports()
         assert mock_send_email.call_count == 0
 
         # enabled
         set_option_value("always")
-        deliver_reports(ctx)
+        OrganizationReportBatch(ctx, batch_id).deliver_reports()
         assert mock_send_email.call_count == 1
         mock_send_email.assert_called_once_with(
-            ctx=ctx,
             template_ctx=template_context[0].get("context"),
             user_id=template_context[0].get("user_id"),
-            dry_run=False,
         )
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
         with unguarded_write(using=router.db_for_write(Project)):
@@ -204,20 +206,20 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
         # disabled
-        deliver_reports(ctx)
+        OrganizationReportBatch(ctx, self._dummy_batch_id).deliver_reports()
         assert mock_send_email.call_count == 0
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_user_inactive(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.user.update(is_active=False)
 
         # disabled
-        deliver_reports(ctx)
+        OrganizationReportBatch(ctx, self._dummy_batch_id).deliver_reports()
         assert mock_send_email.call_count == 0
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_invited_member(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
         # create a member without a user
@@ -225,7 +227,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             organization=self.organization, email="different.email@example.com", token="abc"
         )
 
-        deliver_reports(ctx)
+        OrganizationReportBatch(ctx, self._dummy_batch_id).deliver_reports()
         assert mock_send_email.call_count == 1
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -243,7 +245,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
         project.transfer_to(organization=self.create_organization())
 
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
         assert message_builder.call_count == 1
 
     @with_feature("organizations:escalating-issues")
@@ -381,7 +385,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
         self.create_group(type=MonitorIncidentType.type_id)
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -458,7 +464,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # store a crons issue just to make sure it's not counted in key_performance_issues
         self.create_group(type=MonitorIncidentType.type_id)
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -531,7 +539,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 category=DataCategory.TRANSACTION,
             )
 
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -601,15 +611,25 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group2.resolved_at = self.two_days_ago
         group2.save()
 
+        # TODO(RyanSkonnord): Make sure this doesn't cause false negatives after
+        #  batch IDs are also used to prevent duplicate sends
+        batch_id = UUID("ea18c80c-d44f-48a4-8973-b0daa3169c44")
+
         with mock.patch(
             "sentry.tasks.summaries.weekly_reports.prepare_template_context",
             side_effect=ValueError("oh no!"),
-        ), mock.patch("sentry.tasks.summaries.weekly_reports.send_email") as mock_send_email:
+        ), mock.patch(
+            "sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email"
+        ) as mock_send_email:
             with pytest.raises(Exception):
-                prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+                prepare_organization_report(
+                    self.now.timestamp(), ONE_DAY * 7, self.organization.id, batch_id
+                )
                 mock_send_email.assert_not_called()
 
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, batch_id
+        )
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
             context = message_params["context"]
@@ -681,7 +701,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group2.substatus = GroupSubStatus.ONGOING
         group2.save()
 
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
 
         for call_args in message_builder.call_args_list:
             message_params = call_args.kwargs
@@ -735,7 +757,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group1.resolved_at = self.two_days_ago
         group1.save()
 
-        prepare_organization_report(self.timestamp, ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
 
         message_params = message_builder.call_args.kwargs
         ctx = message_params["context"]
@@ -759,7 +783,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "transaction_count": 3,
         }
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_empty_report(self, mock_send_email):
         # date is out of range
         ten_days_ago = self.now - timedelta(days=10)
@@ -774,7 +798,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             event_type=EventType.ERROR,
         )
 
-        prepare_organization_report(self.now.timestamp(), ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
         assert mock_send_email.call_count == 0
 
     @with_feature("organizations:session-replay")
@@ -794,7 +820,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 category=category,
             )
 
-        prepare_organization_report(self.timestamp, ONE_DAY * 7, self.organization.id)
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
 
         message_params = message_builder.call_args.kwargs
         ctx = message_params["context"]
@@ -848,6 +876,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             self.timestamp,
             ONE_DAY * 7,
             self.organization.id,
+            self._dummy_batch_id,
             dry_run=False,
             target_user=user,
             email_override="joseph@speedwagon.org",
@@ -887,6 +916,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             self.timestamp,
             ONE_DAY * 7,
             self.organization.id,
+            self._dummy_batch_id,
             dry_run=False,
             target_user=None,
             email_override="jonathan@speedwagon.org",
@@ -917,10 +947,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         # fill with data so report not skipped
         self.store_event_outcomes(org.id, proj.id, self.two_days_ago, num_times=2)
 
+        batch_id = UUID("ef61f1d1-41a3-4530-8160-615466937076")
         prepare_organization_report(
             self.timestamp,
             ONE_DAY * 7,
             org.id,
+            batch_id=batch_id,
             dry_run=False,
             target_user="dummy",
             email_override="doesntmatter@smad.com",
@@ -929,6 +961,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         logger.error.assert_called_with(
             "Target user must have an ID",
             extra={
+                "batch_id": batch_id,
                 "organization": org.id,
                 "target_user": "dummy",
                 "email_override": "doesntmatter@smad.com",
@@ -947,6 +980,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             self.timestamp,
             ONE_DAY * 7,
             org.id,
+            self._dummy_batch_id,
             dry_run=True,
             target_user=None,
             email_override="doesntmatter@smad.com",
