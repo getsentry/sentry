@@ -18,7 +18,7 @@ const CARDINALITY_QUERIES = [
 ];
 
 const CARDINALITY_DATE_TIME = {
-  period: '1h',
+  period: '24h',
   start: null,
   end: null,
   utc: null,
