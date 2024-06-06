@@ -26,11 +26,11 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserSubscriptionsEndpoint(UserEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.UNOWNED
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:
