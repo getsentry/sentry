@@ -54,14 +54,26 @@ The rollout cohort a session is bucketed into is deterministic some long as the 
 
 | Field    | Type                                        | Description                                                             |
 | -------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| format   | optional[string]                            | A deserialization hint for further processing of string values.         |
-| operator | string                                      | A conditional operator that evaluates the value against the target.     |
+| operator | Operator                                    | A conditional operator that evaluates the value against the target.     |
 | property | string                                      | A context object property name which contains the value of the operand. |
 | value    | union[string, int, bool, null, array[self]] | The value being compared against.                                       |
 
 Rules contain evaluation and extraction instructions. The context object provided must contain the key defined on the `property` attribute. If the SDK can not find the `property` within the context object the evaluation fails and the variant is skipped. The `operator` defines how the context value is compared against the literal provided by the configuration on the `value` attribute. If the value provided in the context object can not be compared against the value provided in the configuration the evaluation fails and the variant is skipped.
 
-Some data-type can not be represented in JSON. These types will be serialized to a string and a decoding hint will be defined on the `format` key.
+The type of the `value` field is controlled by the operator being applied to it. For example, some operators only operate on `number` types. While others operate on arrays.
+
+**Operator, Value Type**
+
+| Symbol | Value Type                         | Description                                                               |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------- |
+| ==     | union[string, bool, number]        | Assert the two values match.                                              |
+| !=     | union[string, bool, number]        | Assert the two values do not match.                                       |
+| >=     | number                             | Assert the local value is greater than or equal to the remote value.      |
+| >      | number                             | Assert the local value is greater than the remote value.                  |
+| <=     | number                             | Assert the local value is less than or equal to the remote value.         |
+| <      | number                             | Assert the local value is less than the remote value.                     |
+| IN     | array[union[string, bool, number]] | Assert the local value is contained within an array of remote values.     |
+| NOT IN | array[union[string, bool, number]] | Assert the local value is not contained within an array of remote values. |
 
 **Option Object**
 
@@ -125,16 +137,14 @@ If the server's ETag does not match the request's a 200 response is returned.
               },
               "rules": [
                 {
-                  "format": null,
                   "operator": "==",
                   "property": "region",
                   "value": "Europe"
                 },
                 {
-                  "format": "datetime",
-                  "operator": "==",
+                  "operator": ">=",
                   "property": "now",
-                  "value": "2024-12-25T00:00:00+00:00"
+                  "value": 1717684416.495
                 }
               ],
               "value": "computer"
