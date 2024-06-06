@@ -5,6 +5,12 @@ import moment from 'moment';
 
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
+import type {
+  CombinedMetricChartProps,
+  ScatterSeries,
+  Series,
+} from 'sentry/components/metrics/chart/types';
+import {fitToValueRect} from 'sentry/components/metrics/chart/utils';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
@@ -16,12 +22,6 @@ import {
   getSummaryValueForOp,
   type MetricsSamplesResults,
 } from 'sentry/utils/metrics/useMetricsSamples';
-import {fitToValueRect} from 'sentry/views/metrics/chart/chartUtils';
-import type {
-  CombinedMetricChartProps,
-  ScatterSeries,
-  Series,
-} from 'sentry/views/metrics/chart/types';
 
 export const SAMPLES_X_AXIS_ID = 'xAxisSamples';
 export const SAMPLES_Y_AXIS_ID = 'yAxisSamples';

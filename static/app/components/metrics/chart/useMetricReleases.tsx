@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import MarkLine from 'sentry/components/charts/components/markLine';
+import type {CombinedMetricChartProps} from 'sentry/components/metrics/chart/types';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import {escape} from 'sentry/utils';
@@ -14,7 +15,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import type {CombinedMetricChartProps} from 'sentry/views/metrics/chart/types';
 
 interface Release {
   date: string;
