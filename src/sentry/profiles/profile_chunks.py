@@ -1,5 +1,6 @@
 from snuba_sdk import Column, Condition, Direction, Op, OrderBy, Query, Request, Storage
 
+from sentry import options
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
@@ -11,6 +12,7 @@ def get_chunk_ids(
     profiler_id: str,
     project_id: int,
 ) -> list[dict[str, str]]:
+    max_chunks = options.get("profiling.continuous-profiling.chunks-set.size")
     query = Query(
         match=Storage(StorageKey.ProfileChunks.value),
         select=[
@@ -23,17 +25,17 @@ def get_chunk_ids(
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
         orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
-    ).set_limit(50)
+    ).set_limit(max_chunks)
     request = Request(
         dataset=Dataset.Profiles.value,
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
-            "organization_id": 8,
+            "referrer": Referrer.API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART.value,
+            "organization_id": params["organization_id"],
         },
     )
     return raw_snql_query(
         request,
-        referrer=Referrer.API_PROFILING_PROFILE_SUMMARY_TABLE.value,
+        referrer=Referrer.API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART.value,
     )["data"]

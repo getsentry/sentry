@@ -2659,3 +2659,13 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+
+# max number of profile chunks to use for computing
+# the merged profile.
+register(
+    "profiling.continuous-profiling.chunks-set.size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
