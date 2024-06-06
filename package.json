@@ -266,11 +266,6 @@
   "volta": {
     "extends": ".volta.json"
   },
-  "fork-ts-checker": {
-    "typescript": {
-      "memoryLimit": 4096
-    }
-  },
   "prettier": {
     "bracketSpacing": false,
     "bracketSameLine": false,
