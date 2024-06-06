@@ -14,7 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconWarning} from 'sentry/icons';
+import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
@@ -208,6 +208,8 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
       headers={[
         t('Metric'),
         <Cell right key="cardinality">
+          <IconArrow size="xs" direction="down" />
+
           {t('Cardinality')}
         </Cell>,
         <Cell right key="type">
@@ -307,7 +309,7 @@ const Cell = styled('div')<{right?: boolean}>`
   display: flex;
   align-items: center;
   align-self: stretch;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;
 
