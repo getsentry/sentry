@@ -207,7 +207,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     log_params["payload"] = orjson.dumps(payload).decode()
 
                     self.logger.info(
-                        "slack.issue-alert.error",
+                        "slack.issue_alert.error",
                         extra=log_params,
                     )
                 else:
@@ -320,19 +320,44 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "unfurl_links": False,
             "unfurl_media": False,
         }
-        client = SlackClient(integration_id=integration.id)
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5, log_response_with_error=True)
-        except ApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "rule_confirmation.fail.slack_post",
-                extra=log_params,
-            )
+
+        if has_slack_sdk_flag(rule.project.organization_id):
+            sdk_client = SlackSdkClient(integration_id=integration.id)
+
+            try:
+                sdk_client.chat_postMessage(
+                    blocks=payload["blocks"],
+                    text=payload["text"],
+                    channel=channel,
+                    unfurl_links=False,
+                    unfurl_media=False,
+                )
+            except SlackApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "slack.issue_alert.confirmation.fail",
+                    extra=log_params,
+                )
+        else:
+            client = SlackClient(integration_id=integration.id)
+            try:
+                client.post(
+                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                )
+            except ApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "rule_confirmation.fail.slack_post",
+                    extra=log_params,
+                )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()
