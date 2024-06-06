@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.urls import reverse
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
@@ -14,7 +15,6 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.user import User

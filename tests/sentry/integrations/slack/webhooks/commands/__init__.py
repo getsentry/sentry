@@ -11,13 +11,13 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.slack.utils import set_signing_secret
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 class SlackCommandsTest(APITestCase, TestCase):

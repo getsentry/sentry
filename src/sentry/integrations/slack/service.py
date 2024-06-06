@@ -15,6 +15,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
@@ -31,7 +32,6 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviderEnum
 
 _default_logger = getLogger(__name__)
 

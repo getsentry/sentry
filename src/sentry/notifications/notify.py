@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from typing import Any, Optional, TypeVar
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 # Shortcut so that types don't explode.
 NotifyCallable = Callable[

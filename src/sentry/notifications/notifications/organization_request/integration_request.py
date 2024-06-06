@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.class_manager import register
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.owner_recipient_strategy import (
@@ -10,7 +11,6 @@ from sentry.notifications.notifications.strategies.owner_recipient_strategy impo
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

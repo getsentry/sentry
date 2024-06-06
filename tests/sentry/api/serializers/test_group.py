@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -21,7 +22,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.integrations import ExternalProviderEnum
 
 pytestmark = [requires_snuba]
 

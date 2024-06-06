@@ -14,10 +14,10 @@ from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.types.integrations import ExternalProviders
 
 from .base import SlackDMEndpoint
 

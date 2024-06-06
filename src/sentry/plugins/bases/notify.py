@@ -7,13 +7,13 @@ from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviders
 
 
 class NotificationConfigurationForm(forms.Form):

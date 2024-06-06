@@ -37,7 +37,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient

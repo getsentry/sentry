@@ -1,5 +1,5 @@
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
-from sentry.types.integrations import ExternalProviderEnum
 
 """
 These mappings represents how to interpret the absence of a DB row for a given

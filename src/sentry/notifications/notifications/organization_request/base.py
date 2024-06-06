@@ -6,13 +6,13 @@ from collections.abc import Mapping, MutableMapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.db.models import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

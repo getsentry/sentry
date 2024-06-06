@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -21,7 +22,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class SubscribeTest(TestCase):

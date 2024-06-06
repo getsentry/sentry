@@ -9,6 +9,7 @@ from sentry.integrations.slack.message_builder.time_utils import (
     get_approx_start_time,
     get_relative_time,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
@@ -16,7 +17,6 @@ from sentry.issues.grouptype import (
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.snuba.referrer import Referrer
-from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import metrics
 from sentry.utils.performance_issues.detectors.utils import escape_transaction
 

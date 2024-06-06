@@ -4,6 +4,7 @@ from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.db.models.base import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
@@ -11,7 +12,6 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 )
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 PROVIDER_TO_URL = {"github": "https://github.com/"}
 

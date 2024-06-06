@@ -10,11 +10,11 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:

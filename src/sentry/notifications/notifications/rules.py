@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
@@ -38,7 +39,6 @@ from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 

@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Subquery
 
 from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
+from sentry.integrations.types import ExternalProviderEnum
+from sentry.integrations.utils.providers import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
@@ -23,7 +25,6 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT, ExternalProviderEnum
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

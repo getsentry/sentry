@@ -7,6 +7,12 @@ from typing import Union
 from django.db.models import Q
 
 from sentry import features
+from sentry.integrations.types import (
+    EXTERNAL_PROVIDERS_REVERSE_VALUES,
+    PERSONAL_NOTIFICATION_PROVIDERS,
+    ExternalProviderEnum,
+    ExternalProviders,
+)
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
@@ -29,12 +35,6 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import (
-    EXTERNAL_PROVIDERS_REVERSE_VALUES,
-    PERSONAL_NOTIFICATION_PROVIDERS,
-    ExternalProviderEnum,
-    ExternalProviders,
-)
 
 Recipient = Union[Actor, Team, RpcUser, User]
 TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]

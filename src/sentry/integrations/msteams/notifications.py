@@ -9,6 +9,7 @@ import sentry_sdk
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
+from sentry.integrations.types import ExternalProviders
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
@@ -25,7 +26,6 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 from .card_builder.notifications import (

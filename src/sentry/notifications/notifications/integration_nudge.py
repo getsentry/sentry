@@ -6,10 +6,10 @@ from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from sentry.db.models import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

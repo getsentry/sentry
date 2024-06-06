@@ -11,12 +11,12 @@ from sentry import features
 from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.tasks.summaries.utils import COMPARISON_PERIOD
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .base import SlackNotificationsMessageBuilder

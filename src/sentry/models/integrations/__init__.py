@@ -16,7 +16,7 @@ __all__ = (
 )
 
 # REQUIRED for migrations to run.
-from sentry.types.integrations import ExternalProviders  # NOQA
+from sentry.integrations.types import ExternalProviders  # NOQA
 
 from .doc_integration import DocIntegration
 from .external_actor import ExternalActor

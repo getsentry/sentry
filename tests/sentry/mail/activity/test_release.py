@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -19,7 +20,6 @@ from sentry.testutils.cases import ActivityTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class ReleaseTestCase(ActivityTestCase):

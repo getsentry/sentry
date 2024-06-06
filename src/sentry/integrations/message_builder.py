@@ -6,6 +6,7 @@ from typing import Any
 from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -15,7 +16,6 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
 

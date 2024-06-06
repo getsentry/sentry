@@ -4,12 +4,12 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 from urllib.parse import urlencode
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
 from sentry.notifications.utils.participants import ParticipantMap, get_notification_recipients
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
 

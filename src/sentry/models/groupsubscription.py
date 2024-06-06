@@ -17,6 +17,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
@@ -25,7 +26,6 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

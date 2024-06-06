@@ -34,6 +34,7 @@ from sentry.integrations.slack.message_builder.base.block import BlockSlackMessa
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.message_builder.time_utils import get_approx_start_time, time_since
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
@@ -59,7 +60,6 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
-from sentry.types.integrations import ExternalProviders
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (

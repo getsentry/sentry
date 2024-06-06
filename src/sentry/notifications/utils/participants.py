@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from sentry import features
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -34,7 +36,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
