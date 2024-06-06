@@ -58,7 +58,7 @@ class Actor(RpcModel):
         results: dict[tuple[ActorType, int], Team | RpcUser] = {}
         for actor_type, actor_list in actors_by_type.items():
             if actor_type == ActorType.USER:
-                for user in user_service.get_many(filter={"user_ids": [u.id for u in actor_list]}):
+                for user in user_service.get_many_by_id(ids=[u.id for u in actor_list]):
                     results[(actor_type, user.id)] = user
             if actor_type == ActorType.TEAM:
                 for team in Team.objects.filter(id__in=[t.id for t in actor_list]):

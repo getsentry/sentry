@@ -11,12 +11,12 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
 )
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 logger = logging.getLogger(__name__)
 

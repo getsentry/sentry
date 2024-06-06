@@ -94,7 +94,11 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
-        happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+        happened = Group.objects.filter(
+            id=group.id,
+            status=GroupStatus.UNRESOLVED,
+            last_seen__lte=cutoff,
+        ).update(
             status=GroupStatus.RESOLVED,
             resolved_at=django_timezone.now(),
             substatus=None,

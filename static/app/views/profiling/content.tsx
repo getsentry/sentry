@@ -189,6 +189,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
+                    projectIds={projects.map(p => parseInt(p.id, 10))}
                     searchSource="profile_landing"
                     supportedTags={profileFilters}
                     query={query}

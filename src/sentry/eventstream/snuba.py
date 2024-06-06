@@ -239,9 +239,9 @@ class SnubaProtocolEventStream(EventStream):
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Mapping[str, Any] | None:
+    ) -> dict[str, Any]:
         if not previous_group_ids:
-            return None
+            raise ValueError("expected groups to merge!")
 
         state = {
             "transaction_id": uuid4().hex,

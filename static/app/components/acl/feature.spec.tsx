@@ -182,9 +182,11 @@ describe('Feature', function () {
     });
 
     it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
-      ConfigStore.config = ConfigFixture({
-        features: new Set(['organizations:create']),
-      });
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          features: new Set(['organizations:create']),
+        })
+      );
 
       render(
         <WrappedFeature features="organizations:create">{childrenMock}</WrappedFeature>,
