@@ -161,35 +161,33 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly_report" in html
             )
 
+    def _set_option_value(self, value):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.update_or_create(
+                scope_type="organization",
+                scope_identifier=self.organization.id,
+                user_id=self.user.id,
+                type="reports",
+                defaults={"value": value},
+            )
+
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_deliver_reports_respects_settings(
         self, mock_send_email, mock_prepare_template_context
     ):
-        user = self.user
-        organization = self.organization
-        ctx = OrganizationReportContext(0, 0, organization)
-        template_context = prepare_template_context(ctx, [user.id])
+        ctx = OrganizationReportContext(0, 0, self.organization)
+        template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
         batch_id = UUID("77a1d368-33d5-47cd-88cf-d66c97b38333")
 
-        def set_option_value(value):
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                NotificationSettingOption.objects.update_or_create(
-                    scope_type="organization",
-                    scope_identifier=organization.id,
-                    user_id=user.id,
-                    type="reports",
-                    defaults={"value": value},
-                )
-
         # disabled
-        set_option_value("never")
+        self._set_option_value("never")
         OrganizationReportBatch(ctx, batch_id).deliver_reports()
         assert mock_send_email.call_count == 0
 
         # enabled
-        set_option_value("always")
+        self._set_option_value("always")
         OrganizationReportBatch(ctx, batch_id).deliver_reports()
         assert mock_send_email.call_count == 1
         mock_send_email.assert_called_once_with(
@@ -996,3 +994,32 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
         message_builder.return_value.send.assert_not_called()
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.logger")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    def test_duplicate_detection(self, mock_send_email, mock_prepare_template_context, mock_logger):
+        ctx = OrganizationReportContext(0, 0, self.organization)
+        template_context = prepare_template_context(ctx, [self.user.id])
+        mock_prepare_template_context.return_value = template_context
+        batch_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
+        self._set_option_value("always")
+
+        # First send
+        OrganizationReportBatch(ctx, batch_id).deliver_reports()
+        assert mock_send_email.call_count == 1
+        mock_logger.error.assert_not_called()
+
+        # Duplicate send
+        OrganizationReportBatch(ctx, batch_id).deliver_reports()
+        assert mock_send_email.call_count == 2  # When we halt instead of logging, expect 1 instead
+        assert mock_logger.error.call_count == 1
+        mock_logger.error.assert_called_once_with(
+            "weekly_report.delivery_record.duplicate_detected",
+            extra={
+                "batch_id": batch_id,
+                "organization": self.organization.id,
+                "user_id": self.user.id,
+                "has_email_override": False,
+            },
+        )
