@@ -883,6 +883,11 @@ CELERY_QUEUES_REGION = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
+    Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
+    Queue(
+        "events.symbolicate_jvm_event_low_priority",
+        routing_key="events.symbolicate_jvm_event_low_priority",
+    ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
