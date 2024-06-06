@@ -30,8 +30,5 @@ class ChartRenderer(Service):
         return bool(options.get("chart-rendering.enabled", False))
 
     def generate_chart(self, style: ChartType, data: Any, size: ChartSize | None = None) -> str:
-        """
-        Produces a chart. You may specify the upload kwarg to have the chart
-        uploaded to storage and receive a public URL for the chart
-        """
+        """Produces a chart. Returns the public URL for the chart"""
         raise NotImplementedError
