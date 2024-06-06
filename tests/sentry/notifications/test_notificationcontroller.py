@@ -1,3 +1,4 @@
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
@@ -15,7 +16,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 def add_notification_setting_option(

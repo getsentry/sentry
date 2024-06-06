@@ -13,6 +13,7 @@ from sentry.integrations.notifications import get_context, get_integrations_by_c
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
@@ -21,7 +22,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")

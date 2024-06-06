@@ -4,9 +4,9 @@ from sentry.api.bases.external_actor import (
     ExternalUserSerializer,
 )
 from sentry.api.serializers import serialize
+from sentry.integrations.types import ExternalProviders, get_provider_name
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
-from sentry.types.integrations import ExternalProviders, get_provider_name
 
 
 class ExternalActorSerializerTest(TestCase):

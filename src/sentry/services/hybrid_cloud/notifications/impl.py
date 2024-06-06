@@ -4,6 +4,7 @@ from collections.abc import Mapping, MutableMapping
 
 from django.db import router, transaction
 
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
@@ -17,7 +18,6 @@ from sentry.services.hybrid_cloud.notifications import NotificationsService
 from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
