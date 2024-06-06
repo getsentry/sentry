@@ -19,9 +19,7 @@ jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
-  const organization = OrganizationFixture({
-    features: ['issue-platform'],
-  });
+  const organization = OrganizationFixture();
 
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
