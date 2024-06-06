@@ -55,6 +55,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        self.check_object_permissions(request, query)
+
         return Response(serialize(query), status=200)
 
     def put(self, request: Request, organization, query) -> Response:
@@ -63,6 +65,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
+
+        self.check_object_permissions(request, query)
 
         try:
             params = self.get_filter_params(
@@ -97,6 +101,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
+
+        self.check_object_permissions(request, query)
 
         query.delete()
 
