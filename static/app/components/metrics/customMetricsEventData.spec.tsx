@@ -4,11 +4,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {MetricsSummary} from 'sentry/components/events/interfaces/spans/types';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import type {
   MetricsQueryApiResponse,
   MetricsQueryApiResponseLastMeta,
 } from 'sentry/types/metrics';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
 const organization = OrganizationFixture({features: ['custom-metrics']});
 

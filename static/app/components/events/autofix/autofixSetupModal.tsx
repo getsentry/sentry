@@ -120,7 +120,7 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
   );
 }
 
-function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
+export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
   if (repo.provider === 'github' || repo.provider.split(':')[1] === 'github') {
     return (
       <RepoLinkItem>
@@ -163,7 +163,7 @@ function AutofixGithubIntegrationStep({
       <Fragment>
         <p>
           {tct(
-            'The [link:Sentry Autofix Github App] has been installed on all required repositories:',
+            'The [link:Sentry Autofix GitHub App] has been installed on all required repositories:',
             {
               link: (
                 <ExternalLink href="https://github.com/apps/sentry-autofix-experimental" />
@@ -181,24 +181,55 @@ function AutofixGithubIntegrationStep({
     );
   }
 
+  if (autofixSetup.githubWriteIntegration.repos.length > 0) {
+    return (
+      <Fragment>
+        <p>
+          {tct(
+            'Install and grant write access to the [link:Sentry Autofix Github App] for the following repositories:',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://github.com/apps/sentry-autofix-experimental/installations/new`}
+                />
+              ),
+            }
+          )}
+        </p>
+        <RepoLinkUl>
+          {sortedRepos.map(repo => (
+            <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
+          ))}
+        </RepoLinkUl>
+        <p>
+          {t(
+            'Without this, Autofix can still provide root analysis and suggested code changes.'
+          )}
+        </p>
+        <GuidedSteps.StepButtons />
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <p>
         {tct(
-          'Install the [link:Sentry Autofix Github App] on your Github organization or each individual repository with write permissions to enable Autofix.',
+          'Install and grant write access to the [link:Sentry Autofix Github App] for the relevant repositories.',
           {
             link: (
-              <ExternalLink href="https://github.com/apps/sentry-autofix-experimental/installations/new" />
+              <ExternalLink
+                href={`https://github.com/apps/sentry-autofix-experimental/installations/new`}
+              />
             ),
           }
         )}
       </p>
-      <p>{t(`To run Autofix on this issue, you will need to install the app on:`)}</p>
-      <RepoLinkUl>
-        {sortedRepos.map(repo => (
-          <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
-        ))}
-      </RepoLinkUl>
+      <p>
+        {t(
+          'Without this, Autofix can still provide root analysis and suggested code changes.'
+        )}
+      </p>
       <GuidedSteps.StepButtons />
     </Fragment>
   );
@@ -220,10 +251,7 @@ function AutofixCodebaseIndexingStep({
     groupId,
   });
 
-  const canIndex =
-    autofixSetup.genAIConsent.ok &&
-    autofixSetup.integration.ok &&
-    autofixSetup.githubWriteIntegration.ok;
+  const canIndex = autofixSetup.genAIConsent.ok && autofixSetup.integration.ok;
 
   return (
     <Fragment>
@@ -277,8 +305,9 @@ function AutofixSetupSteps({
       </GuidedSteps.Step>
       <GuidedSteps.Step
         stepKey="repoWriteAccess"
-        title={t('Install the Sentry Autofix App on Github')}
+        title={t('Allow Autofix to Make Pull Requests')}
         isCompleted={autofixSetup.githubWriteIntegration.ok}
+        optional
       >
         <AutofixGithubIntegrationStep autofixSetup={autofixSetup} />
       </GuidedSteps.Step>
@@ -308,7 +337,7 @@ function AutofixSetupContent({
   projectId: string;
 }) {
   const organization = useOrganization();
-  const {data, hasSuccessfulSetup, isLoading, isError} = useAutofixSetup(
+  const {data, canStartAutofix, isLoading, isError} = useAutofixSetup(
     {groupId},
     // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
@@ -338,7 +367,7 @@ function AutofixSetupContent({
     return <LoadingError message={t('Failed to fetch Autofix setup progress.')} />;
   }
 
-  if (hasSuccessfulSetup) {
+  if (canStartAutofix) {
     return (
       <AutofixSetupDone>
         <DoneIcon color="success" size="xxl" isCircled />
@@ -383,7 +412,7 @@ export function AutofixSetupModal({
   );
 }
 
-const AutofixSetupDone = styled('div')`
+export const AutofixSetupDone = styled('div')`
   position: relative;
   display: flex;
   align-items: center;

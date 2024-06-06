@@ -2873,7 +2873,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:issue-platform")
     def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue
@@ -2934,7 +2933,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:issue-platform")
     @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
     @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
     def test_snuba_type_and_category(

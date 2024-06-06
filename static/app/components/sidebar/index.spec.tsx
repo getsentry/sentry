@@ -11,6 +11,7 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization, StatuspageIncident} from 'sentry/types';
+import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
@@ -302,6 +303,8 @@ describe('Sidebar', function () {
       ConfigStore.init();
       ConfigStore.set('features', new Set([]));
       ConfigStore.set('user', user);
+
+      mockUseLocation.mockReturnValue(LocationFixture());
     });
 
     it('renders navigation', async function () {
@@ -390,6 +393,7 @@ describe('Sidebar', function () {
     });
 
     it('if Insights are on, shows links to Explore and Insights', async function () {
+      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
       renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES, 'performance-insights']);
 
       await waitFor(function () {

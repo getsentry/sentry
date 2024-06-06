@@ -499,6 +499,12 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "slack.sdk-web-client",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -878,6 +884,16 @@ register(
     default={"limit": 5, "window": 1},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "seer.similarity.circuit-breaker-config",
+    type=Dict,
+    # TODO: For now we're using the defaults for everything but `allow_passthrough`. We may want to
+    # revisit that choice in the future.
+    default={"allow_passthrough": True},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # seer nearest neighbour endpoint timeout
 register(

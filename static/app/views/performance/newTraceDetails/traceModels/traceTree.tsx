@@ -24,8 +24,8 @@ import {
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
-import {getStylingSliceName} from '../../traces/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
