@@ -1,10 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -55,6 +57,8 @@ describe('OrganizationStats', function () {
       url: endpoint,
       body: mockStatsResponse,
     });
+    ConfigStore.init();
+    ConfigStore.set('user', UserFixture());
   });
 
   afterEach(() => {
@@ -165,6 +169,15 @@ describe('OrganizationStats', function () {
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+  });
+
+  it('renders with just errors category for errors-only self-hosted', async () => {
+    ConfigStore.set('isSelfHostedErrorsOnly', true);
+    render(<OrganizationStats {...defaultProps} />, {router});
+    await userEvent.click(await screen.findByText('Category'));
+    // Shows only errors as stats category
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option', {name: 'Errors'})).toBeInTheDocument();
   });
 
   /**
