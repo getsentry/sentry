@@ -3,7 +3,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, GroupStats, TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Group, GroupStats} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 
 const MOCK_PROJECT = ProjectFixture();
@@ -160,6 +161,14 @@ describe('GroupStore', function () {
       expect(GroupStore.get('1')).toEqual(
         expect.objectContaining({id: '1', someChange: true})
       );
+    });
+  });
+
+  describe('getState()', function () {
+    it('returns a stable reference', () => {
+      GroupStore.add([g('1'), g('2')]);
+      const state = GroupStore.getState();
+      expect(Object.is(state, GroupStore.getState())).toBe(true);
     });
   });
 

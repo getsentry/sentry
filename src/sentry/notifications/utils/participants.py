@@ -222,8 +222,8 @@ def get_owners(
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
-        users = user_service.get_many(
-            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
+        users = user_service.get_many_by_id(
+            ids=list(project.member_set.values_list("user_id", flat=True))
         )
         recipients = Actor.many_from_object(users)
 
@@ -409,15 +409,13 @@ def get_fallthrough_recipients(
         return []
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
-        return user_service.get_many(
-            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
+        return user_service.get_many_by_id(
+            ids=list(project.member_set.values_list("user_id", flat=True))
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        member_users = user_service.get_many(
-            filter={
-                "user_ids": list(project.member_set.values_list("user_id", flat=True)),
-            },
+        member_users = user_service.get_many_by_id(
+            ids=list(project.member_set.values_list("user_id", flat=True)),
         )
         member_users.sort(
             key=lambda u: u.last_active.isoformat() if u.last_active else "", reverse=True
@@ -493,7 +491,7 @@ def _get_users_from_team_fall_back(
         for member in members
         if member.organizationmember.user_id is not None
     }
-    return user_service.get_many(filter={"user_ids": list(user_ids)})
+    return user_service.get_many_by_id(ids=list(user_ids))
 
 
 def combine_recipients_by_provider(

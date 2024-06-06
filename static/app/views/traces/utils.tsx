@@ -27,12 +27,27 @@ export function getStylingSliceName(
   return sliceName;
 }
 
+export function areQueriesEmpty(queries: string[]): boolean {
+  if (queries.length > 1) {
+    return false;
+  }
+  if (queries.length === 0) {
+    return true;
+  }
+
+  if (queries.length === 1) {
+    return queries[0].length === 0;
+  }
+
+  return false;
+}
+
 export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
   return span['sdk.name'];
 }
 
 export function generateTracesRoute({orgSlug}: {orgSlug: Organization['slug']}): string {
-  return `/organizations/${orgSlug}/performance/traces/`;
+  return `/organizations/${orgSlug}/traces/`;
 }
 
 export function generateTracesRouteWithQuery({
