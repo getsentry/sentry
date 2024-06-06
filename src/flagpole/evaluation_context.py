@@ -64,8 +64,12 @@ class ContextBuilder(Generic[T_CONTEXT_DATA]):
     >>> feature.match(dict())
     """
 
-    context_transformers: list[Callable[[T_CONTEXT_DATA], EvaluationContextDict]] = []
-    exception_handler: Callable[[Exception], Any] | None = None
+    context_transformers: list[Callable[[T_CONTEXT_DATA], EvaluationContextDict]]
+    exception_handler: Callable[[Exception], Any] | None
+
+    def __init__(self):
+        self.context_transformers: list[Callable[[T_CONTEXT_DATA], EvaluationContextDict]] = []
+        self.exception_handler: Callable[[Exception], Any] | None = None
 
     def add_context_transformer(
         self, context_transformer: Callable[[T_CONTEXT_DATA], EvaluationContextDict]
