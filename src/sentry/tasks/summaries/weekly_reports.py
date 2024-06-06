@@ -12,6 +12,7 @@ from typing import Any, cast
 import sentry_sdk
 from django.db.models import F
 from django.utils import dateformat, timezone
+from rb.clients import LocalClient
 from sentry_sdk import set_tag
 
 from sentry import analytics
@@ -41,7 +42,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
+from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.outcomes import Outcome
@@ -248,24 +249,10 @@ class OrganizationReportBatch:
     target_user: User | None = None
     email_override: str | None = None
 
-    def _prevent_duplicate_delivery(self) -> None:
-        from sentry.utils import redis  # TODO: Use sentry.buffer.redis instead?
-
-        cluster = redis.clusters.get("default").get_local_client_for_key("weekly_reports")
-        key = f"{self.batch_id}:{self.ctx.organization.id}"
-        count = cluster.incr(key)
-        cluster.expire(key, timedelta(days=1))
-
-        if count > 1:
-            raise Exception(f"Duplicate report delivery detected for batch {self.batch_id}")
-
     def deliver_reports(self) -> None:
         """
         For all users in the organization, we generate the template context for the user, and send the email.
         """
-
-        self._prevent_duplicate_delivery()
-
         # Specify a sentry user to send this email.
         template_context: Mapping[str, Any] | None = None
         user_id: int | None = None
@@ -311,6 +298,9 @@ class OrganizationReportBatch:
                         self.send_email(template_ctx=template_context, user_id=user_id)
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
+        delivery_record = _ReportDeliveryRecord(self, user_id)
+        delivery_record.check_delivery()
+
         message = MessageBuilder(
             subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
             template="sentry/emails/reports/body.txt",
@@ -346,6 +336,68 @@ class OrganizationReportBatch:
 
             message.add_users((user_id,))
             message.send_async()
+
+        delivery_record.record_delivery()
+
+
+@dataclass(frozen=True)
+class _ReportDeliveryRecord:
+    """Guard against duplicate deliveries."""
+
+    batch: OrganizationReportBatch
+    user_id: int
+
+    def _get_cluster(self) -> LocalClient:
+        return redis.clusters.get("default").get_local_client_for_key("weekly_reports")
+
+    @property
+    def _key(self) -> str:
+        parts = (self.batch.batch_id, self.batch.ctx.organization.id, self.user_id)
+        return ":".join(str(part) for part in parts)
+
+    @property
+    def _log_extras(self) -> dict[str, Any]:
+        return {
+            "batch_id": self.batch.batch_id,
+            "organization": self.batch.ctx.organization.id,
+            "user_id": self.user_id,
+            "has_email_override": bool(self.batch.email_override),
+        }
+
+    def check_delivery(self) -> int:
+        """Check whether the same report has already been delivered.
+
+        For now, only log an error if a duplicate is delivered in this way. When we
+        have more confidence in this approach, we can upgrade this to an exception,
+        thereby halting the `send_email` operation and preventing the duplicate send.
+        """
+
+        count = self._get_cluster().get(self._key)
+        if count:
+            logger.error("weekly_report.delivery_record.duplicate_detected", extra=self._log_extras)
+        return count
+
+    def record_delivery(self) -> int:
+        """Record the report being delivered, in case a duplicate send occurs later.
+
+        This is not done atomically with `check_delivery`, because we want to
+        interrupt a duplicate send before the email is sent but record it after it is
+        sent successfully. This leaves open the possibility of a race condition (in
+        case the same report is sent concurrently, either by in threads or different
+        nodes) but we do not think this is a likely failure mode.
+        """
+
+        cluster = self._get_cluster()
+        count = cluster.incr(self._key)
+        cluster.expire(self._key, timedelta(days=1))
+
+        if count > 1:
+            # The `cluster.incr` operation is atomic, so this should reliably detect
+            # concurrent duplicates after the fact.
+            logger.error(
+                "weekly_report.delivery_record.concurrent_detected", extra=self._log_extras
+            )
+        return count
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
