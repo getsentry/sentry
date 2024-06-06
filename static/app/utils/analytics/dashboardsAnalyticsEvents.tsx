@@ -62,6 +62,15 @@ export type DashboardsEventParameters = {
   'dashboards_views.query_selector.selected': {
     widget_type: string;
   };
+  'dashboards_views.widget.delete': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.duplicate': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.edit': {
+    widget_type: string;
+  };
   'dashboards_views.widget_library.add_widget': {
     title: string;
   };
@@ -117,6 +126,9 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':
     'Dashboards2: Query selected in Query Selector',
+  'dashboards_views.widget.edit': 'Dashboards2: dashboard widget edited',
+  'dashboards_views.widget.duplicate': 'Dashboards2: dashboard widget duplicated',
+  'dashboards_views.widget.delete': 'Dashboards2: dashboard widget deleted',
   'dashboards_views.open_in_discover.opened': 'Dashboards2: Widget Opened In Discover',
   'dashboards_views.widget_library.add_widget':
     'Dashboards2: Title of prebuilt widget added',
