@@ -55,7 +55,7 @@ import {
   normalizeTraces,
 } from './utils';
 
-const DEFAULT_PER_PAGE = 20;
+const DEFAULT_PER_PAGE = 50;
 
 export function Content() {
   const location = useLocation();
