@@ -310,6 +310,7 @@ function SearchBar(props: SearchBarProps) {
         <SmartSearchBar
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
+          projectIds={projectIds}
           onGetTagValues={getEventFieldValues}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
