@@ -700,7 +700,6 @@ def test_create_feedback_spam_detection_adds_field_calls(
         {
             "organizations:user-feedback-spam-filter-actions": True,
             "organizations:user-feedback-spam-filter-ingest": True,
-            "organizations:issue-platform": True,
             "organizations:feedback-ingest": True,
             "organizations:feedback-post-process-group": True,
         }
