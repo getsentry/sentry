@@ -161,6 +161,28 @@ class CustomRulesGetEndpoint(APITestCase):
         )
         assert resp.status_code == 204
 
+    def test_disallow_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to the first project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        response = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction environment:prod transaction:/hello",
+                "project": [self.project.id],
+            },
+        )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
 
 class CustomRulesEndpoint(APITestCase):
     """
@@ -201,6 +223,27 @@ class CustomRulesEndpoint(APITestCase):
         assert len(rules) == 1
         rule = rules[0]
         assert rule.external_rule_id == rule_id
+
+    def test_disallow_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to the first project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        request_data = {
+            "query": "event.type:transaction http.method:POST",
+            "projects": [self.project.id],
+            "period": "1h",
+        }
+        response = self.get_response(self.organization.slug, raw_data=request_data)
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_updates_existing(self):
         """
