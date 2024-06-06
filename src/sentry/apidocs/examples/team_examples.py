@@ -468,3 +468,15 @@ class TeamExamples:
             response_only=True,
         )
     ]
+
+    UPDATE_TEAM_ROLE = [
+        OpenApiExample(
+            "Update a Team Role",
+            value={
+                "isActive": True,
+                "teamRole": "admin",
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]

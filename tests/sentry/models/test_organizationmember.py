@@ -26,15 +26,20 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 class MockOrganizationRoles:
     TEST_ORG_ROLES = [
-        {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
-        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
-        {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
+        {
+            "id": "alice",
+            "name": "Alice",
+            "desc": "In Wonderland",
+            "scopes": ["project:read", "project:write"],
+        },
+        {"id": "bob", "name": "Bob", "desc": "The builder", "scopes": ["project:read"]},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?", "scopes": ["project:write"]},
     ]
 
     TEST_TEAM_ROLES = [
-        {"id": "alice", "name": "Alice"},
-        {"id": "bob", "name": "Bob"},
-        {"id": "carol", "name": "Carol"},
+        {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
+        {"id": "bob", "name": "Bob", "desc": "The builder"},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?"},
     ]
 
     def __init__(self):
@@ -513,8 +518,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_get_allowed_org_roles_to_invite_subset_logic(self):
         mock_org_roles = MockOrganizationRoles()
-        with patch("sentry.roles.organization_roles.get", mock_org_roles.get), patch(
-            "sentry.roles.organization_roles.get_all", mock_org_roles.get_all
+        with (
+            patch("sentry.roles.organization_roles.get", mock_org_roles.get),
+            patch("sentry.roles.organization_roles.get_all", mock_org_roles.get_all),
         ):
             alice = self.create_member(
                 user=self.create_user(), organization=self.organization, role="alice"
