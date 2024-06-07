@@ -245,7 +245,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_adjacent_event_ids(self, event, snuba_filter):
+    def get_adjacent_event_ids(self, event, filter):
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)
