@@ -69,10 +69,10 @@ jobs:
         with:
           base: sentry-api-schema/rpc_method_schema.json
           revision: ./rpc_method_schema.json
-          fail-on-diff: false
+          fail-on-diff: true
 
       - name: Output RPC schema differences and fail
-        if: steps.oasdiff.outputs.breaking
+        if: failure() || steps.oasdiff.outputs.breaking
         run: |
           echo ${{ steps.oasdiff.outputs.breaking }}
           exit 1
