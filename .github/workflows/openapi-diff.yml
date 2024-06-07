@@ -64,8 +64,14 @@ jobs:
 
       - name: Compare RPC schema with oasdiff
         uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
+        id: oasdiff
         if: steps.changes.outputs.api_docs == 'true'
         with:
           base: sentry-api-schema/rpc_method_schema.json
           revision: ./rpc_method_schema.json
-          fail-on-diff: true
+
+      - name: Output RPC schema differences and fail
+        if: steps.oasdiff.outputs.breaking
+        run: |
+          echo ${ steps.oasdiff.outputs.breaking }
+          exit 1
