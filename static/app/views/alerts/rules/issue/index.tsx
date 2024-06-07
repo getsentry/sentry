@@ -328,6 +328,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       if (hasHighPriorityIssueAlerts) {
         this.handleChange('conditions', [
           {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
         ]);
       } else {
         this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
