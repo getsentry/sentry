@@ -1,5 +1,5 @@
 export type InsightEventParameters = {
-  'insight.app_start.select_start_type': {filter: string};
+  'insight.app_start.select_start_type': {type: string};
   'insight.app_start.spans.filter_by_device_class': {filter: string};
   'insight.app_start.spans.filter_by_operation': {filter: string};
   'insight.app_start.spans.toggle_sample_type': {type: string};
