@@ -432,8 +432,9 @@ def lookup_group_data_stacktrace_bulk(
                     node_id_to_group_data[node_id][0],
                     node_id_to_group_data[node_id][1],
                 )
-                event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-                event.data = data
+                event = Event(
+                    event_id=event_id, project_id=project_id, group_id=group_id, data=data
+                )
                 if event and event.data and event.data.get("exception"):
                     grouping_info = get_grouping_info(None, project=project, event=event)
                     stacktrace_string = get_stacktrace_string(grouping_info)
