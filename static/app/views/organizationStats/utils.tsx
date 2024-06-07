@@ -47,7 +47,7 @@ export function formatUsageWithUnits(
     dataCategory === DATA_CATEGORY_INFO.profileDuration.plural &&
     Number.isFinite(usageQuantity)
   ) {
-    // Profile duration is in miliseconds and we want hours
+    // Profile duration is in milliseconds, convert to hours
     return (usageQuantity / 1000 / 60 / 60).toLocaleString(undefined, {
       maximumFractionDigits: 2,
     });
