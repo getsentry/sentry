@@ -375,16 +375,22 @@ const Row = styled('div')`
   display: flex;
   align-items: stretch;
   height: 24px;
+
+  &:last-child {
+    flex-grow: 1;
+  }
 `;
 
 const GridCell = styled('div')`
   display: flex;
   align-items: stretch;
   height: 100%;
+  width: 100%;
 
   input {
     padding: 0 ${space(0.5)};
     min-width: 9px;
+    width: 100%;
   }
 `;
 
