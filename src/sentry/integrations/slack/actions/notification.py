@@ -25,7 +25,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.integrations.slack.utils.options import has_slack_sdk_flag
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -175,7 +174,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             organization = event.group.project.organization
 
-            if has_slack_sdk_flag(organization.id):
+            if features.has("organizations:slack-sdk-issue-alert-action", organization):
                 sdk_client = SlackSdkClient(integration_id=integration.id)
                 text = str(payload["text"]) if payload["text"] is not None else None
                 try:
@@ -207,7 +206,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     log_params["payload"] = orjson.dumps(payload).decode()
 
                     self.logger.info(
-                        "slack.issue-alert.error",
+                        "slack.issue_alert.error",
                         extra=log_params,
                     )
                 else:
@@ -272,9 +271,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     )
 
             if (
-                features.has(
-                    "organizations:slack-thread-issue-alert", event.group.project.organization
-                )
+                features.has("organizations:slack-thread-issue-alert", organization)
                 and rule_action_uuid
                 and rule_id
             ):
@@ -313,26 +310,52 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         channel = self.get_option("channel_id")
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
+        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
         payload = {
             "text": blocks.get("text"),
-            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
+            "blocks": json_blocks,
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,
         }
-        client = SlackClient(integration_id=integration.id)
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5, log_response_with_error=True)
-        except ApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "rule_confirmation.fail.slack_post",
-                extra=log_params,
-            )
+
+        if features.has("organizations:slack-sdk-issue-alert-action", rule.project.organization):
+            sdk_client = SlackSdkClient(integration_id=integration.id)
+
+            try:
+                sdk_client.chat_postMessage(
+                    blocks=json_blocks,
+                    text=blocks.get("text"),
+                    channel=channel,
+                    unfurl_links=False,
+                    unfurl_media=False,
+                )
+            except SlackApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "slack.issue_alert.confirmation.fail",
+                    extra=log_params,
+                )
+        else:
+            client = SlackClient(integration_id=integration.id)
+            try:
+                client.post(
+                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                )
+            except ApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "rule_confirmation.fail.slack_post",
+                    extra=log_params,
+                )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()
