@@ -14,7 +14,7 @@ from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 from sentry.types.region import find_regions_for_orgs, find_regions_for_user
 from sentry.utils.env import in_test_environment
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
@@ -90,9 +90,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
 
-        assert not issubclass(
-            model, SnowflakeIdMixin
-        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+        assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models!"
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
                 cursor.execute(
@@ -273,10 +271,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
         model: type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
-
-        assert not issubclass(
-            model, SnowflakeIdMixin
-        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+        assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models"
 
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
