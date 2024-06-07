@@ -1035,3 +1035,44 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_call_next_backfill.assert_called_with(
             groups_len, self.project.id, ANY, groups_len, groups[groups_len - 1].id, False
         )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    @pytest.mark.skip("temp")
+    def test_backfill_seer_grouping_records_exclude_invalid_groups(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Add one event where the stacktrace is not used for grouping
+        event = self.store_event(
+            data={"exception": EXCEPTION, "title": "title", "fingerprint": ["2"]},
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        event.group.times_seen = 5
+        event.group.save()
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id).exclude(id=event.group.id)
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+
+        group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
+        assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
+        assert (
+            call(
+                "backfill_seer_grouping_records.invalid_group_ids",
+                extra={
+                    "project_id": self.project.id,
+                    "invalid_group_ids": json.dumps([group_no_grouping_stacktrace.id]),
+                },
+            )
+            in mock_logger.info.call_args_list
+        )

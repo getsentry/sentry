@@ -1,4 +1,3 @@
-import copy
 import logging
 import time
 from dataclasses import asdict
@@ -123,11 +122,40 @@ def backfill_seer_grouping_records(
         return
 
     last_group_id = groups_to_backfill_with_no_embedding[-1]
+
     snuba_results = get_data_from_snuba(project, groups_to_backfill_with_no_embedding)
+
+    if not snuba_results or not snuba_results[0].get("data"):
+        logger.info(
+            "tasks.backfill_seer_grouping_records.results",
+            extra={
+                "project_id": project.id,
+                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
+            },
+        )
+        return
+    snuba_results: list[GroupEventRow] = [
+        snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
+    ]
+
+    groups_to_backfill_with_no_embedding_has_snuba_row = []
+    row_group_ids = {row["group_id"] for row in snuba_results}
+    for group_id in groups_to_backfill_with_no_embedding:
+        if group_id in row_group_ids:
+            groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
+        else:
+            logger.info(
+                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                extra={
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
+                    "group_id": group_id,
+                },
+            )
 
     try:
         nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            project, snuba_results, groups_to_backfill_with_no_embedding
+            project, snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
         )
     except NoNodestoreDataError:
         call_next_backfill(
@@ -141,7 +169,7 @@ def backfill_seer_grouping_records(
         return
 
     seer_response = send_group_and_stacktrace_to_seer(
-        project, groups_to_backfill_with_no_embedding, nodestore_results
+        project, groups_to_backfill_with_no_embedding_has_snuba_row, nodestore_results
     )
     if not seer_response.get("success"):
         logger.info(
@@ -151,7 +179,11 @@ def backfill_seer_grouping_records(
         return
 
     update_groups(
-        project, seer_response, groups_to_backfill_with_no_embedding, group_hashes_dict, dry_run
+        project,
+        seer_response,
+        groups_to_backfill_with_no_embedding_has_snuba_row,
+        group_hashes_dict,
+        dry_run,
     )
 
     logger.info(
@@ -301,45 +333,24 @@ def get_data_from_snuba(project, group_id_batch_filtered):
 
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
-    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
-    if snuba_results and snuba_results[0].get("data"):
-        rows: list[GroupEventRow] = [
-            snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
-        ]
+    nodestore_data = lookup_group_data_stacktrace_bulk_with_fallback(project, snuba_results)
 
-        # Log if any group does not have any events in snuba and skip it
-        if len(rows) != len(group_id_batch_filtered):
-            row_group_ids = {row["group_id"] for row in rows}
-            for group_id in group_id_batch_all:
-                if group_id not in row_group_ids:
-                    logger.info(
-                        "tasks.backfill_seer_grouping_records.no_snuba_event",
-                        extra={
-                            "organization_id": project.organization.id,
-                            "project_id": project.id,
-                            "group_id": group_id,
-                        },
-                    )
-                    group_id_batch_filtered.remove(group_id)
+    # If nodestore returns no data
+    if nodestore_data["data"] == [] and nodestore_data["stacktrace_list"] == []:
+        logger.info(
+            "tasks.backfill_seer_grouping_records.no_data",
+            extra={
+                "project_id": project.id,
+                "group_id_batch": json.dumps(group_id_batch_filtered),
+            },
+        )
+        raise NoNodestoreDataError("No data found in nodestore")
 
-        nodestore_data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
-
-        # If nodestore returns no data
-        if nodestore_data["data"] == [] and nodestore_data["stacktrace_list"] == []:
-            logger.info(
-                "tasks.backfill_seer_grouping_records.no_data",
-                extra={
-                    "project_id": project.id,
-                    "group_id_batch": json.dumps(group_id_batch_filtered),
-                },
-            )
-            raise NoNodestoreDataError("No data found in nodestore")
-
-        group_hashes_dict = {
-            group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
-            for group_stacktrace_data in nodestore_data["data"]
-        }
-        return nodestore_data, group_hashes_dict
+    group_hashes_dict = {
+        group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
+        for group_stacktrace_data in nodestore_data["data"]
+    }
+    return nodestore_data, group_hashes_dict
 
 
 @sentry_sdk.tracing.trace
