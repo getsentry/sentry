@@ -122,8 +122,8 @@ describe('Screen Summary', function () {
       });
 
       const blocks = [
-        {header: 'Cold Start (R1)', value: '1.00s'},
-        {header: 'Cold Start (R2)', value: '2.00s'},
+        {header: 'Avg Cold Start (R1)', value: '1.00s'},
+        {header: 'Avg Cold Start (R2)', value: '2.00s'},
         {header: 'Change', value: '-50%'},
         {header: 'Count', value: '20'},
       ];
