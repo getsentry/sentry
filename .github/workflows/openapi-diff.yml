@@ -72,6 +72,7 @@ jobs:
           fail-on-diff: false
 
       - name: Output RPC schema differences and fail
-        if: failure()
+        if: steps.oasdiff.outputs.breaking
         run: |
           echo ${{ steps.oasdiff.outputs.breaking }}
+          exit 1
