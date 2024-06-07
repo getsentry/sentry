@@ -6,6 +6,8 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.base import disable_integration, is_response_error, is_response_success
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
@@ -14,6 +16,8 @@ from sentry.utils import metrics
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 logger = logging.getLogger(__name__)
+
+SLACK_SDK_WRAP_METHODS = {"chat_postMessage"}
 
 
 def track_response_data(response: SlackResponse, method: str, error: str | None = None) -> None:
@@ -35,16 +39,43 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
     logger.info("integration.http_response", extra=extra)
 
 
-def wrapper(method: FunctionType):
+def is_response_fatal(response: SlackResponse) -> bool:
+    if not response.get("ok"):
+        if "account_inactive" == response.get("error", ""):
+            return True
+    return False
+
+
+def record_response_for_disabling_integration(response: SlackResponse, integration_id: int) -> None:
+    redis_key = f"sentry-integration-error:{integration_id}"
+
+    buffer = IntegrationRequestBuffer(redis_key)
+    if is_response_fatal(response):
+        buffer.record_fatal()
+    else:
+        if is_response_success(response):
+            buffer.record_success()
+            return
+        if is_response_error(response):
+            buffer.record_error()
+    if buffer.is_integration_broken():
+        disable_integration(buffer, redis_key, integration_id)
+
+
+def wrapper(method: FunctionType, integration_id):
     @wraps(method)
     def wrapped(*args, **kwargs):
+        if method.__name__ not in SLACK_SDK_WRAP_METHODS:
+            return method(*args, **kwargs)
+
         try:
             response = method(*args, **kwargs)
-            if isinstance(response, SlackResponse):
-                track_response_data(response=response, method=method.__name__)
+            track_response_data(response=response, method=method.__name__)
         except SlackApiError as e:
             if e.response:
                 track_response_data(response=e.response, error=str(e), method=method.__name__)
+
+                record_response_for_disabling_integration(e.response, integration_id)
             else:
                 logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
             raise
@@ -54,27 +85,26 @@ def wrapper(method: FunctionType):
     return wrapped
 
 
-def wrap_methods_in_class(cls):
+def wrap_methods_in_class(cls, integration_id):
     for name, attribute in vars(cls).items():
         if isinstance(attribute, FunctionType):
-            setattr(cls, name, wrapper(attribute))
+            setattr(cls, name, wrapper(attribute, integration_id))
 
     for base in cls.__bases__:
-        wrap_methods_in_class(base)
+        wrap_methods_in_class(base, integration_id)
 
 
 class MetaClass(type):
-    def __new__(meta, name, bases, dct):
-        cls = super().__new__(meta, name, bases, dct)
-        wrap_methods_in_class(cls)
-        return cls
-
-    def __init__(cls, name, bases, dct):
-        super().__init__(name, bases, dct)
+    def __call__(cls, *args, **kwargs):
+        obj = super().__call__(*args, **kwargs)
+        wrap_methods_in_class(cls, obj.integration_id)
+        return obj
 
 
 class SlackSdkClient(WebClient, metaclass=MetaClass):
     def __init__(self, integration_id: int):
+        self.integration_id = integration_id
+
         integration = None
         if SiloMode.get_current_mode() == SiloMode.REGION:
             integration = integration_service.get_integration(integration_id=integration_id)
