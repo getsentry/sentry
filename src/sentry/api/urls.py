@@ -1557,7 +1557,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-trace-meta",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/spans-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationSpansTraceEndpoint.as_view(),
         name="sentry-api-0-organization-spans-trace",
     ),
