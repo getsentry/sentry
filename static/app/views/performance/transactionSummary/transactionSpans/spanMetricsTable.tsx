@@ -54,7 +54,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: SpanMetricsField.SPAN_DESCRIPTION,
-    name: t('Span Name'),
+    name: t('Span Description'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
