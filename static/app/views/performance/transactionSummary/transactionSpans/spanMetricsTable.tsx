@@ -200,6 +200,10 @@ function renderBodyCell(
     }
 
     if (column.key === SpanMetricsField.SPAN_DESCRIPTION) {
+      if (!dataRow['span.group']) {
+        return '\u2014';
+      }
+
       const target = spanDetailsRouteWithQuery({
         orgSlug: organization.slug,
         transaction: transactionName,
@@ -210,7 +214,7 @@ function renderBodyCell(
 
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key] || '\u2014'}</Link>
+          <Link to={target}>{dataRow[column.key]}</Link>
         </TableCellContainer>
       );
     }
