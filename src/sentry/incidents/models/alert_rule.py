@@ -497,6 +497,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
+    description = models.CharField(max_length=1000, null=True)
 
     class Meta:
         app_label = "sentry"
