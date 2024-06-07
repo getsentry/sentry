@@ -225,15 +225,17 @@ class SlackRequest:
         if not (signature and timestamp):
             return False
 
+        log_extra = {
+            "organization_id": self._organization.id if self._organization else None,
+            "integration_id": self._integration.id if self._integration else None,
+        }
+
         if self._organization and features.has(
             "organizations:slack-sdk-signature", self._organization
         ):
             logger.info(
                 "slack.request.verify_signature",
-                extra={
-                    "organization_id": self._organization.id,
-                    "integration_id": self._integration.id if self._integration else None,
-                },
+                extra=log_extra,
             )
             return SignatureVerifier(signing_secret).is_valid(
                 body=self.request.body, timestamp=timestamp, signature=signature
@@ -241,10 +243,7 @@ class SlackRequest:
 
         logger.info(
             "slack.request.check_signing_secret",
-            extra={
-                "organization_id": self._organization.id if self._organization else None,
-                "integration_id": self._integration.id if self._integration else None,
-            },
+            extra=log_extra,
         )
 
         return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
