@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -330,7 +330,7 @@ class ReleaseHealthBackend(Service):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Sequence[EnvironmentName] | None = None,
+        environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
         """
         Get the sessions time bounds in terms of when the first session started and
