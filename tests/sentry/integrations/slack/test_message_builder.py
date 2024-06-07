@@ -21,7 +21,7 @@ from sentry.integrations.slack.message_builder.issues import (
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.integrations.time_utils import time_since
+from sentry.integrations.slack.message_builder.time_utils import time_since
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
