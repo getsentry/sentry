@@ -111,7 +111,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [self._budget_key(platform, project_id, ts) for ts in buckets]
-        member_key = f"{MEMBER_KEY_PREFIX}:{project_id}"
+        member_key = f"{MEMBER_KEY_PREFIX}:{platform}:{project_id}"
         keys.insert(0, member_key)
         results = self.cluster.mget(keys)
         is_lpq = results[0]
