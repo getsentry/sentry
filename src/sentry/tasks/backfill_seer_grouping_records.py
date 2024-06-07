@@ -220,6 +220,18 @@ def backfill_seer_grouping_records(
                     group_id_batch_filtered.remove(group_id)
 
         data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
+        groups_batch_filtered_valid = Group.objects.filter(
+            project_id=project.id,
+            id__in=[group_stacktrace_data["group_id"] for group_stacktrace_data in data["data"]],
+        )
+        group_ids_batch_filtered_valid = [group.id for group in groups_batch_filtered_valid]
+        logger.info(
+            "tasks.backfill_seer_grouping_records.group_ids_batch_filtered_valid",
+            extra={
+                "project_id": project.id,
+                "group_ids_batch_filtered_valid": json.dumps(group_ids_batch_filtered_valid),
+            },
+        )
 
         # If nodestore returns no data
         if data["data"] == [] and data["stacktrace_list"] == []:
@@ -248,7 +260,7 @@ def backfill_seer_grouping_records(
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
-                    group_id_list=group_id_batch_filtered,
+                    group_id_list=group_ids_batch_filtered_valid,
                     data=data["data"],
                     stacktrace_list=data["stacktrace_list"],
                 )
@@ -256,8 +268,7 @@ def backfill_seer_grouping_records(
 
         if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
-            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
-            for group in groups:
+            for group in groups_batch_filtered_valid:
                 seer_similarity: dict[str, Any] = {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": group_hashes_dict[group.id],
@@ -299,7 +310,7 @@ def backfill_seer_grouping_records(
                         group.data["metadata"] = {"seer_similarity": seer_similarity}
 
             if not dry_run:
-                num_updated = Group.objects.bulk_update(groups, ["data"])
+                num_updated = Group.objects.bulk_update(groups_batch_filtered_valid, ["data"])
                 logger.info(
                     "backfill_seer_grouping_records.bulk_update",
                     extra={"project_id": project.id, "num_updated": num_updated},
@@ -424,7 +435,7 @@ def lookup_group_data_stacktrace_bulk(
     group_data = []
     stacktrace_strings = []
     bulk_event_ids = set()
-    invalid_event_ids = set()
+    invalid_event_ids, invalid_event_group_ids = set(), set()
     with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
         for node_id, data in bulk_data.items():
             if node_id in node_id_to_group_data:
@@ -440,10 +451,12 @@ def lookup_group_data_stacktrace_bulk(
                     stacktrace_string = get_stacktrace_string(grouping_info)
                     if stacktrace_string == "":
                         invalid_event_ids.add(event_id)
+                        invalid_event_group_ids.add(group_id)
                         continue
                     primary_hash = event.get_primary_hash()
                     if not primary_hash:
                         invalid_event_ids.add(event_id)
+                        invalid_event_group_ids.add(group_id)
                         continue
 
                     group_data.append(
@@ -458,11 +471,21 @@ def lookup_group_data_stacktrace_bulk(
                     bulk_event_ids.add(event_id)
                 else:
                     invalid_event_ids.add(event_id)
+                    invalid_event_group_ids.add(group_id)
 
     metrics.gauge(
         f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
         round(len(bulk_data.items()) / len(rows)) * 100,
         sample_rate=1.0,
+    )
+
+    # Log if any groups were filtered out because they were invalid (no stacktrace, grouping info, hash)
+    logger.info(
+        "backfill_seer_grouping_records.invalid_group_ids",
+        extra={
+            "project_id": project_id,
+            "invalid_group_ids": json.dumps(invalid_event_group_ids),
+        },
     )
 
     return (
